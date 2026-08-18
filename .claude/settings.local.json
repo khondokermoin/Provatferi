@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm -v)",
+      "Bash(php -v)",
+      "Bash(where wp *)",
+      "Bash(where mysql *)",
+      "Read(//c/xampp/mysql/bin/**)",
+      "Read(//c/xampp/php/**)",
+      "Bash(tasklist)",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root -e \"SELECT VERSION\\(\\);\")",
+      "Bash(\"/c/xampp/mysql/bin/mysql.exe\" -u root -e \"CREATE DATABASE IF NOT EXISTS provatferi_cms CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; SHOW DATABASES;\")",
+      "Bash(mkdir -p \"/c/xampp/htdocs/project/cms\")",
+      "Bash(curl -sO https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar)",
+      "Bash(\"/c/xampp/php/php.exe\" wp-cli.phar --info)",
+      "Bash(\"/c/xampp/php/php.exe\" wp-cli.phar core download --locale=en_US)",
+      "Bash(ls -la \"/c/Windows/System32/tar.exe\" 2>&1; echo \"PATH=$PATH\")",
+      "Read(//c/Windows/System32/**)",
+      "Bash(tar --version)",
+      "Bash(rm -f wp-cli.phar-backup)",
+      "Bash(curl -sL -o wordpress.zip https://wordpress.org/latest.zip)",
+      "Bash(unzip -q wordpress.zip)",
+      "Bash(mv wordpress/* wordpress/.[!.]* .)",
+      "Bash(rmdir wordpress *)",
+      "Bash(rm -f wordpress.zip)",
+      "Bash(\"/c/xampp/php/php.exe\" wp-cli.phar config create --dbname=provatferi_cms --dbuser=root --dbpass=\"\" --dbhost=localhost --allow-root)",
+      "Bash(/c/xampp/php/php.exe wp-cli.phar core install --url=http://localhost/project/cms '--title=Provatferi CMS' --admin_user=admin --admin_password=ProvatferiAdmin!2026 --admin_email=khondokermoin2k23@gmail.com --skip-email --allow-root)",
+      "Bash(\"/c/xampp/php/php.exe\" wp-cli.phar rewrite structure '/%postname%/' --allow-root)",
+      "Bash(\"/c/xampp/php/php.exe\" wp-cli.phar rewrite flush --allow-root)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" \"http://localhost/project/cms/wp-json/wp/v2/posts\")",
+      "Bash(curl -s \"http://localhost/project/cms/wp-json/wp/v2/posts\")",
+      "Bash(curl -s -o /dev/null -w \"wp-admin HTTP %{http_code}\\\\n\" \"http://localhost/project/cms/wp-admin/\")",
+      "Read(//c/xampp/apache/conf/**)",
+      "Bash(npm install *)",
+      "Bash(npx --yes next build)"
+    ]
+  }
+}
