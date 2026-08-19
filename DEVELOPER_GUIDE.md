@@ -25,7 +25,7 @@
 ```
                      ┌───────────────────────────────────────┐
                      │   WordPress (Headless CMS)             │
-                     │   admin.provatferi.westernwatchbd.com  │
+                     │   admin-provatferi.westernwatchbd.com  │
                      │   - শুধু Admin/API এর জন্য               │
                      │   - REST API সোর্স                       │
                      └─────────────────┬───────────────────────┘
@@ -43,19 +43,19 @@
                                 End User (Browser)
 ```
 
-- **`admin.provatferi.westernwatchbd.com`** (subdomain) → WordPress backend, শুধু কনটেন্ট এডিট/অ্যাডমিন কাজের জন্য ব্যবহৃত হবে, পাবলিক ইউজার এখানে ভিজিট করবে না।
+- **`admin-provatferi.westernwatchbd.com`** (subdomain) → WordPress backend, শুধু কনটেন্ট এডিট/অ্যাডমিন কাজের জন্য ব্যবহৃত হবে, পাবলিক ইউজার এখানে ভিজিট করবে না।
 - **`provatferi.westernwatchbd.com`** (main subdomain) → Next.js ফ্রন্টএন্ড, এটাই পাবলিক-facing সাইট।
 
 > **নোট:** Hostinger hPanel-এ প্রতিটা subdomain তৈরির সময় "How do you want to build your website?" স্ক্রিনে একটাই টাইপ বেছে নেওয়া যায় — WordPress এবং Node.js একসাথে একই subdomain/ফোল্ডারে কাজ করে না (আলাদা request-handling mechanism)। তাই দুটো subdomain আলাদাভাবে সেটআপ হবে:
 > - `provatferi.westernwatchbd.com` → **"Node.js web app"** সিলেক্ট করতে হবে
-> - `admin.provatferi.westernwatchbd.com` → **"WordPress + AI"** সিলেক্ট করতে হবে (AI builder ধাপ স্কিপ করে ব্ল্যাঙ্ক/স্ট্যান্ডার্ড WordPress ইনস্টল নিলেই চলবে, headless ব্যবহারে AI টেমপ্লেটিং দরকার নেই)
+> - `admin-provatferi.westernwatchbd.com` → **"WordPress + AI"** সিলেক্ট করতে হবে (AI builder ধাপ স্কিপ করে ব্ল্যাঙ্ক/স্ট্যান্ডার্ড WordPress ইনস্টল নিলেই চলবে, headless ব্যবহারে AI টেমপ্লেটিং দরকার নেই)
 
 ---
 
 ## ৩. WordPress ব্যাকএন্ড সেটআপ
 
 ### ৩.১ ইনস্টলেশন
-- hPanel-এ `admin.provatferi.westernwatchbd.com` নামে নতুন subdomain তৈরি করে "WordPress + AI" অপশন দিয়ে সেখানে WordPress ইনস্টল করতে হবে।
+- hPanel-এ `admin-provatferi.westernwatchbd.com` নামে নতুন subdomain তৈরি করে "WordPress + AI" অপশন দিয়ে সেখানে WordPress ইনস্টল করতে হবে।
 - Permalinks সেট করতে হবে **Settings → Permalinks → Post name** (এটা REST API endpoint properly কাজ করার জন্য জরুরি)।
 
 ### ৩.২ Headless কনফিগারেশন
@@ -83,7 +83,7 @@
 স্ট্যান্ডার্ড WordPress taxonomy (Category/Tag) ব্যবহার করাই যথেষ্ট — এখন কোনো কাস্টম taxonomy দরকার নেই।
 
 ### ৩.৫ CORS কনফিগারেশন
-Next.js (`provatferi.westernwatchbd.com`) থেকে WordPress REST API (`admin.provatferi.westernwatchbd.com`)-তে ক্রস-ডোমেইন রিকোয়েস্ট যাবে, তাই CORS হেডার এলাউ করতে হবে। থিমের `functions.php`-এ (বা একটা ছোট must-use plugin আকারে) নিচের মতো কোড যোগ করতে হবে:
+Next.js (`provatferi.westernwatchbd.com`) থেকে WordPress REST API (`admin-provatferi.westernwatchbd.com`)-তে ক্রস-ডোমেইন রিকোয়েস্ট যাবে, তাই CORS হেডার এলাউ করতে হবে। থিমের `functions.php`-এ (বা একটা ছোট must-use plugin আকারে) নিচের মতো কোড যোগ করতে হবে:
 
 ```php
 add_action('rest_api_init', function () {
@@ -111,7 +111,7 @@ add_action('rest_api_init', function () {
 
 **Tip:** `_embed=true` প্যারামিটার ব্যবহার করলে featured image, author info, এবং taxonomy terms একসাথে একটা রিকোয়েস্টেই চলে আসে — আলাদা করে multiple request করা লাগবে না। উদাহরণ:
 ```
-GET https://admin.provatferi.westernwatchbd.com/wp-json/wp/v2/posts?_embed&per_page=10
+GET https://admin-provatferi.westernwatchbd.com/wp-json/wp/v2/posts?_embed&per_page=10
 ```
 
 ### ৪.২ Next.js সাইডে API Client
@@ -124,7 +124,7 @@ GET https://admin.provatferi.westernwatchbd.com/wp-json/wp/v2/posts?_embed&per_p
 
 Base URL env variable থেকে আসবে:
 ```
-NEXT_PUBLIC_WP_API_URL=https://admin.provatferi.westernwatchbd.com/wp-json/wp/v2
+NEXT_PUBLIC_WP_API_URL=https://admin-provatferi.westernwatchbd.com/wp-json/wp/v2
 ```
 (যদি ভবিষ্যতে JWT auth-সহ কোনো server-only sensitive কল লাগে, সেটার জন্য আলাদা non-public env var ব্যবহার হবে।)
 
@@ -165,8 +165,8 @@ NEXT_PUBLIC_WP_API_URL=https://admin.provatferi.westernwatchbd.com/wp-json/wp/v2
 ## ৬. Hostinger Deployment
 
 ### ৬.১ WordPress
-- `admin.provatferi.westernwatchbd.com` সাবডোমেইনে "WordPress + AI" অপশন দিয়ে standard install (উপরে ৩.১ দ্রষ্টব্য)।
-- এই সাবডোমেইনের document root হবে hPanel নিজে থেকেই বানিয়ে দেওয়া আলাদা ফোল্ডার (যেমন `public_html/admin.provatferi.westernwatchbd.com`) — এটা মূল `provatferi` ফোল্ডার থেকে সম্পূর্ণ আলাদা থাকবে।
+- `admin-provatferi.westernwatchbd.com` সাবডোমেইনে "WordPress + AI" অপশন দিয়ে standard install (উপরে ৩.১ দ্রষ্টব্য)।
+- এই সাবডোমেইনের document root হবে hPanel নিজে থেকেই বানিয়ে দেওয়া আলাদা ফোল্ডার (যেমন `public_html/admin-provatferi.westernwatchbd.com`) — এটা মূল `provatferi` ফোল্ডার থেকে সম্পূর্ণ আলাদা থাকবে।
 
 ### ৬.২ Next.js (Node.js App)
 - `provatferi.westernwatchbd.com` সাবডোমেইন তৈরি/এডিট করার সময় **"Node.js web app"** অপশন সিলেক্ট করতে হবে (Hostinger-এর "How do you want to build your website?" স্ক্রিন থেকে)।
@@ -183,14 +183,14 @@ NEXT_PUBLIC_WP_API_URL=https://admin.provatferi.westernwatchbd.com/wp-json/wp/v2
 5. Node.js app restart করা (hPanel থেকে) যাতে নতুন build লাইভ হয়।
 
 ### ৬.৪ SSL
-Hostinger-এর Free SSL (Let's Encrypt) দুটো সাবডোমেইনেই (`provatferi.westernwatchbd.com` ও `admin.provatferi.westernwatchbd.com`) এনাবল করতে হবে।
+Hostinger-এর Free SSL (Let's Encrypt) দুটো সাবডোমেইনেই (`provatferi.westernwatchbd.com` ও `admin-provatferi.westernwatchbd.com`) এনাবল করতে হবে।
 
 ---
 
 ## ৭. ধাপে ধাপে করণীয় (Checklist)
 
 - [ ] **Step 1** — Hostinger hosting plan-এ Node.js app সাপোর্ট আছে কিনা কনফার্ম করা, না থাকলে upgrade করা
-- [ ] **Step 2** — `admin.provatferi.westernwatchbd.com` সাবডোমেইন তৈরি করে "WordPress + AI" অপশনে WordPress ইনস্টল করা
+- [ ] **Step 2** — `admin-provatferi.westernwatchbd.com` সাবডোমেইন তৈরি করে "WordPress + AI" অপশনে WordPress ইনস্টল করা
 - [ ] **Step 3** — Headless কনফিগারেশন (permalink, redirect) + প্রয়োজনীয় plugins ইনস্টল ও CORS সেটআপ
 - [ ] **Step 4** — Local-এ Next.js প্রজেক্ট ইনিশিয়ালাইজ করা, `wp-api.ts` বানিয়ে WordPress REST API-এর সাথে কানেকশন টেস্ট করা
 - [ ] **Step 5** — বেসিক পেজগুলো (হোম, আর্টিকেল, ক্যাটাগরি, অথর) স্ট্যাটিক/ডামি ডেটা দিয়ে বানিয়ে পরে real WP ডেটা কানেক্ট করা
