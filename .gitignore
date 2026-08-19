@@ -1,0 +1,4 @@
+# Local-only mirror of the live Hostinger docroot — contains real DB
+# credentials in wp-config.php. Never commit this; it's not part of the
+# versioned project (see README.md).
+public_html/
