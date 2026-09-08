@@ -1,0 +1,274 @@
+/*
+ * Provatferi admin brand layer.
+ *
+ * Loaded AFTER Zircos app.min.css and overrides its --ct-* tokens rather than
+ * restyling components one by one, so template updates stay drop-in.
+ *
+ * Palette source of truth: COLOR_AND_LOGO_GUIDELINES.md. Orange/red/yellow is
+ * the identity; it is used sparingly here (primary action, active nav, focus)
+ * so the panel reads institutional rather than commercial.
+ */
+
+/*
+ * Smooth light/dark fade for the whole panel (cards, sidebar, topbar, text)
+ * instead of an instant swap. Zircos's own reduced-motion handling only
+ * covers form controls, so this guards itself rather than relying on it.
+ * Element-specific transitions (e.g. Zircos's sidebar collapse) still win via
+ * normal specificity, since this only targets colour/border/fill properties.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  *, *::before, *::after {
+    transition: background-color 220ms ease, border-color 220ms ease, color 220ms ease, fill 220ms ease, stroke 220ms ease;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+  }
+}
+
+:root,
+[data-bs-theme="light"] {
+  --ct-primary: #ff5f1f;
+  --ct-primary-rgb: 255, 95, 31;
+  --ct-primary-text-emphasis: #ac350a;
+  --ct-primary-bg-subtle: #fff1ea;
+  --ct-primary-border-subtle: #ffc9ae;
+
+  --ct-link-color: #ac350a;
+  --ct-link-hover-color: #8c2b08;
+
+  --pf-brand-ink: #201b17;
+  --pf-trust-green: #1f7a4d;
+}
+
+/*
+ * Deep charcoal, deliberately not the template's near-black (#17181e), and
+ * aligned with the public site's dark tokens so the two properties match.
+ */
+[data-bs-theme="dark"] {
+  --ct-body-bg: #1b1e22;
+  --ct-body-bg-rgb: 27, 30, 34;
+  --ct-secondary-bg: #24282e;
+  --ct-tertiary-bg: #262a30;
+
+  --ct-menu-bg: #1e2228;
+  --ct-menu-item-color: #a6b0bd;
+  --ct-menu-item-hover-color: #ffd9c6;
+  --ct-menu-item-hover-bg: #262b32;
+  --ct-menu-item-active-color: #ffae83;
+  --ct-menu-item-active-bg: #262b32;
+
+  --ct-topbar-bg: #24282e;
+  --ct-topbar-item-color: #a6b0bd;
+  --ct-topbar-item-hover-color: #ffd9c6;
+  --ct-topbar-search-bg: #1e2228;
+  --ct-topbar-user-bg: #1e2228;
+  --ct-topbar-user-border: #333a42;
+
+  --ct-primary-text-emphasis: #ffae83;
+  --ct-link-color: #ffae83;
+  --ct-link-hover-color: #ffc7ab;
+
+  --pf-brand-ink: #201b17;
+}
+
+[data-bs-theme="dark"] .card,
+[data-bs-theme="dark"] .app-topbar .topbar-menu {
+  --ct-card-bg: #262a30;
+}
+
+body {
+  font-family: "Noto Sans Bengali", "Open Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/*
+ * White on #ff5f1f is only 3.04:1 — below AA for normal text. The official
+ * pairing is dark ink on orange (5.61:1). Applies to hover/active/disabled too,
+ * or the label would flip to white on press.
+ */
+.btn-primary,
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active,
+.btn-primary.active,
+.btn-primary:disabled,
+.btn-primary.disabled {
+  --ct-btn-color: var(--pf-brand-ink);
+  --ct-btn-hover-color: var(--pf-brand-ink);
+  --ct-btn-active-color: var(--pf-brand-ink);
+  --ct-btn-disabled-color: var(--pf-brand-ink);
+  --ct-btn-bg: #ff5f1f;
+  --ct-btn-hover-bg: #ff783f;
+  --ct-btn-active-bg: #e9530f;
+  --ct-btn-border-color: #ff5f1f;
+  --ct-btn-hover-border-color: #ff783f;
+  --ct-btn-active-border-color: #e9530f;
+  --ct-btn-disabled-bg: #ffb190;
+  --ct-btn-disabled-border-color: #ffb190;
+  font-weight: 600;
+}
+
+/* Same problem on badges/labels that sit on the orange fill. */
+.badge.bg-primary,
+.text-bg-primary {
+  color: var(--pf-brand-ink) !important;
+}
+
+/*
+ * Requirement: focus must always be visible for keyboard users.
+ *
+ * `!important` and the longhands are both load-bearing, not laziness.
+ * Zircos ships `a,button{outline:0!important}` in app.min.css, which
+ * silently defeated this rule for every link and button in the panel — i.e.
+ * for almost every focusable control, while inputs kept their ring. Verified
+ * 2026-09-08 by screenshotting a keyboard-focused sidebar link before and
+ * after (design-review/admin-qa-2026-09-08/): before, no ring rendered at
+ * all. Note getComputedStyle() misreports outline-width as 0px here even
+ * when the ring paints, so trust the pixels, not the computed value.
+ * Only :focus-visible is targeted, so mouse clicks still show no ring.
+ */
+:focus-visible,
+.btn:focus-visible,
+.form-control:focus-visible,
+.form-select:focus-visible,
+.side-nav-link:focus-visible,
+.topbar-link:focus-visible,
+.dropdown-item:focus-visible,
+a:focus-visible,
+button:focus-visible {
+  /*
+   * Longhands, not the `outline:` shorthand. A shorthand containing var()
+   * resolves as a pending-substitution value, which loses to Zircos's
+   * concrete `outline-width:0px!important` longhand even at higher
+   * specificity. Written out, each longhand wins the cascade normally.
+   */
+  outline-width: 3px !important;
+  outline-style: solid !important;
+  outline-color: var(--ct-primary) !important;
+  outline-offset: 2px !important;
+  box-shadow: none;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--ct-primary);
+  box-shadow: 0 0 0 0.15rem rgba(255, 95, 31, 0.2);
+}
+
+/* ---------- Brand logo, theme-aware ---------- */
+/*
+ * .pf-logo-for-light holds the official light-mode asset (dark glyph, for
+ * light surfaces); .pf-logo-for-dark holds the official dark-mode asset.
+ * Only one is ever displayed — never toggled with opacity, per the brand rules.
+ */
+.pf-logo img {
+  height: 30px;
+  width: auto;
+  display: block;
+}
+.pf-logo .pf-logo-icon img {
+  height: 30px;
+}
+
+/*
+ * Zircos sizes its own small wordmark to a 30px-tall strip, which rendered the
+ * Provatferi mark at only 66px wide — well under the ~190px the brand guide
+ * specifies for a header, and flush against the sidebar corner. Size by width
+ * instead and add the required clear space around it.
+ */
+.sidenav-menu .pf-logo {
+  height: auto;
+  padding: 18px 22px 16px;
+}
+.sidenav-menu .pf-logo img {
+  height: auto;
+  width: 170px;
+  max-width: 100%;
+}
+.sidenav-menu .pf-logo .pf-logo-icon img {
+  width: 38px;
+}
+/* Topbar mark (shown when the sidebar is hidden) keeps the compact icon. */
+.app-topbar .pf-logo img {
+  height: 34px;
+  width: auto;
+}
+[data-bs-theme="light"] .pf-logo-for-dark,
+[data-bs-theme="dark"] .pf-logo-for-light {
+  display: none;
+}
+
+/* Condensed sidebar shows the icon mark only. */
+.pf-logo-icon {
+  display: none;
+}
+[data-sidenav-size="condensed"] .sidenav-menu .pf-logo-full {
+  display: none;
+}
+[data-sidenav-size="condensed"] .sidenav-menu .pf-logo-icon {
+  display: block;
+}
+
+/* ---------- Institutional tone adjustments ---------- */
+.page-title-head h4 {
+  letter-spacing: -0.01em;
+}
+
+.card {
+  box-shadow: none;
+  border: 1px solid var(--ct-border-color);
+}
+
+.side-nav-link {
+  font-weight: 500;
+}
+
+/* Active nav gets a solid brand edge, not just colour — see "no colour-only" rule. */
+.side-nav-item > .side-nav-link.active,
+.side-nav-item > .side-nav-link[aria-current="page"] {
+  border-left: 3px solid var(--ct-primary);
+  font-weight: 600;
+}
+
+.pf-stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.pf-required {
+  color: var(--ct-danger);
+  margin-left: 2px;
+}
+
+/* Mobile table fallback: real table on desktop, stacked rows on small screens. */
+@media (max-width: 767.98px) {
+  .pf-table-stack thead {
+    display: none;
+  }
+  .pf-table-stack tbody tr {
+    display: block;
+    border: 1px solid var(--ct-border-color);
+    border-radius: 0.5rem;
+    padding: 0.75rem 0.9rem;
+    margin-bottom: 0.75rem;
+  }
+  .pf-table-stack tbody td {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 0;
+    padding: 0.3rem 0;
+    text-align: right;
+  }
+  .pf-table-stack tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--ct-secondary-color);
+    text-align: left;
+  }
+  .pf-table-stack tbody td:last-child {
+    padding-top: 0.6rem;
+  }
+}
