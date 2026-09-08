@@ -1,0 +1,181 @@
+{
+  "overflow": [],
+  "consoleErrors": [],
+  "notes": [
+    {
+      "check": "mobile-menu-open",
+      "navHasIsOpen": true,
+      "ariaExpanded": "true"
+    },
+    {
+      "check": "mobile-about-group-expand",
+      "ariaExpanded": "true",
+      "visible": true,
+      "childLinks": 5
+    },
+    {
+      "check": "escape-closes-mobile-menu",
+      "closed": true
+    },
+    {
+      "check": "desktop-activities-dropdown",
+      "ariaExpanded": "true",
+      "visible": true,
+      "links": [
+        "সকল কার্যক্রম",
+        "সাহিত্য ও পাঠাভ্যাস",
+        "সাংস্কৃতিক কার্যক্রম",
+        "সামাজিক সচেতনতা",
+        "মানবিক কার্যক্রম"
+      ],
+      "top": 214.328125,
+      "left": 275.21875,
+      "right": 505.21875,
+      "viewportWidth": 1366
+    },
+    {
+      "check": "desktop-click-outside-closes",
+      "ariaExpanded": "false"
+    },
+    {
+      "check": "activity-detail-keeps-activities-active",
+      "ariaCurrent": "true"
+    },
+    {
+      "check": "activities-category-deep-link",
+      "activeChipText": "সাহিত্য ও পাঠাভ্যাস",
+      "hasEmptyState": true
+    },
+    {
+      "check": "footer-columns-at-320",
+      "cols": [
+        {
+          "top": 3801,
+          "left": 16,
+          "width": 288
+        },
+        {
+          "top": 4006,
+          "left": 16,
+          "width": 132
+        },
+        {
+          "top": 4006,
+          "left": 172,
+          "width": 132
+        },
+        {
+          "top": 4255,
+          "left": 16,
+          "width": 288
+        }
+      ]
+    },
+    {
+      "check": "footer-columns-at-1366",
+      "cols": [
+        {
+          "top": 2365,
+          "left": 83,
+          "width": 369
+        },
+        {
+          "top": 2365,
+          "left": 488,
+          "width": 199
+        },
+        {
+          "top": 2365,
+          "left": 722,
+          "width": 199
+        },
+        {
+          "top": 2365,
+          "left": 957,
+          "width": 326
+        }
+      ]
+    },
+    {
+      "check": "internal-link-status",
+      "linkChecks": [
+        {
+          "href": "/",
+          "status": 200
+        },
+        {
+          "href": "/membership",
+          "status": 200
+        },
+        {
+          "href": "/about",
+          "status": 200
+        },
+        {
+          "href": "/about#story",
+          "status": 200
+        },
+        {
+          "href": "/organization#committee",
+          "status": 200
+        },
+        {
+          "href": "/organization#structure",
+          "status": 200
+        },
+        {
+          "href": "/about#transparency",
+          "status": 200
+        },
+        {
+          "href": "/activities",
+          "status": 200
+        },
+        {
+          "href": "/activities?category=%E0%A6%B8%E0%A6%BE%E0%A6%B9%E0%A6%BF%E0%A6%A4%E0%A7%8D%E0%A6%AF%20%E0%A6%93%20%E0%A6%AA%E0%A6%BE%E0%A6%A0%E0%A6%BE%E0%A6%AD%E0%A7%8D%E0%A6%AF%E0%A6%BE%E0%A6%B8",
+          "status": 200
+        },
+        {
+          "href": "/activities?category=%E0%A6%B8%E0%A6%BE%E0%A6%82%E0%A6%B8%E0%A7%8D%E0%A6%95%E0%A7%83%E0%A6%A4%E0%A6%BF%E0%A6%95%20%E0%A6%95%E0%A6%BE%E0%A6%B0%E0%A7%8D%E0%A6%AF%E0%A6%95%E0%A7%8D%E0%A6%B0%E0%A6%AE",
+          "status": 200
+        },
+        {
+          "href": "/activities?category=%E0%A6%B8%E0%A6%BE%E0%A6%AE%E0%A6%BE%E0%A6%9C%E0%A6%BF%E0%A6%95%20%E0%A6%B8%E0%A6%9A%E0%A7%87%E0%A6%A4%E0%A6%A8%E0%A6%A4%E0%A6%BE",
+          "status": 200
+        },
+        {
+          "href": "/activities?category=%E0%A6%AE%E0%A6%BE%E0%A6%A8%E0%A6%AC%E0%A6%BF%E0%A6%95%20%E0%A6%95%E0%A6%BE%E0%A6%B0%E0%A7%8D%E0%A6%AF%E0%A6%95%E0%A7%8D%E0%A6%B0%E0%A6%AE",
+          "status": 200
+        },
+        {
+          "href": "/events",
+          "status": 200
+        },
+        {
+          "href": "/recruitment",
+          "status": 200
+        },
+        {
+          "href": "/contact",
+          "status": 200
+        },
+        {
+          "href": "/organization",
+          "status": 200
+        },
+        {
+          "href": "/activities/sochetonota-mulok-kormosuchi-2026-09-05",
+          "status": 200
+        },
+        {
+          "href": "/activities/poribesh-porichonnota-kormosuchi-2026-09-04",
+          "status": 200
+        },
+        {
+          "href": "/activities/madokbirodhi-ovijan-2026-08-18",
+          "status": 200
+        }
+      ]
+    }
+  ]
+}
