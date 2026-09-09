@@ -30,6 +30,35 @@ function provatferi_cors_allowed_origins(): array {
 add_action( 'rest_api_init', function () {
 	remove_filter( 'rest_pre_serve_request', 'rest_send_cors_headers' );
 	add_filter( 'rest_pre_serve_request', function ( $value ) {
+		/*
+		 * Cache directives come FIRST and are sent unconditionally, before the
+		 * origin check below — they must apply to every REST response, not only
+		 * the ones that get an Access-Control-Allow-Origin header.
+		 *
+		 * Why this exists (measured 2026-09-09, reproduced repeatedly): the
+		 * platform edge cache was storing /wp-json/ GET responses under a cache
+		 * key of URL + Accept-Encoding only, ignoring the `Vary: Origin` below.
+		 * A response generated for one allowed origin was then replayed to a
+		 * different origin — an ACAO value naming someone else's origin, which a
+		 * browser rejects — and a response generated with no Origin at all was
+		 * replayed (cache HIT, no ACAO) to a legitimately allowed origin. Both
+		 * directions were observed on the same URL within seconds.
+		 *
+		 * `Vary: Origin` is the correct fix and stays, but it demonstrably was
+		 * not honoured here, so correctness cannot depend on it. These directives
+		 * keep origin-dependent responses out of shared caches entirely. Scoped
+		 * to REST by construction: this filter only runs for /wp-json/ requests,
+		 * so ordinary pages and static assets stay cacheable as before — no
+		 * site-wide cache changes.
+		 *
+		 * The X-LiteSpeed-Cache-Control header is the vendor-specific opt-out for
+		 * the LiteSpeed layer in front of PHP, which does not always defer to a
+		 * standard Cache-Control on its own.
+		 */
+		header( 'Cache-Control: no-store, private, max-age=0' );
+		header( 'X-LiteSpeed-Cache-Control: no-cache' );
+		header_remove( 'Expires' );
+
 		$origin = get_http_origin();
 		if ( $origin && in_array( $origin, provatferi_cors_allowed_origins(), true ) ) {
 			header( 'Access-Control-Allow-Origin: ' . esc_url_raw( $origin ) );
