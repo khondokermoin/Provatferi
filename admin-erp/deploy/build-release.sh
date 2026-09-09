@@ -27,6 +27,20 @@ cd "$REPO_ROOT"
 fail() { echo "STOP: $1" >&2; exit 1; }
 step() { echo; echo "=== $1 ==="; }
 
+# Every `php` invocation on at least this dev machine duplicates a startup
+# warning (a double-loaded openssl module) onto stdout as well as stderr —
+# it fires during PHP's own bootstrap, before any script code runs, so no
+# in-script fix can stop it. A bare `$(php -r '...')` capture would silently
+# pick up that warning text ahead of the real value. This wraps any such
+# one-liner so only text after a unique marker survives, making the result
+# immune to whatever a given environment's php.ini prints on startup.
+php_json_field() {
+  local expr="$1"; shift
+  local out
+  out="$(php -r "echo 'RESULT_MARKER:'.($expr);" "$@" 2>/dev/null)"
+  echo "${out##*RESULT_MARKER:}"
+}
+
 # --- resolve and validate the commit -----------------------------------
 step "Resolving commit"
 TARGET_SHA="$(git rev-parse --verify "${TARGET_SHA_INPUT}^{commit}" 2>/dev/null)" || fail "not a valid commit: ${TARGET_SHA_INPUT}"
@@ -104,7 +118,7 @@ cp "$APP/.env.example" "$APP/.env"
 
 step "Config contract check"
 php "$DEPLOY_DIR/config-contract.php" "$APP" "$WORK/config-contract.json"
-CONTRACT_PASS="$(php -r 'echo json_decode(file_get_contents($argv[1]))->pass ? "true" : "false";' "$WORK/config-contract.json")"
+CONTRACT_PASS="$(php_json_field 'json_decode(file_get_contents($argv[1]))->pass ? "true" : "false"' "$WORK/config-contract.json")"
 [ "$CONTRACT_PASS" = "true" ] || fail "config contract check failed — a key referenced by code is missing from the deployed config tree (see above). This is the exact failure class from the 2026-09-09 incident."
 echo "contract OK"
 
@@ -164,8 +178,8 @@ INDEX_PHP_SHA256="$(sha256sum "$APP/public/index.php" | cut -d' ' -f1)"
 step "Writing checksums and manifest"
 PRIVATE_SHA256="$(sha256sum "$PRIVATE_TAR" | cut -d' ' -f1)"
 PUBLIC_SHA256="$(sha256sum "$PUBLIC_TAR" | cut -d' ' -f1)"
-COMPOSER_LOCK_HASH="$(php -r 'echo json_decode(file_get_contents($argv[1]))->{"content-hash"};' "$APP/composer.lock")"
-PREVIOUS_SHA="$(php -r '$p=$argv[1]; echo is_file($p) ? (json_decode(file_get_contents($p))->commit ?? "none") : "none";' "$DEPLOY_DIR/state/last-deployed.json")"
+COMPOSER_LOCK_HASH="$(php_json_field 'json_decode(file_get_contents($argv[1]))->{"content-hash"}' "$APP/composer.lock")"
+PREVIOUS_SHA="$(php_json_field '($p=$argv[1]) && is_file($p) ? (json_decode(file_get_contents($p))->commit ?? "none") : "none"' "$DEPLOY_DIR/state/last-deployed.json")"
 
 cat > "$RELEASE_DIR/manifest.json" <<EOF
 {
