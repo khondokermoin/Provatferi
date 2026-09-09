@@ -29,3 +29,7 @@ Thumbs.db
 
 # Generated QA evidence (screenshots, run results) — not source, regenerate as needed
 /design-review
+
+# Built deployment artifacts — regenerated from a commit by deploy/build-release.sh,
+# never hand-edited or committed. deploy/state/ IS tracked (small JSON pointers only).
+/deploy/releases
