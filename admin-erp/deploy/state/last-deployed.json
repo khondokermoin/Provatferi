@@ -1,0 +1,6 @@
+{
+  "commit": "59530fa0ea0816b556d974c8913a25c6243a9912",
+  "deployed_at": "2026-09-09T20:58:00Z",
+  "deployed_via": "hand-picked file upload (pre-dates this pipeline — the exact practice this pipeline replaces)",
+  "note": "This is the last commit confirmed live in production as of the introduction of deploy/build-release.sh. Update this file after every deploy made THROUGH this pipeline, so the next build's manifest.previous_commit is accurate."
+}
