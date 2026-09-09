@@ -26,20 +26,19 @@ id_rsa.*
 
 # --- CMS: vendored WordPress out, bespoke code in --------------------------
 # cms/ is a local WordPress install. Its core (wp-admin, wp-includes), bundled
-# themes and uploads are vendored and were untracked deliberately — but the
-# literary-archive plugin and theme are our own work and stay versioned.
+# themes, plugins and uploads are vendored and stay untracked — only the
+# mu-plugins/ headless-setup glue is our own work and stays versioned.
 # Hence ignore-all-then-re-include rather than a blanket /cms/ rule: a plain
-# rule would silently stop tracking new files in those two directories.
+# rule would silently stop tracking new files there.
+#
+# The literary-archive plugin+theme that used to live under
+# wp-content/plugins/ and wp-content/themes/ was an abandoned Phase-1
+# prototype for the same archive the separate poem-archive repository now
+# implements live — removed 2026-09; see git history if it's ever needed.
 /cms/*
 !/cms/wp-content/
 /cms/wp-content/*
 !/cms/wp-content/mu-plugins/
-!/cms/wp-content/plugins/
-!/cms/wp-content/themes/
-/cms/wp-content/plugins/*
-!/cms/wp-content/plugins/literary-archive/
-/cms/wp-content/themes/*
-!/cms/wp-content/themes/literary-archive-theme/
 
 # --- Binary design and specification documents -----------------------------
 # Belong in shared storage. They bloat history permanently and never diff.
