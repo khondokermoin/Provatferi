@@ -1,4 +1,4 @@
-import type { WPCategory, WPPost, WPTag, WPAuthor, WPLiteraryWork } from "./types";
+import type { WPCategory, WPPost, WPTag, WPAuthor } from "./types";
 
 const WP_API_URL = process.env.NEXT_PUBLIC_WP_API_URL;
 
@@ -61,18 +61,4 @@ export async function getAuthorBySlug(slug: string): Promise<WPAuthor | null> {
 
 export function searchPosts(query: string) {
   return wpFetch<WPPost[]>("/posts", { search: query, _embed: true });
-}
-
-/**
- * Literary works from the companion literary-archive plugin (§5 of
- * LITERARY_ARCHIVE_THEME_BRIEF.md). No page route consumes this yet — it's a
- * wiring point for once that theme's page design is finalized.
- */
-export function getLiteraryWorks(options?: { page?: number; perPage?: number; type?: number }) {
-  return wpFetch<WPLiteraryWork[]>("/literary_work", {
-    _embed: true,
-    page: options?.page ?? 1,
-    per_page: options?.perPage ?? 10,
-    ...(options?.type ? { literary_type: options.type } : {}),
-  });
 }
