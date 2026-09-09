@@ -1,9 +1,30 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
+import type { Metadata } from "next";
 import ArticleCard from "@/components/ArticleCard";
 import { getAuthorBySlug, getPosts } from "@/lib/wp-api";
 
 type Props = { params: Promise<{ slug: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const author = await getAuthorBySlug(slug);
+  if (!author) return {};
+
+  const canonical = `/author/${slug}`;
+
+  return {
+    title: author.name,
+    description: author.description || undefined,
+    alternates: { canonical },
+    openGraph: {
+      type: "profile",
+      title: author.name,
+      description: author.description || undefined,
+      url: canonical,
+    },
+  };
+}
 
 export default async function AuthorPage({ params }: Props) {
   const { slug } = await params;
