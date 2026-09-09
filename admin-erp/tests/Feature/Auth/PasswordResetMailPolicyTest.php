@@ -118,6 +118,66 @@ class PasswordResetMailPolicyTest extends TestCase
         $this->get($url)->assertOk();
     }
 
+    // --- Branding ----------------------------------------------------------
+
+    /**
+     * Regression guard for the branded email redesign: catches an app.name
+     * config change, or a future edit to message.blade.php, silently
+     * reintroducing "Provatferi ERP" (the internal admin app's own name)
+     * as the visible brand in outbound mail.
+     */
+    public function test_the_message_never_shows_the_internal_app_name_as_its_brand(): void
+    {
+        $user = User::factory()->create(['email' => 'member@example.test']);
+
+        $this->post('/forgot-password', ['email' => $user->email]);
+
+        $body = (string) $this->lastSentEmail()->getHtmlBody();
+
+        $this->assertStringNotContainsString(
+            config('app.name'),
+            $body,
+            'The internal app name ("Provatferi ERP") leaked into the email — branding should read '.config('mail.from.name').' instead.',
+        );
+    }
+
+    public function test_the_message_carries_the_public_org_name_and_official_logo(): void
+    {
+        $user = User::factory()->create(['email' => 'member@example.test']);
+
+        $this->post('/forgot-password', ['email' => $user->email]);
+
+        $body = (string) $this->lastSentEmail()->getHtmlBody();
+
+        $this->assertStringContainsString(config('mail.from.name'), $body);
+        $this->assertStringContainsString('brand/provatferi-logo-light.png', $body);
+        $this->assertStringContainsString(config('mail.reply_to.support'), $body, 'The footer should surface a real support contact.');
+    }
+
+    public function test_the_reset_link_expiry_is_stated_in_minutes(): void
+    {
+        $user = User::factory()->create(['email' => 'member@example.test']);
+
+        $this->post('/forgot-password', ['email' => $user->email]);
+
+        $expiry = (int) config('auth.passwords.'.config('auth.defaults.passwords').'.expire');
+        $body = (string) $this->lastSentEmail()->getHtmlBody();
+
+        $this->assertStringContainsString((string) $expiry, $body);
+    }
+
+    public function test_the_subject_line_is_specific_and_professional(): void
+    {
+        $user = User::factory()->create(['email' => 'member@example.test']);
+
+        $this->post('/forgot-password', ['email' => $user->email]);
+
+        $subject = $this->lastSentEmail()->getSubject();
+
+        $this->assertNotSame('Reset Password Notification', $subject, 'Should read as this app\'s own voice, not the framework default string.');
+        $this->assertStringContainsString('password', strtolower((string) $subject));
+    }
+
     // --- Token lifecycle -------------------------------------------------
 
     public function test_a_reset_token_changes_the_password_and_swaps_which_one_authenticates(): void

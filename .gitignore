@@ -48,7 +48,13 @@ id_rsa.*
 *.zip
 
 # --- Local tooling ---------------------------------------------------------
+# Unanchored (no leading slash) so it matches node_modules/vendor at any
+# depth — needed since institutional/, admin-erp/, frontend/ etc. each have
+# their own. But NOT "vendor/" here: that pattern would also match Laravel's
+# own resources/views/vendor/ (published package views — real source, not a
+# dependency directory) at any depth. Each Composer app's own .gitignore
+# (e.g. admin-erp/.gitignore's anchored "/vendor") already covers its actual
+# dependency directory without that collision.
 node_modules/
-vendor/
 .DS_Store
 Thumbs.db
