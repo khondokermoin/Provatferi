@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { membershipTypes, org } from "@/lib/content";
+import { membershipTypes as fallbackMembershipTypes, org } from "@/lib/content";
+import { getMembershipTypes } from "@/lib/api/membership";
 import PageHeader from "@/components/PageHeader";
 
 const description = `${org.shortName}-এর সদস্যপদের ধরন ও সদস্য হওয়ার প্রক্রিয়া।`;
@@ -18,7 +19,18 @@ const journey = [
   { title: "সদস্যপদ নিশ্চিতকরণ", body: "অনুমোদনের পর আপনাকে সদস্যপদ নিশ্চিত করে জানানো হবে।" },
 ];
 
-export default function MembershipPage() {
+export default async function MembershipPage() {
+  // Whole-list fallback here, not field-by-field: a membership type list is
+  // one coherent set, not independent facts, so a malformed or empty API
+  // response falls back to the complete approved list rather than mixing
+  // sources into a partial one. No application form is added — same as
+  // before, "আবেদন" below is still just a description of the manual process.
+  const result = await getMembershipTypes();
+  const types =
+    result.ok && result.data.length > 0
+      ? result.data.map((t) => ({ name: t.name, note: t.description ?? "" }))
+      : fallbackMembershipTypes;
+
   return (
     <>
       <PageHeader
@@ -29,7 +41,7 @@ export default function MembershipPage() {
       <section className="content-section">
         <h2>সদস্যপদের ধরন</h2>
         <div className="card-grid cols-2">
-          {membershipTypes.map((type) => (
+          {types.map((type) => (
             <div key={type.name} className="info-card">
               <span className="info-card-tag">সদস্যপদ</span>
               <h3>{type.name}</h3>

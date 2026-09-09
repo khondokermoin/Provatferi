@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { governancePositions, org } from "@/lib/content";
+import { getOrganizationUnits } from "@/lib/api/organization";
 import PageHeader from "@/components/PageHeader";
 
 const description = `${org.shortName}-এর সাংগঠনিক কাঠামো, পরিচালনা কমিটি ও বর্তমান কার্যালয়ের তথ্য।`;
@@ -13,8 +14,19 @@ export const metadata: Metadata = {
 
 const levels = ["কেন্দ্রীয়", "বিভাগ", "জেলা", "উপজেলা", "ইউনিয়ন/ইউনিট"];
 
-export default function OrganizationPage() {
+export default async function OrganizationPage() {
   const filledCount = governancePositions.filter((p) => p.filled).length;
+
+  /*
+   * governancePositions stays static — there is no public committee/position
+   * roster endpoint (only the Sanctum-gated /admin/organization-units CRUD
+   * exists server-side), so inventing one here would mean fabricating names
+   * for a real, currently-unfilled committee. Only the office address below
+   * is API-driven, from the one real "central" unit that exists today.
+   */
+  const units = await getOrganizationUnits();
+  const centralUnit = units.ok ? units.data.find((u) => u.unit_type === "central") : null;
+  const address = centralUnit?.address ?? org.address;
 
   return (
     <>
@@ -66,7 +78,7 @@ export default function OrganizationPage() {
         <h2>বর্তমান কার্যালয়</h2>
         <div className="info-card" style={{ maxWidth: 560 }}>
           <span className="info-card-tag">ঠিকানা</span>
-          <p>{org.address}</p>
+          <p>{address}</p>
         </div>
       </section>
     </>
