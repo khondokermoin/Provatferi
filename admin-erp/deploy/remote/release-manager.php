@@ -297,8 +297,15 @@ case 'contract-check':
     $contractScript = $TOOLING_DIR.'/config-contract.php';
     if (!is_file($contractScript)) { jout(['ok' => false, 'error' => 'config-contract.php missing from tooling dir']); exit(1); }
 
-    $run = runProcess([$PHP_BINARY, $contractScript, $appDir], null, 60);
-    $report = json_decode($run['stdout'], true);
+    // Written directly to a file, not read from the subprocess's stdout —
+    // a PHP startup warning (e.g. a duplicate extension load notice) fires
+    // before config-contract.php's own code runs and can land on stdout on
+    // some builds regardless of anything that script does, corrupting a
+    // stdout-capture. The same reasoning already applies to every
+    // diagnostic script used throughout this project.
+    $reportFile = $releaseDir.'/contract-check-report.json';
+    $run = runProcess([$PHP_BINARY, $contractScript, $appDir, $reportFile], null, 60);
+    $report = is_file($reportFile) ? json_decode(file_get_contents($reportFile), true) : null;
     $ok = $run['exit_code'] === 0 && is_array($report) && ($report['pass'] ?? false) === true;
     $result = ['ok' => $ok, 'report' => $report, 'raw_exit_code' => $run['exit_code'], 'stderr' => $run['stderr']];
     mergeStatus($releaseDir, 'contract_check', $result);

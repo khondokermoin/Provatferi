@@ -103,7 +103,7 @@ cp "$APP/.env.example" "$APP/.env"
 (cd "$APP" && php artisan key:generate --force --quiet)
 
 step "Config contract check"
-php "$DEPLOY_DIR/config-contract.php" "$APP" | tee "$WORK/config-contract.json"
+php "$DEPLOY_DIR/config-contract.php" "$APP" "$WORK/config-contract.json"
 CONTRACT_PASS="$(php -r 'echo json_decode(file_get_contents($argv[1]))->pass ? "true" : "false";' "$WORK/config-contract.json")"
 [ "$CONTRACT_PASS" = "true" ] || fail "config contract check failed — a key referenced by code is missing from the deployed config tree (see above). This is the exact failure class from the 2026-09-09 incident."
 echo "contract OK"

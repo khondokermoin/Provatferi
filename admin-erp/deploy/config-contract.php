@@ -14,7 +14,7 @@
  * calling the config() helper for the final read.
  *
  * Usage:
- *   php config-contract.php <app-base-path>
+ *   php config-contract.php <app-base-path> [output-json-file]
  *
  * <app-base-path> is a Laravel application root (has artisan, app/,
  * bootstrap/app.php). Scans that same tree's app/, routes/, resources/views/
@@ -32,26 +32,24 @@
  * has — the outer call is dynamic and correctly not checked here, while the
  * inner config('auth.defaults.passwords') is static and is checked).
  *
- * Prints a JSON report to stdout either way, so a caller (this script,
- * package.sh, or remote/release-manager.php) can machine-parse the result
- * rather than scraping human-readable text.
+ * Always prints a human-readable JSON report to stdout. When [output-json-file]
+ * is given, ALSO writes the exact same JSON there via file_put_contents —
+ * automated callers (build-release.sh, release-manager.php) read that file,
+ * not stdout, because some PHP builds duplicate a startup warning (module
+ * load notices fire during PHP's own bootstrap, before this script's first
+ * line runs, so nothing this script does can redirect them) onto stdout
+ * ahead of the JSON, corrupting a stdout-capture. Writing straight to a file
+ * with file_put_contents sidesteps that entirely — the same pattern already
+ * used by every diagnostic script in this project for exactly this reason.
  */
 
-// This script's entire contract is "prints ONLY a JSON object to stdout" —
-// callers (build-release.sh, release-manager.php) machine-parse it. Some
-// PHP builds duplicate a warning to stdout via display_errors even when
-// log_errors already sent it to stderr (observed locally: a loaded-twice
-// openssl module notice on this dev machine's php.ini) — routing display
-// output to stderr keeps stdout JSON-only regardless of which php.ini a
-// given environment ships.
-ini_set('display_errors', 'stderr');
-
 if ($argc < 2) {
-    fwrite(STDERR, "Usage: php config-contract.php <app-base-path>\n");
+    fwrite(STDERR, "Usage: php config-contract.php <app-base-path> [output-json-file]\n");
     exit(2);
 }
 
 $base = rtrim($argv[1], '/\\');
+$outputFile = $argv[2] ?? null;
 if (!is_file($base.'/bootstrap/app.php')) {
     fwrite(STDERR, "Not a Laravel app root (no bootstrap/app.php): {$base}\n");
     exit(2);
@@ -155,7 +153,11 @@ $report = [
     'pass' => count($missing) === 0,
 ];
 
-echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), "\n";
+$json = json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+echo $json, "\n";
+if ($outputFile !== null) {
+    file_put_contents($outputFile, $json);
+}
 exit($report['pass'] ? 0 : 1);
 
 function relativePath(string $base, string $path): string
