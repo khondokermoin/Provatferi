@@ -11,13 +11,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!post) return {};
 
   const yoast = post.yoast_head_json;
+  const author = post._embedded?.author?.[0];
+  const canonical = yoast?.canonical ?? `/article/${slug}`;
+
   return {
     title: yoast?.title ?? post.title.rendered,
     description: yoast?.description,
+    alternates: { canonical },
     openGraph: {
+      type: "article",
       title: yoast?.og_title ?? post.title.rendered,
       description: yoast?.og_description,
+      url: canonical,
       images: yoast?.og_image?.map((image) => image.url),
+      publishedTime: post.date,
+      authors: author ? [author.name] : undefined,
     },
   };
 }

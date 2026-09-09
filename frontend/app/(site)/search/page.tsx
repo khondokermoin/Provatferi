@@ -1,7 +1,16 @@
+import type { Metadata } from "next";
 import ArticleCard from "@/components/ArticleCard";
 import { searchPosts } from "@/lib/wp-api";
 
 type Props = { searchParams: Promise<{ q?: string }> };
+
+// Search results are a dynamic query, not a distinct piece of content — like
+// most sites, this page shouldn't compete with the articles it finds.
+export const metadata: Metadata = {
+  title: "সার্চ",
+  robots: { index: false, follow: true },
+  alternates: { canonical: "/search" },
+};
 
 export default async function SearchPage({ searchParams }: Props) {
   const { q } = await searchParams;

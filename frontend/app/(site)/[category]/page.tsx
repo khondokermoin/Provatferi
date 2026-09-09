@@ -10,9 +10,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const category = await getCategoryBySlug(slug);
   if (!category) return {};
 
+  const yoast = category.yoast_head_json;
+  const canonical = yoast?.canonical ?? `/${slug}`;
+
   return {
-    title: category.yoast_head_json?.title ?? category.name,
-    description: category.yoast_head_json?.description ?? category.description,
+    title: yoast?.title ?? category.name,
+    description: yoast?.description ?? category.description,
+    alternates: { canonical },
+    openGraph: {
+      title: yoast?.title ?? category.name,
+      description: yoast?.description ?? category.description,
+      url: canonical,
+    },
   };
 }
 
