@@ -116,6 +116,15 @@ step "Installing dependencies into the isolated tree (for testing + contract che
 cp "$APP/.env.example" "$APP/.env"
 (cd "$APP" && php artisan key:generate --force --quiet)
 
+# Built here, BEFORE the test suite runs — several views (guest.blade.php's
+# @vite directive, pulled in by anything using the auth layout) need
+# public/build/manifest.json to exist or every test touching those routes
+# fails with ViteManifestNotFoundException, not because of an app bug.
+# Caught by actually running this pipeline: the first version built this
+# only at packaging time, after the tests had already failed on it.
+step "Building frontend assets (needed before tests run, and packaged as public-assets.tar afterward)"
+(cd "$APP" && npm ci --silent && npm run build --silent) || fail "frontend asset build failed"
+
 step "Config contract check"
 php "$DEPLOY_DIR/config-contract.php" "$APP" "$WORK/config-contract.json"
 CONTRACT_PASS="$(php_json_field 'json_decode(file_get_contents($argv[1]))->pass ? "true" : "false"' "$WORK/config-contract.json")"
@@ -159,10 +168,7 @@ tar -cf "$PRIVATE_TAR" -C "$EXTRACT" \
 echo "private.tar: $(du -h "$PRIVATE_TAR" | cut -f1)"
 
 step "Packaging public docroot assets (built frontend, brand assets — NOT index.php)"
-if [ ! -d "$APP/public/build" ]; then
-  echo "public/build/ missing — building frontend assets now"
-  (cd "$APP" && npm ci --silent && npm run build --silent) || fail "frontend asset build failed"
-fi
+[ -d "$APP/public/build" ] || fail "public/build/ missing at packaging time — frontend build step above should have created it"
 PUBLIC_TAR="$RELEASE_DIR/public-assets.tar"
 tar -cf "$PUBLIC_TAR" -C "$APP/public" \
   --exclude='index.php' \
