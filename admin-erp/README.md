@@ -21,16 +21,22 @@ project's SRS/Blueprint documents for the long-term scope.
 composer install
 cp .env.example .env
 php artisan key:generate
-# Edit .env — DB_CONNECTION etc. Defaults to sqlite for local dev.
+# Edit .env — MySQL/MariaDB is the only approved driver, local included.
+# SQLite is not approved for this project.
 php artisan migrate --seed
 php artisan serve
 ```
 
-Default seeded admin: `admin@provatferi.org` / `change-me-immediately` — for
-**local development only**. When deploying to `admin.provatferi.org`, create
-the first super-admin with a freshly generated password instead of reusing
-this one (same discipline as the WordPress/DB credential rotations done
-earlier in this project), or run `AdminUserSeeder` with a real password.
+`AdminUserSeeder` creates the super admin as `admin@provatferi.org` with a
+**randomly generated** password that it prints once to the console. There is
+no default or fixed password, in any environment — capture the printed value
+at seed time and store it in a password manager. Re-running the seeder is a
+no-op if that user already exists, so it will never silently reset a live
+password.
+
+`admin@provatferi.org` is an internal ERP login and operational-notice
+address only. It is deliberately not the organisation's public contact
+address — that is `info@provatferi.org`, held in `site.email`.
 
 ## RBAC
 

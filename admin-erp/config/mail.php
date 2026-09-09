@@ -111,8 +111,34 @@ return [
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
+        'address' => env('MAIL_FROM_ADDRESS', 'no-reply@provatferi.org'),
+        'name' => env('MAIL_FROM_NAME', 'Provatferi Literary and Cultural Center'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reply-To Addresses by Message Class
+    |--------------------------------------------------------------------------
+    |
+    | Everything the application sends goes out FROM the no-reply mailbox, but
+    | a recipient must always have a real address to reply to. Pick the one
+    | matching the message: `general` for ordinary notifications, `support`
+    | for anything about an account, application, or login the member may need
+    | help with, `security` for security-related notices.
+    |
+    | `operations` is the internal ERP address. It is a recipient for staff
+    | notices only — never a Reply-To on member-facing mail, and never
+    | published as a public contact address.
+    |
+    | Usage: ->replyTo(config('mail.reply_to.support'))
+    |
+    */
+
+    'reply_to' => [
+        'general' => env('MAIL_REPLY_TO_ADDRESS', 'info@provatferi.org'),
+        'support' => env('MAIL_REPLY_TO_SUPPORT', 'support@provatferi.org'),
+        'security' => env('MAIL_REPLY_TO_SECURITY', 'security@provatferi.org'),
+        'operations' => env('MAIL_OPERATIONS_ADDRESS', 'admin@provatferi.org'),
     ],
 
 ];
