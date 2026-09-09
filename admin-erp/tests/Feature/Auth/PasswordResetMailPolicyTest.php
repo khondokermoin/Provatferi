@@ -293,6 +293,59 @@ class PasswordResetMailPolicyTest extends TestCase
         $this->flushSession();
     }
 
+    /**
+     * Regression guard for the 2026-09-09 production outage.
+     *
+     * AppServiceProvider shipped a ->replyTo(config('mail.reply_to.support'))
+     * call while the config/mail.php defining that key did not, so on the
+     * server it resolved to null. Passing null to ->replyTo() builds a
+     * MailMessage without complaint and only explodes later, inside Symfony's
+     * Address constructor, when the transport turns it into a real message —
+     * so every build-time assertion passed while POST /forgot-password
+     * returned a 500.
+     *
+     * This has to drive an actual send for that reason: asserting on the
+     * MailMessage alone reproduces nothing.
+     */
+    public function test_a_missing_support_address_does_not_break_sending_a_reset(): void
+    {
+        config(['mail.reply_to.support' => null]);
+
+        $user = User::factory()->create(['email' => 'member@example.test']);
+
+        $this->post('/forgot-password', ['email' => $user->email])
+            ->assertSessionHasNoErrors();
+
+        $email = $this->lastSentEmail();
+
+        $this->assertSame([], $email->getReplyTo(), 'A null support address must be omitted, not sent as an empty header.');
+        $this->assertNotEmpty($email->getTo(), 'The reset must still reach the member.');
+    }
+
+    public function test_the_reset_carries_the_support_reply_to_when_configured(): void
+    {
+        $user = User::factory()->create(['email' => 'member@example.test']);
+
+        $this->post('/forgot-password', ['email' => $user->email])
+            ->assertSessionHasNoErrors();
+
+        $replyTo = $this->lastSentEmail()->getReplyTo();
+
+        $this->assertCount(1, $replyTo);
+        $this->assertSame(config('mail.reply_to.support'), $replyTo[0]->getAddress());
+    }
+
+    public function test_the_support_reply_to_config_key_exists(): void
+    {
+        // The outage was a config key that existed locally and not on the
+        // server. Assert the key itself, so a config file that ships without
+        // it fails here rather than in production.
+        $this->assertIsString(
+            config('mail.reply_to.support'),
+            'mail.reply_to.support must be defined — AppServiceProvider reads it when branding the reset mail.',
+        );
+    }
+
     private function lastSentEmail(): Email
     {
         $messages = Mail::mailer()->getSymfonyTransport()->messages();
