@@ -39,8 +39,8 @@ git merge-base --is-ancestor "$TARGET_SHA" origin/main \
   || fail "commit $TARGET_SHA is not an ancestor of origin/main — refusing to deploy code that isn't on the shared branch"
 echo "confirmed: $TARGET_SHA is on origin/main"
 
-step "Local working tree is clean"
-[ -z "$(git status --porcelain)" ] || fail "working tree has uncommitted changes — commit or stash first"
+step "Local working tree is clean (admin-erp/ only — this repo is a monorepo; other apps' untracked scratch files are not this pipeline's concern)"
+[ -z "$(git status --porcelain admin-erp/)" ] || fail "admin-erp/ has uncommitted changes — commit or stash first"
 echo "clean"
 
 # --- extract the EXACT commit tree to an isolated temp dir --------------
