@@ -164,7 +164,12 @@ export interface Activity {
   participant_count: number | null;
   published_at: string | null;
   type: { id: number; name: string; slug: string } | null;
-  organizationUnit: { id: number; name: string; slug: string } | null;
+  // Snake_case on the wire, not organizationUnit — Eloquent's default
+  // relationsToArray() runs Str::snake() on the relation name regardless of
+  // the camelCase method name used in the controller's with(...). Confirmed
+  // against the live response, not assumed; a first draft of this type had
+  // this wrong, which would have made isActivity() reject every real row.
+  organization_unit: { id: number; name: string; slug: string } | null;
 }
 
 export interface ActivityListResponse {

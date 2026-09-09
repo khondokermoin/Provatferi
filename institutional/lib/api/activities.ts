@@ -1,27 +1,24 @@
 import { apiGet, isRecord, isNumberOrNull, isStringOrNull } from "./client";
 import type { Activity, ActivityListResponse, ApiResult } from "./types";
+import { recentActivities } from "../content";
 
 /**
- * NOT WIRED INTO ANY PAGE. Built now so the layer covers all seven domains
- * from the integration plan, but the activities cutover is explicitly
- * stopped: production GET /api/v1/activities returns zero records as of
- * 2026-09-10, while the site has three real, dated activities
- * (lib/content.ts `recentActivities`, backing both the /activities listing
- * and generateStaticParams for /activities/[slug]). Per the integration
- * order, activities move last, and only once the API has all three — moving
- * early would make the public site lose real activity pages it has today.
- *
- * When all three exist in the ERP, the listing, detail route,
- * generateStaticParams, sitemap entries and metadata must switch together
- * (see app/(site)/activities/page.tsx and app/(site)/activities/[slug]/page.tsx)
- * — this file is what that cutover would call.
+ * Wired into app/(site)/activities/page.tsx and .../activities/[slug]/page.tsx
+ * as of the 2026-09-10 cutover, once production GET /api/v1/activities
+ * reached 3/3 — the same three real, dated activities that were previously
+ * only in lib/content.ts `recentActivities`. That file stays as the
+ * fallback: if the ERP times out, errors, or unexpectedly returns fewer
+ * than 3, the pages fall back to it rather than losing indexed content.
  */
 const REVALIDATE_SECONDS = 120;
 
 function isActivity(v: unknown): v is Activity {
   if (!isRecord(v)) return false;
   const type = v.type;
-  const unit = v.organizationUnit;
+  // Snake_case on the wire (Eloquent's relationsToArray() runs Str::snake()
+  // regardless of the camelCase relation method used server-side) — verified
+  // against the live response, not assumed.
+  const unit = v.organization_unit;
 
   return (
     typeof v.id === "number" &&
@@ -79,4 +76,71 @@ export async function getActivity(slug: string): Promise<ApiResult<Activity>> {
   });
 
   return result.ok ? { ok: true, data: result.data.data } : result;
+}
+
+// ---------------------------------------------------------------------------
+// The shape ActivityFilter (components/ActivityFilter.tsx) and the detail
+// page already render — unchanged from before this cutover, since the brief
+// is "wire real data in", not "redesign the frontend". Both the API branch
+// and the fallback branch below normalize into exactly this.
+// ---------------------------------------------------------------------------
+
+export interface DisplayActivity {
+  slug: string;
+  date: string;
+  title: string;
+  place: string;
+  category: string;
+  photos: string[];
+  outcomes: string | null;
+}
+
+const BANGLA_DIGITS = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
+
+/** "2026-09-05T00:00:00.000000Z" -> "২০২৬-০৯-০৫", matching the digit style
+ *  lib/content.ts's own dates were already written in. */
+function toDisplayDate(isoDatetime: string | null): string {
+  if (!isoDatetime) return "";
+  return isoDatetime.slice(0, 10).replace(/[0-9]/g, (d) => BANGLA_DIGITS[Number(d)]);
+}
+
+function activityToDisplay(a: Activity): DisplayActivity {
+  return {
+    slug: a.slug,
+    date: toDisplayDate(a.start_datetime),
+    title: a.title,
+    place: a.venue ?? "",
+    category: a.type?.name ?? "",
+    photos: a.gallery,
+    outcomes: a.outcomes,
+  };
+}
+
+function fallbackToDisplay(): DisplayActivity[] {
+  return recentActivities.map((a) => ({
+    slug: a.slug,
+    date: a.date,
+    title: a.title,
+    place: a.place,
+    category: a.category,
+    photos: a.photos,
+    outcomes: a.outcomes,
+  }));
+}
+
+/**
+ * THE single source every activity-related surface reads from — the
+ * listing, the detail page (including generateStaticParams and
+ * generateMetadata), and the sitemap all call this one function, so they
+ * cannot drift from each other the way switching them independently would
+ * risk. Falls back to the complete approved lib/content.ts list on any
+ * failure (timeout, non-200, malformed shape) AND on an empty API result —
+ * an ERP outage must never make indexed activity pages disappear.
+ */
+export async function getActivitiesWithFallback(): Promise<{ activities: DisplayActivity[]; source: "api" | "fallback" }> {
+  const result = await getActivities();
+  if (result.ok && result.data.data.length > 0) {
+    return { activities: result.data.data.map(activityToDisplay), source: "api" };
+  }
+  return { activities: fallbackToDisplay(), source: "fallback" };
 }
