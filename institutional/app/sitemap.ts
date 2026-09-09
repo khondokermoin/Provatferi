@@ -1,7 +1,12 @@
 import type { MetadataRoute } from "next";
-import { org, recentActivities } from "@/lib/content";
+import { org } from "@/lib/content";
+import { getActivitiesWithFallback } from "@/lib/api/activities";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+// Activity URLs come from the exact same source as the listing page and
+// generateStaticParams (getActivitiesWithFallback) — never an independent
+// read of lib/content.ts here, or a sitemap/route drift like the one this
+// cutover was built to avoid becomes possible again.
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const routes = ["", "/about", "/activities", "/organization", "/events", "/recruitment", "/membership", "/contact"];
 
   const staticEntries: MetadataRoute.Sitemap = routes.map((route) => ({
@@ -11,7 +16,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: route === "" ? 1 : 0.7,
   }));
 
-  const activityEntries: MetadataRoute.Sitemap = recentActivities.map((activity) => ({
+  const { activities } = await getActivitiesWithFallback();
+  const activityEntries: MetadataRoute.Sitemap = activities.map((activity) => ({
     url: `${org.website}/activities/${activity.slug}`,
     lastModified: new Date(),
     changeFrequency: "monthly",

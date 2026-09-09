@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { activityCategories, org, recentActivities } from "@/lib/content";
+import { activityCategories, org } from "@/lib/content";
+import { getActivitiesWithFallback } from "@/lib/api/activities";
 import PageHeader from "@/components/PageHeader";
 import ActivityFilter from "@/components/ActivityFilter";
 
@@ -14,6 +15,7 @@ export const metadata: Metadata = {
 
 export default async function ActivitiesPage({ searchParams }: { searchParams: Promise<{ category?: string }> }) {
   const { category } = await searchParams;
+  const { activities } = await getActivitiesWithFallback();
 
   return (
     <>
@@ -37,7 +39,7 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: P
 
       <section id="records" className="content-section">
         <h2>সাম্প্রতিক কার্যক্রমের নথি</h2>
-        <ActivityFilter activities={recentActivities} initialCategory={category} />
+        <ActivityFilter activities={activities} initialCategory={category} />
       </section>
     </>
   );

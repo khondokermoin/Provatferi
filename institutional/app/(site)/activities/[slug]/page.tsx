@@ -1,19 +1,26 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { org, recentActivities } from "@/lib/content";
+import { org } from "@/lib/content";
+import { getActivitiesWithFallback } from "@/lib/api/activities";
 
-export function generateStaticParams() {
-  return recentActivities.map((activity) => ({ slug: activity.slug }));
+// Same source as the listing page and the sitemap (getActivitiesWithFallback)
+// — deliberately not an independent fetch per slug, so this route never pre-
+// renders (or 404s) a different set of slugs than /activities and
+// sitemap.xml list. See lib/api/activities.ts for the fallback policy.
+export async function generateStaticParams() {
+  const { activities } = await getActivitiesWithFallback();
+  return activities.map((activity) => ({ slug: activity.slug }));
 }
 
-function findActivity(slug: string) {
-  return recentActivities.find((activity) => activity.slug === slug);
+async function findActivity(slug: string) {
+  const { activities } = await getActivitiesWithFallback();
+  return activities.find((activity) => activity.slug === slug);
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const activity = findActivity(slug);
+  const activity = await findActivity(slug);
   if (!activity) return {};
 
   const description = `${activity.date} — ${activity.place}-এ অনুষ্ঠিত ${org.shortName}-এর ${activity.title}।`;
@@ -33,7 +40,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ActivityDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const activity = findActivity(slug);
+  const activity = await findActivity(slug);
   if (!activity) notFound();
 
   const breadcrumbData = {
