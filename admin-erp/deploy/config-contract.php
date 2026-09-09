@@ -37,6 +37,15 @@
  * rather than scraping human-readable text.
  */
 
+// This script's entire contract is "prints ONLY a JSON object to stdout" —
+// callers (build-release.sh, release-manager.php) machine-parse it. Some
+// PHP builds duplicate a warning to stdout via display_errors even when
+// log_errors already sent it to stderr (observed locally: a loaded-twice
+// openssl module notice on this dev machine's php.ini) — routing display
+// output to stderr keeps stdout JSON-only regardless of which php.ini a
+// given environment ships.
+ini_set('display_errors', 'stderr');
+
 if ($argc < 2) {
     fwrite(STDERR, "Usage: php config-contract.php <app-base-path>\n");
     exit(2);

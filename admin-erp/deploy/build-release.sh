@@ -48,7 +48,14 @@ echo "clean"
 # working directory — this is what "artifact must represent one exact Git
 # tree" actually means: what's tested is byte-identical to what ships.
 step "Extracting admin-erp/ at $SHORT_SHA via git archive (isolated from working tree)"
-WORK="$(mktemp -d)"
+# Created under deploy/ itself, not bash's default /tmp — on this Git-Bash-
+# on-Windows setup /tmp is an MSYS mount whose translation for bash-internal
+# I/O and for a spawned child process's argv resolve to two DIFFERENT real
+# Windows locations (Git's own install tree vs %TEMP%, observed directly:
+# a path built from /tmp/... written by bash redirection was not the same
+# file php.exe saw when given that identical string as $argv[1]). A path
+# under this project directory has no such ambiguity for any tool.
+WORK="$(mktemp -d --tmpdir="$DEPLOY_DIR")"
 trap 'rm -rf "$WORK"' EXIT
 EXTRACT="$WORK/tree"
 mkdir -p "$EXTRACT"
