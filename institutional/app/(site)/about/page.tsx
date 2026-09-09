@@ -4,14 +4,15 @@ import {
   coreValues,
   founderMessage,
   governancePositions,
-  mission,
-  objectives,
+  mission as fallbackMission,
+  objectives as fallbackObjectives,
   org,
   timeline,
   transparencyCommitment,
-  vision,
-  whyProvatferi,
+  vision as fallbackVision,
+  whyProvatferi as fallbackWhyProvatferi,
 } from "@/lib/content";
+import { getAbout } from "@/lib/api/about";
 import PageHeader from "@/components/PageHeader";
 
 const description = `${org.nameBn}-এর গল্প, লক্ষ্য, মূল্যবোধ, উদ্দেশ্য ও প্রতিষ্ঠাতা পরিচিতি।`;
@@ -23,12 +24,33 @@ export const metadata: Metadata = {
   openGraph: { title: `আমাদের সম্পর্কে | ${org.shortName}`, description, url: "/about", images: [{ ...org.ogImage, alt: org.nameBn }] },
 };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  /*
+   * /api/v1/about bundles about-content, mission, vision and objectives in
+   * one response, so this one fetch covers both the "about content" and
+   * "mission/vision/objectives" integration steps. Every field falls back
+   * independently — a null `why_exists` (true in production today) keeps
+   * the approved fallbackWhyProvatferi text rather than rendering blank,
+   * while a populated `mission.body` replaces the fallback mission string.
+   * `registration_status` and `org.founded` are the same fact told two
+   * places (API and content.ts); wiring one to the other means updating it
+   * once in the ERP updates both this page and the nav/footer copy that
+   * still reads org.founded directly.
+   */
+  const result = await getAbout();
+  const data = result.ok ? result.data : null;
+
+  const registrationStatus = data?.about?.registration_status ?? org.founded;
+  const whyProvatferi = data?.about?.why_exists ?? fallbackWhyProvatferi;
+  const mission = data?.mission?.body ?? fallbackMission;
+  const vision = data?.vision?.body ?? fallbackVision;
+  const objectives = data && data.objectives.length > 0 ? data.objectives.map((o) => o.body) : fallbackObjectives;
+
   return (
     <>
       <PageHeader
         title="আমাদের সম্পর্কে"
-        description={`${org.nameBn} (${org.nameEn}) একটি অরাজনৈতিক, অলাভজনক ও স্বেচ্ছাসেবী সাহিত্য, সংস্কৃতি, শিক্ষা ও সমাজ-সচেতনতামূলক প্রতিষ্ঠান। ${org.founded}`}
+        description={`${org.nameBn} (${org.nameEn}) একটি অরাজনৈতিক, অলাভজনক ও স্বেচ্ছাসেবী সাহিত্য, সংস্কৃতি, শিক্ষা ও সমাজ-সচেতনতামূলক প্রতিষ্ঠান। ${registrationStatus}`}
       />
 
       <section id="story" className="content-section">

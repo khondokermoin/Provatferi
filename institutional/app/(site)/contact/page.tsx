@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { org } from "@/lib/content";
+import { getSettings } from "@/lib/api/settings";
 import PageHeader from "@/components/PageHeader";
 
 const description = `${org.shortName}-এর ঠিকানা, ই-মেইল, ফোন ও সামাজিক মাধ্যমের তথ্য।`;
@@ -11,7 +12,24 @@ export const metadata: Metadata = {
   openGraph: { title: `যোগাযোগ | ${org.shortName}`, description, url: "/contact", images: [{ ...org.ogImage, alt: org.nameBn }] },
 };
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  /*
+   * Field-by-field fallback, not a whole-object swap: if the ERP is down,
+   * malformed, or a single field is unset there, that field alone falls
+   * back to the approved static value — the page never blanks a contact
+   * method it used to show. Never expose admin@/security@/no-reply@ here:
+   * the ERP's own /api/v1/settings only ever returns the public contact
+   * address, so there is nothing to filter, but this is still the reason
+   * `contact.email` is read from settings rather than from mail config.
+   */
+  const settings = await getSettings();
+  const contact = settings.ok ? settings.data.contact : null;
+
+  const address = contact?.address ?? org.address;
+  const email = contact?.email ?? org.email;
+  const phone = contact?.phone ?? org.phone;
+  const facebook = contact?.facebook_url ?? org.facebook;
+
   return (
     <>
       <PageHeader title="যোগাযোগ" description={description} />
@@ -21,22 +39,22 @@ export default function ContactPage() {
           <div className="info-card">
             <span className="info-card-tag">ঠিকানা</span>
             <h3>কার্যালয়</h3>
-            <p>{org.address}</p>
+            <p>{address}</p>
           </div>
           <div className="info-card">
             <span className="info-card-tag">ই-মেইল</span>
-            <h3>{org.email}</h3>
+            <h3>{email}</h3>
             <p>
-              <a href={`mailto:${org.email}`} style={{ color: "var(--accent-text)", fontWeight: 600 }}>
+              <a href={`mailto:${email}`} style={{ color: "var(--accent-text)", fontWeight: 600 }}>
                 বার্তা পাঠান
               </a>
             </p>
           </div>
           <div className="info-card">
             <span className="info-card-tag">ফোন</span>
-            <h3>{org.phone}</h3>
+            <h3>{phone}</h3>
             <p>
-              <a href={`tel:${org.phone}`} style={{ color: "var(--accent-text)", fontWeight: 600 }}>
+              <a href={`tel:${phone}`} style={{ color: "var(--accent-text)", fontWeight: 600 }}>
                 কল করুন
               </a>
             </p>
@@ -50,12 +68,12 @@ export default function ContactPage() {
           <span className="info-card-tag">ফেসবুক</span>
           <p>
             <a
-              href={org.facebook}
+              href={facebook}
               target="_blank"
               rel="noreferrer"
               style={{ color: "var(--accent-text)", fontWeight: 600 }}
             >
-              {org.facebook} <span aria-hidden="true">↗</span>
+              {facebook} <span aria-hidden="true">↗</span>
             </a>
           </p>
         </div>
@@ -66,8 +84,8 @@ export default function ContactPage() {
         <div className="empty-state">
           <p>অনলাইন যোগাযোগ ফর্ম শীঘ্রই চালু হবে</p>
           <p>এখন সরাসরি ই-মেইল বা ফোনে যোগাযোগ করুন — আমরা দ্রুত উত্তর দেওয়ার চেষ্টা করব।</p>
-          <a href={`mailto:${org.email}`} className="button button-primary">
-            {org.email}
+          <a href={`mailto:${email}`} className="button button-primary">
+            {email}
           </a>
         </div>
       </section>
