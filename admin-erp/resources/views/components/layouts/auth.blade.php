@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? 'Sign in' }} — Provatferi ERP</title>
     <meta name="robots" content="noindex, nofollow">
-    <link rel="icon" href="{{ asset('brand/provatferi-icon-light.png') }}" type="image/png">
+    <link rel="icon" href="{{ asset('brand/provatferi-icon-light.png') }}" type="image/png" media="(prefers-color-scheme: light)">
+    <link rel="icon" href="{{ asset('brand/provatferi-icon-dark.png') }}" type="image/png" media="(prefers-color-scheme: dark)">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
 
     {{-- Same pre-paint rule as the admin layout: explicit choice, else OS. --}}
     <script>
