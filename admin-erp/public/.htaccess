@@ -5,6 +5,12 @@
 
     RewriteEngine On
 
+    # Block the File Browser's trash directory — deleted files (including
+    # Hostinger's own default.php) land here but the path is otherwise
+    # web-servable like any other public_html subdirectory. This must come
+    # before every other rule so nothing under it ever reaches Laravel.
+    RewriteRule ^\.trash(/.*)?$ - [F,L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

@@ -10,7 +10,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? 'Dashboard' }} — Provatferi ERP</title>
     <meta name="description" content="Provatferi Literary and Cultural Center — administration panel.">
-    <link rel="icon" href="{{ asset('brand/provatferi-icon-light.png') }}" type="image/png">
+    {{-- Matches the institutional site's icon setup: OS-level prefers-color-scheme
+         switches the mark, independent of this panel's own light/dark toggle
+         (which the OS can't see ahead of first paint). --}}
+    <link rel="icon" href="{{ asset('brand/provatferi-icon-light.png') }}" type="image/png" media="(prefers-color-scheme: light)">
+    <link rel="icon" href="{{ asset('brand/provatferi-icon-dark.png') }}" type="image/png" media="(prefers-color-scheme: dark)">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
+    <link rel="apple-touch-icon" href="{{ asset('brand/provatferi-icon-light.png') }}">
 
     {{--
         Pre-paint theme: runs before config.js and before first paint, so there
