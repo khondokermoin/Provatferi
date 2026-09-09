@@ -13,15 +13,33 @@ id_rsa.*
 *credentials*.txt
 
 # --- Deployed site copies --------------------------------------------------
-# These live on the host and are deployed by direct sync, not from this repo.
-# poem-archive (public_html/wp-content/…) is its own repository with its own
-# remote — keep it that way rather than nesting it here.
+# Local-only mirror of the live Hostinger docroot. Deployed by direct sync,
+# never from this repo. public_html/wp-content/ also holds the poem-archive
+# theme, which is its own repository with its own remote — it was previously
+# recorded here as a bare gitlink with no .gitmodules, so a fresh clone
+# produced an empty directory. Keep it out entirely.
 /public_html/
-/cms/
 
 # --- Vendor bundles --------------------------------------------------------
 # Purchased admin theme; not our source.
 /Zircos_v4.0/
+
+# --- CMS: vendored WordPress out, bespoke code in --------------------------
+# cms/ is a local WordPress install. Its core (wp-admin, wp-includes), bundled
+# themes and uploads are vendored and were untracked deliberately — but the
+# literary-archive plugin and theme are our own work and stay versioned.
+# Hence ignore-all-then-re-include rather than a blanket /cms/ rule: a plain
+# rule would silently stop tracking new files in those two directories.
+/cms/*
+!/cms/wp-content/
+/cms/wp-content/*
+!/cms/wp-content/mu-plugins/
+!/cms/wp-content/plugins/
+!/cms/wp-content/themes/
+/cms/wp-content/plugins/*
+!/cms/wp-content/plugins/literary-archive/
+/cms/wp-content/themes/*
+!/cms/wp-content/themes/literary-archive-theme/
 
 # --- Binary design and specification documents -----------------------------
 # Belong in shared storage. They bloat history permanently and never diff.
