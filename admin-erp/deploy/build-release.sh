@@ -97,7 +97,7 @@ cp "$APP/.env.example" "$APP/.env"
 
 step "Config contract check"
 php "$DEPLOY_DIR/config-contract.php" "$APP" | tee "$WORK/config-contract.json"
-CONTRACT_PASS="$(node -e "console.log(JSON.parse(require('fs').readFileSync('$WORK/config-contract.json')).pass)")"
+CONTRACT_PASS="$(php -r 'echo json_decode(file_get_contents($argv[1]))->pass ? "true" : "false";' "$WORK/config-contract.json")"
 [ "$CONTRACT_PASS" = "true" ] || fail "config contract check failed — a key referenced by code is missing from the deployed config tree (see above). This is the exact failure class from the 2026-09-09 incident."
 echo "contract OK"
 
@@ -157,8 +157,8 @@ INDEX_PHP_SHA256="$(sha256sum "$APP/public/index.php" | cut -d' ' -f1)"
 step "Writing checksums and manifest"
 PRIVATE_SHA256="$(sha256sum "$PRIVATE_TAR" | cut -d' ' -f1)"
 PUBLIC_SHA256="$(sha256sum "$PUBLIC_TAR" | cut -d' ' -f1)"
-COMPOSER_LOCK_HASH="$(node -e "console.log(JSON.parse(require('fs').readFileSync('$APP/composer.lock'))['content-hash'])")"
-PREVIOUS_SHA="$(node -e "try{console.log(JSON.parse(require('fs').readFileSync('$DEPLOY_DIR/state/last-deployed.json')).commit)}catch(e){console.log('none')}")"
+COMPOSER_LOCK_HASH="$(php -r 'echo json_decode(file_get_contents($argv[1]))->{"content-hash"};' "$APP/composer.lock")"
+PREVIOUS_SHA="$(php -r '$p=$argv[1]; echo is_file($p) ? (json_decode(file_get_contents($p))->commit ?? "none") : "none";' "$DEPLOY_DIR/state/last-deployed.json")"
 
 cat > "$RELEASE_DIR/manifest.json" <<EOF
 {
