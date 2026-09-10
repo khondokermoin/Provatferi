@@ -3,7 +3,7 @@
 @section('page-actions')
     @can('recruitment.update')
         <a href="{{ route('admin.recruitment.edit', $jobPosting) }}" class="btn btn-primary">
-            <i class="ti ti-pencil me-1" aria-hidden="true"></i>Edit
+            <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
         </a>
     @endcan
     @can('recruitment.view')
@@ -12,7 +12,7 @@
         </a>
     @endcan
     <a href="{{ route('admin.recruitment.index') }}" class="btn btn-light">
-        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>Back
+        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>ফিরে যান
     </a>
 @endsection
 
@@ -32,7 +32,7 @@
             <x-admin.card title="স্ট্যাটাস">
                 <x-admin.status-badge :status="$jobPosting->status" class="mb-3" />
                 @if ($jobPosting->published_at)
-                    <p class="fs-12 text-muted mb-0">প্রকাশিত: {{ $jobPosting->published_at->format('d M Y, H:i') }}</p>
+                    <p class="fs-12 text-muted mb-0">প্রকাশিত: {{ bn_datetime($jobPosting->published_at) }}</p>
                 @endif
             </x-admin.card>
 
@@ -43,9 +43,9 @@
                     <dt class="fs-13 text-muted">নিয়োগের ধরন</dt>
                     <dd>{{ $jobPosting->employment_type ?? '—' }}</dd>
                     <dt class="fs-13 text-muted">আবেদন শুরু</dt>
-                    <dd>{{ $jobPosting->opening_date?->format('d M Y') ?? '—' }}</dd>
+                    <dd>{{ $jobPosting->opening_date ? bn_date($jobPosting->opening_date) : '—' }}</dd>
                     <dt class="fs-13 text-muted">আবেদনের শেষ তারিখ</dt>
-                    <dd class="mb-0">{{ $jobPosting->application_deadline?->format('d M Y') ?? '—' }}</dd>
+                    <dd class="mb-0">{{ $jobPosting->application_deadline ? bn_date($jobPosting->application_deadline) : '—' }}</dd>
                 </dl>
             </x-admin.card>
         </div>

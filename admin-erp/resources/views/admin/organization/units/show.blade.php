@@ -3,16 +3,16 @@
 @section('page-actions')
     @can('organization.update')
         <a href="{{ route('admin.organization.units.edit', $unit) }}" class="btn btn-primary">
-            <i class="ti ti-pencil me-1" aria-hidden="true"></i>Edit
+            <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
         </a>
     @endcan
     @can('organization.delete')
         <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#delete-unit">
-            <i class="ti ti-trash me-1" aria-hidden="true"></i>Delete
+            <i class="ti ti-trash me-1" aria-hidden="true"></i>মুছে ফেলুন
         </button>
     @endcan
     <a href="{{ route('admin.organization.units.index') }}" class="btn btn-light">
-        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>Back
+        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>ফিরে যান
     </a>
 @endsection
 
@@ -37,7 +37,7 @@
                     <dd class="col-sm-8">{{ $unit->sort_order }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">প্রতিষ্ঠার তারিখ</dt>
-                    <dd class="col-sm-8">{{ $unit->established_date ? \Illuminate\Support\Carbon::parse($unit->established_date)->format('d M Y') : '—' }}</dd>
+                    <dd class="col-sm-8">{{ $unit->established_date ? bn_date($unit->established_date) : '—' }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">বিবরণ</dt>
                     <dd class="col-sm-8 mb-0">{{ $unit->description ?: '—' }}</dd>

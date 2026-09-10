@@ -13,8 +13,8 @@ class ObjectiveController extends Controller
     public function index(): View
     {
         return view('admin.content.objectives.index', [
-            'title' => 'Objectives',
-            'breadcrumbs' => [['label' => 'Content'], ['label' => 'Objectives']],
+            'title' => 'উদ্দেশ্যসমূহ',
+            'breadcrumbs' => [['label' => 'বিষয়বস্তু'], ['label' => 'উদ্দেশ্যসমূহ']],
             'objectives' => Objective::query()->orderBy('sort_order')->orderBy('id')->get(),
         ]);
     }
@@ -24,10 +24,10 @@ class ObjectiveController extends Controller
         $nextOrder = (int) Objective::query()->max('sort_order') + 1;
 
         return view('admin.content.objectives.form', [
-            'title' => 'Create Objective',
+            'title' => 'নতুন উদ্দেশ্য',
             'breadcrumbs' => [
-                ['label' => 'Objectives', 'route' => 'admin.content.objectives.index'],
-                ['label' => 'Create'],
+                ['label' => 'উদ্দেশ্যসমূহ', 'route' => 'admin.content.objectives.index'],
+                ['label' => 'তৈরি করুন'],
             ],
             'objective' => new Objective(['sort_order' => $nextOrder, 'active' => true]),
         ]);
@@ -43,10 +43,10 @@ class ObjectiveController extends Controller
     public function edit(Objective $objective): View
     {
         return view('admin.content.objectives.form', [
-            'title' => 'Edit Objective',
+            'title' => 'উদ্দেশ্য সম্পাদনা',
             'breadcrumbs' => [
-                ['label' => 'Objectives', 'route' => 'admin.content.objectives.index'],
-                ['label' => 'Edit'],
+                ['label' => 'উদ্দেশ্যসমূহ', 'route' => 'admin.content.objectives.index'],
+                ['label' => 'সম্পাদনা'],
             ],
             'objective' => $objective,
         ]);

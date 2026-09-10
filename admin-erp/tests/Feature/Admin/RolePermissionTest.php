@@ -90,8 +90,8 @@ class RolePermissionTest extends AdminTestCase
         $this->actingAs($this->superAdmin())->get(route('admin.permissions.index'))
             ->assertOk()
             ->assertSee('organization.view')
-            ->assertSee('Organization')
-            ->assertSee('Recruitment');
+            ->assertSee('সংগঠন')
+            ->assertSee('নিয়োগ');
 
         // No create/store route should exist for permissions.
         $this->assertFalse(app('router')->has('admin.permissions.store'));

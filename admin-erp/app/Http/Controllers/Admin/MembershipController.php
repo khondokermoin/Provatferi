@@ -53,8 +53,8 @@ class MembershipController extends Controller
             ->withQueryString();
 
         return view('admin.membership.index', [
-            'title' => 'Membership Applications',
-            'breadcrumbs' => [['label' => 'Membership'], ['label' => 'Applications']],
+            'title' => 'সদস্যপদ আবেদন',
+            'breadcrumbs' => [['label' => 'সদস্যপদ'], ['label' => 'আবেদনসমূহ']],
             'applications' => $applications,
             'filters' => $filters,
             'statuses' => MembershipApplication::STATUSES,
@@ -68,7 +68,7 @@ class MembershipController extends Controller
 
         return view('admin.membership.show', [
             'title' => $membershipApplication->application_no,
-            'breadcrumbs' => [['label' => 'Applications', 'route' => 'admin.membership.index'], ['label' => $membershipApplication->application_no]],
+            'breadcrumbs' => [['label' => 'আবেদনসমূহ', 'route' => 'admin.membership.index'], ['label' => $membershipApplication->application_no]],
             'application' => $membershipApplication,
             'allowedTransitions' => self::TRANSITIONS[$membershipApplication->status] ?? [],
             'statuses' => MembershipApplication::STATUSES,

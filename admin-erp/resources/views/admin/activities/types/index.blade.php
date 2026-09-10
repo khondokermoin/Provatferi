@@ -3,22 +3,22 @@
 @section('page-actions')
     @can('activities.create')
         <a href="{{ route('admin.activities.types.create') }}" class="btn btn-primary">
-            <i class="ti ti-plus me-1" aria-hidden="true"></i>Create Activity Type
+            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন কার্যক্রমের ধরন
         </a>
     @endcan
 @endsection
 
 @section('content')
     <x-admin.table :paginator="$types" caption="কার্যক্রমের ধরনের তালিকা"
-        :headers="['Order', 'Name', 'Activities', 'Status', ['label' => 'Actions', 'align' => 'end']]">
+        :headers="['ক্রম', 'নাম', 'কার্যক্রম', 'স্ট্যাটাস', ['label' => 'অ্যাকশন', 'align' => 'end']]">
 
         @forelse ($types as $type)
             <tr>
-                <td data-label="Order">{{ $type->sort_order }}</td>
-                <td data-label="Name" class="fw-semibold">{{ $type->name }}</td>
-                <td data-label="Activities">{{ $type->activities_count }}</td>
-                <td data-label="Status"><x-admin.status-badge :status="$type->status" /></td>
-                <td data-label="Actions" class="text-end">
+                <td data-label="ক্রম">{{ $type->sort_order }}</td>
+                <td data-label="নাম" class="fw-semibold">{{ $type->name }}</td>
+                <td data-label="কার্যক্রম">{{ $type->activities_count }}</td>
+                <td data-label="স্ট্যাটাস"><x-admin.status-badge :status="$type->status" /></td>
+                <td data-label="অ্যাকশন" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
                                 aria-label="{{ $type->name }} — অ্যাকশন মেনু">
@@ -27,14 +27,14 @@
                         <div class="dropdown-menu dropdown-menu-end">
                             @can('activities.update')
                                 <a href="{{ route('admin.activities.types.edit', $type) }}" class="dropdown-item">
-                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>Edit
+                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
                                 </a>
                             @endcan
                             @can('activities.delete')
                                 <div class="dropdown-divider"></div>
                                 <button type="button" class="dropdown-item text-danger"
                                         data-bs-toggle="modal" data-bs-target="#delete-type-{{ $type->id }}">
-                                    <i class="ti ti-trash me-1" aria-hidden="true"></i>Delete
+                                    <i class="ti ti-trash me-1" aria-hidden="true"></i>মুছে ফেলুন
                                 </button>
                             @endcan
                         </div>
@@ -46,7 +46,7 @@
                 message="কার্যক্রম যোগ করার আগে অন্তত একটি ধরন তৈরি করুন।">
                 @can('activities.create')
                     <a href="{{ route('admin.activities.types.create') }}" class="btn btn-primary btn-sm">
-                        <i class="ti ti-plus me-1" aria-hidden="true"></i>Create Activity Type
+                        <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন কার্যক্রমের ধরন
                     </a>
                 @endcan
             </x-admin.empty-state>

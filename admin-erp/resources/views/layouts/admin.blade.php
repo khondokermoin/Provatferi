@@ -80,7 +80,7 @@
             <div class="page-container">
                 <div class="row">
                     <div class="col-12 text-center text-muted">
-                        &copy; {{ date('Y') }} প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র — Administration
+                        &copy; {{ date('Y') }} প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র — প্রশাসনিক প্যানেল
                     </div>
                 </div>
             </div>

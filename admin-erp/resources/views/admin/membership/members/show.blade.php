@@ -3,11 +3,11 @@
 @section('page-actions')
     @can('membership.update')
         <a href="{{ route('admin.membership.members.edit', $member) }}" class="btn btn-primary">
-            <i class="ti ti-pencil me-1" aria-hidden="true"></i>Edit
+            <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
         </a>
     @endcan
     <a href="{{ route('admin.membership.members.index') }}" class="btn btn-light">
-        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>Back
+        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>ফিরে যান
     </a>
 @endsection
 
@@ -26,13 +26,13 @@
                     <dd class="col-sm-8">{{ $member->membershipType->name ?? '—' }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">শুরুর তারিখ</dt>
-                    <dd class="col-sm-8">{{ $member->start_date?->format('d M Y') ?? '—' }}</dd>
+                    <dd class="col-sm-8">{{ $member->start_date ? bn_date($member->start_date) : '—' }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">মেয়াদ শেষ</dt>
-                    <dd class="col-sm-8">{{ $member->expiry_date?->format('d M Y') ?? 'নির্ধারিত নয়' }}</dd>
+                    <dd class="col-sm-8">{{ $member->expiry_date ? bn_date($member->expiry_date) : 'নির্ধারিত নয়' }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">অনুমোদিত হয়েছে</dt>
-                    <dd class="col-sm-8 mb-0">{{ $member->approved_at?->format('d M Y, H:i') ?? '—' }}</dd>
+                    <dd class="col-sm-8 mb-0">{{ $member->approved_at ? bn_datetime($member->approved_at) : '—' }}</dd>
                 </dl>
             </x-admin.card>
 

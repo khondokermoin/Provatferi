@@ -15,9 +15,9 @@ class MissionController extends Controller
     public function edit(): View
     {
         return view('admin.content.mission', [
-            'title' => 'Mission',
-            'breadcrumbs' => [['label' => 'Content'], ['label' => 'Mission']],
-            'block' => ContentBlock::query()->firstOrCreate(['key' => self::KEY], ['title' => 'Mission', 'group_name' => 'about']),
+            'title' => 'লক্ষ্য',
+            'breadcrumbs' => [['label' => 'বিষয়বস্তু'], ['label' => 'লক্ষ্য']],
+            'block' => ContentBlock::query()->firstOrCreate(['key' => self::KEY], ['title' => 'লক্ষ্য', 'group_name' => 'about']),
         ]);
     }
 

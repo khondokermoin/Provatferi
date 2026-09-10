@@ -23,8 +23,8 @@ class PermissionController extends Controller
             ->groupBy('module');
 
         return view('admin.permissions.index', [
-            'title' => 'Permissions',
-            'breadcrumbs' => [['label' => 'System'], ['label' => 'Permissions']],
+            'title' => 'অনুমতি',
+            'breadcrumbs' => [['label' => 'সিস্টেম'], ['label' => 'অনুমতি']],
             'grouped' => $grouped,
         ]);
     }

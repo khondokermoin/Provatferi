@@ -12,91 +12,91 @@
      */
     $groups = [
         [
-            'title' => 'Overview',
+            'title' => 'সারসংক্ষেপ',
             'items' => [
-                ['label' => 'Dashboard', 'icon' => 'ti-layout-dashboard', 'route' => 'admin.dashboard'],
+                ['label' => 'ড্যাশবোর্ড', 'icon' => 'ti-layout-dashboard', 'route' => 'admin.dashboard'],
             ],
         ],
         [
-            'title' => 'Organisation',
+            'title' => 'সংগঠন',
             'permission' => 'organization.view',
             'items' => [
                 [
-                    'label' => 'Organization', 'icon' => 'ti-sitemap', 'id' => 'nav-organization',
+                    'label' => 'সংগঠন', 'icon' => 'ti-sitemap', 'id' => 'nav-organization',
                     'children' => [
-                        ['label' => 'Organizational Units', 'route' => 'admin.organization.units.index'],
-                        ['label' => 'Positions', 'route' => 'admin.positions.index'],
+                        ['label' => 'সাংগঠনিক ইউনিট', 'route' => 'admin.organization.units.index'],
+                        ['label' => 'পদসমূহ', 'route' => 'admin.positions.index'],
                         // Committee members are managed inside a committee, so
                         // they intentionally have no separate top-level entry.
-                        ['label' => 'Committees', 'route' => 'admin.committees.index'],
+                        ['label' => 'কমিটি', 'route' => 'admin.committees.index'],
                     ],
                 ],
             ],
         ],
         [
-            'title' => 'Programmes',
+            'title' => 'কর্মসূচি',
             'items' => [
                 [
-                    'label' => 'Activities', 'icon' => 'ti-calendar-event', 'id' => 'nav-activities',
+                    'label' => 'কার্যক্রম', 'icon' => 'ti-calendar-event', 'id' => 'nav-activities',
                     'permission' => 'activities.view',
                     'children' => [
-                        ['label' => 'Activity Types', 'route' => 'admin.activities.types.index'],
-                        ['label' => 'Activities', 'route' => 'admin.activities.index'],
+                        ['label' => 'কার্যক্রমের ধরন', 'route' => 'admin.activities.types.index'],
+                        ['label' => 'সব কার্যক্রম', 'route' => 'admin.activities.index'],
                     ],
                 ],
                 [
-                    'label' => 'Membership', 'icon' => 'ti-users-group', 'id' => 'nav-membership',
+                    'label' => 'সদস্যপদ', 'icon' => 'ti-users-group', 'id' => 'nav-membership',
                     'permission' => 'membership.view',
                     'children' => [
-                        ['label' => 'Membership Types', 'route' => 'admin.membership.types.index'],
-                        ['label' => 'Applications', 'route' => 'admin.membership.index'],
-                        ['label' => 'Members', 'route' => 'admin.membership.members.index'],
+                        ['label' => 'সদস্যপদের ধরন', 'route' => 'admin.membership.types.index'],
+                        ['label' => 'আবেদনসমূহ', 'route' => 'admin.membership.index'],
+                        ['label' => 'সদস্যবৃন্দ', 'route' => 'admin.membership.members.index'],
                     ],
                 ],
                 [
-                    'label' => 'Recruitment', 'icon' => 'ti-briefcase', 'id' => 'nav-recruitment',
+                    'label' => 'নিয়োগ', 'icon' => 'ti-briefcase', 'id' => 'nav-recruitment',
                     'permission' => 'recruitment.view',
                     'children' => [
-                        ['label' => 'Job Postings', 'route' => 'admin.recruitment.index'],
-                        ['label' => 'Applications', 'route' => 'admin.recruitment.applications.index'],
+                        ['label' => 'চাকরির বিজ্ঞপ্তি', 'route' => 'admin.recruitment.index'],
+                        ['label' => 'আবেদনসমূহ', 'route' => 'admin.recruitment.applications.index'],
                     ],
                 ],
             ],
         ],
         [
-            'title' => 'Content',
+            'title' => 'বিষয়বস্তু',
             'permission' => 'settings.view',
             'items' => [
                 [
-                    'label' => 'Content', 'icon' => 'ti-file-text', 'id' => 'nav-content',
+                    'label' => 'বিষয়বস্তু', 'icon' => 'ti-file-text', 'id' => 'nav-content',
                     'children' => [
-                        ['label' => 'About', 'route' => 'admin.content.about.edit'],
-                        ['label' => 'Mission', 'route' => 'admin.content.mission.edit'],
-                        ['label' => 'Vision', 'route' => 'admin.content.vision.edit'],
-                        ['label' => 'Objectives', 'route' => 'admin.content.objectives.index'],
-                        ['label' => 'Site Settings', 'route' => 'admin.settings.index'],
+                        ['label' => 'আমাদের সম্পর্কে', 'route' => 'admin.content.about.edit'],
+                        ['label' => 'লক্ষ্য', 'route' => 'admin.content.mission.edit'],
+                        ['label' => 'দৃষ্টিভঙ্গি', 'route' => 'admin.content.vision.edit'],
+                        ['label' => 'উদ্দেশ্যসমূহ', 'route' => 'admin.content.objectives.index'],
+                        ['label' => 'সাইট সেটিংস', 'route' => 'admin.settings.index'],
                     ],
                 ],
             ],
         ],
         [
-            'title' => 'System',
+            'title' => 'সিস্টেম',
             'permission' => 'users.view',
             'items' => [
                 [
-                    'label' => 'System', 'icon' => 'ti-shield-lock', 'id' => 'nav-system',
+                    'label' => 'সিস্টেম', 'icon' => 'ti-shield-lock', 'id' => 'nav-system',
                     'children' => [
-                        ['label' => 'Users', 'route' => 'admin.users.index'],
-                        ['label' => 'Roles', 'route' => 'admin.roles.index'],
-                        ['label' => 'Permissions', 'route' => 'admin.permissions.index'],
+                        ['label' => 'ব্যবহারকারী', 'route' => 'admin.users.index'],
+                        ['label' => 'ভূমিকা', 'route' => 'admin.roles.index'],
+                        ['label' => 'অনুমতি', 'route' => 'admin.permissions.index'],
                     ],
                 ],
             ],
         ],
         [
-            'title' => 'Account',
+            'title' => 'অ্যাকাউন্ট',
             'items' => [
-                ['label' => 'Profile', 'icon' => 'ti-user-circle', 'route' => 'profile.edit'],
+                ['label' => 'প্রোফাইল', 'icon' => 'ti-user-circle', 'route' => 'profile.edit'],
             ],
         ],
     ];
@@ -195,7 +195,7 @@
                         @csrf
                         <button type="submit" class="side-nav-link btn btn-link text-start w-100 shadow-none">
                             <span class="menu-icon"><i class="ti ti-logout" aria-hidden="true"></i></span>
-                            <span class="menu-text">Logout</span>
+                            <span class="menu-text">লগ আউট</span>
                         </button>
                     </form>
                 </li>

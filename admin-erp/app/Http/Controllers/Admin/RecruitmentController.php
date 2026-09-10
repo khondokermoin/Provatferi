@@ -29,8 +29,8 @@ class RecruitmentController extends Controller
             ->withQueryString();
 
         return view('admin.recruitment.index', [
-            'title' => 'Job Postings',
-            'breadcrumbs' => [['label' => 'Recruitment'], ['label' => 'Job Postings']],
+            'title' => 'চাকরির বিজ্ঞপ্তি',
+            'breadcrumbs' => [['label' => 'নিয়োগ'], ['label' => 'চাকরির বিজ্ঞপ্তি']],
             'jobPostings' => $jobPostings,
             'filters' => $filters,
             'statuses' => JobPosting::STATUSES,
@@ -40,8 +40,8 @@ class RecruitmentController extends Controller
     public function create(): View
     {
         return view('admin.recruitment.form', [
-            'title' => 'Create Job Posting',
-            'breadcrumbs' => [['label' => 'Job Postings', 'route' => 'admin.recruitment.index'], ['label' => 'Create']],
+            'title' => 'নতুন চাকরির বিজ্ঞপ্তি',
+            'breadcrumbs' => [['label' => 'চাকরির বিজ্ঞপ্তি', 'route' => 'admin.recruitment.index'], ['label' => 'তৈরি করুন']],
             'jobPosting' => new JobPosting(['status' => 'draft']),
             'units' => $this->unitOptions(),
             'statuses' => JobPosting::STATUSES,
@@ -66,7 +66,7 @@ class RecruitmentController extends Controller
 
         return view('admin.recruitment.show', [
             'title' => $jobPosting->title,
-            'breadcrumbs' => [['label' => 'Job Postings', 'route' => 'admin.recruitment.index'], ['label' => $jobPosting->title]],
+            'breadcrumbs' => [['label' => 'চাকরির বিজ্ঞপ্তি', 'route' => 'admin.recruitment.index'], ['label' => $jobPosting->title]],
             'jobPosting' => $jobPosting,
         ]);
     }
@@ -74,11 +74,11 @@ class RecruitmentController extends Controller
     public function edit(JobPosting $jobPosting): View
     {
         return view('admin.recruitment.form', [
-            'title' => 'Edit — '.$jobPosting->title,
+            'title' => 'সম্পাদনা — '.$jobPosting->title,
             'breadcrumbs' => [
-                ['label' => 'Job Postings', 'route' => 'admin.recruitment.index'],
+                ['label' => 'চাকরির বিজ্ঞপ্তি', 'route' => 'admin.recruitment.index'],
                 ['label' => $jobPosting->title, 'route' => 'admin.recruitment.show', 'params' => $jobPosting],
-                ['label' => 'Edit'],
+                ['label' => 'সম্পাদনা'],
             ],
             'jobPosting' => $jobPosting,
             'units' => $this->unitOptions(),

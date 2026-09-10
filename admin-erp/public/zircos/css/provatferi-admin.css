@@ -40,11 +40,40 @@
 
   --pf-brand-ink: #201b17;
   --pf-trust-green: #1f7a4d;
+
+  /*
+   * Bootstrap's "secondary" slot ships as an unrelated purple/indigo
+   * (#6b5fb5) in Zircos's app.min.css and is never overridden — this is the
+   * entire source of ADM-005/ADM-015/CROSS-002 (the Filter button, role
+   * badges, and the "Student" membership badge all read purple with no brand
+   * source for that color). Re-pointed at the exact same warm neutral the
+   * public site already uses for --muted/--soft/--border-strong, so the two
+   * systems share one real "neutral" instead of admin inventing its own.
+   */
+  --ct-secondary: #6b6053;
+  --ct-secondary-rgb: 107, 96, 83;
+  --ct-secondary-bg-subtle: #efe9dc;
+  --ct-secondary-border-subtle: #d9d0bd;
+  --ct-secondary-text-emphasis: #4a4238;
 }
 
 /*
  * Deep charcoal, deliberately not the template's near-black (#17181e), and
  * aligned with the public site's dark tokens so the two properties match.
+ *
+ * ADM-011: Zircos's own app.min.css keys the sidebar/topbar background off
+ * data-menu-color/data-topbar-color, not data-bs-theme — and it ships a
+ * combined selector for exactly the "dark theme + dark menu/topbar" case
+ * (e.g. `:root[data-menu-color=dark][data-bs-theme=dark]`) with THREE
+ * attribute/pseudo-class selectors, which is more specific than the plain
+ * [data-bs-theme="dark"] used here. That let Zircos's own near-black values
+ * silently win over these tokens whenever the two attributes briefly fell
+ * out of sync (confirmed possible via the theme toggle's timing relative to
+ * Zircos's own init script) — the exact half-light/half-dark bug reported
+ * in the audit. `!important` on just these menu/topbar custom properties
+ * makes the sidebar and topbar follow data-bs-theme=dark unconditionally,
+ * regardless of what the other two attributes say, so the panel can no
+ * longer render half-themed.
  */
 [data-bs-theme="dark"] {
   --ct-body-bg: #1b1e22;
@@ -52,25 +81,33 @@
   --ct-secondary-bg: #24282e;
   --ct-tertiary-bg: #262a30;
 
-  --ct-menu-bg: #1e2228;
-  --ct-menu-item-color: #a6b0bd;
-  --ct-menu-item-hover-color: #ffd9c6;
-  --ct-menu-item-hover-bg: #262b32;
-  --ct-menu-item-active-color: #ffae83;
-  --ct-menu-item-active-bg: #262b32;
+  --ct-menu-bg: #1e2228 !important;
+  --ct-menu-item-color: #a6b0bd !important;
+  --ct-menu-item-hover-color: #ffd9c6 !important;
+  --ct-menu-item-hover-bg: #262b32 !important;
+  --ct-menu-item-active-color: #ffae83 !important;
+  --ct-menu-item-active-bg: #262b32 !important;
 
-  --ct-topbar-bg: #24282e;
-  --ct-topbar-item-color: #a6b0bd;
-  --ct-topbar-item-hover-color: #ffd9c6;
-  --ct-topbar-search-bg: #1e2228;
-  --ct-topbar-user-bg: #1e2228;
-  --ct-topbar-user-border: #333a42;
+  --ct-topbar-bg: #24282e !important;
+  --ct-topbar-item-color: #a6b0bd !important;
+  --ct-topbar-item-hover-color: #ffd9c6 !important;
+  --ct-topbar-search-bg: #1e2228 !important;
+  --ct-topbar-user-bg: #1e2228 !important;
+  --ct-topbar-user-border: #333a42 !important;
 
   --ct-primary-text-emphasis: #ffae83;
   --ct-link-color: #ffae83;
   --ct-link-hover-color: #ffc7ab;
 
   --pf-brand-ink: #201b17;
+
+  /* Same neutral family as light mode, shifted for dark surfaces — matches
+     the public site's dark --muted (#a89e8d) rather than inventing a new tone. */
+  --ct-secondary: #a89e8d;
+  --ct-secondary-rgb: 168, 158, 141;
+  --ct-secondary-bg-subtle: #33302b;
+  --ct-secondary-border-subtle: #4a453d;
+  --ct-secondary-text-emphasis: #c9c0b0;
 }
 
 [data-bs-theme="dark"] .card,
@@ -154,6 +191,27 @@ button:focus-visible {
 .form-select:focus {
   border-color: var(--ct-primary);
   box-shadow: 0 0 0 0.15rem rgba(255, 95, 31, 0.2);
+}
+
+/*
+ * ADM-001: replaces Zircos's stock `.auth-bg` pastel teal→blue gradient
+ * (linear-gradient(90deg,#eaf3f4,#b3c5df)) — an unmodified template default
+ * with no relationship to the brand. Calm solid ground (same tone as the
+ * public site's --bg) plus the same 4px brand-orange top rule the public
+ * header already uses, so the login screen reads as Provatferi's own
+ * software rather than a demo. The radial tint is intentionally faint —
+ * institutional and secure, not decorative.
+ */
+.auth-bg {
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(255, 95, 31, 0.06), transparent 60%),
+    #fbf9f4;
+  border-top: 4px solid var(--ct-primary);
+}
+[data-bs-theme="dark"] .auth-bg {
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(255, 95, 31, 0.1), transparent 60%),
+    #1b1e22;
 }
 
 /* ---------- Brand logo, theme-aware ---------- */
@@ -240,6 +298,25 @@ button:focus-visible {
 .pf-required {
   color: var(--ct-danger);
   margin-left: 2px;
+}
+
+/*
+ * ADM-016: icon-only reorder controls (Objectives up/down). The aria-label
+ * was already correct; the confirmed gap was practical touch-target size —
+ * p-0 plus a tight line-height left almost nothing to click/tap. 32px is
+ * still compact enough for a dense two-button stack but clears a real
+ * pointer target, and the disabled state now dims visibly instead of
+ * relying on the easy-to-miss browser default outline removal.
+ */
+.pf-reorder-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0;
+}
+.pf-reorder-btn:disabled {
+  opacity: 0.35;
 }
 
 /* Mobile table fallback: real table on desktop, stacked rows on small screens. */

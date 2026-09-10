@@ -79,7 +79,7 @@
                     </div>
 
                     @if ($activity->published_at)
-                        <p class="fs-12 text-muted mt-3 mb-0">প্রথম প্রকাশ: {{ $activity->published_at->format('d M Y, H:i') }}</p>
+                        <p class="fs-12 text-muted mt-3 mb-0">প্রথম প্রকাশ: {{ bn_datetime($activity->published_at) }}</p>
                     @endif
                 </x-admin.card>
 

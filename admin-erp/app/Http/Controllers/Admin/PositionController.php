@@ -34,8 +34,8 @@ class PositionController extends Controller
             ->withQueryString();
 
         return view('admin.positions.index', [
-            'title' => 'Positions',
-            'breadcrumbs' => [['label' => 'Organization'], ['label' => 'Positions']],
+            'title' => 'পদসমূহ',
+            'breadcrumbs' => [['label' => 'সংগঠন'], ['label' => 'পদসমূহ']],
             'positions' => $positions,
             'filters' => $filters,
             'statuses' => self::STATUSES,
@@ -46,8 +46,8 @@ class PositionController extends Controller
     public function create(): View
     {
         return view('admin.positions.form', [
-            'title' => 'Create Position',
-            'breadcrumbs' => [['label' => 'Positions', 'route' => 'admin.positions.index'], ['label' => 'Create']],
+            'title' => 'নতুন পদ',
+            'breadcrumbs' => [['label' => 'পদসমূহ', 'route' => 'admin.positions.index'], ['label' => 'তৈরি করুন']],
             'position' => new OrganizationalPosition(['status' => 'active', 'level' => 0, 'is_public' => true]),
             'units' => $this->unitOptions(),
             'statuses' => self::STATUSES,
@@ -69,8 +69,8 @@ class PositionController extends Controller
     public function edit(OrganizationalPosition $position): View
     {
         return view('admin.positions.form', [
-            'title' => 'Edit — '.$position->name,
-            'breadcrumbs' => [['label' => 'Positions', 'route' => 'admin.positions.index'], ['label' => $position->name]],
+            'title' => 'সম্পাদনা — '.$position->name,
+            'breadcrumbs' => [['label' => 'পদসমূহ', 'route' => 'admin.positions.index'], ['label' => $position->name]],
             'position' => $position,
             'units' => $this->unitOptions(),
             'statuses' => self::STATUSES,

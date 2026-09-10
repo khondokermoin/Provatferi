@@ -44,7 +44,7 @@
                     <x-admin.form-select name="status" label="স্ট্যাটাস" :options="$statuses"
                         :value="$jobPosting->status" :placeholder="null" required />
                     @if ($jobPosting->published_at)
-                        <p class="fs-12 text-muted mb-0">প্রথম প্রকাশ: {{ $jobPosting->published_at->format('d M Y, H:i') }}</p>
+                        <p class="fs-12 text-muted mb-0">প্রথম প্রকাশ: {{ bn_datetime($jobPosting->published_at) }}</p>
                     @endif
                 </x-admin.card>
 

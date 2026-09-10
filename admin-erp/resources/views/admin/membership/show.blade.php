@@ -2,7 +2,7 @@
 
 @section('page-actions')
     <a href="{{ route('admin.membership.index') }}" class="btn btn-light">
-        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>Back
+        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>ফিরে যান
     </a>
 @endsection
 
@@ -24,7 +24,7 @@
                     <dd class="col-sm-8">{{ $application->organizationUnit?->name ?? '—' }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">জমা দেওয়ার তারিখ</dt>
-                    <dd class="col-sm-8 mb-0">{{ $application->created_at->format('d M Y, H:i') }}</dd>
+                    <dd class="col-sm-8 mb-0">{{ bn_datetime($application->created_at) }}</dd>
                 </dl>
             </x-admin.card>
 
@@ -51,7 +51,7 @@
                 <x-admin.status-badge :status="$application->status" class="mb-3" />
                 @if ($application->reviewer)
                     <p class="fs-13 text-muted mb-0">
-                        সর্বশেষ পর্যালোচনা: {{ $application->reviewer->name }} — {{ $application->reviewed_at?->format('d M Y, H:i') }}
+                        সর্বশেষ পর্যালোচনা: {{ $application->reviewer->name }} — {{ $application->reviewed_at ? bn_datetime($application->reviewed_at) : '—' }}
                     </p>
                 @endif
             </x-admin.card>

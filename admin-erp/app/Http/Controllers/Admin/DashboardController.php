@@ -21,43 +21,43 @@ class DashboardController extends Controller
     {
         $stats = [
             [
-                'label' => 'Organizational units',
+                'label' => 'সাংগঠনিক ইউনিট',
                 'value' => OrganizationalUnit::query()->count(),
                 'icon' => 'ti-sitemap',
                 'route' => 'admin.organization.units.index',
                 'permission' => 'organization.view',
             ],
             [
-                'label' => 'Activities',
+                'label' => 'কার্যক্রম',
                 'value' => Activity::query()->count(),
                 'icon' => 'ti-calendar-event',
                 'route' => 'admin.activities.index',
                 'permission' => 'activities.view',
             ],
             [
-                'label' => 'Membership applications',
+                'label' => 'সদস্যপদ আবেদন',
                 'value' => MembershipApplication::query()->where('status', 'pending')->count(),
                 'icon' => 'ti-file-description',
                 'route' => 'admin.membership.index',
                 'permission' => 'membership.view',
-                'hint' => 'Pending review',
+                'hint' => 'অনুমোদনের অপেক্ষায়',
             ],
             [
-                'label' => 'Active members',
+                'label' => 'সক্রিয় সদস্য',
                 'value' => Membership::query()->where('status', 'active')->count(),
                 'icon' => 'ti-users-group',
                 'route' => 'admin.membership.index',
                 'permission' => 'membership.view',
             ],
             [
-                'label' => 'Open job postings',
+                'label' => 'খোলা চাকরির বিজ্ঞপ্তি',
                 'value' => JobPosting::query()->where('status', 'open')->count(),
                 'icon' => 'ti-briefcase',
                 'route' => 'admin.recruitment.index',
                 'permission' => 'recruitment.view',
             ],
             [
-                'label' => 'Job applications',
+                'label' => 'চাকরির আবেদন',
                 'value' => JobApplication::query()->count(),
                 'icon' => 'ti-user-search',
                 'route' => 'admin.recruitment.index',
@@ -66,8 +66,8 @@ class DashboardController extends Controller
         ];
 
         return view('admin.dashboard', [
-            'title' => 'Dashboard',
-            'breadcrumbs' => [['label' => 'Dashboard']],
+            'title' => 'ড্যাশবোর্ড',
+            'breadcrumbs' => [['label' => 'ড্যাশবোর্ড']],
             'stats' => $stats,
             'recentActivities' => Activity::query()->latest()->limit(5)->get(),
             'recentMembershipApplications' => MembershipApplication::query()->with('membershipType')->latest()->limit(5)->get(),

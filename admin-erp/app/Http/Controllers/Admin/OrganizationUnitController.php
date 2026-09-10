@@ -52,8 +52,8 @@ class OrganizationUnitController extends Controller
             ->withQueryString();
 
         return view('admin.organization.units.index', [
-            'title' => 'Organizational Units',
-            'breadcrumbs' => [['label' => 'Organization'], ['label' => 'Organizational Units']],
+            'title' => 'সাংগঠনিক ইউনিট',
+            'breadcrumbs' => [['label' => 'সংগঠন'], ['label' => 'সাংগঠনিক ইউনিট']],
             'units' => $units,
             'filters' => $filters,
             'unitTypes' => self::UNIT_TYPES,
@@ -65,10 +65,10 @@ class OrganizationUnitController extends Controller
     public function create(): View
     {
         return view('admin.organization.units.form', [
-            'title' => 'Create Organizational Unit',
+            'title' => 'নতুন সাংগঠনিক ইউনিট',
             'breadcrumbs' => [
-                ['label' => 'Organizational Units', 'route' => 'admin.organization.units.index'],
-                ['label' => 'Create'],
+                ['label' => 'সাংগঠনিক ইউনিট', 'route' => 'admin.organization.units.index'],
+                ['label' => 'তৈরি করুন'],
             ],
             'unit' => new OrganizationalUnit(['status' => 'active', 'sort_order' => 0]),
             'parentOptions' => $this->parentOptions(),
@@ -96,7 +96,7 @@ class OrganizationUnitController extends Controller
         return view('admin.organization.units.show', [
             'title' => $unit->name,
             'breadcrumbs' => [
-                ['label' => 'Organizational Units', 'route' => 'admin.organization.units.index'],
+                ['label' => 'সাংগঠনিক ইউনিট', 'route' => 'admin.organization.units.index'],
                 ['label' => $unit->name],
             ],
             'unit' => $unit,
@@ -107,11 +107,11 @@ class OrganizationUnitController extends Controller
     public function edit(OrganizationalUnit $unit): View
     {
         return view('admin.organization.units.form', [
-            'title' => 'Edit — '.$unit->name,
+            'title' => 'সম্পাদনা — '.$unit->name,
             'breadcrumbs' => [
-                ['label' => 'Organizational Units', 'route' => 'admin.organization.units.index'],
+                ['label' => 'সাংগঠনিক ইউনিট', 'route' => 'admin.organization.units.index'],
                 ['label' => $unit->name, 'route' => 'admin.organization.units.show', 'params' => $unit],
-                ['label' => 'Edit'],
+                ['label' => 'সম্পাদনা'],
             ],
             'unit' => $unit,
             'parentOptions' => $this->parentOptions($unit),

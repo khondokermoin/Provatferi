@@ -20,8 +20,8 @@ class ActivityTypeController extends Controller
             ->orderBy('sort_order')->orderBy('name')->paginate(15);
 
         return view('admin.activities.types.index', [
-            'title' => 'Activity Types',
-            'breadcrumbs' => [['label' => 'Activities'], ['label' => 'Activity Types']],
+            'title' => 'কার্যক্রমের ধরন',
+            'breadcrumbs' => [['label' => 'কার্যক্রম'], ['label' => 'কার্যক্রমের ধরন']],
             'types' => $types,
         ]);
     }
@@ -29,8 +29,8 @@ class ActivityTypeController extends Controller
     public function create(): View
     {
         return view('admin.activities.types.form', [
-            'title' => 'Create Activity Type',
-            'breadcrumbs' => [['label' => 'Activity Types', 'route' => 'admin.activities.types.index'], ['label' => 'Create']],
+            'title' => 'নতুন কার্যক্রমের ধরন',
+            'breadcrumbs' => [['label' => 'কার্যক্রমের ধরন', 'route' => 'admin.activities.types.index'], ['label' => 'তৈরি করুন']],
             'type' => new ActivityType(['status' => 'active', 'sort_order' => 0]),
             'statuses' => self::STATUSES,
         ]);
@@ -49,8 +49,8 @@ class ActivityTypeController extends Controller
     public function edit(ActivityType $activityType): View
     {
         return view('admin.activities.types.form', [
-            'title' => 'Edit — '.$activityType->name,
-            'breadcrumbs' => [['label' => 'Activity Types', 'route' => 'admin.activities.types.index'], ['label' => $activityType->name]],
+            'title' => 'সম্পাদনা — '.$activityType->name,
+            'breadcrumbs' => [['label' => 'কার্যক্রমের ধরন', 'route' => 'admin.activities.types.index'], ['label' => $activityType->name]],
             'type' => $activityType,
             'statuses' => self::STATUSES,
         ]);

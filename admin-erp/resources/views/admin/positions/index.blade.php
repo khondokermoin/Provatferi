@@ -3,7 +3,7 @@
 @section('page-actions')
     @can('organization.create')
         <a href="{{ route('admin.positions.create') }}" class="btn btn-primary">
-            <i class="ti ti-plus me-1" aria-hidden="true"></i>Create Position
+            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন পদ
         </a>
     @endcan
 @endsection
@@ -12,28 +12,28 @@
     @php $isFiltered = collect($filters)->filter(fn ($v) => $v !== '')->isNotEmpty(); @endphp
 
     <x-admin.table :paginator="$positions" caption="পদের তালিকা"
-        :headers="['Position', 'Organizational unit', 'Level', 'In committees', 'Status', ['label' => 'Actions', 'align' => 'end']]">
+        :headers="['পদ', 'সাংগঠনিক ইউনিট', 'স্তর', 'কমিটিতে', 'স্ট্যাটাস', ['label' => 'অ্যাকশন', 'align' => 'end']]">
 
         <x-slot:toolbar>
             <form method="GET" action="{{ route('admin.positions.index') }}" class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
-                    <label for="f-search" class="form-label fs-13 mb-1">Search</label>
+                    <label for="f-search" class="form-label fs-13 mb-1">খুঁজুন</label>
                     <input type="search" id="f-search" name="search" value="{{ $filters['search'] }}"
                            class="form-control" placeholder="পদের নাম">
                 </div>
                 <div class="col-6 col-md-3">
                     <label for="f-unit" class="form-label fs-13 mb-1">Unit</label>
                     <select id="f-unit" name="unit" class="form-select">
-                        <option value="">All units</option>
+                        <option value="">সব ইউনিট</option>
                         @foreach ($units as $id => $name)
                             <option value="{{ $id }}" @selected($filters['unit'] == $id)>{{ $name }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div class="col-6 col-md-3">
-                    <label for="f-status" class="form-label fs-13 mb-1">Status</label>
+                    <label for="f-status" class="form-label fs-13 mb-1">স্ট্যাটাস</label>
                     <select id="f-status" name="status" class="form-select">
-                        <option value="">All statuses</option>
+                        <option value="">সব স্ট্যাটাস</option>
                         @foreach ($statuses as $v => $l)
                             <option value="{{ $v }}" @selected($filters['status'] === $v)>{{ $l }}</option>
                         @endforeach
@@ -41,7 +41,7 @@
                 </div>
                 <div class="col-12 col-md-2 d-flex gap-2">
                     <button type="submit" class="btn btn-light border w-100">
-                        <i class="ti ti-filter me-1" aria-hidden="true"></i>Filter
+                        <i class="ti ti-filter me-1" aria-hidden="true"></i>ফিল্টার
                     </button>
                     @if ($isFiltered)
                         <a href="{{ route('admin.positions.index') }}" class="btn btn-light" aria-label="ফিল্টার সরান">
@@ -54,12 +54,12 @@
 
         @forelse ($positions as $position)
             <tr>
-                <td data-label="Position" class="fw-semibold">{{ $position->name }}</td>
-                <td data-label="Organizational unit">{{ $position->organizationUnit?->name ?? '—' }}</td>
-                <td data-label="Level">{{ $position->level }}</td>
-                <td data-label="In committees">{{ $position->committee_members_count }}</td>
-                <td data-label="Status"><x-admin.status-badge :status="$position->status" /></td>
-                <td data-label="Actions" class="text-end">
+                <td data-label="পদ" class="fw-semibold">{{ $position->name }}</td>
+                <td data-label="সাংগঠনিক ইউনিট">{{ $position->organizationUnit?->name ?? '—' }}</td>
+                <td data-label="স্তর">{{ $position->level }}</td>
+                <td data-label="কমিটিতে">{{ $position->committee_members_count }}</td>
+                <td data-label="স্ট্যাটাস"><x-admin.status-badge :status="$position->status" /></td>
+                <td data-label="অ্যাকশন" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
                                 aria-label="{{ $position->name }} — অ্যাকশন মেনু">
@@ -68,14 +68,14 @@
                         <div class="dropdown-menu dropdown-menu-end">
                             @can('organization.update')
                                 <a href="{{ route('admin.positions.edit', $position) }}" class="dropdown-item">
-                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>Edit
+                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
                                 </a>
                             @endcan
                             @can('organization.delete')
                                 <div class="dropdown-divider"></div>
                                 <button type="button" class="dropdown-item text-danger"
                                         data-bs-toggle="modal" data-bs-target="#delete-position-{{ $position->id }}">
-                                    <i class="ti ti-trash me-1" aria-hidden="true"></i>Delete
+                                    <i class="ti ti-trash me-1" aria-hidden="true"></i>মুছে ফেলুন
                                 </button>
                             @endcan
                         </div>
@@ -89,7 +89,7 @@
                 @can('organization.create')
                     @unless ($isFiltered)
                         <a href="{{ route('admin.positions.create') }}" class="btn btn-primary btn-sm">
-                            <i class="ti ti-plus me-1" aria-hidden="true"></i>Create Position
+                            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন পদ
                         </a>
                     @endunless
                 @endcan

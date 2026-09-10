@@ -17,8 +17,8 @@ class RoleController extends Controller
     public function index(): View
     {
         return view('admin.roles.index', [
-            'title' => 'Roles',
-            'breadcrumbs' => [['label' => 'System'], ['label' => 'Roles']],
+            'title' => 'ভূমিকা',
+            'breadcrumbs' => [['label' => 'সিস্টেম'], ['label' => 'ভূমিকা']],
             'roles' => Role::query()->withCount(['users', 'permissions'])->orderBy('name')->paginate(15),
         ]);
     }
@@ -26,8 +26,8 @@ class RoleController extends Controller
     public function create(): View
     {
         return view('admin.roles.form', [
-            'title' => 'Create Role',
-            'breadcrumbs' => [['label' => 'Roles', 'route' => 'admin.roles.index'], ['label' => 'Create']],
+            'title' => 'নতুন ভূমিকা',
+            'breadcrumbs' => [['label' => 'ভূমিকা', 'route' => 'admin.roles.index'], ['label' => 'তৈরি করুন']],
             'role' => new Role(),
             'grouped' => $this->groupedPermissions(),
             'assigned' => [],
@@ -52,8 +52,8 @@ class RoleController extends Controller
     public function edit(Role $role): View
     {
         return view('admin.roles.form', [
-            'title' => 'Edit — '.$role->name,
-            'breadcrumbs' => [['label' => 'Roles', 'route' => 'admin.roles.index'], ['label' => $role->name]],
+            'title' => 'সম্পাদনা — '.$role->name,
+            'breadcrumbs' => [['label' => 'ভূমিকা', 'route' => 'admin.roles.index'], ['label' => $role->name]],
             'role' => $role,
             'grouped' => $this->groupedPermissions(),
             'assigned' => $role->permissions->pluck('id')->all(),

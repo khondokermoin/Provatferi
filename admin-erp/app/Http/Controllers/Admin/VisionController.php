@@ -15,9 +15,9 @@ class VisionController extends Controller
     public function edit(): View
     {
         return view('admin.content.vision', [
-            'title' => 'Vision',
-            'breadcrumbs' => [['label' => 'Content'], ['label' => 'Vision']],
-            'block' => ContentBlock::query()->firstOrCreate(['key' => self::KEY], ['title' => 'Vision', 'group_name' => 'about']),
+            'title' => 'দৃষ্টিভঙ্গি',
+            'breadcrumbs' => [['label' => 'বিষয়বস্তু'], ['label' => 'দৃষ্টিভঙ্গি']],
+            'block' => ContentBlock::query()->firstOrCreate(['key' => self::KEY], ['title' => 'দৃষ্টিভঙ্গি', 'group_name' => 'about']),
         ]);
     }
 
