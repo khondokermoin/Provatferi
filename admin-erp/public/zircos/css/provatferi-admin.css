@@ -194,6 +194,39 @@ button:focus-visible {
 }
 
 /*
+ * app.min.css hardcodes checked checkboxes/radios to a Zircos blue
+ * (#188ae2) with no --ct-* token backing it, so it never picked up the
+ * brand color the way every other primary-colored control did. This is the
+ * "stray blue tick" seen on "মনে রাখুন" (remember me) and anywhere else a
+ * checkbox/radio is checked. The tick/dot glyph itself stays white — a
+ * small filled control, not text, so white-on-orange clears the 3:1 WCAG
+ * non-text contrast minimum — only the fill/border move to the brand color.
+ */
+.form-check-input:checked {
+  background-color: var(--ct-primary);
+  border-color: var(--ct-primary);
+}
+
+/*
+ * Chrome/Edge autofill paints its own yellow-tinted background and ignores
+ * background-color entirely until this specific combination overrides it:
+ * a huge inset box-shadow (autofill never respects transparent/normal
+ * background-color directly) plus -webkit-text-fill-color for the text
+ * itself. Matches --ct-secondary-bg, the same token .form-control already
+ * uses for its own fill in both themes, so an autofilled field looks
+ * identical to a normally-filled one instead of flashing pale yellow.
+ */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--ct-body-color);
+  caret-color: var(--ct-body-color);
+  -webkit-box-shadow: 0 0 0 1000px var(--ct-secondary-bg) inset;
+  box-shadow: 0 0 0 1000px var(--ct-secondary-bg) inset;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/*
  * ADM-001: replaces Zircos's stock `.auth-bg` pastel teal→blue gradient
  * (linear-gradient(90deg,#eaf3f4,#b3c5df)) — an unmodified template default
  * with no relationship to the brand. Calm solid ground (same tone as the
@@ -251,6 +284,31 @@ button:focus-visible {
 .app-topbar .pf-logo img {
   height: 34px;
   width: auto;
+}
+
+/*
+ * Auth card (login/forgot/reset/confirm-password). This mark previously had
+ * no dedicated rule at all — it fell back to a bare inline height:38px on
+ * the <img> itself (~83px wide), literally the smallest the logo appears
+ * anywhere in the product, despite the auth screen being a first-impression,
+ * standalone page with no sidebar/topbar mark alongside it. Sized to the
+ * brand guideline's own ~190-210px desktop-header spec instead, since a
+ * solo login card is closer to that "primary identity" placement than to
+ * the sidebar's space-constrained corner.
+ */
+.auth-bg .pf-logo {
+  display: inline-block;
+  margin-bottom: 4px;
+}
+.auth-bg .pf-logo img {
+  height: auto;
+  width: 190px;
+  max-width: 100%;
+}
+@media (max-width: 575.98px) {
+  .auth-bg .pf-logo img {
+    width: 160px;
+  }
 }
 [data-bs-theme="light"] .pf-logo-for-dark,
 [data-bs-theme="dark"] .pf-logo-for-light {
