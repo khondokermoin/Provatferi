@@ -107,7 +107,7 @@ The first pass sampled representative screens per module group. This addendum cl
 ## 19. Recommended fix order
 
 1. ADM-001 — replace the login background (P0, highest-visibility template signal)
-2. ADM-002 — decide and apply one localization policy across sidebar/chrome (P0, affects every screen)
+2. ADM-002 — decide and apply one localization policy across sidebar/chrome (P1, affects every screen — still OPEN after Phase 1: status badges and 4 filter labels remain English, see `PHASE1_VISUAL_REVIEW.md` §5)
 3. ADM-011 — fix sidebar dark-mode theming (P1, binary broken/not-broken)
 4. ADM-008 — rewrite Site Settings labels for a non-technical Bengali-speaking reader (P1)
 5. ADM-009 — reframe or hide the Permissions screen for non-technical roles (P1)
