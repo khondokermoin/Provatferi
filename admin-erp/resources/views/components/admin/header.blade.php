@@ -51,7 +51,16 @@
                              document heading, and using one would skip h2→h5. --}}
                         <span class="d-lg-flex flex-column gap-1 d-none text-start">
                             <span class="my-0 fs-13 fw-semibold">{{ $user->name }}</span>
-                            <span class="fs-11 text-muted">{{ $user->roles->pluck('name')->join(', ') ?: 'No role' }}</span>
+                            {{--
+                                Presentation-only mapping for the one seeded
+                                system role — not a generic role-name
+                                translator. A custom role an admin creates
+                                later (e.g. "Regional Coordinator") renders
+                                as-is; only the known "Super Admin" label is
+                                shown in Bengali. Stored role name/RBAC keys
+                                are untouched.
+                            --}}
+                            <span class="fs-11 text-muted">{{ $user->roles->pluck('name')->map(fn ($name) => $name === 'Super Admin' ? 'সুপার অ্যাডমিন' : $name)->join(', ') ?: 'কোনো ভূমিকা নেই' }}</span>
                         </span>
                         <i class="ti ti-chevron-down align-middle ms-2" aria-hidden="true"></i>
                     </button>
