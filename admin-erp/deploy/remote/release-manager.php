@@ -369,6 +369,16 @@ case 'smoke-test-isolated':
     $result = ['ok' => true, 'checks' => []];
     try {
         $app = bootApp($appDir);
+        // bootApp() only bootstraps the console kernel, so none of the HTTP
+        // middleware that a real request runs ever fires here — including
+        // ShareErrorsFromSession, which is what normally binds $errors into
+        // every view. Blade auth views reference $errors unconditionally
+        // (correctly — it's always present on a real request), so without
+        // this line the check below fails on an "Undefined variable $errors"
+        // that has nothing to do with the release itself. Sharing an empty
+        // bag replicates the one piece of real-request state this isolated
+        // check needs, without booting a full HTTP request.
+        \Illuminate\Support\Facades\View::share('errors', new \Illuminate\Support\ViewErrorBag);
 
         try {
             $html = view('auth.forgot-password')->render();
