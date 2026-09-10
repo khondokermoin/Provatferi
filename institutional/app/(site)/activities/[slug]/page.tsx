@@ -83,20 +83,28 @@ export default async function ActivityDetailPage({ params }: { params: Promise<{
             <dt>স্থান</dt>
             <dd>{activity.place}</dd>
           </div>
+          {activity.participantCount !== null && (
+            <div>
+              <dt>অংশগ্রহণকারী</dt>
+              <dd>{activity.participantCount}</dd>
+            </div>
+          )}
         </dl>
       </section>
 
-      <section className="content-section">
-        <h2>ফলাফল ও প্রভাব</h2>
-        {activity.outcomes ? (
+      {activity.summary && (
+        <section className="content-section">
+          <h2>বিবরণ</h2>
+          <p>{activity.summary}</p>
+        </section>
+      )}
+
+      {activity.outcomes && (
+        <section className="content-section">
+          <h2>ফলাফল ও প্রভাব</h2>
           <p>{activity.outcomes}</p>
-        ) : (
-          <div className="empty-state is-compact">
-            <p>বিস্তারিত প্রতিবেদন শীঘ্রই যুক্ত করা হবে</p>
-            <p>এই কার্যক্রমের ফলাফল, অংশগ্রহণকারীর সংখ্যা ও ছবি প্রস্তুত হলে এখানে প্রকাশ করা হবে।</p>
-          </div>
-        )}
-      </section>
+        </section>
+      )}
 
       <section className="content-section">
         <Link href="/activities" className="text-link">

@@ -15,7 +15,9 @@ export const metadata: Metadata = {
 const levels = ["কেন্দ্রীয়", "বিভাগ", "জেলা", "উপজেলা", "ইউনিয়ন/ইউনিট"];
 
 export default async function OrganizationPage() {
-  const filledCount = governancePositions.filter((p) => p.filled).length;
+  const filledPositions = governancePositions.filter((p) => p.filled);
+  const vacantPositions = governancePositions.filter((p) => !p.filled);
+  const filledCount = filledPositions.length;
 
   /*
    * governancePositions stays static — there is no public committee/position
@@ -59,18 +61,32 @@ export default async function OrganizationPage() {
           সংগঠিত করা, দায়িত্ব বণ্টন করা এবং ভবিষ্যৎ স্থায়ী কাঠামোর ভিত্তি তৈরি করা। মোট {governancePositions.length}টি পদের
           মধ্যে বর্তমানে {filledCount}টি পদ পূরণ হয়েছে; বাকি পদগুলোতে দায়িত্বশীল ব্যক্তি নির্ধারণ প্রক্রিয়াধীন।
         </p>
-        <div className="card-grid cols-3">
-          {governancePositions.map((position) => (
-            <div key={position.title} className="info-card">
-              <span className={`info-card-tag ${position.filled ? "" : "is-vacant"}`}>
-                {position.filled ? "দায়িত্বে আছেন" : "শূন্য পদ"}
-              </span>
-              <h3>{position.title}</h3>
-              <p className={`info-card-name ${position.filled ? "" : "is-open"}`}>
-                {position.filled ? position.name : "নিয়োগ প্রক্রিয়াধীন"}
-              </p>
+        <div className="leadership-spotlight">
+          {filledPositions.map((position) => (
+            <div key={position.title} className="leadership-card">
+              <div>
+                <span className="info-card-tag">দায়িত্বে আছেন</span>
+                <h3>{position.name}</h3>
+                <p>{position.title}</p>
+              </div>
             </div>
           ))}
+        </div>
+
+        <div className="vacancy-block">
+          <h3 className="vacancy-heading">গঠনতান্ত্রিক পদ — নিয়োগ প্রক্রিয়াধীন</h3>
+          <p className="vacancy-note">
+            গঠনতন্ত্র অনুযায়ী নির্ধারিত বাকি {vacantPositions.length}টি পদে দায়িত্বশীল ব্যক্তি নির্ধারণের প্রক্রিয়া চলছে।
+            প্রকৃত কমিটি গঠিত হলে এখানে হালনাগাদ করা হবে — কোনো নাম উদ্ভাবন করা হয়নি।
+          </p>
+          <ul className="vacancy-list">
+            {vacantPositions.map((position) => (
+              <li key={position.title} className="vacancy-row">
+                <span>{position.title}</span>
+                <span className="vacancy-tag">শূন্য</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 

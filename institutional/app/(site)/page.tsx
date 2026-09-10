@@ -49,6 +49,18 @@ export default function HomePage() {
 
       <div className="values-strip" aria-label="আমাদের মূল্যবোধ"><span>আমাদের পথচলা</span><p>জ্ঞানচর্চা <i aria-hidden="true">✳</i> সৃজনশীলতা <i aria-hidden="true">✳</i> সহমর্মিতা <i aria-hidden="true">✳</i> সামাজিক দায়িত্ব</p></div>
 
+      <section className="recent-section home-section" aria-labelledby="recent-title">
+        <div className="recent-intro"><p className="eyebrow">আমাদের দিনলিপি</p><h2 id="recent-title">ছোট ছোট উদ্যোগে<br />বদলে যাক আগামী।</h2><p>প্রভাতফেরীর সাম্প্রতিক কার্যক্রম ও সমাজের সঙ্গে আমাদের পথচলার কথা।</p><Link href="/activities" className="text-link">কার্যক্রমের নথি <span aria-hidden="true">↗</span></Link></div>
+        <div className="recent-list">
+          {recentActivities.map((activity, index) => (
+            <article className="recent-item" key={activity.title}>
+              <span className="recent-number" aria-hidden="true">{numbers[index]}</span>
+              <div><p className="activity-date">{activity.date}</p><h3>{activity.title}</h3><p>{activity.place}</p></div>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="home-section" aria-labelledby="activities-title">
         <div className="section-heading"><div><p className="eyebrow">যে কাজে আমাদের পরিচয়</p><h2 id="activities-title">একসাথে, সুন্দর আগামীর জন্য।</h2></div><Link href="/activities" className="text-link">সব কার্যক্রম <span aria-hidden="true">↗</span></Link></div>
         <div className="activity-grid">
@@ -58,18 +70,6 @@ export default function HomePage() {
               <h3>{category.title}</h3><p>{categoryNotes[index]}</p>
               <div className="activity-card-bottom"><span>{category.items[0]}</span><span aria-hidden="true">↗</span></div>
             </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="recent-section home-section" aria-labelledby="recent-title">
-        <div className="recent-intro"><p className="eyebrow">আমাদের দিনলিপি</p><h2 id="recent-title">ছোট ছোট উদ্যোগে<br />বদলে যাক আগামী।</h2><p>প্রভাতফেরীর সাম্প্রতিক কার্যক্রম ও সমাজের সঙ্গে আমাদের পথচলার কথা।</p><Link href="/activities" className="text-link">কার্যক্রমের নথি <span aria-hidden="true">↗</span></Link></div>
-        <div className="recent-list">
-          {recentActivities.map((activity, index) => (
-            <article className="recent-item" key={activity.title}>
-              <span className="recent-number" aria-hidden="true">{numbers[index]}</span>
-              <div><p className="activity-date">{activity.date}</p><h3>{activity.title}</h3><p>{activity.place}</p></div>
-            </article>
           ))}
         </div>
       </section>

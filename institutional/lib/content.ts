@@ -145,6 +145,8 @@ export const recentActivities = [
     category: "সামাজিক সচেতনতা",
     photos: [] as string[],
     outcomes: null as string | null,
+    summary: null as string | null,
+    participantCount: null as number | null,
   },
   {
     slug: "poribesh-porichonnota-kormosuchi-2026-09-04",
@@ -154,6 +156,8 @@ export const recentActivities = [
     category: "সামাজিক সচেতনতা",
     photos: [] as string[],
     outcomes: null as string | null,
+    summary: null as string | null,
+    participantCount: null as number | null,
   },
   {
     slug: "madokbirodhi-ovijan-2026-08-18",
@@ -163,6 +167,8 @@ export const recentActivities = [
     category: "সামাজিক সচেতনতা",
     photos: [] as string[],
     outcomes: null as string | null,
+    summary: null as string | null,
+    participantCount: null as number | null,
   },
 ];
 
