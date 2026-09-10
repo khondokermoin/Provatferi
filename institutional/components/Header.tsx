@@ -39,6 +39,19 @@ export default function Header() {
     return () => document.removeEventListener("click", onClickOutside);
   }, [openGroup]);
 
+  // PUB-010 follow-up: resizing across the mobile/desktop breakpoint (a
+  // tablet rotation, or a desktop window drag) previously left `openGroup`/
+  // `open` state stuck from whichever mode was active before — invisible
+  // immediately after a shrink (the mobile panel's own display:none hides
+  // it), but it would reappear already-expanded the next time the mobile
+  // panel opened. Any resize closes both states, same as a route change.
+  useEffect(() => {
+    if (!open && !openGroup) return;
+    const onResize = () => closeAll();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [open, openGroup]);
+
   const isActive = (item: (typeof navLinks)[number]) => {
     const prefixes = item.match ?? [item.href];
     if (item.href === "/") return pathname === "/";

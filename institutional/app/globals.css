@@ -213,7 +213,7 @@ h1, h2, h3, h4 { color: var(--heading); }
  * it. Anchored directly below its toggle (top: 100%) so it never collides
  * with the header itself.
  */
-@media (min-width: 769px) {
+@media (min-width: 744px) {
   .nav-dropdown { position: absolute; top: 100%; left: 0; min-width: 230px; background: var(--surface); border: 1px solid var(--border); border-radius: 0 0 10px 10px; box-shadow: 0 16px 32px rgba(20, 15, 10, .22); padding: 8px; z-index: 40; }
   .main-navigation .nav-dropdown a { padding: 10px 12px; border-radius: 6px; border-bottom: none; font-size: 14px; min-height: 0; }
   .main-navigation .nav-dropdown a:hover { background: var(--soft); color: var(--accent-text); }
@@ -433,7 +433,19 @@ h1, h2, h3, h4 { color: var(--heading); }
   .journey-steps { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .card-grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
 }
-@media (max-width: 768px) {
+/*
+ * PUB-010: 768/769px was an arbitrary desktop/mobile split, not a measured
+ * one — the real logo/motto/CTA/nav content (with real Bengali text) was
+ * empirically confirmed to fit with zero overflow down to 680px (measured
+ * live via Puppeteer, forcing the desktop header on at a range of widths
+ * and checking scrollWidth/wrapping directly). 744px keeps a 64px safety
+ * margin over that measured minimum, while bringing every standard tablet
+ * portrait width (768/810/820/834/912/1024...) into full desktop-nav mode
+ * instead of an unnecessary hamburger. A single corrected breakpoint was
+ * sufficient — no intermediate tablet-only header was needed once the
+ * threshold itself was right.
+ */
+@media (max-width: 743px) {
   /* Half-size tile and a much smaller file on phones (13 KB vs 40 KB light,
      3 KB vs 12 KB dark), plus a finer pattern scale for small screens. */
   :root {
