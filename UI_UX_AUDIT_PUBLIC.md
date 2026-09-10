@@ -20,7 +20,7 @@ Above the "obviously a template" floor, well below "commissioned institutional s
 2. **PUB-022 (P1)** — Activity detail pages are nearly empty; ~1000px of void before the footer.
 3. **PUB-020 (P1)** — All 3 activity cards show a blank "gallery coming soon" placeholder box.
 4. **PUB-006 (P1)** — Real activity evidence sits below decorative content on the homepage, burying the site's actual credibility.
-5. **PUB-026 (P1)** — Desktop nav dropdown overlaps and partially obscures the hero heading — a real rendering bug.
+5. **PUB-026 (P1, REOPENED post-deploy)** — Desktop nav dropdown's text-bleed defect is fixed, but it still geometrically overlaps and visibly covers part of the hero heading at every standard desktop width; confirmed live on production after the PUB-010 deploy.
 6. **PUB-010 (P1, FIXED)** — Tablet width (768px) collapses the entire nav, including the primary CTA, behind a hamburger too early.
 7. **PUB-019 (P2, systemic)** — "Provatferi-এর..." English-name-plus-Bengali-suffix construction repeats across 5 pages.
 8. **PUB-007 (P2)** — Primary CTA button color is inconsistent between header/hero (orange) and the bottom CTA banner (dark).
@@ -110,12 +110,12 @@ Badges are the clearest recurring inconsistency: used correctly as a semantic la
 
 Updated per reviewer correction: PUB-017 reclassified P0 → P1 (CONTENT-PRESENTATION / INFORMATION-ARCHITECTURE) — now fixed in Phase 1. PUB-003 and PUB-015 (absence of real photography) re-evaluated P1 → P2 CONTENT ENHANCEMENT: no approved real photos exist and none were fabricated to fill the gap, and no specific major usability/trust failure was demonstrated beyond the general absence itself.
 
-TOTAL_IDENTIFIED_P1 (public): 8 originally classified. FIXED_P1: 6 (PUB-026, PUB-006, PUB-017, PUB-020, PUB-022, PUB-010 — all implemented and browser-verified). RECLASSIFIED_P1 (no longer P1): 2 (PUB-003, PUB-015 → P2 Content Enhancement). OPEN_P1: 0.
+TOTAL_IDENTIFIED_P1 (public): 8 originally classified. FIXED_P1: 5 (PUB-006, PUB-017, PUB-020, PUB-022, PUB-010 — all implemented and browser-verified live on production). RECLASSIFIED_P1 (no longer P1): 2 (PUB-003, PUB-015 → P2 Content Enhancement). OPEN_P1: 1 — **PUB-026 reopened**: its original text-bleed-through defect is fixed, but live post-deploy QA found the dropdown panel still geometrically overlaps and visibly covers part of the hero H1 at every standard desktop width (1280/1366/1440/1920) now that the dimming scrim (which had been masking this) is gone. This was discovered during the mandated post-deploy live QA for the PUB-010 closure and is reported rather than hidden, per instruction; it was not fixed in this pass since it falls outside the explicitly authorized PUB-010-only scope for this closure round.
 
 ## 21. Recommended fix order
 
 1. PUB-017 — governance page presentation (P0, first impression)
-2. PUB-026 — nav dropdown overlap bug (P1, real rendering defect)
+2. PUB-026 — nav dropdown overlap bug (P1, REOPENED — text-bleed fixed, geometric overlap with hero H1 confirmed live on production, needs a follow-up fix)
 3. PUB-022 — activity detail page emptiness (P1, core content page)
 4. PUB-020 — activity gallery placeholders (P1, visible on every activity)
 5. PUB-006 — homepage content order (P1, credibility)
