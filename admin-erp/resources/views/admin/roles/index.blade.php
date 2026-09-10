@@ -3,26 +3,26 @@
 @section('page-actions')
     @can('users.create')
         <a href="{{ route('admin.roles.create') }}" class="btn btn-primary">
-            <i class="ti ti-plus me-1" aria-hidden="true"></i>Create Role
+            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন ভূমিকা
         </a>
     @endcan
 @endsection
 
 @section('content')
     <x-admin.table :paginator="$roles" caption="ভূমিকার তালিকা"
-        :headers="['Role', 'Users', 'Permissions', 'Type', ['label' => 'Actions', 'align' => 'end']]">
+        :headers="['ভূমিকা', 'ব্যবহারকারী', 'অনুমতি', 'ধরন', ['label' => 'অ্যাকশন', 'align' => 'end']]">
 
         @forelse ($roles as $role)
             <tr>
-                <td data-label="Role">
+                <td data-label="ভূমিকা">
                     <span class="fw-semibold">{{ $role->name }}</span>
                     @if ($role->description)
                         <span class="d-block text-muted fs-12">{{ $role->description }}</span>
                     @endif
                 </td>
-                <td data-label="Users">{{ $role->users_count }}</td>
-                <td data-label="Permissions">{{ $role->permissions_count }}</td>
-                <td data-label="Type">
+                <td data-label="ব্যবহারকারী">{{ $role->users_count }}</td>
+                <td data-label="অনুমতি">{{ $role->permissions_count }}</td>
+                <td data-label="ধরন">
                     @if ($role->is_system_role)
                         <span class="badge bg-primary-subtle text-primary-emphasis d-inline-flex align-items-center gap-1">
                             <i class="ti ti-lock" aria-hidden="true"></i>System
@@ -31,7 +31,7 @@
                         <span class="badge bg-secondary-subtle text-secondary-emphasis">Custom</span>
                     @endif
                 </td>
-                <td data-label="Actions" class="text-end">
+                <td data-label="অ্যাকশন" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
                                 aria-label="{{ $role->name }} — অ্যাকশন মেনু">
@@ -40,7 +40,7 @@
                         <div class="dropdown-menu dropdown-menu-end">
                             @can('users.update')
                                 <a href="{{ route('admin.roles.edit', $role) }}" class="dropdown-item">
-                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>Edit &amp; permissions
+                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা ও অনুমতি
                                 </a>
                             @endcan
                             @can('users.delete')
@@ -48,7 +48,7 @@
                                     <div class="dropdown-divider"></div>
                                     <button type="button" class="dropdown-item text-danger"
                                             data-bs-toggle="modal" data-bs-target="#delete-role-{{ $role->id }}">
-                                        <i class="ti ti-trash me-1" aria-hidden="true"></i>Delete
+                                        <i class="ti ti-trash me-1" aria-hidden="true"></i>মুছে ফেলুন
                                     </button>
                                 @endunless
                             @endcan

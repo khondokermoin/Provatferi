@@ -3,7 +3,7 @@
 @section('page-actions')
     @can('users.create')
         <a href="{{ route('admin.users.create') }}" class="btn btn-primary">
-            <i class="ti ti-plus me-1" aria-hidden="true"></i>Create User
+            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন ব্যবহারকারী
         </a>
     @endcan
 @endsection
@@ -12,19 +12,19 @@
     @php $isFiltered = collect($filters)->filter(fn ($v) => $v !== '')->isNotEmpty(); @endphp
 
     <x-admin.table :paginator="$users" caption="ব্যবহারকারীর তালিকা"
-        :headers="['Name', 'Contact', 'Roles', 'Status', ['label' => 'Actions', 'align' => 'end']]">
+        :headers="['নাম', 'যোগাযোগ', 'ভূমিকা', 'স্ট্যাটাস', ['label' => 'অ্যাকশন', 'align' => 'end']]">
 
         <x-slot:toolbar>
             <form method="GET" action="{{ route('admin.users.index') }}" class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
-                    <label for="f-search" class="form-label fs-13 mb-1">Search</label>
+                    <label for="f-search" class="form-label fs-13 mb-1">খুঁজুন</label>
                     <input type="search" id="f-search" name="search" value="{{ $filters['search'] }}"
                            class="form-control" placeholder="নাম, ই-মেইল বা ফোন">
                 </div>
                 <div class="col-6 col-md-3">
-                    <label for="f-status" class="form-label fs-13 mb-1">Status</label>
+                    <label for="f-status" class="form-label fs-13 mb-1">স্ট্যাটাস</label>
                     <select id="f-status" name="status" class="form-select">
-                        <option value="">All statuses</option>
+                        <option value="">সব স্ট্যাটাস</option>
                         @foreach ($statuses as $v => $l)
                             <option value="{{ $v }}" @selected($filters['status'] === $v)>{{ $l }}</option>
                         @endforeach
@@ -33,7 +33,7 @@
                 <div class="col-6 col-md-3">
                     <label for="f-role" class="form-label fs-13 mb-1">Role</label>
                     <select id="f-role" name="role" class="form-select">
-                        <option value="">All roles</option>
+                        <option value="">সব ভূমিকা</option>
                         @foreach ($roles as $slug => $name)
                             <option value="{{ $slug }}" @selected($filters['role'] === $slug)>{{ $name }}</option>
                         @endforeach
@@ -41,7 +41,7 @@
                 </div>
                 <div class="col-12 col-md-2 d-flex gap-2">
                     <button type="submit" class="btn btn-light border w-100">
-                        <i class="ti ti-filter me-1" aria-hidden="true"></i>Filter
+                        <i class="ti ti-filter me-1" aria-hidden="true"></i>ফিল্টার
                     </button>
                     @if ($isFiltered)
                         <a href="{{ route('admin.users.index') }}" class="btn btn-light" aria-label="ফিল্টার সরান">
@@ -54,22 +54,22 @@
 
         @forelse ($users as $u)
             <tr>
-                <td data-label="Name">
+                <td data-label="নাম">
                     <a href="{{ route('admin.users.show', $u) }}" class="fw-semibold">{{ $u->name }}</a>
                 </td>
-                <td data-label="Contact">
+                <td data-label="যোগাযোগ">
                     <span class="d-block">{{ $u->email }}</span>
                     @if ($u->phone)<span class="text-muted fs-12">{{ $u->phone }}</span>@endif
                 </td>
-                <td data-label="Roles">
+                <td data-label="ভূমিকা">
                     @forelse ($u->roles as $role)
                         <span class="badge bg-secondary-subtle text-secondary-emphasis">{{ $role->name }}</span>
                     @empty
                         <span class="text-muted">—</span>
                     @endforelse
                 </td>
-                <td data-label="Status"><x-admin.status-badge :status="$u->status" /></td>
-                <td data-label="Actions" class="text-end">
+                <td data-label="স্ট্যাটাস"><x-admin.status-badge :status="$u->status" /></td>
+                <td data-label="অ্যাকশন" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
                                 aria-label="{{ $u->name }} — অ্যাকশন মেনু">
@@ -77,17 +77,17 @@
                         </button>
                         <div class="dropdown-menu dropdown-menu-end">
                             <a href="{{ route('admin.users.show', $u) }}" class="dropdown-item">
-                                <i class="ti ti-eye me-1" aria-hidden="true"></i>View
+                                <i class="ti ti-eye me-1" aria-hidden="true"></i>দেখুন
                             </a>
                             @can('users.update')
                                 <a href="{{ route('admin.users.edit', $u) }}" class="dropdown-item">
-                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>Edit
+                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
                                 </a>
                                 <form method="POST" action="{{ route('admin.users.status', $u) }}">
                                     @csrf @method('PATCH')
                                     <button type="submit" class="dropdown-item">
                                         <i class="ti ti-toggle-left me-1" aria-hidden="true"></i>
-                                        {{ $u->status === 'active' ? 'Deactivate' : 'Activate' }}
+                                        {{ $u->status === 'active' ? 'নিষ্ক্রিয় করুন' : 'সক্রিয় করুন' }}
                                     </button>
                                 </form>
                             @endcan

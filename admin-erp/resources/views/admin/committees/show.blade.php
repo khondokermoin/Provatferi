@@ -8,11 +8,11 @@
     @endcan
     @can('organization.update')
         <a href="{{ route('admin.committees.edit', $committee) }}" class="btn btn-light">
-            <i class="ti ti-pencil me-1" aria-hidden="true"></i>Edit
+            <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
         </a>
     @endcan
     <a href="{{ route('admin.committees.index') }}" class="btn btn-light">
-        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>Back
+        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>ফিরে যান
     </a>
 @endsection
 
@@ -29,8 +29,8 @@
 
                     <dt class="col-5 fs-13 text-muted">মেয়াদ</dt>
                     <dd class="col-7">
-                        {{ $committee->term_start?->format('d M Y') ?? '—' }}<br>
-                        {{ $committee->term_end?->format('d M Y') ?? 'চলমান' }}
+                        {{ $committee->term_start ? bn_date($committee->term_start) : '—' }}<br>
+                        {{ $committee->term_end ? bn_date($committee->term_end) : 'চলমান' }}
                     </dd>
 
                     <dt class="col-5 fs-13 text-muted">স্ট্যাটাস</dt>
@@ -44,21 +44,21 @@
 
         <div class="col-lg-8">
             <x-admin.table caption="কমিটির সদস্য তালিকা"
-                :headers="['#', 'Member', 'Position', 'Term', 'Status', ['label' => 'Actions', 'align' => 'end']]">
+                :headers="['#', 'সদস্য', 'পদ', 'মেয়াদ', 'স্ট্যাটাস', ['label' => 'অ্যাকশন', 'align' => 'end']]">
 
                 @forelse ($committee->members as $member)
                     <tr>
                         <td data-label="#">{{ $member->serial_no ?? '—' }}</td>
-                        <td data-label="Member">
+                        <td data-label="সদস্য">
                             <span class="fw-semibold">{{ $member->user?->name ?? '—' }}</span>
                             <span class="d-block text-muted fs-12">{{ $member->user?->email }}</span>
                         </td>
-                        <td data-label="Position">{{ $member->position?->name ?? '—' }}</td>
-                        <td data-label="Term">
-                            {{ $member->start_date?->format('M Y') ?? '—' }} – {{ $member->end_date?->format('M Y') ?? 'চলমান' }}
+                        <td data-label="পদ">{{ $member->position?->name ?? '—' }}</td>
+                        <td data-label="মেয়াদ">
+                            {{ $member->start_date ? bn_month_year($member->start_date) : '—' }} – {{ $member->end_date ? bn_month_year($member->end_date) : 'চলমান' }}
                         </td>
-                        <td data-label="Status"><x-admin.status-badge :status="$member->status" /></td>
-                        <td data-label="Actions" class="text-end">
+                        <td data-label="স্ট্যাটাস"><x-admin.status-badge :status="$member->status" /></td>
+                        <td data-label="অ্যাকশন" class="text-end">
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
                                         aria-label="{{ $member->user?->name }} — অ্যাকশন মেনু">
@@ -67,7 +67,7 @@
                                 <div class="dropdown-menu dropdown-menu-end">
                                     @can('organization.update')
                                         <a href="{{ route('admin.committees.members.edit', [$committee, $member]) }}" class="dropdown-item">
-                                            <i class="ti ti-pencil me-1" aria-hidden="true"></i>Edit
+                                            <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
                                         </a>
                                     @endcan
                                     @can('organization.delete')

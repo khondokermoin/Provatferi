@@ -33,8 +33,8 @@ class JobApplicationController extends Controller
             ->withQueryString();
 
         return view('admin.recruitment.applications.index', [
-            'title' => 'Recruitment Applications',
-            'breadcrumbs' => [['label' => 'Recruitment'], ['label' => 'Applications']],
+            'title' => 'নিয়োগ আবেদন',
+            'breadcrumbs' => [['label' => 'নিয়োগ'], ['label' => 'আবেদনসমূহ']],
             'applications' => $applications,
             'filters' => $filters,
             'statuses' => JobApplication::STATUSES,
@@ -48,7 +48,7 @@ class JobApplicationController extends Controller
 
         return view('admin.recruitment.applications.show', [
             'title' => $jobApplication->applicant_name,
-            'breadcrumbs' => [['label' => 'Applications', 'route' => 'admin.recruitment.applications.index'], ['label' => $jobApplication->applicant_name]],
+            'breadcrumbs' => [['label' => 'আবেদনসমূহ', 'route' => 'admin.recruitment.applications.index'], ['label' => $jobApplication->applicant_name]],
             'application' => $jobApplication,
             'statuses' => JobApplication::STATUSES,
         ]);

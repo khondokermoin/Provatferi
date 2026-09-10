@@ -2,7 +2,7 @@
 
 @section('page-actions')
     <a href="{{ route('admin.recruitment.applications.index') }}" class="btn btn-light">
-        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>Back
+        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>ফিরে যান
     </a>
 @endsection
 
@@ -24,7 +24,7 @@
                     <dd class="col-sm-8">{{ $application->jobPosting?->title ?? '—' }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">আবেদনের তারিখ</dt>
-                    <dd class="col-sm-8 mb-0">{{ $application->created_at->format('d M Y, H:i') }}</dd>
+                    <dd class="col-sm-8 mb-0">{{ bn_datetime($application->created_at) }}</dd>
                 </dl>
             </x-admin.card>
 

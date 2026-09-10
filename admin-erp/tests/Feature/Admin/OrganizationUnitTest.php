@@ -44,9 +44,9 @@ class OrganizationUnitTest extends TestCase
         $this->actingAs($this->userWithRole('super_admin'))
             ->get(route('admin.dashboard'))
             ->assertOk()
-            ->assertSee('Organizational units')
+            ->assertSee('সাংগঠনিক ইউনিট')
             // No records seeded, so every figure must be a real 0.
-            ->assertSee('Activities');
+            ->assertSee('কার্যক্রম');
 
         $this->assertSame(0, OrganizationalUnit::query()->count());
     }

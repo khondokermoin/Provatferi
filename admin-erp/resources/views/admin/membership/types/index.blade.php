@@ -3,29 +3,29 @@
 @section('page-actions')
     @can('membership.create')
         <a href="{{ route('admin.membership.types.create') }}" class="btn btn-primary">
-            <i class="ti ti-plus me-1" aria-hidden="true"></i>Create Membership Type
+            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন সদস্যপদের ধরন
         </a>
     @endcan
 @endsection
 
 @section('content')
     <x-admin.table :paginator="$types" caption="সদস্যপদের ধরনের তালিকা"
-        :headers="['Order', 'Name', 'Fee', 'Applications', 'Members', 'Status', ['label' => 'Actions', 'align' => 'end']]">
+        :headers="['ক্রম', 'নাম', 'ফি', 'আবেদনসমূহ', 'সদস্য', 'স্ট্যাটাস', ['label' => 'অ্যাকশন', 'align' => 'end']]">
 
         @forelse ($types as $type)
             <tr>
-                <td data-label="Order">{{ $type->sort_order }}</td>
-                <td data-label="Name">
+                <td data-label="ক্রম">{{ $type->sort_order }}</td>
+                <td data-label="নাম">
                     <span class="fw-semibold">{{ $type->name }}</span>
                     @if ($type->is_student)
                         <span class="badge bg-secondary-subtle text-secondary-emphasis fs-11 ms-1">Student</span>
                     @endif
                 </td>
-                <td data-label="Fee">{{ $type->fee > 0 ? number_format((float) $type->fee, 2) : 'নির্ধারিত হয়নি' }}</td>
-                <td data-label="Applications">{{ $type->applications_count }}</td>
-                <td data-label="Members">{{ $type->memberships_count }}</td>
-                <td data-label="Status"><x-admin.status-badge :status="$type->status" /></td>
-                <td data-label="Actions" class="text-end">
+                <td data-label="ফি">{{ $type->fee > 0 ? number_format((float) $type->fee, 2) : 'নির্ধারিত হয়নি' }}</td>
+                <td data-label="আবেদনসমূহ">{{ $type->applications_count }}</td>
+                <td data-label="সদস্য">{{ $type->memberships_count }}</td>
+                <td data-label="স্ট্যাটাস"><x-admin.status-badge :status="$type->status" /></td>
+                <td data-label="অ্যাকশন" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
                                 aria-label="{{ $type->name }} — অ্যাকশন মেনু">
@@ -34,14 +34,14 @@
                         <div class="dropdown-menu dropdown-menu-end">
                             @can('membership.update')
                                 <a href="{{ route('admin.membership.types.edit', $type) }}" class="dropdown-item">
-                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>Edit
+                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
                                 </a>
                             @endcan
                             @can('membership.delete')
                                 <div class="dropdown-divider"></div>
                                 <button type="button" class="dropdown-item text-danger"
                                         data-bs-toggle="modal" data-bs-target="#delete-type-{{ $type->id }}">
-                                    <i class="ti ti-trash me-1" aria-hidden="true"></i>Delete
+                                    <i class="ti ti-trash me-1" aria-hidden="true"></i>মুছে ফেলুন
                                 </button>
                             @endcan
                         </div>

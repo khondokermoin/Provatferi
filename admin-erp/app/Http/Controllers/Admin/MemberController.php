@@ -40,8 +40,8 @@ class MemberController extends Controller
             ->withQueryString();
 
         return view('admin.membership.members.index', [
-            'title' => 'Members',
-            'breadcrumbs' => [['label' => 'Membership'], ['label' => 'Members']],
+            'title' => 'সদস্যবৃন্দ',
+            'breadcrumbs' => [['label' => 'সদস্যপদ'], ['label' => 'সদস্যবৃন্দ']],
             'members' => $members,
             'filters' => $filters,
             'statuses' => Membership::STATUSES,
@@ -55,7 +55,7 @@ class MemberController extends Controller
 
         return view('admin.membership.members.show', [
             'title' => $membership->member_code,
-            'breadcrumbs' => [['label' => 'Members', 'route' => 'admin.membership.members.index'], ['label' => $membership->member_code]],
+            'breadcrumbs' => [['label' => 'সদস্যবৃন্দ', 'route' => 'admin.membership.members.index'], ['label' => $membership->member_code]],
             'member' => $membership,
         ]);
     }
@@ -63,9 +63,9 @@ class MemberController extends Controller
     public function edit(Membership $membership): View
     {
         return view('admin.membership.members.form', [
-            'title' => 'Edit — '.$membership->member_code,
+            'title' => 'সম্পাদনা — '.$membership->member_code,
             'breadcrumbs' => [
-                ['label' => 'Members', 'route' => 'admin.membership.members.index'],
+                ['label' => 'সদস্যবৃন্দ', 'route' => 'admin.membership.members.index'],
                 ['label' => $membership->member_code],
             ],
             'member' => $membership,

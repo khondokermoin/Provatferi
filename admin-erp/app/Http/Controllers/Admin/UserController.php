@@ -41,8 +41,8 @@ class UserController extends Controller
             ->withQueryString();
 
         return view('admin.users.index', [
-            'title' => 'Users',
-            'breadcrumbs' => [['label' => 'System'], ['label' => 'Users']],
+            'title' => 'ব্যবহারকারী',
+            'breadcrumbs' => [['label' => 'সিস্টেম'], ['label' => 'ব্যবহারকারী']],
             'users' => $users,
             'filters' => $filters,
             'statuses' => self::STATUSES,
@@ -53,8 +53,8 @@ class UserController extends Controller
     public function create(): View
     {
         return view('admin.users.form', [
-            'title' => 'Create User',
-            'breadcrumbs' => [['label' => 'Users', 'route' => 'admin.users.index'], ['label' => 'Create']],
+            'title' => 'নতুন ব্যবহারকারী',
+            'breadcrumbs' => [['label' => 'ব্যবহারকারী', 'route' => 'admin.users.index'], ['label' => 'তৈরি করুন']],
             'user' => new User(['status' => 'active']),
             'roles' => Role::query()->orderBy('name')->get(),
             'assignedRoleIds' => [],
@@ -96,7 +96,7 @@ class UserController extends Controller
 
         return view('admin.users.show', [
             'title' => $user->name,
-            'breadcrumbs' => [['label' => 'Users', 'route' => 'admin.users.index'], ['label' => $user->name]],
+            'breadcrumbs' => [['label' => 'ব্যবহারকারী', 'route' => 'admin.users.index'], ['label' => $user->name]],
             'user' => $user,
             'isLastSuperAdmin' => SuperAdminGuard::isLastUsable($user),
         ]);
@@ -105,11 +105,11 @@ class UserController extends Controller
     public function edit(User $user): View
     {
         return view('admin.users.form', [
-            'title' => 'Edit — '.$user->name,
+            'title' => 'সম্পাদনা — '.$user->name,
             'breadcrumbs' => [
-                ['label' => 'Users', 'route' => 'admin.users.index'],
+                ['label' => 'ব্যবহারকারী', 'route' => 'admin.users.index'],
                 ['label' => $user->name, 'route' => 'admin.users.show', 'params' => $user],
-                ['label' => 'Edit'],
+                ['label' => 'সম্পাদনা'],
             ],
             'user' => $user,
             'roles' => Role::query()->orderBy('name')->get(),

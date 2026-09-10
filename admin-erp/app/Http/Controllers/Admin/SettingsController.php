@@ -28,8 +28,8 @@ class SettingsController extends Controller
         $settings = Setting::query()->whereIn('key', $this->allKeys())->pluck('value', 'key');
 
         return view('admin.settings.index', [
-            'title' => 'Site Settings',
-            'breadcrumbs' => [['label' => 'Content'], ['label' => 'Site Settings']],
+            'title' => 'সাইট সেটিংস',
+            'breadcrumbs' => [['label' => 'বিষয়বস্তু'], ['label' => 'সাইট সেটিংস']],
             'settings' => $settings,
         ]);
     }

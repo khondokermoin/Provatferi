@@ -3,7 +3,7 @@
 @section('page-actions')
     @can('users.update')
         <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-primary">
-            <i class="ti ti-pencil me-1" aria-hidden="true"></i>Edit
+            <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
         </a>
         <form method="POST" action="{{ route('admin.users.password-reset', $user) }}">
             @csrf
@@ -13,7 +13,7 @@
         </form>
     @endcan
     <a href="{{ route('admin.users.index') }}" class="btn btn-light">
-        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>Back
+        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>ফিরে যান
     </a>
 @endsection
 
@@ -42,10 +42,10 @@
                     <dd class="col-sm-8"><x-admin.status-badge :status="$user->status" /></dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">সর্বশেষ লগইন</dt>
-                    <dd class="col-sm-8">{{ $user->last_login_at?->format('d M Y, H:i') ?? '—' }}</dd>
+                    <dd class="col-sm-8">{{ $user->last_login_at ? bn_datetime($user->last_login_at) : '—' }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">তৈরি</dt>
-                    <dd class="col-sm-8 mb-0">{{ $user->created_at?->format('d M Y') ?? '—' }}</dd>
+                    <dd class="col-sm-8 mb-0">{{ $user->created_at ? bn_date($user->created_at) : '—' }}</dd>
                 </dl>
             </x-admin.card>
         </div>

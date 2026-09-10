@@ -9,7 +9,7 @@
 
     <div class="row">
         <div class="col-lg-6">
-            <x-admin.card title="Identity" subtitle="প্রতিষ্ঠানের পরিচয়।">
+            <x-admin.card title="পরিচয়" subtitle="প্রতিষ্ঠানের পরিচয়।">
                 <x-admin.form-input name="site.name_bn" label="বাংলা নাম" :value="$settings['site.name_bn'] ?? ''" required
                     :disabled="! auth()->user()->can('settings.update')" />
                 <x-admin.form-input name="site.name_en" label="ইংরেজি নাম" :value="$settings['site.name_en'] ?? ''" required
@@ -28,7 +28,7 @@
                     :disabled="! auth()->user()->can('settings.update')" />
             </x-admin.card>
 
-            <x-admin.card title="Contact" subtitle="সরকারি যোগাযোগের তথ্য — শুধু অনুমোদিত পাবলিক তথ্য এখানে রাখুন।">
+            <x-admin.card title="যোগাযোগ" subtitle="সরকারি যোগাযোগের তথ্য — শুধু অনুমোদিত পাবলিক তথ্য এখানে রাখুন।">
                 <div class="row">
                     <div class="col-md-6">
                         <x-admin.form-input name="site.email" label="ই-মেইল" type="email" :value="$settings['site.email'] ?? ''" required
@@ -47,13 +47,13 @@
         </div>
 
         <div class="col-lg-6">
-            <x-admin.card title="SEO / Entity" subtitle="সার্চ ইঞ্জিন ও স্ট্রাকচার্ড ডেটার জন্য ব্যবহৃত হয়।">
+            <x-admin.card title="সার্চ ইঞ্জিন তথ্য" subtitle="গুগলে সাইট যেভাবে দেখা যায়, তা নিয়ন্ত্রণ করে।">
                 <x-admin.form-input name="site.seo_title" label="ডিফল্ট সাইট টাইটেল" :value="$settings['site.seo_title'] ?? ''"
                     :disabled="! auth()->user()->can('settings.update')" />
                 <x-admin.form-textarea name="site.seo_description" label="ডিফল্ট মেটা বিবরণ" :value="$settings['site.seo_description'] ?? ''" :rows="2"
                     help="সার্চ ফলাফলে দেখা যাওয়া সংক্ষিপ্ত বিবরণ (সর্বোচ্চ ৫০০ অক্ষর)।" :disabled="! auth()->user()->can('settings.update')" />
-                <x-admin.form-input name="site.website_url" label="ক্যানোনিক্যাল ওয়েবসাইট URL" type="url" :value="$settings['site.website_url'] ?? ''"
-                    :disabled="! auth()->user()->can('settings.update')" />
+                <x-admin.form-input name="site.website_url" label="ওয়েবসাইটের মূল ঠিকানা (URL)" type="url" :value="$settings['site.website_url'] ?? ''"
+                    help="সার্চ ইঞ্জিনে সঠিক, একক ঠিকানা হিসেবে দেখানোর জন্য ব্যবহৃত হয়।" :disabled="! auth()->user()->can('settings.update')" />
 
                 @if (! empty($settings['site.alternate_names']))
                     <div class="mb-3">
@@ -68,7 +68,7 @@
                 @endif
             </x-admin.card>
 
-            <x-admin.card title="Related sites" subtitle="প্রভাতফেরীর সহযোগী সাইট।">
+            <x-admin.card title="সংশ্লিষ্ট সাইট" subtitle="প্রভাতফেরীর সহযোগী সাইট।">
                 <x-admin.form-input name="site.literature_url" label="সাহিত্যপাতা URL" type="url" :value="$settings['site.literature_url'] ?? ''"
                     :disabled="! auth()->user()->can('settings.update')" />
             </x-admin.card>

@@ -40,8 +40,8 @@ class CommitteeController extends Controller
             ->withQueryString();
 
         return view('admin.committees.index', [
-            'title' => 'Committees',
-            'breadcrumbs' => [['label' => 'Organization'], ['label' => 'Committees']],
+            'title' => 'কমিটি',
+            'breadcrumbs' => [['label' => 'সংগঠন'], ['label' => 'কমিটি']],
             'committees' => $committees,
             'filters' => $filters,
             'statuses' => self::STATUSES,
@@ -53,8 +53,8 @@ class CommitteeController extends Controller
     public function create(): View
     {
         return view('admin.committees.form', [
-            'title' => 'Create Committee',
-            'breadcrumbs' => [['label' => 'Committees', 'route' => 'admin.committees.index'], ['label' => 'Create']],
+            'title' => 'নতুন কমিটি',
+            'breadcrumbs' => [['label' => 'কমিটি', 'route' => 'admin.committees.index'], ['label' => 'তৈরি করুন']],
             'committee' => new Committee(['status' => 'draft']),
             'units' => $this->unitOptions(),
             'statuses' => self::STATUSES,
@@ -81,7 +81,7 @@ class CommitteeController extends Controller
 
         return view('admin.committees.show', [
             'title' => $committee->name,
-            'breadcrumbs' => [['label' => 'Committees', 'route' => 'admin.committees.index'], ['label' => $committee->name]],
+            'breadcrumbs' => [['label' => 'কমিটি', 'route' => 'admin.committees.index'], ['label' => $committee->name]],
             'committee' => $committee,
             'types' => self::TYPES,
         ]);
@@ -90,11 +90,11 @@ class CommitteeController extends Controller
     public function edit(Committee $committee): View
     {
         return view('admin.committees.form', [
-            'title' => 'Edit — '.$committee->name,
+            'title' => 'সম্পাদনা — '.$committee->name,
             'breadcrumbs' => [
-                ['label' => 'Committees', 'route' => 'admin.committees.index'],
+                ['label' => 'কমিটি', 'route' => 'admin.committees.index'],
                 ['label' => $committee->name, 'route' => 'admin.committees.show', 'params' => $committee],
-                ['label' => 'Edit'],
+                ['label' => 'সম্পাদনা'],
             ],
             'committee' => $committee,
             'units' => $this->unitOptions(),

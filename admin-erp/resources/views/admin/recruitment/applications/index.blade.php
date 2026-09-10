@@ -4,18 +4,18 @@
     @php $isFiltered = collect($filters)->filter(fn ($v) => $v !== '')->isNotEmpty(); @endphp
 
     <x-admin.table :paginator="$applications" caption="নিয়োগ আবেদনের তালিকা"
-        :headers="['Applicant', 'Posting', 'Status', 'Applied']">
+        :headers="['আবেদনকারী', 'পদ', 'স্ট্যাটাস', 'আবেদনের তারিখ']">
 
         <x-slot:toolbar>
             <form method="GET" action="{{ route('admin.recruitment.applications.index') }}" class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
-                    <label for="f-search" class="form-label fs-13 mb-1">Search</label>
+                    <label for="f-search" class="form-label fs-13 mb-1">খুঁজুন</label>
                     <input type="search" id="f-search" name="search" value="{{ $filters['search'] }}" class="form-control" placeholder="নাম বা ই-মেইল">
                 </div>
                 <div class="col-6 col-md-3">
-                    <label for="f-status" class="form-label fs-13 mb-1">Status</label>
+                    <label for="f-status" class="form-label fs-13 mb-1">স্ট্যাটাস</label>
                     <select id="f-status" name="status" class="form-select">
-                        <option value="">All</option>
+                        <option value="">সব</option>
                         @foreach ($statuses as $v => $l)
                             <option value="{{ $v }}" @selected($filters['status'] === $v)>{{ $l }}</option>
                         @endforeach
@@ -24,7 +24,7 @@
                 <div class="col-6 col-md-3">
                     <label for="f-posting" class="form-label fs-13 mb-1">Posting</label>
                     <select id="f-posting" name="posting" class="form-select">
-                        <option value="">All</option>
+                        <option value="">সব</option>
                         @foreach ($postings as $id => $title)
                             <option value="{{ $id }}" @selected($filters['posting'] == $id)>{{ $title }}</option>
                         @endforeach
@@ -32,7 +32,7 @@
                 </div>
                 <div class="col-12 col-md-2 d-flex gap-2">
                     <button type="submit" class="btn btn-light border w-100">
-                        <i class="ti ti-filter me-1" aria-hidden="true"></i>Filter
+                        <i class="ti ti-filter me-1" aria-hidden="true"></i>ফিল্টার
                     </button>
                     @if ($isFiltered)
                         <a href="{{ route('admin.recruitment.applications.index') }}" class="btn btn-light" aria-label="ফিল্টার সরান">
@@ -45,13 +45,13 @@
 
         @forelse ($applications as $application)
             <tr>
-                <td data-label="Applicant">
+                <td data-label="আবেদনকারী">
                     <a href="{{ route('admin.recruitment.applications.show', $application) }}" class="fw-semibold">{{ $application->applicant_name }}</a>
                     <span class="d-block text-muted fs-12">{{ $application->applicant_email }}</span>
                 </td>
-                <td data-label="Posting">{{ $application->jobPosting?->title ?? '—' }}</td>
-                <td data-label="Status"><x-admin.status-badge :status="$application->status" /></td>
-                <td data-label="Applied">{{ $application->created_at->format('d M Y') }}</td>
+                <td data-label="পদ">{{ $application->jobPosting?->title ?? '—' }}</td>
+                <td data-label="স্ট্যাটাস"><x-admin.status-badge :status="$application->status" /></td>
+                <td data-label="আবেদনের তারিখ">{{ bn_date($application->created_at) }}</td>
             </tr>
         @empty
             <x-admin.empty-state colspan="4" icon="{{ $isFiltered ? 'ti-search-off' : 'ti-user-off' }}"

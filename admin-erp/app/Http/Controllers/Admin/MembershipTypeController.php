@@ -20,8 +20,8 @@ class MembershipTypeController extends Controller
             ->orderBy('sort_order')->orderBy('name')->paginate(15);
 
         return view('admin.membership.types.index', [
-            'title' => 'Membership Types',
-            'breadcrumbs' => [['label' => 'Membership'], ['label' => 'Membership Types']],
+            'title' => 'সদস্যপদের ধরন',
+            'breadcrumbs' => [['label' => 'সদস্যপদ'], ['label' => 'সদস্যপদের ধরন']],
             'types' => $types,
         ]);
     }
@@ -29,8 +29,8 @@ class MembershipTypeController extends Controller
     public function create(): View
     {
         return view('admin.membership.types.form', [
-            'title' => 'Create Membership Type',
-            'breadcrumbs' => [['label' => 'Membership Types', 'route' => 'admin.membership.types.index'], ['label' => 'Create']],
+            'title' => 'নতুন সদস্যপদের ধরন',
+            'breadcrumbs' => [['label' => 'সদস্যপদের ধরন', 'route' => 'admin.membership.types.index'], ['label' => 'তৈরি করুন']],
             'type' => new MembershipType(['status' => 'active', 'sort_order' => 0, 'fee' => 0, 'is_student' => false]),
             'statuses' => self::STATUSES,
         ]);
@@ -50,8 +50,8 @@ class MembershipTypeController extends Controller
     public function edit(MembershipType $membershipType): View
     {
         return view('admin.membership.types.form', [
-            'title' => 'Edit — '.$membershipType->name,
-            'breadcrumbs' => [['label' => 'Membership Types', 'route' => 'admin.membership.types.index'], ['label' => $membershipType->name]],
+            'title' => 'সম্পাদনা — '.$membershipType->name,
+            'breadcrumbs' => [['label' => 'সদস্যপদের ধরন', 'route' => 'admin.membership.types.index'], ['label' => $membershipType->name]],
             'type' => $membershipType,
             'statuses' => self::STATUSES,
         ]);

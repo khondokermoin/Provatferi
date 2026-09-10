@@ -34,8 +34,8 @@ class ActivityController extends Controller
             ->withQueryString();
 
         return view('admin.activities.index', [
-            'title' => 'Activities',
-            'breadcrumbs' => [['label' => 'Activities']],
+            'title' => 'কার্যক্রম',
+            'breadcrumbs' => [['label' => 'কার্যক্রম']],
             'activities' => $activities,
             'filters' => $filters,
             'statuses' => Activity::STATUSES,
@@ -47,7 +47,7 @@ class ActivityController extends Controller
     {
         return view('admin.activities.form', [
             'title' => 'Create Activity',
-            'breadcrumbs' => [['label' => 'Activities', 'route' => 'admin.activities.index'], ['label' => 'Create']],
+            'breadcrumbs' => [['label' => 'কার্যক্রম', 'route' => 'admin.activities.index'], ['label' => 'তৈরি করুন']],
             'activity' => new Activity(['status' => 'draft', 'participant_count' => 0]),
             'types' => $this->typeOptions(),
             'units' => $this->unitOptions(),
@@ -76,7 +76,7 @@ class ActivityController extends Controller
 
         return view('admin.activities.show', [
             'title' => $activity->title,
-            'breadcrumbs' => [['label' => 'Activities', 'route' => 'admin.activities.index'], ['label' => $activity->title]],
+            'breadcrumbs' => [['label' => 'কার্যক্রম', 'route' => 'admin.activities.index'], ['label' => $activity->title]],
             'activity' => $activity,
         ]);
     }
@@ -84,11 +84,11 @@ class ActivityController extends Controller
     public function edit(Activity $activity): View
     {
         return view('admin.activities.form', [
-            'title' => 'Edit — '.$activity->title,
+            'title' => 'সম্পাদনা — '.$activity->title,
             'breadcrumbs' => [
-                ['label' => 'Activities', 'route' => 'admin.activities.index'],
+                ['label' => 'কার্যক্রম', 'route' => 'admin.activities.index'],
                 ['label' => $activity->title, 'route' => 'admin.activities.show', 'params' => $activity],
-                ['label' => 'Edit'],
+                ['label' => 'সম্পাদনা'],
             ],
             'activity' => $activity,
             'types' => $this->typeOptions(),

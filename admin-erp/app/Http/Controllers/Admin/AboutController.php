@@ -13,8 +13,8 @@ class AboutController extends Controller
     public function edit(): View
     {
         return view('admin.content.about', [
-            'title' => 'About',
-            'breadcrumbs' => [['label' => 'Content'], ['label' => 'About']],
+            'title' => 'আমাদের সম্পর্কে',
+            'breadcrumbs' => [['label' => 'বিষয়বস্তু'], ['label' => 'আমাদের সম্পর্কে']],
             'about' => AboutPage::current(),
         ]);
     }

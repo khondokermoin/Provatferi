@@ -23,11 +23,11 @@ class CommitteeMemberController extends Controller
     public function create(Committee $committee): View
     {
         return view('admin.committees.members.form', [
-            'title' => 'Add Member — '.$committee->name,
+            'title' => 'সদস্য যোগ করুন — '.$committee->name,
             'breadcrumbs' => [
-                ['label' => 'Committees', 'route' => 'admin.committees.index'],
+                ['label' => 'কমিটি', 'route' => 'admin.committees.index'],
                 ['label' => $committee->name, 'route' => 'admin.committees.show', 'params' => $committee],
-                ['label' => 'Add Member'],
+                ['label' => 'সদস্য যোগ করুন'],
             ],
             'committee' => $committee,
             'member' => new CommitteeMember(['status' => 'active']),
@@ -52,11 +52,11 @@ class CommitteeMemberController extends Controller
         abort_unless($member->committee_id === $committee->id, 404);
 
         return view('admin.committees.members.form', [
-            'title' => 'Edit Member — '.$committee->name,
+            'title' => 'সদস্য সম্পাদনা — '.$committee->name,
             'breadcrumbs' => [
-                ['label' => 'Committees', 'route' => 'admin.committees.index'],
+                ['label' => 'কমিটি', 'route' => 'admin.committees.index'],
                 ['label' => $committee->name, 'route' => 'admin.committees.show', 'params' => $committee],
-                ['label' => 'Edit Member'],
+                ['label' => 'সদস্য সম্পাদনা'],
             ],
             'committee' => $committee,
             'member' => $member,

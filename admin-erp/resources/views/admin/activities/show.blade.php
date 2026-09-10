@@ -3,11 +3,11 @@
 @section('page-actions')
     @can('activities.update')
         <a href="{{ route('admin.activities.edit', $activity) }}" class="btn btn-primary">
-            <i class="ti ti-pencil me-1" aria-hidden="true"></i>Edit
+            <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
         </a>
     @endcan
     <a href="{{ route('admin.activities.index') }}" class="btn btn-light">
-        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>Back
+        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>ফিরে যান
     </a>
 @endsection
 
@@ -23,10 +23,10 @@
                     <dd class="col-sm-9">{{ $activity->type?->name ?? '—' }}</dd>
 
                     <dt class="col-sm-3 fs-13 text-muted">শুরু</dt>
-                    <dd class="col-sm-9">{{ $activity->start_datetime?->format('d M Y, H:i') ?? '—' }}</dd>
+                    <dd class="col-sm-9">{{ $activity->start_datetime ? bn_datetime($activity->start_datetime) : '—' }}</dd>
 
                     <dt class="col-sm-3 fs-13 text-muted">শেষ</dt>
-                    <dd class="col-sm-9">{{ $activity->end_datetime?->format('d M Y, H:i') ?? '—' }}</dd>
+                    <dd class="col-sm-9">{{ $activity->end_datetime ? bn_datetime($activity->end_datetime) : '—' }}</dd>
 
                     <dt class="col-sm-3 fs-13 text-muted">ভেন্যু</dt>
                     <dd class="col-sm-9">{{ $activity->venue ?: '—' }}</dd>
@@ -68,7 +68,7 @@
                     <p class="fs-13 mb-2"><i class="ti ti-star me-1 text-warning" aria-hidden="true"></i>ফিচার্ড</p>
                 @endif
                 @if ($activity->published_at)
-                    <p class="fs-12 text-muted mb-0">প্রকাশিত: {{ $activity->published_at->format('d M Y, H:i') }}</p>
+                    <p class="fs-12 text-muted mb-0">প্রকাশিত: {{ bn_datetime($activity->published_at) }}</p>
                 @endif
             </x-admin.card>
 
