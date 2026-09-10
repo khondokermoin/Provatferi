@@ -94,6 +94,8 @@ The login page (ADM-001) is the single clearest piece of evidence: an unmodified
 
 Updated per reviewer correction, on top of the §20 addendum: ADM-001 and ADM-002 reclassified P0 → P1 (neither is individually task-blocking, though ADM-002 remains systemic across nearly every screen). ADM-016 upgraded P2 → P1 — re-verification found the aria-label was already present (the original "no accessible name" claim was inaccurate and is corrected in `UI_UX_ISSUES_MASTER.md`), but the touch-target-size defect was real and independently meets the P1 bar. ADM-014 moved out of the defect count entirely — a real Committees record not existing is a data prerequisite, not a UI defect; no fake committee was created to force a screenshot. ADM-017 re-evaluated against actual scale (4 rows, not growing) and closed as not a defect — adding a filter toolbar there would be UI added for symmetry, not a demonstrated need.
 
+**TOTAL_IDENTIFIED_P1 (admin): 6** (ADM-001, ADM-002, ADM-008, ADM-009, ADM-011, ADM-016). **FIXED_P1: 6.** ADM-002's last confirmed concrete gaps — English status badges/options (now driven by one shared `status_label()` map, see `app/helpers.php`) and 4 remaining filter labels (Unit ×2, Posting, Role) — were closed in the final correction pass. This is based on two targeted sweeps (table headers/data-labels/dropdown-actions, then status text/filter-form labels), not an exhaustive re-check of literally every screen; "Super Admin" (a stored `roles.name` value, not template chrome) was deliberately left untranslated as data, not UI text. **OPEN_P1: 0.**
+
 ## 20. Addendum — expanded module coverage
 
 The first pass sampled representative screens per module group. This addendum closes the gap against the full named module list: Positions, Committees, Membership Types, Members, Mission, Vision, and Objectives were each captured directly (desktop 1440, mobile 390; three of them also in dark mode) for the first time.
@@ -107,7 +109,7 @@ The first pass sampled representative screens per module group. This addendum cl
 ## 19. Recommended fix order
 
 1. ADM-001 — replace the login background (P0, highest-visibility template signal)
-2. ADM-002 — decide and apply one localization policy across sidebar/chrome (P1, affects every screen — still OPEN after Phase 1: status badges and 4 filter labels remain English, see `PHASE1_VISUAL_REVIEW.md` §5)
+2. ADM-002 — decide and apply one localization policy across sidebar/chrome (P1, affects every screen — FIXED in the final correction pass: status badges/options now use a shared `status_label()` map, remaining filter labels translated; see `PHASE1_VISUAL_REVIEW.md` §5 for the gaps this closed)
 3. ADM-011 — fix sidebar dark-mode theming (P1, binary broken/not-broken)
 4. ADM-008 — rewrite Site Settings labels for a non-technical Bengali-speaking reader (P1)
 5. ADM-009 — reframe or hide the Permissions screen for non-technical roles (P1)

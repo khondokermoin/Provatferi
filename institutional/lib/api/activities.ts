@@ -98,12 +98,27 @@ export interface DisplayActivity {
 }
 
 const BANGLA_DIGITS = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
+const BANGLA_MONTHS = [
+  "জানুয়ারি", "ফেব্রুয়ারি", "মার্চ", "এপ্রিল", "মে", "জুন",
+  "জুলাই", "আগস্ট", "সেপ্টেম্বর", "অক্টোবর", "নভেম্বর", "ডিসেম্বর",
+];
 
-/** "2026-09-05T00:00:00.000000Z" -> "২০২৬-০৯-০৫", matching the digit style
- *  lib/content.ts's own dates were already written in. */
+function toBnDigits(value: string | number): string {
+  return String(value).replace(/[0-9]/g, (d) => BANGLA_DIGITS[Number(d)]);
+}
+
+/** "2026-09-05T00:00:00.000000Z" -> "৫ সেপ্টেম্বর, ২০২৬" — human-readable Bengali,
+ *  matching the format lib/content.ts's own `timeline` array already uses on
+ *  the About page, and the same date philosophy admin's bn_date() uses (see
+ *  DESIGN_SYSTEM.md's date policy). Splits the ISO string directly rather
+ *  than parsing a Date object, so there's no timezone-shift risk.
+ *  lib/content.ts's recentActivities dates are hand-written in this same
+ *  format — see the note there if either changes. */
 function toDisplayDate(isoDatetime: string | null): string {
   if (!isoDatetime) return "";
-  return isoDatetime.slice(0, 10).replace(/[0-9]/g, (d) => BANGLA_DIGITS[Number(d)]);
+  const [year, month, day] = isoDatetime.slice(0, 10).split("-").map(Number);
+  const monthName = BANGLA_MONTHS[month - 1] ?? "";
+  return `${toBnDigits(day)} ${monthName}, ${toBnDigits(year)}`;
 }
 
 function activityToDisplay(a: Activity): DisplayActivity {

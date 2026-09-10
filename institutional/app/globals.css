@@ -203,22 +203,20 @@ h1, h2, h3, h4 { color: var(--heading); }
 .nav-group.is-open .nav-caret { transform: rotate(180deg); }
 .nav-dropdown { display: none; }
 .nav-group.is-open .nav-dropdown { display: flex; flex-direction: column; }
+/*
+ * PUB-026: this is a normal 5-item dropdown (230px wide), not a mega-menu —
+ * a full-page dimming scrim (tried in an earlier pass) made it feel modal,
+ * which a reviewer correctly pushed back on. The fix is a genuinely opaque
+ * surface with real elevation instead: solid background (no transparency
+ * to bleed the hero through), a real shadow for depth, and a z-index high
+ * enough to clear anything below without needing to dim the page to prove
+ * it. Anchored directly below its toggle (top: 100%) so it never collides
+ * with the header itself.
+ */
 @media (min-width: 769px) {
   .nav-dropdown { position: absolute; top: 100%; left: 0; min-width: 230px; background: var(--surface); border: 1px solid var(--border); border-radius: 0 0 10px 10px; box-shadow: 0 16px 32px rgba(20, 15, 10, .22); padding: 8px; z-index: 40; }
   .main-navigation .nav-dropdown a { padding: 10px 12px; border-radius: 6px; border-bottom: none; font-size: 14px; min-height: 0; }
   .main-navigation .nav-dropdown a:hover { background: var(--soft); color: var(--accent-text); }
-}
-
-/* Dims the page below the header while a dropdown is open, so the floating
-   menu reads as an intentional overlay rather than a layout defect (PUB-026:
-   the dropdown previously sat directly on top of the hero heading with
-   nothing separating "menu" from "page content"). Header keeps its own
-   opaque background and a higher z-index, so it — and the open dropdown —
-   stay fully bright while everything else dims behind them. */
-.nav-scrim { display: none; }
-@media (min-width: 769px) {
-  .nav-scrim { display: block; position: fixed; inset: 0; z-index: 20; background: rgba(20, 15, 10, .4); opacity: 0; pointer-events: none; border: 0; margin: 0; padding: 0; cursor: default; transition: opacity 200ms ease; }
-  .nav-scrim.is-visible { opacity: 1; pointer-events: auto; }
 }
 
 /* ---------- Shared page header (all inner pages) ---------- */

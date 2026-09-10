@@ -10,7 +10,7 @@ class JobPosting extends Model
 {
     use SoftDeletes;
 
-    public const STATUSES = ['draft' => 'Draft', 'open' => 'Open', 'closed' => 'Closed', 'archived' => 'Archived'];
+    public const STATUSES = ['draft' => 'খসড়া', 'open' => 'খোলা', 'closed' => 'বন্ধ', 'archived' => 'সংরক্ষিত'];
 
     protected $fillable = [
         'title', 'slug', 'summary', 'organization_unit_id', 'department', 'description', 'requirements',

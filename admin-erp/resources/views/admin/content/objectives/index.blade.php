@@ -18,13 +18,16 @@
                     @can('settings.update')
                         {{--
                             ADM-016: buttons already had aria-label — the real, confirmed
-                            gap was practical touch-target size (p-0 + line-height:1.4
-                            left almost no hit area). Now a proper min-height per button,
-                            a matching title= tooltip for mouse users, and the disabled
-                            state gets its own visible style rather than relying on the
-                            browser default (which is easy to miss at this size).
+                            gap was practical touch-target size (originally p-0 + a tight
+                            line-height, later 36x32px — still short of the 44x44px
+                            target). .pf-reorder-group now gives each button a real 40x40px
+                            hit area (see provatferi-admin.css — 40, not 44, because a
+                            44px-tall pair plus gap would force every row in this table
+                            taller than its own text content needs), a title= tooltip for
+                            mouse users, and a visible disabled state rather than relying
+                            on the browser default.
                         --}}
-                        <div class="d-flex flex-column gap-1" style="width: 36px;">
+                        <div class="pf-reorder-group">
                             <form method="POST" action="{{ route('admin.content.objectives.move-up', $objective) }}">
                                 @csrf
                                 <button type="submit" class="btn btn-sm btn-light w-100 pf-reorder-btn"

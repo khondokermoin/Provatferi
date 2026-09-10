@@ -23,8 +23,8 @@ class OrganizationUnitController extends Controller
     ];
 
     public const STATUSES = [
-        'active' => 'Active',
-        'inactive' => 'Inactive',
+        'active' => 'সক্রিয়',
+        'inactive' => 'নিষ্ক্রিয়',
     ];
 
     public function index(Request $request): View

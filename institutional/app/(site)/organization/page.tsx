@@ -14,6 +14,12 @@ export const metadata: Metadata = {
 
 const levels = ["কেন্দ্রীয়", "বিভাগ", "জেলা", "উপজেলা", "ইউনিয়ন/ইউনিট"];
 
+const BANGLA_DIGITS = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
+/** Renders a small count (15, 1, 14, ...) in Bengali digits for Bengali sentences. */
+function bnNum(n: number): string {
+  return String(n).replace(/[0-9]/g, (d) => BANGLA_DIGITS[Number(d)]);
+}
+
 export default async function OrganizationPage() {
   const filledPositions = governancePositions.filter((p) => p.filled);
   const vacantPositions = governancePositions.filter((p) => !p.filled);
@@ -58,8 +64,8 @@ export default async function OrganizationPage() {
         <h2>পরিচালনা কমিটি</h2>
         <p>
           প্রভাতফেরীর বর্তমান কমিটি একটি ৩ মাস মেয়াদি অন্তর্বর্তীকালীন সাংগঠনিক কমিটি, যার উদ্দেশ্য প্রতিষ্ঠানকে
-          সংগঠিত করা, দায়িত্ব বণ্টন করা এবং ভবিষ্যৎ স্থায়ী কাঠামোর ভিত্তি তৈরি করা। মোট {governancePositions.length}টি পদের
-          মধ্যে বর্তমানে {filledCount}টি পদ পূরণ হয়েছে; বাকি পদগুলোতে দায়িত্বশীল ব্যক্তি নির্ধারণ প্রক্রিয়াধীন।
+          সংগঠিত করা, দায়িত্ব বণ্টন করা এবং ভবিষ্যৎ স্থায়ী কাঠামোর ভিত্তি তৈরি করা। মোট {bnNum(governancePositions.length)}টি পদের
+          মধ্যে বর্তমানে {bnNum(filledCount)}টি পদ পূরণ হয়েছে; বাকি পদগুলোতে দায়িত্বশীল ব্যক্তি নির্ধারণ প্রক্রিয়াধীন।
         </p>
         <div className="leadership-spotlight">
           {filledPositions.map((position) => (
@@ -76,8 +82,8 @@ export default async function OrganizationPage() {
         <div className="vacancy-block">
           <h3 className="vacancy-heading">গঠনতান্ত্রিক পদ — নিয়োগ প্রক্রিয়াধীন</h3>
           <p className="vacancy-note">
-            গঠনতন্ত্র অনুযায়ী নির্ধারিত বাকি {vacantPositions.length}টি পদে দায়িত্বশীল ব্যক্তি নির্ধারণের প্রক্রিয়া চলছে।
-            প্রকৃত কমিটি গঠিত হলে এখানে হালনাগাদ করা হবে — কোনো নাম উদ্ভাবন করা হয়নি।
+            গঠনতন্ত্র অনুযায়ী নির্ধারিত বাকি {bnNum(vacantPositions.length)}টি পদে দায়িত্বশীল ব্যক্তি নির্ধারণের প্রক্রিয়া চলছে।
+            প্রকৃত কমিটি গঠিত হলে এখানে হালনাগাদ করা হবে।
           </p>
           <ul className="vacancy-list">
             {vacantPositions.map((position) => (

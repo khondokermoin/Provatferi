@@ -127,7 +127,7 @@ test("getActivitiesWithFallback uses the API and normalizes venue/type/start_dat
   assert.equal(activities.length, 1);
   assert.equal(activities[0].place, "লেবাশ ও দোল্লাই নোয়াবপুর");
   assert.equal(activities[0].category, "সামাজিক সচেতনতা");
-  assert.equal(activities[0].date, "২০২৬-০৮-১৮"); // Bangla digits, matching lib/content.ts's own date format
+  assert.equal(activities[0].date, "১৮ আগস্ট, ২০২৬"); // human-readable Bengali, matching lib/content.ts's own date format
 });
 
 test("getActivitiesWithFallback falls back to lib/content.ts when the API returns a well-formed but empty list — an ERP outage or an empty table must not remove indexed activity pages", async () => {

@@ -22,7 +22,7 @@
                     </select>
                 </div>
                 <div class="col-6 col-md-3">
-                    <label for="f-posting" class="form-label fs-13 mb-1">Posting</label>
+                    <label for="f-posting" class="form-label fs-13 mb-1">পদ</label>
                     <select id="f-posting" name="posting" class="form-select">
                         <option value="">সব</option>
                         @foreach ($postings as $id => $title)

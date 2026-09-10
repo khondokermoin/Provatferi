@@ -22,7 +22,7 @@
                            class="form-control" placeholder="কমিটির নাম">
                 </div>
                 <div class="col-6 col-md-3">
-                    <label for="f-unit" class="form-label fs-13 mb-1">Unit</label>
+                    <label for="f-unit" class="form-label fs-13 mb-1">ইউনিট</label>
                     <select id="f-unit" name="unit" class="form-select">
                         <option value="">সব ইউনিট</option>
                         @foreach ($units as $id => $name)
