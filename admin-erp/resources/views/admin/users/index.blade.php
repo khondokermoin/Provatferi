@@ -31,7 +31,7 @@
                     </select>
                 </div>
                 <div class="col-6 col-md-3">
-                    <label for="f-role" class="form-label fs-13 mb-1">Role</label>
+                    <label for="f-role" class="form-label fs-13 mb-1">ভূমিকা</label>
                     <select id="f-role" name="role" class="form-select">
                         <option value="">সব ভূমিকা</option>
                         @foreach ($roles as $slug => $name)

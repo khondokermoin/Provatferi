@@ -9,12 +9,12 @@ class MembershipApplication extends Model
 {
     /** Submitted -> pending; -> under_review; -> need_information (bounces back to under_review once answered); -> approved/rejected/cancelled. */
     public const STATUSES = [
-        'pending' => 'Pending Review',
-        'under_review' => 'Under Review',
-        'need_information' => 'Need Information',
-        'approved' => 'Approved',
-        'rejected' => 'Rejected',
-        'cancelled' => 'Cancelled',
+        'pending' => 'পর্যালোচনার অপেক্ষায়',
+        'under_review' => 'পর্যালোচনাধীন',
+        'need_information' => 'তথ্য প্রয়োজন',
+        'approved' => 'অনুমোদিত',
+        'rejected' => 'প্রত্যাখ্যাত',
+        'cancelled' => 'বাতিল',
     ];
 
     protected $fillable = [

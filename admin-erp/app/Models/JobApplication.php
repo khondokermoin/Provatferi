@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class JobApplication extends Model
 {
-    public const STATUSES = ['submitted' => 'Submitted', 'shortlisted' => 'Shortlisted', 'rejected' => 'Rejected', 'selected' => 'Selected'];
+    public const STATUSES = ['submitted' => 'জমাকৃত', 'shortlisted' => 'বাছাইকৃত', 'rejected' => 'প্রত্যাখ্যাত', 'selected' => 'নির্বাচিত'];
 
     protected $fillable = [
         'application_no', 'job_posting_id', 'applicant_name', 'applicant_email', 'applicant_phone',

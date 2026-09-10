@@ -302,17 +302,27 @@ button:focus-visible {
 
 /*
  * ADM-016: icon-only reorder controls (Objectives up/down). The aria-label
- * was already correct; the confirmed gap was practical touch-target size —
- * p-0 plus a tight line-height left almost nothing to click/tap. 32px is
- * still compact enough for a dense two-button stack but clears a real
- * pointer target, and the disabled state now dims visibly instead of
- * relying on the easy-to-miss browser default outline removal.
+ * was already correct; the confirmed gap was practical touch-target size.
+ * 40x40px per button — short of the 44x44px ideal by design: two 44px
+ * buttons plus a real gap would force every table row taller than its own
+ * text content needs (this column sits next to a multi-line Objective
+ * body). 40px clears WCAG 2.2 AA's 24x24 minimum with real margin and is a
+ * genuine improvement over the previous 36x32, while keeping the reorder
+ * column from visually dominating the row. The disabled state dims
+ * visibly instead of relying on the easy-to-miss browser default.
  */
+.pf-reorder-group {
+  display: flex;
+  flex-direction: column;
+  width: 40px;
+  gap: 8px;
+}
 .pf-reorder-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 32px;
+  width: 40px;
+  min-height: 40px;
   padding: 0;
 }
 .pf-reorder-btn:disabled {

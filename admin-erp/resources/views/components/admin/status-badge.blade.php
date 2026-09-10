@@ -23,7 +23,7 @@
         'selected' => ['bg-success-subtle text-success-emphasis', 'ti-circle-check'],
     ];
     [$classes, $icon] = $map[$status] ?? ['bg-secondary-subtle text-secondary-emphasis', 'ti-point'];
-    $label = ucwords(str_replace('_', ' ', $status));
+    $label = status_label($status);
 @endphp
 
 <span {{ $attributes->merge(['class' => "badge $classes d-inline-flex align-items-center gap-1"]) }}>

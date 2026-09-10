@@ -12,7 +12,7 @@ use Illuminate\View\View;
 
 class CommitteeController extends Controller
 {
-    public const STATUSES = ['draft' => 'Draft', 'active' => 'Active', 'expired' => 'Expired'];
+    public const STATUSES = ['draft' => 'খসড়া', 'active' => 'সক্রিয়', 'expired' => 'মেয়াদোত্তীর্ণ'];
 
     public const TYPES = [
         'executive' => 'নির্বাহী কমিটি',

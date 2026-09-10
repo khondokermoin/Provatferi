@@ -16,7 +16,7 @@ use Illuminate\View\View;
 
 class UserController extends Controller
 {
-    public const STATUSES = ['active' => 'Active', 'inactive' => 'Inactive'];
+    public const STATUSES = ['active' => 'সক্রিয়', 'inactive' => 'নিষ্ক্রিয়'];
 
     public function index(Request $request): View
     {

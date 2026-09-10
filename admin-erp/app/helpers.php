@@ -76,3 +76,42 @@ if (! function_exists('bn_month_year')) {
         return bn_month_name($date->month).' '.bn_digits((string) $date->year);
     }
 }
+
+/*
+ * ADM-002 status-label policy: every workflow-status slug used across the
+ * app (activities, job postings, job applications, memberships, membership
+ * applications, and the various active/inactive toggles) gets exactly ONE
+ * Bengali display label, defined here once. This is the single source both
+ * `status-badge.blade.php` and every Model/Controller `STATUSES` constant's
+ * display value are written from — a slug's label never gets re-invented
+ * per view. The slugs themselves ('active', 'draft', ...) are the real,
+ * unchanged database values, form field values, and Rule::in() targets —
+ * only the Bengali text shown to a human ever comes from this map.
+ */
+if (! function_exists('status_label')) {
+    function status_label(string $status): string
+    {
+        static $labels = [
+            'active' => 'সক্রিয়',
+            'inactive' => 'নিষ্ক্রিয়',
+            'draft' => 'খসড়া',
+            'published' => 'প্রকাশিত',
+            'archived' => 'সংরক্ষিত',
+            'open' => 'খোলা',
+            'closed' => 'বন্ধ',
+            'suspended' => 'স্থগিত',
+            'expired' => 'মেয়াদোত্তীর্ণ',
+            'pending' => 'পর্যালোচনার অপেক্ষায়',
+            'under_review' => 'পর্যালোচনাধীন',
+            'need_information' => 'তথ্য প্রয়োজন',
+            'approved' => 'অনুমোদিত',
+            'rejected' => 'প্রত্যাখ্যাত',
+            'cancelled' => 'বাতিল',
+            'submitted' => 'জমাকৃত',
+            'shortlisted' => 'বাছাইকৃত',
+            'selected' => 'নির্বাচিত',
+        ];
+
+        return $labels[$status] ?? ucwords(str_replace('_', ' ', $status));
+    }
+}

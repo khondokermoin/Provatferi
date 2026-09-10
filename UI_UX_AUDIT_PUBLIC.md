@@ -21,11 +21,11 @@ Above the "obviously a template" floor, well below "commissioned institutional s
 3. **PUB-020 (P1)** — All 3 activity cards show a blank "gallery coming soon" placeholder box.
 4. **PUB-006 (P1)** — Real activity evidence sits below decorative content on the homepage, burying the site's actual credibility.
 5. **PUB-026 (P1)** — Desktop nav dropdown overlaps and partially obscures the hero heading — a real rendering bug.
-6. **PUB-003 (P1)** — Hero has zero real photography/evidence; leads with an abstract icon-in-a-card instead.
-7. **PUB-015 (P1)** — No photography anywhere on the About page, including no founder photo.
-8. **PUB-010 (P1)** — Tablet width (768px) collapses the entire nav, including the primary CTA, behind a hamburger too early.
-9. **PUB-019 (P2, systemic)** — "Provatferi-এর..." English-name-plus-Bengali-suffix construction repeats across 5 pages.
-10. **PUB-007 (P2)** — Primary CTA button color is inconsistent between header/hero (orange) and the bottom CTA banner (dark).
+6. **PUB-010 (P1)** — Tablet width (768px) collapses the entire nav, including the primary CTA, behind a hamburger too early.
+7. **PUB-019 (P2, systemic)** — "Provatferi-এর..." English-name-plus-Bengali-suffix construction repeats across 5 pages.
+8. **PUB-007 (P2)** — Primary CTA button color is inconsistent between header/hero (orange) and the bottom CTA banner (dark).
+9. **PUB-003 (P2, re-evaluated from P1)** — Hero has no real photography; no approved photos exist to use, so this is a content-supply gap rather than a fixable design defect.
+10. **PUB-015 (P2, re-evaluated from P1)** — No photography anywhere on the About page; same reasoning as PUB-003.
 
 ## 4. Brand/design-system assessment
 
@@ -104,11 +104,13 @@ Badges are the clearest recurring inconsistency: used correctly as a semantic la
 | Severity | Count |
 |---|---|
 | P0 | 0 |
-| P1 | 8 |
-| P2 | 16 |
+| P1 | 6 |
+| P2 | 18 |
 | P3 | 4 |
 
-Updated per reviewer correction: PUB-017 reclassified P0 → P1 (CONTENT-PRESENTATION / INFORMATION-ARCHITECTURE). The vacancy data is factual and the presentation-only nature of the defect doesn't meet the P0 bar (task-blocking / severe accessibility failure); it remains the single highest-impact public finding, now fixed in Phase 1 (see §21 addendum below and `UI_UX_ISSUES_MASTER.md`).
+Updated per reviewer correction: PUB-017 reclassified P0 → P1 (CONTENT-PRESENTATION / INFORMATION-ARCHITECTURE) — now fixed in Phase 1. PUB-003 and PUB-015 (absence of real photography) re-evaluated P1 → P2 CONTENT ENHANCEMENT: no approved real photos exist and none were fabricated to fill the gap, and no specific major usability/trust failure was demonstrated beyond the general absence itself.
+
+TOTAL_IDENTIFIED_P1 (public): 8 originally classified. FIXED_P1: 5 (PUB-026, PUB-006, PUB-017, PUB-020, PUB-022 — all implemented and locally verified in Phase 1). RECLASSIFIED (no longer P1): 2 (PUB-003, PUB-015 → P2). OPEN_P1: 1 (PUB-010, tablet nav breakpoint — not attempted in Phase 1).
 
 ## 21. Recommended fix order
 
@@ -119,5 +121,5 @@ Updated per reviewer correction: PUB-017 reclassified P0 → P1 (CONTENT-PRESENT
 5. PUB-006 — homepage content order (P1, credibility)
 6. PUB-019 — "Provatferi-এর" systemic fix (P2, one fix covers 5 pages)
 7. PUB-010 — tablet breakpoint (P1, real usability loss)
-8. Remaining P1s (PUB-003, PUB-015) as part of a real-photography content push
+8. PUB-003/PUB-015 (now P2 content enhancement, not P1) — add real photography once approved images exist; no UI work needed until then
 9. P2/P3 consistency items (badges, numbering, CTA color) as a single "component audit" pass rather than page-by-page

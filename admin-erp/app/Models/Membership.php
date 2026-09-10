@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Membership extends Model
 {
-    public const STATUSES = ['active' => 'Active', 'inactive' => 'Inactive', 'suspended' => 'Suspended', 'expired' => 'Expired'];
+    public const STATUSES = ['active' => 'সক্রিয়', 'inactive' => 'নিষ্ক্রিয়', 'suspended' => 'স্থগিত', 'expired' => 'মেয়াদোত্তীর্ণ'];
 
     protected $fillable = [
         'membership_application_id', 'user_id', 'membership_type_id', 'member_code', 'start_date', 'expiry_date',

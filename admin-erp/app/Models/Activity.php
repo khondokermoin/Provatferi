@@ -13,7 +13,7 @@ class Activity extends Model
     use SoftDeletes;
 
     /** Publication workflow — see the 2026-09-08 migration note on `status`. */
-    public const STATUSES = ['draft' => 'Draft', 'published' => 'Published', 'archived' => 'Archived'];
+    public const STATUSES = ['draft' => 'খসড়া', 'published' => 'প্রকাশিত', 'archived' => 'সংরক্ষিত'];
 
     protected $fillable = [
         'activity_type_id', 'organization_unit_id', 'title', 'slug', 'summary', 'description', 'objective',

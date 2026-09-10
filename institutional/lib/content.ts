@@ -139,7 +139,7 @@ export const activityCategories = [
 export const recentActivities = [
   {
     slug: "sochetonota-mulok-kormosuchi-2026-09-05",
-    date: "২০২৬-০৯-০৫",
+    date: "৫ সেপ্টেম্বর, ২০২৬",
     title: "সচেতনতামূলক কর্মসূচি",
     place: "দোল্লাই নোয়াবপুর আহসান উল্লাহ উচ্চ বিদ্যালয় ও বালিকা উচ্চ বিদ্যালয়",
     category: "সামাজিক সচেতনতা",
@@ -150,7 +150,7 @@ export const recentActivities = [
   },
   {
     slug: "poribesh-porichonnota-kormosuchi-2026-09-04",
-    date: "২০২৬-০৯-০৪",
+    date: "৪ সেপ্টেম্বর, ২০২৬",
     title: "পরিবেশ ও পরিচ্ছন্নতা কর্মসূচি",
     place: "দোল্লাই নোয়াবপুর সরকারি কলেজ",
     category: "সামাজিক সচেতনতা",
@@ -161,7 +161,7 @@ export const recentActivities = [
   },
   {
     slug: "madokbirodhi-ovijan-2026-08-18",
-    date: "২০২৬-০৮-১৮",
+    date: "১৮ আগস্ট, ২০২৬",
     title: "মাদকবিরোধী অভিযান ও 'মাদককে না বলি' প্রচারণা",
     place: "লেবাশ ও দোল্লাই নোয়াবপুর",
     category: "সামাজিক সচেতনতা",
