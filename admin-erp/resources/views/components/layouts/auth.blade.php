@@ -45,11 +45,11 @@
                     <span class="pf-logo d-inline-block">
                         <span class="pf-logo-for-light">
                             <img src="{{ asset('brand/provatferi-logo-light.png') }}"
-                                 alt="প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র" style="height:38px">
+                                 alt="প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র">
                         </span>
                         <span class="pf-logo-for-dark">
                             <img src="{{ asset('brand/provatferi-logo-dark.png') }}"
-                                 alt="প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র" style="height:38px">
+                                 alt="প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র">
                         </span>
                     </span>
                 </div>

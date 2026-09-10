@@ -18,6 +18,8 @@ class ProfileController extends Controller
     {
         return view('profile.edit', [
             'user' => $request->user(),
+            'title' => 'প্রোফাইল',
+            'breadcrumbs' => [['label' => 'প্রোফাইল']],
         ]);
     }
 
@@ -34,7 +36,7 @@ class ProfileController extends Controller
 
         $request->user()->save();
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        return Redirect::route('profile.edit')->with('success', 'প্রোফাইল তথ্য হালনাগাদ হয়েছে।');
     }
 
     /**
