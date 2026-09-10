@@ -96,6 +96,13 @@ export default function Header() {
           <a className="literature-nav" href={org.literatureUrl} target="_blank" rel="noreferrer">সাহিত্যপাতা <span aria-hidden="true">↗</span></a>
         </nav>
       </div>
+      <button
+        type="button"
+        aria-hidden="true"
+        tabIndex={-1}
+        className={`nav-scrim ${openGroup ? "is-visible" : ""}`}
+        onClick={() => setOpenGroup(null)}
+      />
     </header>
   );
 }

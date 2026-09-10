@@ -45,10 +45,13 @@ export default function ActivityFilter({ activities, initialCategory }: { activi
       {visible.length > 0 ? (
         <div className="evidence-grid">
           {visible.map((activity) => (
-            <article key={activity.slug} className="evidence-card">
-              <div className="evidence-card-media" aria-hidden="true">
-                <span>গ্যালারি শীঘ্রই</span>
-              </div>
+            <article key={activity.slug} className={`evidence-card ${activity.photos.length === 0 ? "is-text-only" : ""}`}>
+              {activity.photos.length > 0 && (
+                <div className="evidence-card-media">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={activity.photos[0]} alt="" loading="lazy" />
+                </div>
+              )}
               <div className="evidence-card-body">
                 <span className="evidence-card-tag">{activity.category}</span>
                 <h3>

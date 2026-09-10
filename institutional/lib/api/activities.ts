@@ -93,6 +93,8 @@ export interface DisplayActivity {
   category: string;
   photos: string[];
   outcomes: string | null;
+  summary: string | null;
+  participantCount: number | null;
 }
 
 const BANGLA_DIGITS = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
@@ -113,6 +115,14 @@ function activityToDisplay(a: Activity): DisplayActivity {
     category: a.type?.name ?? "",
     photos: a.gallery,
     outcomes: a.outcomes,
+    // Prefer the curated summary; fall back to the freeform "what happened"
+    // narrative if only that was filled in. Never fabricated — both are
+    // simply unused API fields until an admin actually writes them.
+    summary: a.summary ?? a.what_happened,
+    // A recorded 0 is indistinguishable from "field never filled in" on this
+    // form, so only a genuinely positive count is treated as a real fact —
+    // never render an unset default as if it were a fabricated headcount.
+    participantCount: a.participant_count && a.participant_count > 0 ? a.participant_count : null,
   };
 }
 
@@ -125,6 +135,8 @@ function fallbackToDisplay(): DisplayActivity[] {
     category: a.category,
     photos: a.photos,
     outcomes: a.outcomes,
+    summary: a.summary,
+    participantCount: a.participantCount,
   }));
 }
 
