@@ -142,7 +142,26 @@ MIGRATION_COUNT="$(find "$APP/database/migrations" -name '*.php' | wc -l | tr -d
 echo "migrations in this commit: $MIGRATION_COUNT (compared against production during remote migrate-check — see deploy/README.md)"
 
 # --- clean the isolated vendor/.env before packaging: NOT shipped --------
-rm -rf "$APP/vendor" "$APP/.env" "$APP/.env.testing.bak" "$APP/bootstrap/cache/"*.php
+rm -rf "$APP/vendor" "$APP/.env" "$APP/.env.testing.bak" "$APP/bootstrap/cache/"*.php "$APP/storage/logs/"*.log
+
+# --- asset contract check (SYSTEM-006 / the provatferi-admin.css omission) ---
+# Runs against $APP AFTER the disposable testing .env and any test-run log
+# output above are gone — checking what's about to be packaged, not a
+# mid-pipeline snapshot that still has scaffolding this script itself put
+# there. Same idea as the config contract above, aimed at a different real
+# incident: provatferi-admin.css lived outside every artifact this script
+# packaged, so a real, deployed fix to it never reached production without
+# a manual file sync (SYSTEM-006 in ADMIN_AUTH_PROFILE_UI_AUDIT.md). Moving
+# it into the Vite pipeline fixes that structurally; this fails the BUILD
+# if the fix ever regresses — e.g. someone adds a new Provatferi-owned
+# public/ asset without wiring it through Vite or the brand/ directory
+# this checks — and separately proves .env/log files never reach the
+# artifact, not just that build-release.sh's own tar --exclude flags exist.
+step "Asset contract check"
+php "$DEPLOY_DIR/asset-contract.php" "$APP" "$WORK/asset-contract.json"
+ASSET_CONTRACT_PASS="$(php_json_field 'json_decode(file_get_contents($argv[1]))->pass ? "true" : "false"' "$WORK/asset-contract.json")"
+[ "$ASSET_CONTRACT_PASS" = "true" ] || fail "asset contract check failed — a Provatferi-owned public asset (brand CSS, texture, logo, or favicon) is missing from the build, or a forbidden file (.env, storage logs) is present. See above."
+echo "asset contract OK"
 
 # --- package: split private tree vs public assets ------------------------
 step "Packaging private application tree"
@@ -207,6 +226,7 @@ cat > "$RELEASE_DIR/manifest.json" <<EOF
     "composer_validate": true,
     "composer_platform_reqs": true,
     "config_contract": true,
+    "asset_contract": true,
     "mariadb_test_suite": true
   },
   "migrations_in_release": $MIGRATION_COUNT
