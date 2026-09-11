@@ -7,16 +7,21 @@ use App\Http\Controllers\Auth\EmailVerificationPromptController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
-use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
+/*
+ * SYSTEM-010: this is an internal, invite-only ERP with exactly one
+ * intended account-creation path — the seeded Super Admin
+ * (database/seeders/AdminUserSeeder.php), which deliberately never resets
+ * a real admin's password. Breeze's public self-registration routes are
+ * gone entirely (not disabled-in-place) — RegisteredUserController and
+ * auth/register.blade.php were dead weight the moment they were removed,
+ * so both routes now correctly 404 rather than carrying a controller that
+ * exists only to be unreachable. See RegistrationDisabledTest for the
+ * regression test.
+ */
 Route::middleware('guest')->group(function () {
-    Route::get('register', [RegisteredUserController::class, 'create'])
-        ->name('register');
-
-    Route::post('register', [RegisteredUserController::class, 'store']);
-
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
 
