@@ -204,17 +204,32 @@ h1, h2, h3, h4 { color: var(--heading); }
 .nav-dropdown { display: none; }
 .nav-group.is-open .nav-dropdown { display: flex; flex-direction: column; }
 /*
- * PUB-026: this is a normal 5-item dropdown (230px wide), not a mega-menu —
- * a full-page dimming scrim (tried in an earlier pass) made it feel modal,
- * which a reviewer correctly pushed back on. The fix is a genuinely opaque
- * surface with real elevation instead: solid background (no transparency
- * to bleed the hero through), a real shadow for depth, and a z-index high
- * enough to clear anything below without needing to dim the page to prove
- * it. Anchored directly below its toggle (top: 100%) so it never collides
- * with the header itself.
+ * PUB-026 (real fix): the opaque-surface pass above fixed the original
+ * text-bleed-through bug, but `position: absolute` takes the dropdown out
+ * of document flow — so opening it never pushed the hero section down, and
+ * the panel's own height (~230px) genuinely overlapped the hero H1 by
+ * ~100px at every desktop width (measured live: dropdown bottom edge at
+ * ~437px, hero H1 starting at ~337px). An opaque background hides the
+ * text-bleed but does nothing to the geometry; the panel was still
+ * physically sitting on top of the heading. The comment this replaced
+ * claimed "never collides with the header" — true, but the collision was
+ * always with the *hero*, one section down, not the header.
+ *
+ * Fixed at the geometry level instead: the dropdown is back in normal flow
+ * (mobile already does this — .nav-dropdown is `position: static` below
+ * 744px and has never had this bug). `align-self: flex-start` on the nav's
+ * direct children stops Bootstrap-style stretch from also inflating every
+ * *other* nav link to the open dropdown's height (align-items: stretch is
+ * still needed for other layout, so it's overridden per-child instead of
+ * removed). Opening a dropdown now grows the header in-flow and pushes the
+ * hero down by exactly the dropdown's real height — there is no width at
+ * which the two rectangles can overlap, because the hero literally isn't
+ * there yet until the dropdown's box ends.
  */
 @media (min-width: 744px) {
-  .nav-dropdown { position: absolute; top: 100%; left: 0; min-width: 230px; background: var(--surface); border: 1px solid var(--border); border-radius: 0 0 10px 10px; box-shadow: 0 16px 32px rgba(20, 15, 10, .22); padding: 8px; z-index: 40; }
+  .main-navigation > a,
+  .main-navigation > .nav-group { align-self: flex-start; }
+  .nav-dropdown { min-width: 230px; background: var(--surface); border: 1px solid var(--border); border-radius: 0 0 10px 10px; box-shadow: 0 16px 32px rgba(20, 15, 10, .22); padding: 8px; }
   .main-navigation .nav-dropdown a { padding: 10px 12px; border-radius: 6px; border-bottom: none; font-size: 14px; min-height: 0; }
   .main-navigation .nav-dropdown a:hover { background: var(--soft); color: var(--accent-text); }
 }
