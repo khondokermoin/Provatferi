@@ -10,7 +10,7 @@
         <div class="alert alert-danger d-flex align-items-start gap-2" role="alert">
             <i class="ti ti-alert-circle fs-18 mt-1 flex-shrink-0" aria-hidden="true"></i>
             <div>
-                <span class="visually-hidden">Error:</span>
+                <span class="visually-hidden">ত্রুটি:</span>
                 {{ $errors->first() }}
             </div>
         </div>

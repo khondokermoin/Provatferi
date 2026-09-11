@@ -1,0 +1,621 @@
+/*
+ * Provatferi admin brand layer — FINAL remediation pass (see
+ * ADMIN_AUTH_PROFILE_UI_AUDIT.md for the issue register this file resolves).
+ *
+ * Loaded AFTER Zircos app.min.css and overrides its --ct-* tokens rather than
+ * restyling components one by one, so template updates stay drop-in.
+ *
+ * Built through Vite (see vite.config.js) rather than served as a static
+ * public/ file: every change to this file gets a new content hash in
+ * public/build/manifest.json, referenced via @vite() in the two auth/admin
+ * layouts. This is the SYSTEM-006 fix — the previous file lived at
+ * public/zircos/css/provatferi-admin.css with a 7-day browser cache and no
+ * fingerprint, so a changed file kept being served from cache to returning
+ * visitors regardless of what shipped to the server. It also fixes the
+ * deploy-pipeline gap noted in deploy/state/last-deployed.json: this file is
+ * now packaged by the SAME public/build artifact deploy/build-release.sh has
+ * always shipped, so it can never again be silently excluded from a deploy.
+ *
+ * Palette source of truth: COLOR_AND_LOGO_GUIDELINES.md and the public
+ * site's institutional/app/globals.css tokens. Every neutral/semantic value
+ * below is the SAME hex the public site uses for the equivalent concept —
+ * see ADMIN_AUTH_PROFILE_UI_AUDIT.md §10 for the pairing table this closes.
+ */
+
+@media (prefers-reduced-motion: no-preference) {
+  *, *::before, *::after {
+    transition: background-color 220ms ease, border-color 220ms ease, color 220ms ease, fill 220ms ease, stroke 220ms ease;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+  }
+}
+
+/*
+ * ============================================================================
+ * TOKEN SYSTEM (SYSTEM-001) — light
+ * ============================================================================
+ * Zircos's app.min.css defines every one of these --ct-* custom properties
+ * already; the previous brand layer only ever overrode the accent/button/
+ * menu/topbar group (41 tokens). These seven were left at Zircos defaults,
+ * which is the single root cause behind SYSTEM-002 through SYSTEM-005,
+ * SYSTEM-012 through SYSTEM-015, and every contrast failure the audit
+ * measured. Each value below is the exact hex the public site already uses
+ * for the same concept (institutional/app/globals.css), so admin and public
+ * now share one real neutral/semantic palette instead of admin inventing
+ * its own on top of a Bootstrap template's.
+ */
+:root,
+[data-bs-theme="light"] {
+  --ct-primary: #ff5f1f;
+  --ct-primary-rgb: 255, 95, 31;
+  --ct-primary-text-emphasis: #ac350a;
+  --ct-primary-bg-subtle: #fff1ea;
+  --ct-primary-border-subtle: #ffc9ae;
+
+  --ct-link-color: #ac350a;
+  --ct-link-hover-color: #8c2b08;
+
+  --pf-brand-ink: #201b17;
+  --pf-trust-green: #1f7a4d;
+
+  --ct-secondary: #6b6053;
+  --ct-secondary-rgb: 107, 96, 83;
+  --ct-secondary-bg-subtle: #efe9dc;
+  --ct-secondary-border-subtle: #d9d0bd;
+  --ct-secondary-text-emphasis: #4a4238;
+
+  /* ---- SYSTEM-001: the seven previously-untouched tokens ---- */
+  --ct-body-color: #33261c;            /* was Zircos #4c4c5c (cool slate) — now public --body */
+  --ct-heading-color: #1c2430;         /* was Zircos #4c4c5c via inherit — now public --heading */
+  /*
+   * SYSTEM-003: Zircos's --ct-secondary-color (#9ba6b7, 2.34–2.46:1 on white)
+   * drives every piece of muted/help/link text in the panel. Public --muted
+   * clears 6.13:1 in the identical white-card context — verified in
+   * ADMIN_AUTH_PROFILE_UI_AUDIT.md's re-measurement, not assumed.
+   */
+  --ct-secondary-color: #6b6053;
+  /*
+   * SYSTEM-004: neither Zircos's --ct-border-color (#e7e9eb, 1.22:1) nor the
+   * public site's own decorative --border (#e7e0d3, 1.31:1) clears the 3:1
+   * WCAG 1.4.11 non-text boundary minimum for an interactive control — the
+   * public value was never designed to double as a form-control border. This
+   * is a warm taupe chosen specifically to hit that minimum (measured
+   * 3.24:1 on white, 3.08:1 on the page background) while staying inside the
+   * same warm family as --secondary, rather than importing Zircos's cool
+   * grey. Used for cards, dividers, inputs and checkboxes alike — one
+   * border token, not three tiers, for a UI this compact.
+   */
+  --ct-border-color: #9c8d76;
+  --ct-danger: #b3261e;                /* was Zircos #f5707a (2.81:1) — now public --danger, 6.54:1 */
+  --ct-success: #1f7a4d;               /* matches public --success */
+  --ct-warning: #9a6b12;               /* matches public --warning */
+  /* Admin has no public equivalent for "informational" status; this is a
+     restrained ink-blue in the same desaturated family as the rest of the
+     palette, chosen to read as calm/institutional rather than SaaS-blue. */
+  --ct-info: #2b5f8a;
+  --ct-info-rgb: 43, 95, 138;
+  --ct-info-bg-subtle: #e8f0f6;
+  --ct-info-border-subtle: #b9d3e4;
+  --ct-info-text-emphasis: #1d4d66;
+  --ct-light: #f5efe1;                 /* was Zircos #eef2f7 (cool) — now public --soft, for neutral buttons/subtle fills */
+  --ct-light-rgb: 245, 239, 225;
+  --ct-dark: #33261c;
+  /*
+   * SYSTEM-002: Zircos points every h1–h6 at --ct-font-family-secondary,
+   * which resolves to Montserrat — a face with no Bengali coverage, so every
+   * Bengali heading silently fell back to an unspecified OS font. Headings
+   * now use the exact same stack as body text (one Bengali-safe family,
+   * matching the public site) instead of a second, incompatible typeface.
+   */
+  --ct-font-family-secondary: "Noto Sans Bengali", "Noto Sans Bengali Fallback", "Open Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/*
+ * ============================================================================
+ * TOKEN SYSTEM (SYSTEM-001) — dark
+ * ============================================================================
+ * Same reasoning, dark-mode values matched to the public site's dark tokens.
+ * ADM-011's !important block (menu/topbar) is unchanged below.
+ */
+[data-bs-theme="dark"] {
+  --ct-body-bg: #1b1e22;
+  --ct-body-bg-rgb: 27, 30, 34;
+  --ct-secondary-bg: #24282e;
+  --ct-tertiary-bg: #262a30;
+
+  --ct-menu-bg: #1e2228 !important;
+  --ct-menu-item-color: #a6b0bd !important;
+  --ct-menu-item-hover-color: #ffd9c6 !important;
+  --ct-menu-item-hover-bg: #262b32 !important;
+  --ct-menu-item-active-color: #ffae83 !important;
+  --ct-menu-item-active-bg: #262b32 !important;
+
+  --ct-topbar-bg: #24282e !important;
+  --ct-topbar-item-color: #a6b0bd !important;
+  --ct-topbar-item-hover-color: #ffd9c6 !important;
+  --ct-topbar-search-bg: #1e2228 !important;
+  --ct-topbar-user-bg: #1e2228 !important;
+  --ct-topbar-user-border: #333a42 !important;
+
+  --ct-primary-text-emphasis: #ffae83;
+  --ct-link-color: #ffae83;
+  --ct-link-hover-color: #ffc7ab;
+
+  --pf-brand-ink: #201b17;
+
+  --ct-secondary: #a89e8d;
+  --ct-secondary-rgb: 168, 158, 141;
+  --ct-secondary-bg-subtle: #33302b;
+  --ct-secondary-border-subtle: #4a453d;
+  --ct-secondary-text-emphasis: #c9c0b0;
+
+  /* ---- SYSTEM-001 dark: same seven tokens, dark values ---- */
+  --ct-body-color: #ddd6c9;            /* public dark --body */
+  --ct-heading-color: #f4f1ea;         /* public dark --heading — distinct from body again (SYSTEM-015) */
+  --ct-secondary-color: #a89e8d;       /* public dark --muted, 6.32:1 on bg / 5.45:1 on card */
+  /*
+   * SYSTEM-004/SYSTEM-014 dark: Zircos's dark --ct-border-color (#37394d)
+   * measured 1.48–1.80:1 — an indigo-tinted, near-invisible line. This
+   * lighter warm taupe clears 3.76:1 on card / 4.37:1 on page background.
+   */
+  --ct-border-color: #8b8172;
+  --ct-danger: #ef6b62;                /* public dark --danger, 4.77:1 on card */
+  --ct-success: #59c496;               /* public dark --success */
+  --ct-warning: #e0b34d;               /* public dark --warning */
+  --ct-info: #7bb0d9;
+  --ct-info-rgb: 123, 176, 217;
+  --ct-info-bg-subtle: #1c2e3a;
+  --ct-info-border-subtle: #2f4a5c;
+  --ct-info-text-emphasis: #bcdcf0;
+  --ct-light: #33302b;                 /* dark neutral-button surface, distinct from --ct-card-bg */
+  --ct-light-rgb: 51, 48, 43;
+  --ct-dark: #f4f1ea;
+}
+
+[data-bs-theme="dark"] .card,
+[data-bs-theme="dark"] .app-topbar .topbar-menu {
+  --ct-card-bg: #262a30;
+}
+
+body {
+  font-family: "Noto Sans Bengali", "Open Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/*
+ * White on #ff5f1f is only 3.04:1 — below AA for normal text. The official
+ * pairing is dark ink on orange (5.61:1). Applies to hover/active/disabled too,
+ * or the label would flip to white on press.
+ */
+.btn-primary,
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active,
+.btn-primary.active,
+.btn-primary:disabled,
+.btn-primary.disabled {
+  --ct-btn-color: var(--pf-brand-ink);
+  --ct-btn-hover-color: var(--pf-brand-ink);
+  --ct-btn-active-color: var(--pf-brand-ink);
+  --ct-btn-disabled-color: var(--pf-brand-ink);
+  --ct-btn-bg: #ff5f1f;
+  --ct-btn-hover-bg: #ff783f;
+  --ct-btn-active-bg: #e9530f;
+  --ct-btn-border-color: #ff5f1f;
+  --ct-btn-hover-border-color: #ff783f;
+  --ct-btn-active-border-color: #e9530f;
+  --ct-btn-disabled-bg: #ffb190;
+  --ct-btn-disabled-border-color: #ffb190;
+  font-weight: 600;
+}
+
+/* Same problem on badges/labels that sit on the orange fill. */
+.badge.bg-primary,
+.text-bg-primary {
+  color: var(--pf-brand-ink) !important;
+}
+
+/*
+ * AUTH-003: reconciles the button scale toward the public site's without
+ * copying its marketing-hero size wholesale — DESIGN_SYSTEM.md explicitly
+ * allows admin to run a denser scale than public, so this moves height from
+ * 37.5px to ~41px and radius from 4.8px to 6px (public: 50.5px / 8px),
+ * closing most of the gap while staying appropriate for a form-dense panel.
+ */
+.btn {
+  padding: 0.6rem 1.05rem;
+  border-radius: 6px;
+  font-weight: 600;
+}
+.btn-sm {
+  padding: 0.4rem 0.75rem;
+  border-radius: 5px;
+}
+
+/*
+ * Requirement: focus must always be visible for keyboard users.
+ *
+ * `!important` and the longhands are both load-bearing, not laziness.
+ * Zircos ships `a,button{outline:0!important}` in app.min.css, which
+ * silently defeated this rule for every link and button in the panel — i.e.
+ * for almost every focusable control, while inputs kept their ring. Verified
+ * 2026-09-08 by screenshotting a keyboard-focused sidebar link before and
+ * after (design-review/admin-qa-2026-09-08/): before, no ring rendered at
+ * all. Note getComputedStyle() misreports outline-width as 0px here even
+ * when the ring paints, so trust the pixels, not the computed value.
+ * Only :focus-visible is targeted, so mouse clicks still show no ring.
+ */
+:focus-visible,
+.btn:focus-visible,
+.form-control:focus-visible,
+.form-select:focus-visible,
+.side-nav-link:focus-visible,
+.topbar-link:focus-visible,
+.dropdown-item:focus-visible,
+a:focus-visible,
+button:focus-visible {
+  outline-width: 3px !important;
+  outline-style: solid !important;
+  outline-color: var(--ct-primary) !important;
+  outline-offset: 2px !important;
+  box-shadow: none;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--ct-primary);
+  box-shadow: 0 0 0 0.15rem rgba(255, 95, 31, 0.2);
+}
+
+/*
+ * app.min.css hardcodes checked checkboxes/radios to a Zircos blue
+ * (#188ae2) with no --ct-* token backing it. The tick/dot glyph itself
+ * stays white — a small filled control, not text, so white-on-orange
+ * clears the 3:1 WCAG non-text contrast minimum — only the fill/border
+ * move to the brand color.
+ */
+.form-check-input:checked {
+  background-color: var(--ct-primary);
+  border-color: var(--ct-primary);
+}
+
+/*
+ * AUTH-004: Bootstrap's default checkbox/radio is 1.25em (16.25px in this
+ * panel's 13px form-control context) — under the WCAG 2.2 AA 24x24 target
+ * size. Rather than fight the float+negative-margin positioning Bootstrap's
+ * default markup relies on (fragile at a new size), .form-check is put on a
+ * flex baseline instead: the control gets a real 24px box, the label sits
+ * beside it with a real gap, and vertical alignment stops depending on
+ * em-relative offsets entirely.
+ */
+.form-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding-left: 0;
+  min-height: 24px;
+}
+.form-check-input {
+  float: none;
+  margin: 0;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.form-check-label {
+  padding-top: 0.2rem;
+}
+
+/* Select chevron is a hardcoded dark-grey SVG with no theme awareness —
+   invisible on a dark card. Dark mode gets a light-stroke equivalent. */
+[data-bs-theme="dark"] .form-select {
+  --ct-form-select-bg-img: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ddd6c9' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+/*
+ * Chrome/Edge autofill paints its own yellow-tinted background and ignores
+ * background-color entirely until this specific combination overrides it:
+ * a huge inset box-shadow (autofill never respects transparent/normal
+ * background-color directly) plus -webkit-text-fill-color for the text
+ * itself. Matches --ct-secondary-bg, the same token .form-control already
+ * uses for its own fill in both themes, so an autofilled field looks
+ * identical to a normally-filled one instead of flashing pale yellow.
+ */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--ct-body-color);
+  caret-color: var(--ct-body-color);
+  -webkit-box-shadow: 0 0 0 1000px var(--ct-secondary-bg) inset;
+  box-shadow: 0 0 0 1000px var(--ct-secondary-bg) inset;
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+/*
+ * ============================================================================
+ * AUTH BACKGROUND (owner requirement: connect visually to provatferi.org)
+ * ============================================================================
+ * ADM-001 already replaced Zircos's pastel teal→blue gradient with the
+ * public site's warm --bg. This adds the SAME approved floral motif the
+ * public homepage uses (institutional/public/textures/), not a new asset —
+ * copied once into this app's own build (resources/images/textures/) since
+ * the two apps are separate deployments. Kept deliberately quiet: a heavy
+ * cream/charcoal wash over the pattern (88% opacity) so it reads as a
+ * watermark, not a marketing hero — the card itself is a fully opaque
+ * surface sitting on top, so form legibility is untouched regardless of
+ * what's behind it. AUTH-009.
+ */
+.auth-bg {
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(255, 95, 31, 0.06), transparent 60%),
+    linear-gradient(rgba(251, 249, 244, 0.62), rgba(251, 249, 244, 0.62)),
+    url("../images/textures/provatferi-floral-light-sm.webp");
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-size: auto, auto, 480px;
+  border-top: 4px solid var(--ct-primary);
+}
+[data-bs-theme="dark"] .auth-bg {
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(255, 95, 31, 0.1), transparent 60%),
+    linear-gradient(rgba(27, 30, 34, 0.68), rgba(27, 30, 34, 0.68)),
+    url("../images/textures/provatferi-floral-dark-sm.webp");
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-size: auto, auto, 480px;
+}
+
+/*
+ * AUTH-001: the auth card had no max-width, so it grew from 406.7px (1024)
+ * to 624px (1920) — non-monotonic and, at large screens, stretched a
+ * single-line credential form uncomfortably wide. Caps it without touching
+ * the Bootstrap column classes driving the smaller breakpoints, which were
+ * already reasonable.
+ */
+.auth-bg .card {
+  max-width: 440px;
+}
+
+/*
+ * AUTH-002: the centred flex group previously wrapped the card AND the
+ * copyright line as one block, biasing the card ~38px above true vertical
+ * centre. The footer is taken out of that centring calculation in the
+ * layout markup (components/layouts/auth.blade.php) and anchored to the
+ * bottom of the viewport instead, so .auth-bg's flex centring now applies
+ * to the card alone.
+ */
+.auth-bg {
+  position: relative;
+}
+.auth-bg .pf-footer-note {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 16px;
+  margin: 0;
+}
+
+/* ---------- Brand logo, theme-aware ---------- */
+/*
+ * .pf-logo-for-light holds the official light-mode asset (dark glyph, for
+ * light surfaces); .pf-logo-for-dark holds the official dark-mode asset.
+ * Only one is ever displayed — never toggled with opacity, per the brand rules.
+ */
+.pf-logo img {
+  height: 30px;
+  width: auto;
+  display: block;
+}
+.pf-logo .pf-logo-icon img {
+  height: 30px;
+}
+
+/*
+ * Zircos sizes its own small wordmark to a 30px-tall strip, which rendered the
+ * Provatferi mark at only 66px wide — well under the ~190px the brand guide
+ * specifies for a header, and flush against the sidebar corner. Size by width
+ * instead and add the required clear space around it.
+ */
+.sidenav-menu .pf-logo {
+  height: auto;
+  padding: 18px 22px 16px;
+}
+.sidenav-menu .pf-logo img {
+  height: auto;
+  width: 170px;
+  max-width: 100%;
+}
+.sidenav-menu .pf-logo .pf-logo-icon img {
+  width: 38px;
+}
+/* Topbar mark (shown when the sidebar is hidden) keeps the compact icon. */
+.app-topbar .pf-logo img {
+  height: 34px;
+  width: auto;
+}
+[data-bs-theme="light"] .pf-logo-for-dark,
+[data-bs-theme="dark"] .pf-logo-for-light {
+  display: none;
+}
+
+/* Condensed sidebar shows the icon mark only. */
+.pf-logo-icon {
+  display: none;
+}
+[data-sidenav-size="condensed"] .sidenav-menu .pf-logo-full {
+  display: none;
+}
+[data-sidenav-size="condensed"] .sidenav-menu .pf-logo-icon {
+  display: block;
+}
+
+/*
+ * Auth card (login/forgot/reset/confirm-password/register/verify-email).
+ * Sized to the brand guideline's ~190-210px desktop-header spec — measured
+ * identical to the public site's own 190px header logo (AUTH-005 verified
+ * this is correct; the "small logo" symptom was a stale-cache artefact, see
+ * SYSTEM-006). width/height set explicitly (not just CSS) in the Blade
+ * template now too, to reserve layout space before the image decodes and
+ * eliminate the cumulative-layout-shift risk noted in the audit.
+ */
+.auth-bg .pf-logo {
+  display: inline-block;
+  margin-bottom: 4px;
+}
+.auth-bg .pf-logo img {
+  height: auto;
+  width: 190px;
+  max-width: 100%;
+}
+@media (max-width: 575.98px) {
+  .auth-bg .pf-logo img {
+    width: 160px;
+  }
+}
+
+/* ---------- Institutional tone adjustments ---------- */
+.page-title-head h4 {
+  letter-spacing: -0.01em;
+}
+
+.card {
+  box-shadow: none;
+  border: 1px solid var(--ct-border-color);
+}
+
+.side-nav-link {
+  font-weight: 500;
+}
+
+/* Active nav gets a solid brand edge, not just colour — see "no colour-only" rule. */
+.side-nav-item > .side-nav-link.active,
+.side-nav-item > .side-nav-link[aria-current="page"] {
+  border-left: 3px solid var(--ct-primary);
+  font-weight: 600;
+}
+
+.pf-stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.pf-required {
+  color: var(--ct-danger);
+  margin-left: 2px;
+}
+
+/*
+ * AUTH-007/PROFILE-004: the type scale was nearly flat (auth h1 18px vs a
+ * 13px label; profile h1 17px vs a 15px card title). Widened so a page's
+ * primary heading reads as primary at a glance, without touching Zircos's
+ * base font-size scale used by dense data tables elsewhere.
+ */
+.auth-bg h1 {
+  font-size: 22px;
+}
+.page-title-head h1 {
+  font-size: 20px;
+  font-weight: 700;
+}
+.card-title {
+  font-size: 16px;
+}
+
+/*
+ * ADM-016: icon-only reorder controls (Objectives up/down). The aria-label
+ * was already correct; the confirmed gap was practical touch-target size.
+ * 40x40px per button — short of the 44x44px ideal by design: two 44px
+ * buttons plus a real gap would force every table row taller than its own
+ * text content needs (this column sits next to a multi-line Objective
+ * body). 40px clears WCAG 2.2 AA's 24x24 minimum with real margin and is a
+ * genuine improvement over the previous 36x32, while keeping the reorder
+ * column from visually dominating the row. The disabled state dims
+ * visibly instead of relying on the easy-to-miss browser default.
+ */
+.pf-reorder-group {
+  display: flex;
+  flex-direction: column;
+  width: 40px;
+  gap: 8px;
+}
+.pf-reorder-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  min-height: 40px;
+  padding: 0;
+}
+.pf-reorder-btn:disabled {
+  opacity: 0.35;
+}
+
+/* Mobile table fallback: real table on desktop, stacked rows on small screens. */
+@media (max-width: 767.98px) {
+  .pf-table-stack thead {
+    display: none;
+  }
+  .pf-table-stack tbody tr {
+    display: block;
+    border: 1px solid var(--ct-border-color);
+    border-radius: 0.5rem;
+    padding: 0.75rem 0.9rem;
+    margin-bottom: 0.75rem;
+  }
+  .pf-table-stack tbody td {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 0;
+    padding: 0.3rem 0;
+    text-align: right;
+  }
+  .pf-table-stack tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--ct-secondary-color);
+    text-align: left;
+  }
+  .pf-table-stack tbody td:last-child {
+    padding-top: 0.6rem;
+  }
+}
+
+/*
+ * ============================================================================
+ * PROFILE-001 / PROFILE-002 — one account-form measure
+ * ============================================================================
+ * The name/e-mail row rendered at 344.7px while the three password fields
+ * directly below rendered at 713.3px — the same control type at 2x width on
+ * one page. Both now share .pf-form-measure, capped for reading comfort
+ * rather than stretching to the admin content column's width, which also
+ * fixes PROFILE-002 (the card was widest at 1024px of any desktop size,
+ * because col-xl-8 only engages >=1200px).
+ */
+.pf-form-measure {
+  max-width: 560px;
+}
+.pf-form-measure .row > [class*="col-"] {
+  max-width: 100%;
+}
+
+/*
+ * PROFILE-003 — danger zone
+ * ============================================================================
+ * The account-deletion card was previously byte-identical (border, bg) to
+ * the benign profile-information card; only the button colour differed.
+ * This gives it a real, restrained semantic treatment: a danger-tinted left
+ * edge and heading colour, not a fully red card — "clarity and prevention
+ * of accidental action", not theatre.
+ */
+.pf-danger-zone {
+  border-color: var(--ct-danger) !important;
+  border-left-width: 4px !important;
+}
+.pf-danger-zone .card-title {
+  color: var(--ct-danger);
+}
+[data-bs-theme="dark"] .pf-danger-zone {
+  background-color: rgba(239, 107, 98, 0.06);
+}

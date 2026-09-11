@@ -1,6 +1,15 @@
-<x-admin.card title="অ্যাকাউন্ট মুছে ফেলুন" subtitle="একবার মুছে ফেললে এই অ্যাকাউন্ট ও এর সাথে সম্পর্কিত সব তথ্য স্থায়ীভাবে মুছে যাবে।" class="mb-3">
+{{--
+    PROFILE-003: a real but restrained danger-zone treatment (border-left
+    accent + danger-coloured heading via .pf-danger-zone), not a fully red
+    card — the goal is a pre-attentive "this section is different" signal,
+    not alarm. PROFILE-007: the card previously stated the same
+    "permanently deleted, can't be undone" warning twice (once as subtitle,
+    once as body copy) — the subtitle now carries the one consequence
+    statement and the body gives only the practical next step.
+--}}
+<x-admin.card title="অ্যাকাউন্ট মুছে ফেলুন" subtitle="একবার মুছে ফেললে এই অ্যাকাউন্ট ও এর সাথে সম্পর্কিত সব তথ্য স্থায়ীভাবে মুছে যাবে — এই কাজটি পূর্বাবস্থায় ফেরানো যায় না।" class="mb-3 pf-danger-zone">
     <p class="text-muted fs-13">
-        মুছে ফেলার আগে প্রয়োজনীয় কোনো তথ্য থাকলে তা সংরক্ষণ করে নিন। এই কাজটি পূর্বাবস্থায় ফেরানো যায় না।
+        <i class="ti ti-alert-triangle me-1" aria-hidden="true"></i>মুছে ফেলার আগে প্রয়োজনীয় কোনো তথ্য থাকলে তা সংরক্ষণ করে নিন।
     </p>
 
     <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirm-user-deletion">

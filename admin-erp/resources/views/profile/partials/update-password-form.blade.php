@@ -1,5 +1,5 @@
 <x-admin.card title="পাসওয়ার্ড পরিবর্তন" subtitle="নিরাপত্তার জন্য নিয়মিত একটি দীর্ঘ, অনন্য পাসওয়ার্ড ব্যবহার করুন।" class="mb-3">
-    <form method="post" action="{{ route('password.update') }}">
+    <form method="post" action="{{ route('password.update') }}" class="pf-form-measure">
         @csrf
         @method('put')
 
