@@ -1,8 +1,9 @@
 {
-  "commit": "dd337b7ad0c9d91e38af50eb102fbd73518cd17f",
-  "deployed_at": "2026-09-10T19:38:02Z",
-  "deployed_via": "commit-based release pipeline (deploy/build-release.sh + release-manager.php stage/build/contract-check/migrate-check/smoke-test-isolated/switch/smoke-test-live) — release id r4",
-  "release_id": "r4",
-  "previous_release_path": "/home/u951246149/domains/provatferi.org/laravel-admin-releases/_previous-20260910-193801",
-  "note": "This is the last commit confirmed live in production as of the introduction of deploy/build-release.sh. Update this file after every deploy made THROUGH this pipeline, so the next build's manifest.previous_commit is accurate."
+  "commit": "016165a17482e6163eac138c1915d850ed7bbb3f",
+  "deployed_at": "2026-09-11T01:45:03Z",
+  "deployed_via": "commit-based release pipeline (deploy/build-release.sh + release-manager.php stage/build/contract-check/migrate-check/smoke-test-isolated/switch/smoke-test-live) — release id r8",
+  "release_id": "r8",
+  "previous_release_path": "/home/u951246149/domains/provatferi.org/laravel-admin-releases/_previous-20260911-014502",
+  "note": "This is the last commit confirmed live in production as of the introduction of deploy/build-release.sh. Update this file after every deploy made THROUGH this pipeline, so the next build's manifest.previous_commit is accurate.",
+  "manual_sync_required": "public/zircos/css/provatferi-admin.css is NOT part of this pipeline's artifact (deploy/build-release.sh only packages public/build and public/brand) -- it must be manually synced to public_html/admin/zircos/css/provatferi-admin.css after any deploy that changes it, then the website cache purged. Missed for the r4 deploy (2026-09-10), causing the site to serve a stale copy of this file for ~6 hours until caught and fixed during the r8 deploy (2026-09-11)."
 }
