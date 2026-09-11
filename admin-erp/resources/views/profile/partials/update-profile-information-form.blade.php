@@ -1,5 +1,5 @@
 <x-admin.card title="প্রোফাইল তথ্য" subtitle="আপনার নাম ও ই-মেইল ঠিকানা হালনাগাদ করুন।" class="mb-3">
-    <form method="post" action="{{ route('profile.update') }}">
+    <form method="post" action="{{ route('profile.update') }}" class="pf-form-measure">
         @csrf
         @method('patch')
 

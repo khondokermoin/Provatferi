@@ -29,15 +29,15 @@
                     <div class="dropdown-menu dropdown-menu-end" role="radiogroup" aria-label="থিম">
                         <button type="button" class="dropdown-item" data-theme-choice="light" role="radio" aria-checked="false">
                             <i class="ti ti-sun me-1 fs-17 align-middle" aria-hidden="true"></i>
-                            <span class="align-middle">Light</span>
+                            <span class="align-middle">লাইট</span>
                         </button>
                         <button type="button" class="dropdown-item" data-theme-choice="dark" role="radio" aria-checked="false">
                             <i class="ti ti-moon me-1 fs-17 align-middle" aria-hidden="true"></i>
-                            <span class="align-middle">Dark</span>
+                            <span class="align-middle">ডার্ক</span>
                         </button>
                         <button type="button" class="dropdown-item" data-theme-choice="system" role="radio" aria-checked="false">
                             <i class="ti ti-device-desktop me-1 fs-17 align-middle" aria-hidden="true"></i>
-                            <span class="align-middle">System</span>
+                            <span class="align-middle">সিস্টেম</span>
                         </button>
                     </div>
                 </div>
@@ -70,14 +70,14 @@
                         </div>
                         <a href="{{ route('profile.edit') }}" class="dropdown-item">
                             <i class="ti ti-user-hexagon me-1 fs-17 align-middle" aria-hidden="true"></i>
-                            <span class="align-middle">Profile</span>
+                            <span class="align-middle">প্রোফাইল</span>
                         </a>
                         <div class="dropdown-divider"></div>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit" class="dropdown-item text-danger fw-semibold">
                                 <i class="ti ti-logout me-1 fs-17 align-middle" aria-hidden="true"></i>
-                                <span class="align-middle">Logout</span>
+                                <span class="align-middle">লগ আউট</span>
                             </button>
                         </form>
                     </div>

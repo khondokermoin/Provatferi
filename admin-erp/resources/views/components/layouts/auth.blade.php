@@ -33,7 +33,16 @@
     <link href="{{ asset('zircos/css/vendor.min.css') }}" rel="stylesheet">
     <link href="{{ asset('zircos/css/app.min.css') }}" rel="stylesheet" id="app-style">
     <link href="{{ asset('zircos/css/icons.min.css') }}" rel="stylesheet">
-    <link href="{{ asset('zircos/css/provatferi-admin.css') }}" rel="stylesheet">
+    {{--
+        SYSTEM-006: this used to be a static <link> to public/zircos/css/
+        provatferi-admin.css with a 7-day browser cache and no fingerprint —
+        a changed file kept being served from cache to returning visitors no
+        matter what shipped to the server. @vite() resolves to a
+        content-hashed URL from public/build/manifest.json, so a change here
+        is a new URL, not a cache problem. Placed last so it still wins the
+        cascade over the three Zircos files above.
+    --}}
+    @vite(['resources/css/provatferi-admin.css'])
 </head>
 <body>
 <div class="auth-bg d-flex min-vh-100 justify-content-center align-items-center">
@@ -41,32 +50,38 @@
         <div class="col-xl-4 col-lg-5 col-md-7">
             <div class="card p-4 mb-0">
                 <div class="text-center mb-4">
-                    {{-- Official logo only — never text, initials or generated artwork. --}}
+                    {{-- Official logo only — never text, initials or generated artwork.
+                         width/height reserve the correct aspect ratio before the image
+                         decodes, so the card doesn't shift as it loads (AUTH-005). --}}
                     <span class="pf-logo d-inline-block">
                         <span class="pf-logo-for-light">
                             <img src="{{ asset('brand/provatferi-logo-light.png') }}"
-                                 alt="প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র">
+                                 alt="প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র" width="190" height="87">
                         </span>
                         <span class="pf-logo-for-dark">
                             <img src="{{ asset('brand/provatferi-logo-dark.png') }}"
-                                 alt="প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র">
+                                 alt="প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র" width="190" height="87">
                         </span>
                     </span>
                 </div>
 
-                <h1 class="fw-semibold mb-2 fs-18 text-center">{{ $heading ?? 'প্রশাসনিক লগইন' }}</h1>
+                <h1 class="fw-semibold mb-2 text-center">{{ $heading ?? 'প্রশাসনিক লগইন' }}</h1>
                 @isset($subheading)
                     <p class="text-muted text-center mb-4 fs-14">{{ $subheading }}</p>
                 @endisset
 
                 {{ $slot }}
             </div>
-
-            <p class="text-center text-muted fs-12 mt-3 mb-0">
-                &copy; {{ date('Y') }} প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র
-            </p>
         </div>
     </div>
+
+    {{-- AUTH-002: kept out of the centred flex column above (previously the
+         card+footer were centred as one block, biasing the card ~38px above
+         true vertical centre) — anchored to the viewport bottom instead, so
+         .auth-bg's centring applies to the card alone. --}}
+    <p class="text-center text-muted fs-12 pf-footer-note">
+        &copy; {{ date('Y') }} প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র
+    </p>
 </div>
 
 <script src="{{ asset('zircos/js/vendor.min.js') }}"></script>

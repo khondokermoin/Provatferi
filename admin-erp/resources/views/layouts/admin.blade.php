@@ -54,8 +54,13 @@
     <link href="{{ asset('zircos/css/vendor.min.css') }}" rel="stylesheet">
     <link href="{{ asset('zircos/css/app.min.css') }}" rel="stylesheet" id="app-style">
     <link href="{{ asset('zircos/css/icons.min.css') }}" rel="stylesheet">
-    {{-- Brand layer last so it wins over the template. --}}
-    <link href="{{ asset('zircos/css/provatferi-admin.css') }}" rel="stylesheet">
+    {{--
+        Brand layer last so it wins over the template. SYSTEM-006: built
+        through Vite and referenced by content hash (public/build/manifest.json)
+        instead of a static, long-cached public/ URL — see
+        resources/css/provatferi-admin.css's header comment.
+    --}}
+    @vite(['resources/css/provatferi-admin.css'])
     @stack('styles')
 </head>
 <body>
