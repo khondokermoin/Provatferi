@@ -619,3 +619,28 @@ input:-webkit-autofill:focus {
 [data-bs-theme="dark"] .pf-danger-zone {
   background-color: rgba(239, 107, 98, 0.06);
 }
+
+/*
+ * AUTH-008 — group the reset-password identity/new-credential fields
+ * ============================================================================
+ * The reset form was a flat list of three fields (e-mail, then two password
+ * fields) with no visual distinction between "who you are" and "your new
+ * credential". A <fieldset>/<legend> is the correct semantic grouping;
+ * this just gives it a restrained visual boundary to match.
+ */
+.pf-field-group {
+  border: 0;
+  border-top: 1px solid var(--ct-border-color);
+  margin-left: 0;
+  margin-right: 0;
+  padding: 1rem 0 0;
+}
+.pf-field-group-legend {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ct-secondary-color);
+  padding: 0;
+  margin-bottom: 0.75rem;
+  width: auto;
+  float: none;
+}
