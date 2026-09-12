@@ -257,9 +257,13 @@ case 'stage':
     // switch time, instead of a missing-manifest error the moment a view
     // calls @vite(). index.php/.htaccess are deliberately excluded from
     // public-assets.tar (see build-release.sh) and are never needed for a
-    // CLI boot, so the symlink is safe even though it omits them.
+    // CLI boot. A symlink would be the cheaper option, but this host's
+    // symlink() silently fatals with no error surfaced (verified directly:
+    // an isolated, @-suppressed symlink() call still never completed) —
+    // copyRecursive is already used twice above in this exact function, so
+    // it's the proven-working primitive here instead.
     if (!file_exists($releaseDir.'/app/public')) {
-        symlink($releaseDir.'/public_assets', $releaseDir.'/app/public');
+        copyRecursive($releaseDir.'/public_assets', $releaseDir.'/app/public');
     }
 
     // Runtime skeleton Laravel needs to boot — never shipped, always created fresh.
