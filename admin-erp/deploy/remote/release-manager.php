@@ -249,6 +249,19 @@ case 'stage':
     }
     extractTar($stagingDir.'/public-assets.tar', $releaseDir.'/public_assets');
 
+    // private.tar excludes admin-erp/public entirely (see build-release.sh) —
+    // the built Vite assets, brand images, favicon, etc. only exist in
+    // public_assets/, extracted above. bootApp() points public_path() at
+    // releaseDir/app/public so isolated actions (migrate-check,
+    // smoke-test-isolated) see the same tree the live docroot gets at
+    // switch time, instead of a missing-manifest error the moment a view
+    // calls @vite(). index.php/.htaccess are deliberately excluded from
+    // public-assets.tar (see build-release.sh) and are never needed for a
+    // CLI boot, so the symlink is safe even though it omits them.
+    if (!file_exists($releaseDir.'/app/public')) {
+        symlink($releaseDir.'/public_assets', $releaseDir.'/app/public');
+    }
+
     // Runtime skeleton Laravel needs to boot — never shipped, always created fresh.
     foreach (['storage/framework/cache/data', 'storage/framework/sessions', 'storage/framework/views', 'storage/framework/testing', 'storage/logs', 'storage/app/public', 'bootstrap/cache'] as $dir) {
         @mkdir($releaseDir.'/app/'.$dir, 0755, true);
