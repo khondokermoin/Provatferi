@@ -153,9 +153,11 @@ All under `design-audit/`:
 | Status | Count | IDs |
 |---|---|---|
 | FIXED | 30 | SYSTEM-001–015, AUTH-001–009, PROFILE-001, 003, 004, 005, 007, 008 |
-| ACCEPTED-AS-INTENTIONAL | 1 | PROFILE-006 |
+| ACCEPTED-AS-INTENTIONAL | 2 | PROFILE-002, PROFILE-006 |
 | NOT-APPLICABLE | 0 | — |
 | **OPEN** | **0** | — |
+
+30 + 2 + 0 + 0 = 32. (An earlier version of this report omitted PROFILE-002 from the table entirely — 30 + 1 = 31 — while still describing its resolution in prose under item H. Corrected here: PROFILE-002's own root cause, the `col-xl-8` container's non-monotonic width, was not changed; only its downstream symptom was resolved via PROFILE-001's fix. See the full 32-row matrix in the closure-verification response for per-issue detail.)
 
 PROFILE-006 (empty space beside the profile card at wide viewports) is not fixed by a container-width change — the outer `col-xl-8` grid class is unchanged. It is accepted rather than open because the actual harm it caused (PROFILE-002's readability problem) is independently resolved by the `.pf-form-measure` fix, and adding a second content column purely to fill whitespace would be a new feature, not a remediation of a defect — the single-column layout remains an intentional, working choice.
 
