@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Member;
 use App\Models\User;
 
 return [
@@ -42,6 +43,16 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // No separate 'member' guard: Sanctum's guard resolves the
+        // authenticatable polymorphically from the token's tokenable_type
+        // (see personal_access_tokens' morphs('tokenable')) — a Member's
+        // token already resolves auth:sanctum's $request->user() to a
+        // Member instance, a User's token to a User instance, with no
+        // per-model guard config needed. Route-level separation is
+        // enforced explicitly instead — see App\Http\Middleware\
+        // EnsureMemberAuthenticated, which auth:sanctum-gated member
+        // routes require in addition to (not instead of) auth:sanctum.
     ],
 
     /*
@@ -71,6 +82,13 @@ return [
         //     'driver' => 'database',
         //     'table' => 'users',
         // ],
+
+        // Only used by the 'members' password broker below (Password::broker
+        // resolves a provider by name) — not by any guard, per the note above.
+        'members' => [
+            'driver' => 'eloquent',
+            'model' => Member::class,
+        ],
     ],
 
     /*
@@ -96,6 +114,13 @@ return [
         'users' => [
             'provider' => 'users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+
+        'members' => [
+            'provider' => 'members',
+            'table' => 'member_password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,
         ],

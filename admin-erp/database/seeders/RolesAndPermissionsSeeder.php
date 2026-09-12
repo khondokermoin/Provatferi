@@ -36,7 +36,7 @@ class RolesAndPermissionsSeeder extends Seeder
         );
         $regionalAdmin->permissions()->sync(
             collect($permissions)
-                ->filter(fn (Permission $p) => in_array($p->module, ['organization', 'activities', 'membership', 'recruitment']))
+                ->filter(fn (Permission $p) => in_array($p->module, ['organization', 'activities', 'membership', 'recruitment', 'payments']))
                 ->pluck('id'),
         );
 
@@ -45,12 +45,18 @@ class RolesAndPermissionsSeeder extends Seeder
             ['name' => 'Membership Admin', 'description' => 'Reviews membership applications.', 'is_system_role' => true],
         );
         $membershipAdmin->permissions()->sync(
-            collect($permissions)->filter(fn (Permission $p) => $p->module === 'membership')->pluck('id'),
+            collect($permissions)->filter(fn (Permission $p) => in_array($p->module, ['membership', 'payments']))->pluck('id'),
         );
 
-        Role::query()->firstOrCreate(
-            ['slug' => 'member'],
-            ['name' => 'Member', 'description' => 'Default role for an approved member.', 'is_system_role' => true],
-        );
+        // No 'member' role: members are never `users` rows and never touch
+        // this RBAC system at all — see App\Models\Member and config/auth.php.
+        // A role of this slug was pre-seeded before that separation was
+        // decided, with no code ever offering it as an assignable option.
+        // Deleted only when confirmed unused (no user ever holds it) —
+        // never blindly, since a delete here would cascade to user_roles.
+        $deadMemberRole = Role::query()->where('slug', 'member')->where('is_system_role', true)->first();
+        if ($deadMemberRole && !$deadMemberRole->users()->exists()) {
+            $deadMemberRole->delete();
+        }
     }
 }

@@ -114,7 +114,7 @@ class UserManagementTest extends AdminTestCase
     public function test_the_last_super_admin_cannot_lose_the_role(): void
     {
         $admin = $this->superAdmin();
-        $other = Role::query()->where('slug', 'member')->firstOrFail();
+        $other = Role::query()->where('slug', 'membership_admin')->firstOrFail();
 
         $this->actingAs($admin)->put(route('admin.users.update', $admin), [
             'name' => $admin->name,
@@ -147,13 +147,13 @@ class UserManagementTest extends AdminTestCase
     {
         $first = $this->superAdmin();
         $second = $this->superAdmin();
-        $member = Role::query()->where('slug', 'member')->firstOrFail();
+        $membershipAdmin = Role::query()->where('slug', 'membership_admin')->firstOrFail();
 
         $this->actingAs($first)->put(route('admin.users.update', $second), [
             'name' => $second->name,
             'email' => $second->email,
             'status' => 'active',
-            'roles' => [$member->id],
+            'roles' => [$membershipAdmin->id],
         ])->assertRedirect();
 
         $this->assertFalse($second->fresh()->hasRole('super_admin'));
