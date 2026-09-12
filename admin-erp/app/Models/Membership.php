@@ -10,7 +10,7 @@ class Membership extends Model
     public const STATUSES = ['active' => 'সক্রিয়', 'inactive' => 'নিষ্ক্রিয়', 'suspended' => 'স্থগিত', 'expired' => 'মেয়াদোত্তীর্ণ'];
 
     protected $fillable = [
-        'membership_application_id', 'user_id', 'membership_type_id', 'member_code', 'start_date', 'expiry_date',
+        'membership_application_id', 'user_id', 'member_id', 'membership_type_id', 'member_code', 'start_date', 'expiry_date',
         'status', 'notes', 'approved_by', 'approved_at',
     ];
 
@@ -22,6 +22,17 @@ class Membership extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function member(): BelongsTo
+    {
+        return $this->belongsTo(Member::class);
+    }
+
+    /** The account holder's display name, regardless of which identity path (§0) produced this membership. */
+    public function holderName(): string
+    {
+        return $this->member?->name ?? $this->user?->name ?? '';
     }
 
     public function membershipType(): BelongsTo

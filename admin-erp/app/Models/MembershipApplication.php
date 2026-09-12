@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class MembershipApplication extends Model
 {
@@ -18,7 +20,8 @@ class MembershipApplication extends Model
     ];
 
     protected $fillable = [
-        'application_no', 'user_id', 'membership_type_id', 'organization_unit_id',
+        'application_no', 'user_id', 'membership_type_id', 'organization_unit_id', 'membership_season_id',
+        'applicant_name', 'applicant_email', 'applicant_phone',
         'application_data', 'status', 'reviewed_by', 'reviewed_at', 'rejection_reason', 'review_notes',
     ];
 
@@ -45,5 +48,37 @@ class MembershipApplication extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function season(): BelongsTo
+    {
+        return $this->belongsTo(MembershipSeason::class, 'membership_season_id');
+    }
+
+    public function payments(): MorphMany
+    {
+        return $this->morphMany(Payment::class, 'payable');
+    }
+
+    public function history(): HasMany
+    {
+        return $this->hasMany(ApprovalHistory::class, 'subject_id')->where('subject_type', self::class);
+    }
+
+    /** True for a public applicant with no ERP account (the new §0 path). */
+    public function isPublicApplicant(): bool
+    {
+        return $this->user_id === null;
+    }
+
+    /** The applicant's display name regardless of which identity path was used. */
+    public function applicantDisplayName(): string
+    {
+        return $this->applicant_name ?? $this->user?->name ?? '';
+    }
+
+    public function applicantDisplayEmail(): string
+    {
+        return $this->applicant_email ?? $this->user?->email ?? '';
     }
 }
