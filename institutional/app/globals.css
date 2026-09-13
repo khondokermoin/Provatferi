@@ -544,4 +544,40 @@ h1, h2, h3, h4 { color: var(--heading); }
   .footer-bottom { flex-direction: column; gap: 9px; font-size: 11px; }
 }
 @media (max-width: 360px) { .activity-grid { grid-template-columns: 1fr; } .activity-card { border-right: 0; border-bottom: 1px solid var(--border); } .activity-card:last-child { border-bottom: 0; } }
+
+/* Public form submissions (membership application, committee registration/
+   correction) — the first real forms in this site, so these tokens are new,
+   but every color/radius comes from the existing palette above, not a new
+   one. */
+.application-form { display: flex; flex-direction: column; gap: 20px; max-width: 560px; }
+.form-field { display: flex; flex-direction: column; gap: 6px; }
+.form-field label { font-size: 14px; font-weight: 600; color: var(--heading); }
+.form-field input[type="text"],
+.form-field input[type="email"],
+.form-field input[type="tel"],
+.form-field input[type="url"],
+.form-field input[type="file"],
+.form-field input[type="datetime-local"],
+.form-field select,
+.form-field textarea {
+  font: inherit;
+  font-size: 15px;
+  color: var(--body);
+  background: var(--card);
+  border: 1.5px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 12px 14px;
+  min-height: 48px;
+}
+.form-field textarea { min-height: 96px; resize: vertical; }
+.form-field input:focus-visible,
+.form-field select:focus-visible,
+.form-field textarea:focus-visible { outline: 2px solid var(--brand-orange); outline-offset: 1px; }
+.form-field-help { font-size: 13px; color: var(--muted); margin: 0; }
+.form-field-error { font-size: 13px; font-weight: 600; color: var(--danger); margin: 0; }
+.form-checkbox-field { display: flex; align-items: flex-start; gap: 10px; }
+.form-checkbox-field label { font-size: 14px; color: var(--body); font-weight: 500; }
+/* Off-screen, never focusable — a sighted or keyboard user never encounters
+   this; a scripted bot filling every field on the page still finds it. */
+.honeypot-field { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { transition: none !important; } }

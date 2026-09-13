@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { membershipTypes as fallbackMembershipTypes, org } from "@/lib/content";
-import { getMembershipTypes } from "@/lib/api/membership";
+import { getCurrentCampaigns, getMembershipTypes } from "@/lib/api/membership";
 import PageHeader from "@/components/PageHeader";
+import MembershipApplicationForm from "@/components/MembershipApplicationForm";
 
 const description = `${org.shortName}-এর সদস্যপদের ধরন ও সদস্য হওয়ার প্রক্রিয়া।`;
 
@@ -23,13 +24,21 @@ export default async function MembershipPage() {
   // Whole-list fallback here, not field-by-field: a membership type list is
   // one coherent set, not independent facts, so a malformed or empty API
   // response falls back to the complete approved list rather than mixing
-  // sources into a partial one. No application form is added — same as
-  // before, "আবেদন" below is still just a description of the manual process.
+  // sources into a partial one.
   const result = await getMembershipTypes();
   const types =
     result.ok && result.data.length > 0
       ? result.data.map((t) => ({ name: t.name, note: t.description ?? "" }))
       : fallbackMembershipTypes;
+
+  // §42: a real application form only ever renders for a season that is
+  // both open AND has at least one self-appliable type — a season open
+  // exclusively for an honorary/invite-only type must still show the
+  // "contact us directly" fallback, not a form with an empty dropdown.
+  const campaignsResult = await getCurrentCampaigns();
+  const applicableCampaigns = campaignsResult.ok
+    ? campaignsResult.data.filter((c) => c.membership_types.length > 0)
+    : [];
 
   return (
     <>
@@ -51,28 +60,37 @@ export default async function MembershipPage() {
         </div>
       </section>
 
-      <section className="content-section">
-        <h2>আবেদনের ধাপ</h2>
-        <div className="journey-steps">
-          {journey.map((step) => (
-            <div key={step.title} className={`journey-step ${step.current ? "is-current" : ""}`}>
-              <h3>{step.title}</h3>
-              <p>{step.body}</p>
+      {applicableCampaigns.length > 0 ? (
+        <section className="content-section">
+          <h2>আবেদন করুন</h2>
+          <MembershipApplicationForm campaigns={applicableCampaigns} />
+        </section>
+      ) : (
+        <>
+          <section className="content-section">
+            <h2>আবেদনের ধাপ</h2>
+            <div className="journey-steps">
+              {journey.map((step) => (
+                <div key={step.title} className={`journey-step ${step.current ? "is-current" : ""}`}>
+                  <h3>{step.title}</h3>
+                  <p>{step.body}</p>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </section>
+          </section>
 
-      <section className="content-section">
-        <h2>এখনই যোগাযোগ করুন</h2>
-        <div className="callout">
-          <p>
-            অনলাইন আবেদন ব্যবস্থা প্রস্তুত না হওয়া পর্যন্ত সদস্য হতে আগ্রহী হলে সরাসরি যোগাযোগ করুন —{" "}
-            <a href={`mailto:${org.email}`}>{org.email}</a> অথবা{" "}
-            <a href={`tel:${org.phone}`}>{org.phone}</a>।
-          </p>
-        </div>
-      </section>
+          <section className="content-section">
+            <h2>এখনই যোগাযোগ করুন</h2>
+            <div className="callout">
+              <p>
+                বর্তমানে কোনো নিবন্ধন সিজন চলমান নেই। সদস্য হতে আগ্রহী হলে সরাসরি যোগাযোগ করুন —{" "}
+                <a href={`mailto:${org.email}`}>{org.email}</a> অথবা{" "}
+                <a href={`tel:${org.phone}`}>{org.phone}</a>।
+              </p>
+            </div>
+          </section>
+        </>
+      )}
     </>
   );
 }
