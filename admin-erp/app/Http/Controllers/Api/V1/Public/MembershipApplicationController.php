@@ -30,7 +30,7 @@ class MembershipApplicationController extends Controller
             'applicant_name' => ['required', 'string', 'max:255'],
             'applicant_email' => ['required', 'email', 'max:255'],
             'applicant_phone' => ['required', 'string', 'max:30'],
-            'membership_type_id' => ['required', Rule::exists('membership_types', 'id')->where('status', 'active')],
+            'membership_type_id' => ['required', Rule::exists('membership_types', 'id')->where('status', 'active')->where('is_public_self_apply', true)],
             'membership_season_id' => ['nullable', Rule::exists('membership_seasons', 'id')],
             'photo' => ['nullable', 'file', 'max:5120'],
             'website' => ['prohibited'],
