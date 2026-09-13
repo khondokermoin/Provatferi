@@ -48,6 +48,7 @@
                     'label' => 'সদস্যপদ', 'icon' => 'ti-users-group', 'id' => 'nav-membership',
                     'permission' => 'membership.view',
                     'children' => [
+                        ['label' => 'নিবন্ধন সিজন', 'route' => 'admin.membership.seasons.index'],
                         ['label' => 'সদস্যপদের ধরন', 'route' => 'admin.membership.types.index'],
                         ['label' => 'আবেদনসমূহ', 'route' => 'admin.membership.index'],
                         ['label' => 'সদস্যবৃন্দ', 'route' => 'admin.membership.members.index'],
