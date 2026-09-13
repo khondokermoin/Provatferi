@@ -81,4 +81,20 @@ class MembershipApplication extends Model
     {
         return $this->applicant_email ?? $this->user?->email ?? '';
     }
+
+    /**
+     * No admin-side "create application" form has ever existed — every row
+     * so far came from a test or tinker with an arbitrary application_no —
+     * so this is the first real generator, not a reuse of an existing one.
+     * Mirrors the exact "{prefix}-{year}-{4-digit-of-max-id}" shape already
+     * established for Member::member_code / Membership::member_code (§10)
+     * for visual and mechanical consistency across this app's identifiers,
+     * global running counter included (not year-scoped, matching that code).
+     */
+    public static function generateApplicationNo(): string
+    {
+        $next = (self::query()->max('id') ?? 0) + 1;
+
+        return 'APP-'.now()->format('Y').'-'.str_pad((string) $next, 4, '0', STR_PAD_LEFT);
+    }
 }
