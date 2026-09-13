@@ -175,6 +175,39 @@ export interface PublicCommitteeDetail extends PublicCommitteeSummary {
 }
 
 // ---------------------------------------------------------------------------
+// GET /api/v1/public/committees/registration-links/{token}
+// GET /api/v1/public/committee-submissions/correction/{token}
+// ---------------------------------------------------------------------------
+
+export interface CommitteePositionOption {
+  id: number;
+  name: string;
+  /** Only present on the registration-link payload (§23 warn-not-block). */
+  occupied?: boolean;
+}
+
+export interface CommitteeRegistrationLinkInfo {
+  committee: { id: number; name: string; slug: string };
+  positions: CommitteePositionOption[];
+}
+
+export interface CommitteeCorrectionInfo {
+  committee: { id: number; name: string };
+  admin_note: string | null;
+  full_name: string;
+  name_en: string | null;
+  email: string;
+  phone: string;
+  bio: string | null;
+  provatferi_comment: string;
+  facebook_url: string | null;
+  linkedin_url: string | null;
+  website_url: string | null;
+  committee_position_id: number;
+  positions: CommitteePositionOption[];
+}
+
+// ---------------------------------------------------------------------------
 // GET /api/v1/job-postings, /job-postings/{id|slug}
 // ---------------------------------------------------------------------------
 
