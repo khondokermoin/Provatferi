@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\MemberSetPasswordNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -72,5 +73,22 @@ class Member extends Authenticatable
     public function isPubliclyVisible(): bool
     {
         return $this->public_profile_enabled && $this->public_profile_approved && $this->status === 'active';
+    }
+
+    /**
+     * §12: overrides CanResetPassword's default so this never routes through
+     * ResetPassword::toMailUsing() — that callback (AppServiceProvider) is
+     * built for the ERP staff web flow and would send a member a link to
+     * the wrong domain and the wrong reset flow entirely. Points at the
+     * Next.js member portal instead, using the 'members' broker's own
+     * expiry setting rather than hardcoding it a second time.
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $expiryMinutes = (int) config('auth.passwords.members.expire', 60);
+        $url = rtrim(config('services.public_site.url'), '/').'/member/reset-password'
+            .'?token='.$token.'&email='.urlencode($this->email);
+
+        $this->notify(new MemberSetPasswordNotification($url, $expiryMinutes));
     }
 }
