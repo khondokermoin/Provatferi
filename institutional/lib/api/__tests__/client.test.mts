@@ -9,7 +9,7 @@
  */
 import { test, before, after, mock } from "node:test";
 import assert from "node:assert/strict";
-import { apiGet, isRecord, isStringOrNull, isNumberOrNull } from "../client.ts";
+import { apiGet, apiPostForm, isRecord, isStringOrNull, isNumberOrNull } from "../client.ts";
 
 const ORIGINAL_ENV = process.env.LARAVEL_API_URL;
 const ORIGINAL_FETCH = globalThis.fetch;
@@ -103,4 +103,52 @@ test("apiGet round-trips Bangla UTF-8 content unmodified", async () => {
   const result = await apiGet("/api/v1/whatever", { validate: isNameShape, revalidateSeconds: 60 });
   assert.equal(result.ok, true);
   if (result.ok) assert.equal(result.data.name, bn);
+});
+
+// ---------------------------------------------------------------------------
+// apiPostForm
+// ---------------------------------------------------------------------------
+
+test("apiPostForm returns ok:true and the validated data on a 201/200 with a matching shape", async () => {
+  globalThis.fetch = mock.fn(async () => jsonResponse({ n: 7 }, 201));
+  const result = await apiPostForm("/api/v1/whatever", new FormData(), { validate: isNumber });
+  assert.equal(result.ok, true);
+  if (result.ok) assert.deepEqual(result.data, { n: 7 });
+});
+
+test("apiPostForm returns a validation branch with the field=>messages map on a 422", async () => {
+  globalThis.fetch = mock.fn(async () =>
+    jsonResponse({ message: "The given data was invalid.", errors: { applicant_email: ["ই-মেইল আবশ্যক।"] } }, 422),
+  );
+  const result = await apiPostForm("/api/v1/whatever", new FormData(), { validate: isNumber });
+  assert.equal(result.ok, false);
+  if (!result.ok && result.error === "validation") {
+    assert.deepEqual(result.errors.applicant_email, ["ই-মেইল আবশ্যক।"]);
+  } else {
+    assert.fail("expected a validation result");
+  }
+});
+
+test("apiPostForm returns http_error on a non-422 non-2xx status", async () => {
+  globalThis.fetch = mock.fn(async () => jsonResponse({ message: "server error" }, 500));
+  const result = await apiPostForm("/api/v1/whatever", new FormData(), { validate: isNumber });
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.equal(result.error, "http_error");
+});
+
+test("apiPostForm returns not_configured (never throws) when LARAVEL_API_URL is unset", async () => {
+  delete process.env.LARAVEL_API_URL;
+  const result = await apiPostForm("/api/v1/whatever", new FormData(), { validate: isNumber });
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.equal(result.error, "not_configured");
+  process.env.LARAVEL_API_URL = "https://admin.example.test";
+});
+
+test("apiPostForm returns network_error when fetch rejects", async () => {
+  globalThis.fetch = mock.fn(async () => {
+    throw new TypeError("fetch failed");
+  });
+  const result = await apiPostForm("/api/v1/whatever", new FormData(), { validate: isNumber });
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.equal(result.error, "network_error");
 });

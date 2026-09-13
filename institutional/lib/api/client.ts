@@ -16,6 +16,10 @@ import type { ApiErrorReason, ApiResult } from "./types";
  */
 
 const DEFAULT_TIMEOUT_MS = 5000;
+// A multipart photo upload legitimately takes longer than a plain JSON GET,
+// especially over a slow mobile connection — apiGet's 5s default would
+// abort a perfectly good upload mid-flight.
+const DEFAULT_SUBMIT_TIMEOUT_MS = 20000;
 
 function baseUrl(): string | null {
   const url = process.env.LARAVEL_API_URL;
@@ -87,6 +91,90 @@ export async function apiGet<T>(path: string, opts: ApiGetOptions<T>): Promise<A
 function logFailure(path: string, reason: ApiErrorReason, detail: unknown): void {
   const message = detail instanceof Error ? detail.message : String(detail);
   console.error(`[api] ${reason} for ${path}: ${message}`);
+}
+
+// ---------------------------------------------------------------------------
+// Write path — public form submissions (§7/§22-27/§41). Distinct from
+// ApiResult<T> because a form has a case ApiGet never does: a 422 with
+// field-level messages the caller must show next to the right input, not
+// just "something went wrong".
+// ---------------------------------------------------------------------------
+
+export type ApiSubmitResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: "validation"; errors: Record<string, string[]> }
+  | { ok: false; error: ApiErrorReason };
+
+export interface ApiPostOptions<T> {
+  validate: (json: unknown) => json is T;
+  timeoutMs?: number;
+}
+
+function isLaravelValidationErrorBody(json: unknown): json is { message: string; errors: Record<string, string[]> } {
+  return (
+    isRecord(json) &&
+    typeof json.message === "string" &&
+    isRecord(json.errors) &&
+    Object.values(json.errors).every((v) => Array.isArray(v) && v.every((s) => typeof s === "string"))
+  );
+}
+
+/**
+ * POSTs a FormData body (so a File field works without hand-rolled
+ * multipart encoding) to a public admin-erp write endpoint. Never throws.
+ * `errors` on the validation branch is Laravel's own field=>messages[] map,
+ * passed through as-is rather than reshaped, so a form field can be keyed
+ * directly by the same name it was submitted under.
+ */
+export async function apiPostForm<T>(path: string, formData: FormData, opts: ApiPostOptions<T>): Promise<ApiSubmitResult<T>> {
+  const base = baseUrl();
+  if (!base) {
+    console.error(`[api] LARAVEL_API_URL is not configured; skipping POST for ${path}`);
+    return { ok: false, error: "not_configured" };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), opts.timeoutMs ?? DEFAULT_SUBMIT_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(`${base}${path}`, {
+      method: "POST",
+      body: formData,
+      signal: controller.signal,
+      headers: { Accept: "application/json" },
+    });
+  } catch (err) {
+    const reason: ApiErrorReason = err instanceof DOMException && err.name === "AbortError" ? "timeout" : "network_error";
+    logFailure(path, reason, err);
+    return { ok: false, error: reason };
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  let json: unknown;
+  try {
+    json = await response.json();
+  } catch (err) {
+    logFailure(path, "invalid_json", err);
+    return { ok: false, error: "invalid_json" };
+  }
+
+  if (response.status === 422 && isLaravelValidationErrorBody(json)) {
+    return { ok: false, error: "validation", errors: json.errors };
+  }
+
+  if (!response.ok) {
+    logFailure(path, "http_error", `HTTP ${response.status}`);
+    return { ok: false, error: "http_error" };
+  }
+
+  if (!opts.validate(json)) {
+    logFailure(path, "invalid_shape", "response did not match the expected shape");
+    return { ok: false, error: "invalid_shape" };
+  }
+
+  return { ok: true, data: json };
 }
 
 // ---------------------------------------------------------------------------
