@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\ObjectiveController;
 use App\Http\Controllers\Admin\OrganizationUnitController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\PositionController;
+use App\Http\Controllers\Admin\PublicMemberProfileController;
 use App\Http\Controllers\Admin\RecruitmentController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingsController;
@@ -192,6 +193,11 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         Route::get('/{membership}', [MemberController::class, 'show'])->middleware('permission:membership.view')->name('show');
         Route::get('/{membership}/edit', [MemberController::class, 'edit'])->middleware('permission:membership.update')->name('edit');
         Route::put('/{membership}', [MemberController::class, 'update'])->middleware('permission:membership.update')->name('update');
+
+        Route::patch('/{membership}/profile/{version}/approve', [PublicMemberProfileController::class, 'approve'])
+            ->middleware('permission:membership.approve')->name('profile.approve');
+        Route::patch('/{membership}/profile/{version}/reject', [PublicMemberProfileController::class, 'reject'])
+            ->middleware('permission:membership.approve')->name('profile.reject');
     });
 
     /* Membership Applications — admin.membership.index is the existing list route, kept as-is (linked from the dashboard). */

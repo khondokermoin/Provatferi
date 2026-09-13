@@ -7,11 +7,13 @@ use App\Http\Controllers\Api\V1\JobPostingController;
 use App\Http\Controllers\Api\V1\Member\AuthController as MemberAuthController;
 use App\Http\Controllers\Api\V1\Member\DashboardController as MemberDashboardController;
 use App\Http\Controllers\Api\V1\Member\PasswordResetController as MemberPasswordResetController;
+use App\Http\Controllers\Api\V1\Member\ProfileController as MemberProfileController;
 use App\Http\Controllers\Api\V1\MembershipTypeController;
 use App\Http\Controllers\Api\V1\OrganizationUnitController;
 use App\Http\Controllers\Api\V1\Public\CommitteeController as PublicCommitteeController;
 use App\Http\Controllers\Api\V1\Public\CommitteeCorrectionController;
 use App\Http\Controllers\Api\V1\Public\CommitteeRegistrationController;
+use App\Http\Controllers\Api\V1\Public\MemberDirectoryController;
 use App\Http\Controllers\Api\V1\Public\MembershipApplicationController;
 use App\Http\Controllers\Api\V1\Public\MembershipCampaignController;
 use App\Http\Controllers\Api\V1\SettingsController;
@@ -41,6 +43,10 @@ Route::prefix('v1')->group(function () {
         Route::get('/committee-submissions/correction/{token}', [CommitteeCorrectionController::class, 'show'])->middleware('throttle:20,1');
         Route::post('/committee-submissions/correction/{token}', [CommitteeCorrectionController::class, 'update'])->middleware('throttle:6,1');
         Route::get('/committees/{committee}', [PublicCommitteeController::class, 'show']);
+
+        // §13/§16: only approved+opted-in members ever appear here.
+        Route::get('/members', [MemberDirectoryController::class, 'index']);
+        Route::get('/members/{member}', [MemberDirectoryController::class, 'show']);
     });
 
     // Auth.
@@ -61,6 +67,8 @@ Route::prefix('v1')->group(function () {
         Route::middleware(['auth:sanctum', 'member.auth'])->group(function () {
             Route::post('/auth/logout', [MemberAuthController::class, 'logout']);
             Route::get('/me', [MemberDashboardController::class, 'me']);
+            Route::get('/profile', [MemberProfileController::class, 'show']);
+            Route::post('/profile', [MemberProfileController::class, 'update']);
         });
     });
 
