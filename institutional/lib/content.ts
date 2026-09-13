@@ -246,6 +246,7 @@ export const footerExploreLinks = [
   { href: "/about", label: "আমাদের সম্পর্কে" },
   { href: "/activities", label: "কার্যক্রম" },
   { href: "/committee", label: "কমিটির ইতিহাস" },
+  { href: "/members", label: "সদস্য পরিচিতি" },
   { href: "/events", label: "ইভেন্ট" },
 ];
 
