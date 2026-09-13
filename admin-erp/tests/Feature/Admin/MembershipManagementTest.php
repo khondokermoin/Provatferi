@@ -2,9 +2,12 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Models\ApprovalHistory;
+use App\Models\Member;
 use App\Models\Membership;
 use App\Models\MembershipApplication;
 use App\Models\MembershipType;
+use App\Models\Payment;
 use App\Models\User;
 
 class MembershipManagementTest extends AdminTestCase
@@ -199,6 +202,126 @@ class MembershipManagementTest extends AdminTestCase
     {
         $this->actingAs($this->superAdmin())->get(route('admin.membership.members.index'))
             ->assertOk()->assertSee('এখনো কোনো সদস্য নেই');
+    }
+
+    /* ---------- §0/§18: public applicant identity (no ERP account) ---------- */
+
+    private function paidType(): MembershipType
+    {
+        return MembershipType::query()->create(['name' => 'সাধারণ (ফি সহ)', 'slug' => 'general-paid-'.uniqid(), 'fee' => 500, 'status' => 'active', 'sort_order' => 2]);
+    }
+
+    private function publicApplication(MembershipType $type, string $status = 'under_review'): MembershipApplication
+    {
+        return MembershipApplication::query()->create([
+            'application_no' => 'APP-PUB-'.uniqid(),
+            'applicant_name' => 'রহিমা খাতুন', 'applicant_email' => 'rohima-'.uniqid().'@example.com', 'applicant_phone' => '01700000000',
+            'membership_type_id' => $type->id,
+            'status' => $status,
+        ]);
+    }
+
+    public function test_a_fee_bearing_application_cannot_be_approved_before_any_payment_is_recorded(): void
+    {
+        $application = $this->publicApplication($this->paidType());
+
+        $this->actingAs($this->superAdmin())->patch(route('admin.membership.status', $application), ['status' => 'approved'])
+            ->assertRedirect()->assertSessionHas('error');
+
+        $this->assertSame('under_review', $application->fresh()->status);
+        $this->assertNull(Membership::query()->where('membership_application_id', $application->id)->first());
+    }
+
+    public function test_recording_a_payment_without_verification_still_blocks_approval(): void
+    {
+        $admin = $this->superAdmin();
+        $application = $this->publicApplication($this->paidType());
+
+        $this->actingAs($admin)->post(route('admin.membership.payments.store', $application), [
+            'amount_expected' => 500, 'amount_received' => 500, 'received_at' => now()->toDateString(),
+        ])->assertRedirect();
+
+        $this->actingAs($admin)->patch(route('admin.membership.status', $application), ['status' => 'approved'])
+            ->assertSessionHas('error');
+        $this->assertSame('under_review', $application->fresh()->status);
+    }
+
+    public function test_a_verified_payment_allows_approval_and_creates_a_member_not_a_user(): void
+    {
+        $admin = $this->superAdmin();
+        $application = $this->publicApplication($this->paidType());
+
+        $payment = $application->payments()->create([
+            'membership_type_id' => $application->membership_type_id,
+            'amount_expected' => 500, 'amount_received' => 500, 'received_at' => now()->toDateString(),
+            'method' => 'cash', 'status' => 'paid', 'received_by' => $admin->id,
+        ]);
+        $this->actingAs($admin)->patch(route('admin.membership.payments.verify', $payment))->assertRedirect();
+
+        $this->actingAs($admin)->patch(route('admin.membership.status', $application), ['status' => 'approved'])
+            ->assertRedirect();
+
+        $membership = Membership::query()->where('membership_application_id', $application->id)->firstOrFail();
+        $this->assertNull($membership->user_id, 'a public applicant must never gain an ERP users row');
+        $this->assertNotNull($membership->member_id);
+        $member = Member::query()->findOrFail($membership->member_id);
+        $this->assertSame('rohima', mb_substr($member->email, 0, 6), 'the member row should carry the applicant\'s own email');
+    }
+
+    public function test_a_free_type_can_be_waived_and_then_approved(): void
+    {
+        $admin = $this->superAdmin();
+        $type = $this->paidType();
+        $application = $this->publicApplication($type);
+
+        $this->actingAs($admin)->post(route('admin.membership.payments.waive', $application), [
+            'waiver_reason' => 'সাংগঠনিক সিদ্ধান্তে মওকুফ।',
+        ])->assertRedirect();
+
+        $payment = Payment::query()->where('payable_id', $application->id)->where('payable_type', MembershipApplication::class)->firstOrFail();
+        $this->assertSame('waived', $payment->status);
+        $this->assertNotNull($payment->verified_at, 'a waiver counts as verified — it should not need a second verify step');
+
+        $this->actingAs($admin)->patch(route('admin.membership.status', $application), ['status' => 'approved'])
+            ->assertRedirect();
+        $this->assertSame('approved', $application->fresh()->status);
+    }
+
+    public function test_a_repeat_applicant_reuses_the_existing_member_rather_than_duplicating(): void
+    {
+        $admin = $this->superAdmin();
+        $type = MembershipType::query()->create(['name' => 'ফ্রি টাইপ', 'slug' => 'free-'.uniqid(), 'fee' => 0, 'status' => 'active']);
+
+        $first = MembershipApplication::query()->create([
+            'application_no' => 'APP-A-'.uniqid(), 'applicant_name' => 'করিম', 'applicant_email' => 'karim@example.com',
+            'applicant_phone' => '01711111111', 'membership_type_id' => $type->id, 'status' => 'under_review',
+        ]);
+        $this->actingAs($admin)->patch(route('admin.membership.status', $first), ['status' => 'approved']);
+        $firstMemberId = Membership::query()->where('membership_application_id', $first->id)->firstOrFail()->member_id;
+
+        $second = MembershipApplication::query()->create([
+            'application_no' => 'APP-B-'.uniqid(), 'applicant_name' => 'করিম', 'applicant_email' => 'karim@example.com',
+            'applicant_phone' => '01711111111', 'membership_type_id' => $type->id, 'status' => 'under_review',
+        ]);
+        $this->actingAs($admin)->patch(route('admin.membership.status', $second), ['status' => 'approved']);
+        $secondMemberId = Membership::query()->where('membership_application_id', $second->id)->firstOrFail()->member_id;
+
+        $this->assertSame($firstMemberId, $secondMemberId, 'the same email should resolve to one Member, not a duplicate');
+        $this->assertSame(1, Member::query()->where('email', 'karim@example.com')->count());
+    }
+
+    public function test_approval_and_rejection_are_recorded_in_shared_approval_history(): void
+    {
+        $admin = $this->superAdmin();
+        $application = $this->application('under_review');
+
+        $this->actingAs($admin)->patch(route('admin.membership.status', $application), [
+            'status' => 'rejected', 'rejection_reason' => 'Incomplete documentation.',
+        ]);
+
+        $entry = ApprovalHistory::query()->where('subject_type', MembershipApplication::class)->where('subject_id', $application->id)->firstOrFail();
+        $this->assertSame('rejected', $entry->action);
+        $this->assertSame($admin->id, $entry->actor_id);
     }
 
     /* ---------- RBAC ---------- */

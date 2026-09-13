@@ -183,6 +183,12 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         ->middleware('permission:membership.view')->name('membership.show');
     Route::patch('/membership/{membershipApplication}/status', [MembershipController::class, 'updateStatus'])
         ->middleware('permission:membership.approve')->name('membership.status');
+    Route::post('/membership/{membershipApplication}/payments', [MembershipController::class, 'recordPayment'])
+        ->middleware('permission:payments.create')->name('membership.payments.store');
+    Route::patch('/membership/payments/{payment}/verify', [MembershipController::class, 'verifyPayment'])
+        ->middleware('permission:payments.approve')->name('membership.payments.verify');
+    Route::post('/membership/{membershipApplication}/payments/waive', [MembershipController::class, 'waiveApplicationPayment'])
+        ->middleware('permission:payments.approve')->name('membership.payments.waive');
 
     /* Recruitment — Job Postings, full CRUD. admin.recruitment.index kept as-is (linked from the dashboard). */
     Route::get('/recruitment', [RecruitmentController::class, 'index'])
