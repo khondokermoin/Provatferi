@@ -9,6 +9,9 @@ use App\Models\CommitteePosition;
 use App\Models\CommitteeRegistrationLink;
 use App\Models\CommitteeSubmission;
 use App\Models\OrganizationalUnit;
+use App\Notifications\CommitteeCorrectionRequestedNotification;
+use App\Notifications\CommitteeSubmissionStatusChangedNotification;
+use Illuminate\Support\Facades\Notification;
 
 /**
  * §19-28/§36: committee lifecycle, committee-scoped positions, registration
@@ -235,6 +238,47 @@ class CommitteeRegistrationManagementTest extends AdminTestCase
         $rejected = $this->submission($committee, $position, 'rejected');
         $this->actingAs($admin)->patch(route('admin.committees.submissions.approve', [$committee, $rejected]))
             ->assertStatus(422);
+    }
+
+    public function test_a_correction_request_emails_the_nominee_the_correction_link(): void
+    {
+        Notification::fake();
+        $admin = $this->superAdmin();
+        $committee = $this->committee();
+        $position = $this->position($committee);
+        $submission = $this->submission($committee, $position);
+
+        $this->actingAs($admin)->patch(route('admin.committees.submissions.request-correction', [$committee, $submission]), [
+            'admin_note' => 'ছবি স্পষ্ট নয়।',
+        ])->assertRedirect();
+
+        Notification::assertSentOnDemand(
+            CommitteeCorrectionRequestedNotification::class,
+            fn ($notification, $channels, $notifiable) => ($notifiable->routes['mail'] ?? null) === $submission->email,
+        );
+    }
+
+    public function test_approval_and_rejection_email_the_nominee_the_outcome(): void
+    {
+        Notification::fake();
+        $admin = $this->superAdmin();
+        $committee = $this->committee();
+        $position = $this->position($committee);
+
+        $approved = $this->submission($committee, $position);
+        $this->actingAs($admin)->patch(route('admin.committees.submissions.approve', [$committee, $approved]));
+
+        $rejected = $this->submission($committee, $position);
+        $this->actingAs($admin)->patch(route('admin.committees.submissions.reject', [$committee, $rejected]), ['admin_note' => 'অসম্পূর্ণ।']);
+
+        Notification::assertSentOnDemand(
+            CommitteeSubmissionStatusChangedNotification::class,
+            fn ($notification, $channels, $notifiable) => ($notifiable->routes['mail'] ?? null) === $approved->email,
+        );
+        Notification::assertSentOnDemand(
+            CommitteeSubmissionStatusChangedNotification::class,
+            fn ($notification, $channels, $notifiable) => ($notifiable->routes['mail'] ?? null) === $rejected->email,
+        );
     }
 
     /* ---------- RBAC ---------- */

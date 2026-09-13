@@ -10,13 +10,17 @@ use App\Models\Membership;
 use App\Models\MembershipApplication;
 use App\Models\MembershipType;
 use App\Models\Payment;
+use App\Notifications\MembershipApplicationStatusChangedNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Throwable;
 
 class MembershipController extends Controller
 {
@@ -118,8 +122,30 @@ class MembershipController extends Controller
             $this->createMembership($membershipApplication, $request->user()->id);
         }
 
+        if (in_array($data['status'], ['approved', 'rejected', 'need_information'], true)) {
+            $this->notifyApplicant($membershipApplication, $data['status'], $data['review_notes'] ?? $data['rejection_reason'] ?? null);
+        }
+
         return redirect()->route('admin.membership.show', $membershipApplication)
             ->with('success', 'আবেদনের স্ট্যাটাস হালনাগাদ হয়েছে।');
+    }
+
+    /** §40: an email-transport failure must never turn an already-persisted status change into a 500. */
+    private function notifyApplicant(MembershipApplication $application, string $status, ?string $note): void
+    {
+        $email = $application->applicantDisplayEmail();
+        if ($email === '') {
+            return;
+        }
+
+        try {
+            Notification::route('mail', $email)
+                ->notify(new MembershipApplicationStatusChangedNotification($application->application_no, $status, $note));
+        } catch (Throwable $e) {
+            Log::warning('Membership application status notification failed to send.', [
+                'application_id' => $application->id, 'status' => $status, 'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

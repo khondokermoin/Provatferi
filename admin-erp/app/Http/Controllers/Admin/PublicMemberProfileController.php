@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\ApprovalHistory;
 use App\Models\Membership;
 use App\Models\PublicMemberProfileVersion;
+use App\Notifications\PublicProfileReviewedNotification;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * §14: admin review of a member's own profile-content submissions. Scoped
@@ -27,6 +29,7 @@ class PublicMemberProfileController extends Controller
         $membership->member->forceFill(['public_profile_approved' => true])->save();
 
         ApprovalHistory::record($version, 'approved', $request->user());
+        $this->notifyMember($membership, new PublicProfileReviewedNotification('approved'));
 
         return back()->with('success', 'পাবলিক প্রোফাইল অনুমোদিত ও প্রকাশিত হয়েছে।');
     }
@@ -42,6 +45,7 @@ class PublicMemberProfileController extends Controller
         ])->save();
 
         ApprovalHistory::record($version, 'rejected', $request->user(), $data['note']);
+        $this->notifyMember($membership, new PublicProfileReviewedNotification('rejected', $data['note']));
 
         return back()->with('success', 'পাবলিক প্রোফাইল প্রত্যাখ্যান করা হয়েছে।');
     }
@@ -50,5 +54,17 @@ class PublicMemberProfileController extends Controller
     {
         abort_unless($membership->member_id && $version->member_id === $membership->member_id, 404);
         abort_unless($version->status === 'pending', 422, 'এই সংস্করণটি ইতিমধ্যে পর্যালোচনা করা হয়েছে।');
+    }
+
+    /** §40: an email-transport failure must never turn an already-persisted review decision into a 500. */
+    private function notifyMember(Membership $membership, mixed $notification): void
+    {
+        try {
+            $membership->member->notify($notification);
+        } catch (Throwable $e) {
+            Log::warning('Public profile review notification failed to send.', [
+                'member_id' => $membership->member_id, 'notification' => $notification::class, 'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
