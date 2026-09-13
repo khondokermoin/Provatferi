@@ -83,8 +83,9 @@ class CommitteeSubmission extends Model
     /**
      * §27: issues a fresh correction/resubmission link and overwrites (never
      * appends to) any previous one — "old correction token invalidated when
-     * replaced". Same hash-at-rest + signed-route combination as
-     * CommitteeRegistrationLink, scoped to this one submission.
+     * replaced". Same hash-at-rest token principle as
+     * CommitteeRegistrationLink (see that model's docblock), scoped to this
+     * one submission.
      *
      * @return string the raw token — exists only in memory for the caller
      */

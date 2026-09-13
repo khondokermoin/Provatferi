@@ -110,6 +110,12 @@ if (! function_exists('status_label')) {
             'submitted' => 'জমাকৃত',
             'shortlisted' => 'বাছাইকৃত',
             'selected' => 'নির্বাচিত',
+            'scheduled' => 'নির্ধারিত',
+            'upcoming' => 'আসন্ন',
+            'completed' => 'সমাপ্ত',
+            'correction_requested' => 'সংশোধন প্রয়োজন',
+            'unpublished' => 'অপ্রকাশিত',
+            'paid' => 'পরিশোধিত',
         ];
 
         return $labels[$status] ?? ucwords(str_replace('_', ' ', $status));

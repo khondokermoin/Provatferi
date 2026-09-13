@@ -35,8 +35,14 @@
                     <x-admin.form-input name="term_end" label="মেয়াদ শেষ" type="date"
                         :value="$committee->term_end?->format('Y-m-d')"
                         help="খালি রাখলে চলমান ধরা হবে।" />
-                    <x-admin.form-select name="status" label="স্ট্যাটাস" :options="$statuses"
-                        :value="$committee->status" :placeholder="null" required />
+
+                    @if ($isEdit)
+                        <div class="mb-3">
+                            <label class="form-label fs-13">বর্তমান স্ট্যাটাস</label>
+                            <div><x-admin.status-badge :status="$committee->status" /></div>
+                            <p class="fs-12 text-muted mb-0 mt-1">স্ট্যাটাস পরিবর্তন করতে কমিটির পাতায় যান।</p>
+                        </div>
+                    @endif
                 </x-admin.card>
 
                 <div class="d-flex flex-wrap gap-2 mb-4">
