@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getMemberDashboard } from "@/lib/api/member";
 import { clearMemberSessionCookie, getMemberSessionToken } from "@/lib/member-session";
@@ -62,6 +63,9 @@ export default async function MemberDashboardPage() {
             <dd>{STATUS_LABELS[profile.status] ?? profile.status}</dd>
           </div>
         </dl>
+        <p className="form-field-help mt-3">
+          <Link href="/member/dashboard/profile">পাবলিক প্রোফাইল সম্পাদনা করুন →</Link>
+        </p>
       </section>
 
       <section className="content-section">

@@ -313,3 +313,43 @@ export interface MemberDashboard {
   payments: MemberPaymentSummary[];
   library: { transactions: unknown[] };
 }
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/public/members, /public/members/{slug} — §13/§14/§16
+// ---------------------------------------------------------------------------
+
+export interface PublicMemberSummary {
+  public_slug: string | null;
+  name: string;
+  profession: string | null;
+  photo_url: string | null;
+}
+
+export interface PublicMemberDetail extends PublicMemberSummary {
+  bio: string | null;
+  facebook_url: string | null;
+  linkedin_url: string | null;
+  website_url: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// GET/POST /api/v1/member/profile — a member's own view of/edits to §13-14
+// ---------------------------------------------------------------------------
+
+export interface MemberProfileVersionView {
+  bio: string | null;
+  profession: string | null;
+  facebook_url: string | null;
+  linkedin_url: string | null;
+  website_url: string | null;
+  photo_url: string | null;
+  submitted_at: string | null;
+}
+
+export interface MemberProfileState {
+  public_profile_enabled: boolean;
+  public_profile_approved: boolean;
+  public_slug: string | null;
+  live: MemberProfileVersionView | null;
+  pending: MemberProfileVersionView | null;
+}

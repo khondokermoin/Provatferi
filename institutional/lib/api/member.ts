@@ -1,6 +1,15 @@
-import { apiGetAuthenticated, apiPostAuthenticated, apiPostForm, isRecord, isStringOrNull } from "./client";
+import { apiGetAuthenticated, apiPostAuthenticated, apiPostForm, apiPostFormAuthenticated, isRecord, isStringOrNull } from "./client";
 import type { ApiSubmitResult } from "./client";
-import type { ApiResult, MemberDashboard, MemberMembershipSummary, MemberPaymentSummary, MemberProfile, MemberSeasonHistoryEntry } from "./types";
+import type {
+  ApiResult,
+  MemberDashboard,
+  MemberMembershipSummary,
+  MemberPaymentSummary,
+  MemberProfile,
+  MemberProfileState,
+  MemberProfileVersionView,
+  MemberSeasonHistoryEntry,
+} from "./types";
 
 function isLoginResponse(v: unknown): v is { data: { token: string } } {
   return isRecord(v) && isRecord(v.data) && typeof v.data.token === "string";
@@ -110,4 +119,44 @@ export async function getMemberDashboard(token: string): Promise<ApiResult<Membe
   });
 
   return result.ok ? { ok: true, data: result.data.data } : result;
+}
+
+function isProfileVersionView(v: unknown): v is MemberProfileVersionView {
+  return (
+    isRecord(v) &&
+    isStringOrNull(v.bio) &&
+    isStringOrNull(v.profession) &&
+    isStringOrNull(v.facebook_url) &&
+    isStringOrNull(v.linkedin_url) &&
+    isStringOrNull(v.website_url) &&
+    isStringOrNull(v.photo_url) &&
+    isStringOrNull(v.submitted_at)
+  );
+}
+
+function isProfileState(v: unknown): v is MemberProfileState {
+  return (
+    isRecord(v) &&
+    typeof v.public_profile_enabled === "boolean" &&
+    typeof v.public_profile_approved === "boolean" &&
+    isStringOrNull(v.public_slug) &&
+    (v.live === null || isProfileVersionView(v.live)) &&
+    (v.pending === null || isProfileVersionView(v.pending))
+  );
+}
+
+function isProfileStateResponse(json: unknown): json is { data: MemberProfileState } {
+  return isRecord(json) && isProfileState(json.data);
+}
+
+export async function getMemberProfileState(token: string): Promise<ApiResult<MemberProfileState>> {
+  const result = await apiGetAuthenticated<{ data: MemberProfileState }>("/api/v1/member/profile", token, {
+    validate: isProfileStateResponse,
+  });
+
+  return result.ok ? { ok: true, data: result.data.data } : result;
+}
+
+export async function updateMemberProfile(token: string, formData: FormData): Promise<ApiSubmitResult<{ message: string }>> {
+  return apiPostFormAuthenticated("/api/v1/member/profile", token, formData, { validate: isMessageResponse });
 }

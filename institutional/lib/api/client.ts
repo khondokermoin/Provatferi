@@ -290,6 +290,64 @@ export async function apiPostAuthenticated<T>(path: string, token: string, opts:
   return { ok: true, data: json };
 }
 
+/**
+ * Bearer-authenticated counterpart to apiPostForm — a member submitting
+ * their own profile edit (with a photo) needs both the auth header AND the
+ * field-level validation-error branch, which plain apiPostAuthenticated
+ * (body-less, used only for logout) doesn't return.
+ */
+export async function apiPostFormAuthenticated<T>(path: string, token: string, formData: FormData, opts: ApiPostOptions<T>): Promise<ApiSubmitResult<T>> {
+  const base = baseUrl();
+  if (!base) {
+    console.error(`[api] LARAVEL_API_URL is not configured; skipping POST for ${path}`);
+    return { ok: false, error: "not_configured" };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), opts.timeoutMs ?? DEFAULT_SUBMIT_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(`${base}${path}`, {
+      method: "POST",
+      body: formData,
+      signal: controller.signal,
+      headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+  } catch (err) {
+    const reason: ApiErrorReason = err instanceof DOMException && err.name === "AbortError" ? "timeout" : "network_error";
+    logFailure(path, reason, err);
+    return { ok: false, error: reason };
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  let json: unknown;
+  try {
+    json = await response.json();
+  } catch (err) {
+    logFailure(path, "invalid_json", err);
+    return { ok: false, error: "invalid_json" };
+  }
+
+  if (response.status === 422 && isLaravelValidationErrorBody(json)) {
+    return { ok: false, error: "validation", errors: json.errors };
+  }
+
+  if (!response.ok) {
+    logFailure(path, "http_error", `HTTP ${response.status}`);
+    return { ok: false, error: "http_error" };
+  }
+
+  if (!opts.validate(json)) {
+    logFailure(path, "invalid_shape", "response did not match the expected shape");
+    return { ok: false, error: "invalid_shape" };
+  }
+
+  return { ok: true, data: json };
+}
+
 // ---------------------------------------------------------------------------
 // Small runtime guards shared across lib/api/*.ts. Hand-rolled rather than a
 // schema library — no validation dependency existed in this project, and the
