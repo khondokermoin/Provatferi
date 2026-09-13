@@ -7,6 +7,7 @@ use App\Models\Committee;
 use App\Models\OrganizationalUnit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -79,6 +80,7 @@ class CommitteeController extends Controller
     {
         $data = $request->validate($this->rules(), [], $this->attributes());
         $data['status'] = 'draft';
+        $data['slug'] = $this->uniqueSlug($data['name']);
         $committee = Committee::query()->create($data);
 
         return redirect()->route('admin.committees.show', $committee)
@@ -205,5 +207,17 @@ class CommitteeController extends Controller
     private function unitOptions(): array
     {
         return OrganizationalUnit::query()->orderBy('name')->pluck('name', 'id')->all();
+    }
+
+    private function uniqueSlug(string $name): string
+    {
+        $base = Str::slug($name);
+        $slug = $base;
+        $suffix = 1;
+        while (Committee::query()->where('slug', $slug)->exists()) {
+            $slug = $base.'-'.(++$suffix);
+        }
+
+        return $slug;
     }
 }
