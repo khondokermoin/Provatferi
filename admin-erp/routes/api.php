@@ -4,6 +4,9 @@ use App\Http\Controllers\Api\V1\Admin\OrganizationUnitController as AdminOrganiz
 use App\Http\Controllers\Api\V1\ActivityController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\JobPostingController;
+use App\Http\Controllers\Api\V1\Member\AuthController as MemberAuthController;
+use App\Http\Controllers\Api\V1\Member\DashboardController as MemberDashboardController;
+use App\Http\Controllers\Api\V1\Member\PasswordResetController as MemberPasswordResetController;
 use App\Http\Controllers\Api\V1\MembershipTypeController;
 use App\Http\Controllers\Api\V1\OrganizationUnitController;
 use App\Http\Controllers\Api\V1\Public\CommitteeController as PublicCommitteeController;
@@ -45,6 +48,20 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
+    });
+
+    // Member portal (§12) — completely separate from the ERP staff auth
+    // above: no shared guard, no shared session, server-to-server only
+    // (called from a Next.js Server Action, never the browser directly).
+    Route::prefix('member')->group(function () {
+        Route::post('/auth/login', [MemberAuthController::class, 'login'])->middleware('throttle:6,1');
+        Route::post('/auth/password/email', [MemberPasswordResetController::class, 'sendResetLink'])->middleware('throttle:6,1');
+        Route::post('/auth/password/reset', [MemberPasswordResetController::class, 'reset'])->middleware('throttle:6,1');
+
+        Route::middleware(['auth:sanctum', 'member.auth'])->group(function () {
+            Route::post('/auth/logout', [MemberAuthController::class, 'logout']);
+            Route::get('/me', [MemberDashboardController::class, 'me']);
+        });
     });
 
     // Admin — Sanctum + permission-gated. Only organization-units is fully
