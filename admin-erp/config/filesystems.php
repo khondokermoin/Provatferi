@@ -47,6 +47,19 @@ return [
             'report' => false,
         ],
 
+        // §38: originals from public forms (membership-application photos,
+        // committee-submission photos, member public-profile edits) land
+        // here — private by default, never web-accessible, never linked via
+        // storage:link. Only an explicitly-approved derivative ever moves to
+        // the 'public' disk above (see App\Services\PhotoUploadService).
+        'uploads_private' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/uploads'),
+            'serve' => false,
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
