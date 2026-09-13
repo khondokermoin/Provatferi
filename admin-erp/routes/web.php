@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\JobApplicationController;
 use App\Http\Controllers\Admin\MemberController;
 use App\Http\Controllers\Admin\MembershipController;
+use App\Http\Controllers\Admin\MembershipSeasonController;
 use App\Http\Controllers\Admin\MembershipTypeController;
 use App\Http\Controllers\Admin\MissionController;
 use App\Http\Controllers\Admin\ObjectiveController;
@@ -145,6 +146,20 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         Route::get('/{membershipType}/edit', [MembershipTypeController::class, 'edit'])->middleware('permission:membership.update')->name('edit');
         Route::put('/{membershipType}', [MembershipTypeController::class, 'update'])->middleware('permission:membership.update')->name('update');
         Route::delete('/{membershipType}', [MembershipTypeController::class, 'destroy'])->middleware('permission:membership.delete')->name('destroy');
+    });
+
+    /*
+     * Membership Seasons — also registered before the wildcard below, same
+     * reasoning as Members immediately after this block.
+     */
+    Route::prefix('membership/seasons')->name('membership.seasons.')->group(function () {
+        Route::get('/', [MembershipSeasonController::class, 'index'])->middleware('permission:membership.view')->name('index');
+        Route::get('/create', [MembershipSeasonController::class, 'create'])->middleware('permission:membership.create')->name('create');
+        Route::post('/', [MembershipSeasonController::class, 'store'])->middleware('permission:membership.create')->name('store');
+        Route::get('/{season}/edit', [MembershipSeasonController::class, 'edit'])->middleware('permission:membership.update')->name('edit');
+        Route::put('/{season}', [MembershipSeasonController::class, 'update'])->middleware('permission:membership.update')->name('update');
+        Route::patch('/{season}/status', [MembershipSeasonController::class, 'updateStatus'])->middleware('permission:membership.update')->name('status');
+        Route::delete('/{season}', [MembershipSeasonController::class, 'destroy'])->middleware('permission:membership.delete')->name('destroy');
     });
 
     /*
