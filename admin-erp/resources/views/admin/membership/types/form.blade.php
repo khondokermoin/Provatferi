@@ -27,6 +27,14 @@
                                @checked(old('is_student', $type->is_student ?? false))>
                         <label class="form-check-label" for="is_student">শিক্ষার্থীদের জন্য</label>
                     </div>
+                    <div class="form-check mb-3">
+                        <input type="checkbox" class="form-check-input" id="is_public_self_apply" name="is_public_self_apply" value="1"
+                               @checked(old('is_public_self_apply', $type->is_public_self_apply ?? true))>
+                        <label class="form-check-label" for="is_public_self_apply">পাবলিক ওয়েবসাইট থেকে সরাসরি আবেদন করা যাবে</label>
+                        <p class="fs-12 text-muted mb-0 mt-1">
+                            বন্ধ রাখলে (যেমন: সাম্মানিক সদস্যপদ) এই ধরনটি পাবলিক আবেদন ফর্মে দেখানো হবে না।
+                        </p>
+                    </div>
                     <x-admin.form-select name="status" label="স্ট্যাটাস" :options="$statuses"
                         :value="$type->status" :placeholder="null" required />
                     <x-admin.form-input name="sort_order" label="ক্রম" type="number" :value="$type->sort_order ?? 0" required min="0" />

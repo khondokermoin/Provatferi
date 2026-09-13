@@ -31,7 +31,9 @@ class MembershipTypeController extends Controller
         return view('admin.membership.types.form', [
             'title' => 'নতুন সদস্যপদের ধরন',
             'breadcrumbs' => [['label' => 'সদস্যপদের ধরন', 'route' => 'admin.membership.types.index'], ['label' => 'তৈরি করুন']],
-            'type' => new MembershipType(['status' => 'active', 'sort_order' => 0, 'fee' => 0, 'is_student' => false]),
+            'type' => new MembershipType([
+                'status' => 'active', 'sort_order' => 0, 'fee' => 0, 'is_student' => false, 'is_public_self_apply' => true,
+            ]),
             'statuses' => self::STATUSES,
         ]);
     }
@@ -41,6 +43,7 @@ class MembershipTypeController extends Controller
         $data = $request->validate($this->rules(), [], $this->attributes());
         $data['slug'] = Str::slug($data['name']);
         $data['is_student'] = $request->boolean('is_student');
+        $data['is_public_self_apply'] = $request->boolean('is_public_self_apply');
 
         $type = MembershipType::query()->create($data);
 
@@ -61,6 +64,7 @@ class MembershipTypeController extends Controller
     {
         $data = $request->validate($this->rules(), [], $this->attributes());
         $data['is_student'] = $request->boolean('is_student');
+        $data['is_public_self_apply'] = $request->boolean('is_public_self_apply');
 
         $membershipType->update($data);
 

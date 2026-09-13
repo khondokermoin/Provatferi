@@ -7,11 +7,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class MembershipType extends Model
 {
-    protected $fillable = ['name', 'slug', 'description', 'duration_months', 'fee', 'is_student', 'status', 'sort_order'];
+    protected $fillable = [
+        'name', 'slug', 'description', 'duration_months', 'fee', 'is_student', 'is_public_self_apply', 'status', 'sort_order',
+    ];
 
     protected function casts(): array
     {
-        return ['is_student' => 'boolean', 'fee' => 'decimal:2', 'sort_order' => 'integer'];
+        return ['is_student' => 'boolean', 'is_public_self_apply' => 'boolean', 'fee' => 'decimal:2', 'sort_order' => 'integer'];
     }
 
     public function applications(): HasMany

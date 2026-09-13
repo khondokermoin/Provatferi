@@ -79,6 +79,42 @@ class PublicMembershipCommitteeWriteApiTest extends TestCase
         ])->assertUnprocessable()->assertJsonValidationErrors('membership_season_id');
     }
 
+    public function test_a_non_self_apply_type_is_rejected_even_via_a_direct_api_call(): void
+    {
+        // §42: honorary/invite-only types must be excluded from self-apply —
+        // enforced server-side, not just hidden from the campaign payload's
+        // membership_types list, since the frontend filter alone would not
+        // stop a direct POST that names the type's id explicitly.
+        $honorary = MembershipType::query()->create([
+            'name' => 'সাম্মানিক সদস্য', 'slug' => 'honorary-'.uniqid(), 'fee' => 0, 'status' => 'active',
+            'is_public_self_apply' => false,
+        ]);
+
+        $this->postJson('/api/v1/public/membership/applications', [
+            'applicant_name' => 'ক', 'applicant_email' => 'k@example.com', 'applicant_phone' => '01700000000',
+            'membership_type_id' => $honorary->id,
+        ])->assertUnprocessable()->assertJsonValidationErrors('membership_type_id');
+    }
+
+    public function test_a_non_self_apply_type_is_excluded_from_the_current_campaign_payload(): void
+    {
+        $season = MembershipSeason::query()->create([
+            'name' => 'সিজন', 'slug' => 'season-'.uniqid(), 'campaign_type' => 'regular', 'status' => 'open', 'display_order' => 0,
+        ]);
+        $regular = $this->membershipType();
+        $honorary = MembershipType::query()->create([
+            'name' => 'সাম্মানিক সদস্য', 'slug' => 'honorary-'.uniqid(), 'fee' => 0, 'status' => 'active',
+            'is_public_self_apply' => false,
+        ]);
+        $season->membershipTypes()->attach([$regular->id, $honorary->id]);
+
+        $response = $this->getJson('/api/v1/public/membership/campaigns/current')->assertOk();
+
+        $names = collect($response->json('data.0.membership_types'))->pluck('name');
+        $this->assertTrue($names->contains($regular->name));
+        $this->assertFalse($names->contains($honorary->name));
+    }
+
     public function test_application_with_a_valid_photo_stores_the_private_path_only(): void
     {
         $type = $this->membershipType();

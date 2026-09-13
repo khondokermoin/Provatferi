@@ -19,7 +19,7 @@ class MembershipTypeController extends Controller
         $types = MembershipType::query()
             ->where('status', 'active')
             ->orderBy('sort_order')->orderBy('name')
-            ->get(['id', 'name', 'slug', 'description', 'duration_months', 'fee', 'is_student']);
+            ->get(['id', 'name', 'slug', 'description', 'duration_months', 'fee', 'is_student', 'is_public_self_apply']);
 
         return response()->json(['data' => $types]);
     }

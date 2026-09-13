@@ -20,7 +20,7 @@ class MembershipCampaignController extends Controller
     {
         $seasons = MembershipSeason::query()
             ->where('status', 'open')
-            ->with(['membershipTypes' => fn ($q) => $q->where('status', 'active')->orderBy('sort_order')])
+            ->with(['membershipTypes' => fn ($q) => $q->where('status', 'active')->where('is_public_self_apply', true)->orderBy('sort_order')])
             ->orderBy('display_order')->orderBy('opens_at')
             ->get()
             ->filter(fn (MembershipSeason $season) => $season->acceptsApplicationsNow())
