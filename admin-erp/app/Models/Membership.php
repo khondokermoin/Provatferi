@@ -35,6 +35,11 @@ class Membership extends Model
         return $this->member?->name ?? $this->user?->name ?? '';
     }
 
+    public function holderEmail(): string
+    {
+        return $this->member?->email ?? $this->user?->email ?? '';
+    }
+
     public function membershipType(): BelongsTo
     {
         return $this->belongsTo(MembershipType::class);

@@ -17,10 +17,10 @@
             <x-admin.card title="সদস্যের তথ্য">
                 <dl class="row mb-0">
                     <dt class="col-sm-4 fs-13 text-muted">নাম</dt>
-                    <dd class="col-sm-8">{{ $member->user->name ?? '—' }}</dd>
+                    <dd class="col-sm-8">{{ $member->holderName() ?: '—' }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">ই-মেইল</dt>
-                    <dd class="col-sm-8">{{ $member->user->email ?? '—' }}</dd>
+                    <dd class="col-sm-8">{{ $member->holderEmail() ?: '—' }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">সদস্যপদের ধরন</dt>
                     <dd class="col-sm-8">{{ $member->membershipType->name ?? '—' }}</dd>
@@ -53,6 +53,19 @@
                     <a href="{{ route('admin.membership.show', $member->application) }}">
                         {{ $member->application->application_no }} <i class="ti ti-arrow-right" aria-hidden="true"></i>
                     </a>
+                </x-admin.card>
+            @endif
+
+            @if ($member->member && $member->member->seasonHistory->isNotEmpty())
+                <x-admin.card title="সিজন ইতিহাস">
+                    <ul class="list-unstyled mb-0">
+                        @foreach ($member->member->seasonHistory as $history)
+                            <li class="d-flex justify-content-between border-bottom py-2">
+                                <span>{{ $history->season->name ?? '—' }}</span>
+                                <span class="text-muted fs-13">{{ $history->joined_at ? bn_date($history->joined_at) : '—' }}</span>
+                            </li>
+                        @endforeach
+                    </ul>
                 </x-admin.card>
             @endif
         </div>

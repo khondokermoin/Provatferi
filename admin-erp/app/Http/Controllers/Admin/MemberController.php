@@ -27,11 +27,12 @@ class MemberController extends Controller
         ];
 
         $members = Membership::query()
-            ->with(['user', 'membershipType'])
+            ->with(['user', 'member', 'membershipType'])
             ->when($filters['search'] !== '', function ($q) use ($filters) {
                 $term = '%'.$filters['search'].'%';
                 $q->where('member_code', 'like', $term)
-                    ->orWhereHas('user', fn ($u) => $u->where('name', 'like', $term)->orWhere('email', 'like', $term));
+                    ->orWhereHas('user', fn ($u) => $u->where('name', 'like', $term)->orWhere('email', 'like', $term))
+                    ->orWhereHas('member', fn ($m) => $m->where('name', 'like', $term)->orWhere('email', 'like', $term));
             })
             ->when($filters['status'] !== '', fn ($q) => $q->where('status', $filters['status']))
             ->when($filters['type'] !== '', fn ($q) => $q->where('membership_type_id', $filters['type']))
@@ -51,7 +52,7 @@ class MemberController extends Controller
 
     public function show(Membership $membership): View
     {
-        $membership->load(['user', 'membershipType', 'application']);
+        $membership->load(['user', 'member.seasonHistory.season', 'membershipType', 'application']);
 
         return view('admin.membership.members.show', [
             'title' => $membership->member_code,

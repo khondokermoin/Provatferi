@@ -48,7 +48,7 @@
                 <td data-label="সদস্য নং">
                     <a href="{{ route('admin.membership.members.show', $member) }}" class="fw-semibold">{{ $member->member_code }}</a>
                 </td>
-                <td data-label="নাম">{{ $member->user->name ?? '—' }}</td>
+                <td data-label="নাম">{{ $member->holderName() ?: '—' }}</td>
                 <td data-label="ধরন">{{ $member->membershipType->name ?? '—' }}</td>
                 <td data-label="থেকে">{{ $member->start_date ? bn_date($member->start_date) : '—' }}</td>
                 <td data-label="স্ট্যাটাস"><x-admin.status-badge :status="$member->status" /></td>
