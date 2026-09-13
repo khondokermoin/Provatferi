@@ -115,6 +115,24 @@ class PublicMembershipCommitteeWriteApiTest extends TestCase
         $this->assertFalse($names->contains($honorary->name));
     }
 
+    public function test_the_application_endpoint_is_rate_limited(): void
+    {
+        // §40: throttle:6,1 on this route — the 7th submission within the
+        // same window must be rejected before it ever reaches the
+        // controller, regardless of whether its own payload is valid.
+        $type = $this->membershipType();
+        $payload = [
+            'applicant_name' => 'ক', 'applicant_email' => 'rate-limit@example.com', 'applicant_phone' => '01700000000',
+            'membership_type_id' => $type->id,
+        ];
+
+        for ($i = 0; $i < 6; $i++) {
+            $this->postJson('/api/v1/public/membership/applications', $payload)->assertCreated();
+        }
+
+        $this->postJson('/api/v1/public/membership/applications', $payload)->assertStatus(429);
+    }
+
     public function test_application_with_a_valid_photo_stores_the_private_path_only(): void
     {
         $type = $this->membershipType();
