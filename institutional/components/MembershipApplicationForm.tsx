@@ -1,0 +1,125 @@
+"use client";
+
+import { useActionState, useMemo, useState } from "react";
+import { submitMembershipApplication, type MembershipApplicationState } from "@/app/(site)/membership/actions";
+import type { MembershipCampaign } from "@/lib/api/types";
+
+const initialState: MembershipApplicationState = { status: "idle" };
+
+function FieldError({ errors, name }: { errors: Record<string, string[]> | undefined; name: string }) {
+  const message = errors?.[name]?.[0];
+  if (!message) return null;
+  return (
+    <p className="form-field-error" role="alert">
+      {message}
+    </p>
+  );
+}
+
+export default function MembershipApplicationForm({ campaigns }: { campaigns: MembershipCampaign[] }) {
+  const [state, formAction, isPending] = useActionState(submitMembershipApplication, initialState);
+  const [campaignId, setCampaignId] = useState(String(campaigns[0]?.id ?? ""));
+
+  const campaign = useMemo(() => campaigns.find((c) => String(c.id) === campaignId), [campaigns, campaignId]);
+  const errors = state.status === "validation" ? state.errors : undefined;
+
+  if (state.status === "success") {
+    return (
+      <div className="callout">
+        <p>
+          আপনার আবেদন সফলভাবে জমা হয়েছে। আবেদন নম্বর: <strong>{state.applicationNo}</strong>
+          <br />
+          পর্যালোচনা শেষে আমরা আপনার দেওয়া ই-মেইল বা মোবাইলে যোগাযোগ করব।
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <form action={formAction} className="application-form" noValidate>
+      {campaigns.length > 1 && (
+        <div className="form-field">
+          <label htmlFor="campaign">নিবন্ধন সিজন</label>
+          <select id="campaign" value={campaignId} onChange={(e) => setCampaignId(e.target.value)}>
+            {campaigns.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <input type="hidden" name="membership_season_id" value={campaign?.id ?? ""} />
+
+      <div className="form-field">
+        <label htmlFor="membership_type_id">সদস্যপদের ধরন</label>
+        <select id="membership_type_id" name="membership_type_id" required defaultValue="">
+          <option value="" disabled>
+            নির্বাচন করুন
+          </option>
+          {campaign?.membership_types.map((type) => (
+            <option key={type.id} value={type.id}>
+              {type.name} {Number(type.fee) > 0 ? `— ৳${type.fee}` : "— বিনামূল্যে"}
+            </option>
+          ))}
+        </select>
+        <FieldError errors={errors} name="membership_type_id" />
+      </div>
+
+      <div className="form-field">
+        <label htmlFor="applicant_name">নাম</label>
+        <input id="applicant_name" name="applicant_name" type="text" required maxLength={255} />
+        <FieldError errors={errors} name="applicant_name" />
+      </div>
+
+      <div className="form-field">
+        <label htmlFor="applicant_email">ই-মেইল</label>
+        <input id="applicant_email" name="applicant_email" type="email" required maxLength={255} />
+        <FieldError errors={errors} name="applicant_email" />
+      </div>
+
+      <div className="form-field">
+        <label htmlFor="applicant_phone">মোবাইল নম্বর</label>
+        <input id="applicant_phone" name="applicant_phone" type="tel" required maxLength={30} />
+        <FieldError errors={errors} name="applicant_phone" />
+      </div>
+
+      <div className="form-field">
+        <label htmlFor="photo">ছবি (ঐচ্ছিক)</label>
+        <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" />
+        <p className="form-field-help">JPG, PNG বা WEBP — সর্বোচ্চ ৫ মেগাবাইট।</p>
+        <FieldError errors={errors} name="photo" />
+      </div>
+
+      {/* Honeypot — hidden from sighted users and never focusable; a real
+          visitor's browser never populates it, so any value here is spam. */}
+      <div className="honeypot-field" aria-hidden="true">
+        <label htmlFor="website">Website</label>
+        <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
+      </div>
+
+      {campaign?.cash_payment_instructions && (
+        <div className="callout">
+          <p>
+            <strong>পরিশোধ পদ্ধতি:</strong> {campaign.cash_payment_instructions}
+          </p>
+        </div>
+      )}
+
+      <p className="form-field-help">
+        অনলাইন পেমেন্ট — শিগগিরই চালু হবে। এখন শুধুমাত্র নগদ পরিশোধ গ্রহণযোগ্য।
+      </p>
+
+      {state.status === "error" && (
+        <p className="form-field-error" role="alert">
+          {state.message}
+        </p>
+      )}
+
+      <button type="submit" className="button button-primary" disabled={isPending}>
+        {isPending ? "জমা হচ্ছে..." : "আবেদন করুন"}
+      </button>
+    </form>
+  );
+}
