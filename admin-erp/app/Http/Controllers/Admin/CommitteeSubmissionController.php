@@ -7,11 +7,16 @@ use App\Models\ApprovalHistory;
 use App\Models\Committee;
 use App\Models\CommitteeMember;
 use App\Models\CommitteeSubmission;
+use App\Notifications\CommitteeCorrectionRequestedNotification;
+use App\Notifications\CommitteeSubmissionStatusChangedNotification;
 use App\Services\PhotoUploadService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\View\View;
+use Throwable;
 
 /**
  * §26-28: admin review of public committee-member submissions. A submission
@@ -116,6 +121,8 @@ class CommitteeSubmissionController extends Controller
             ApprovalHistory::record($submission, 'approved', $request->user());
         });
 
+        $this->notifySubmission($submission, new CommitteeSubmissionStatusChangedNotification($committee->name, 'approved'));
+
         return redirect()->route('admin.committees.submissions.show', [$committee, $submission])
             ->with($warning ? 'warning' : 'success', $warning ?? 'আবেদন অনুমোদিত হয়েছে — কমিটির সদস্য তালিকায় যুক্ত হয়েছে।');
     }
@@ -133,6 +140,8 @@ class CommitteeSubmissionController extends Controller
         ])->save();
 
         ApprovalHistory::record($submission, 'rejected', $request->user(), $data['admin_note']);
+
+        $this->notifySubmission($submission, new CommitteeSubmissionStatusChangedNotification($committee->name, 'rejected', $data['admin_note']));
 
         return redirect()->route('admin.committees.submissions.show', [$committee, $submission])
             ->with('success', 'আবেদন প্রত্যাখ্যান করা হয়েছে।');
@@ -160,13 +169,33 @@ class CommitteeSubmissionController extends Controller
 
         $url = rtrim(config('services.public_site.url'), '/').'/committee/register/correct/'.$raw;
 
+        $this->notifySubmission($submission, new CommitteeCorrectionRequestedNotification(
+            $committee->name, $data['admin_note'], $url, 14,
+        ));
+
         return redirect()->route('admin.committees.submissions.show', [$committee, $submission])
-            ->with('success', 'সংশোধনের জন্য পাঠানো হয়েছে — লিংকটি একবারই দেখানো হবে, এখনই কপি করুন।')
+            ->with('success', 'সংশোধনের জন্য ই-মেইল পাঠানো হয়েছে — লিংকটি নিচে একবারই দেখানো হবে (ব্যাকআপ হিসেবে), এখনই কপি করুন।')
             ->with('generated_correction_link', $url);
     }
 
     private function assertTransitionAllowed(CommitteeSubmission $submission, string $target): void
     {
         abort_unless(in_array($target, self::TRANSITIONS[$submission->status] ?? [], true), 422, 'এই অবস্থা থেকে এই পরিবর্তন সম্ভব নয়।');
+    }
+
+    /**
+     * §40: a mail-transport failure must never turn a successful, already-
+     * persisted admin decision into a 500 — the status change and history
+     * row are the source of truth; the email is a best-effort side effect.
+     */
+    private function notifySubmission(CommitteeSubmission $submission, mixed $notification): void
+    {
+        try {
+            Notification::route('mail', $submission->email)->notify($notification);
+        } catch (Throwable $e) {
+            Log::warning('Committee submission notification failed to send.', [
+                'submission_id' => $submission->id, 'notification' => $notification::class, 'error' => $e->getMessage(),
+            ]);
+        }
     }
 }

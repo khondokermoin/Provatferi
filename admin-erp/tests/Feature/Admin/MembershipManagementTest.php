@@ -9,6 +9,8 @@ use App\Models\MembershipApplication;
 use App\Models\MembershipType;
 use App\Models\Payment;
 use App\Models\User;
+use App\Notifications\MembershipApplicationStatusChangedNotification;
+use Illuminate\Support\Facades\Notification;
 
 class MembershipManagementTest extends AdminTestCase
 {
@@ -367,6 +369,47 @@ class MembershipManagementTest extends AdminTestCase
         $entry = ApprovalHistory::query()->where('subject_type', MembershipApplication::class)->where('subject_id', $application->id)->firstOrFail();
         $this->assertSame('rejected', $entry->action);
         $this->assertSame($admin->id, $entry->actor_id);
+    }
+
+    public function test_a_public_applicant_is_emailed_on_approval_and_a_free_type_needs_no_payment_first(): void
+    {
+        Notification::fake();
+        $admin = $this->superAdmin();
+        $type = $this->type();
+        $application = $this->publicApplication($type, 'under_review');
+
+        $this->actingAs($admin)->patch(route('admin.membership.status', $application), ['status' => 'approved']);
+
+        Notification::assertSentOnDemand(
+            MembershipApplicationStatusChangedNotification::class,
+            fn ($notification, $channels, $notifiable) => ($notifiable->routes['mail'] ?? null) === $application->applicant_email,
+        );
+    }
+
+    public function test_rejection_and_need_information_also_email_the_applicant(): void
+    {
+        Notification::fake();
+        $admin = $this->superAdmin();
+        $type = $this->type();
+
+        $rejected = $this->publicApplication($type, 'under_review');
+        $this->actingAs($admin)->patch(route('admin.membership.status', $rejected), [
+            'status' => 'rejected', 'rejection_reason' => 'অসম্পূর্ণ।',
+        ]);
+
+        $needsInfo = $this->publicApplication($type, 'under_review');
+        $this->actingAs($admin)->patch(route('admin.membership.status', $needsInfo), [
+            'status' => 'need_information', 'review_notes' => 'জাতীয় পরিচয়পত্রের কপি প্রয়োজন।',
+        ]);
+
+        Notification::assertSentOnDemand(
+            MembershipApplicationStatusChangedNotification::class,
+            fn ($notification, $channels, $notifiable) => ($notifiable->routes['mail'] ?? null) === $rejected->applicant_email,
+        );
+        Notification::assertSentOnDemand(
+            MembershipApplicationStatusChangedNotification::class,
+            fn ($notification, $channels, $notifiable) => ($notifiable->routes['mail'] ?? null) === $needsInfo->applicant_email,
+        );
     }
 
     /* ---------- RBAC ---------- */

@@ -6,7 +6,9 @@ use App\Models\Member;
 use App\Models\Membership;
 use App\Models\MembershipType;
 use App\Models\PublicMemberProfileVersion;
+use App\Notifications\PublicProfileReviewedNotification;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Tests\Feature\Admin\AdminTestCase;
 
@@ -135,5 +137,30 @@ class MemberProfileModerationTest extends AdminTestCase
 
         $this->actingAs($admin)->patch(route('admin.membership.members.profile.approve', [$membership, $version]))
             ->assertStatus(422);
+    }
+
+    public function test_the_member_is_emailed_when_their_profile_edit_is_approved_or_rejected(): void
+    {
+        Notification::fake();
+        $admin = $this->superAdmin();
+
+        $approvedMember = Member::factory()->active()->create();
+        $approvedMembership = $this->membershipFor($approvedMember);
+        $approvedVersion = PublicMemberProfileVersion::query()->create([
+            'member_id' => $approvedMember->id, 'status' => 'pending', 'bio' => 'পরিচিতি', 'submitted_at' => now(),
+        ]);
+        $this->actingAs($admin)->patch(route('admin.membership.members.profile.approve', [$approvedMembership, $approvedVersion]));
+
+        $rejectedMember = Member::factory()->active()->create();
+        $rejectedMembership = $this->membershipFor($rejectedMember);
+        $rejectedVersion = PublicMemberProfileVersion::query()->create([
+            'member_id' => $rejectedMember->id, 'status' => 'pending', 'bio' => 'পরিচিতি', 'submitted_at' => now(),
+        ]);
+        $this->actingAs($admin)->patch(route('admin.membership.members.profile.reject', [$rejectedMembership, $rejectedVersion]), [
+            'note' => 'ছবি নেই।',
+        ]);
+
+        Notification::assertSentTo($approvedMember, PublicProfileReviewedNotification::class);
+        Notification::assertSentTo($rejectedMember, PublicProfileReviewedNotification::class);
     }
 }
