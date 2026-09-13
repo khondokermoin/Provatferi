@@ -270,3 +270,46 @@ export interface ActivityListResponse {
   current_page: number;
   last_page: number;
 }
+
+// ---------------------------------------------------------------------------
+// Member portal (§11-12) — POST /api/v1/member/auth/login, GET /member/me
+// ---------------------------------------------------------------------------
+
+export interface MemberProfile {
+  member_code: string | null;
+  name: string;
+  email: string;
+  phone: string | null;
+  status: string;
+  public_profile_enabled: boolean;
+  public_profile_approved: boolean;
+  public_slug: string | null;
+}
+
+export interface MemberMembershipSummary {
+  member_code: string;
+  status: string;
+  start_date: string | null;
+  expiry_date: string | null;
+  membership_type: string | null;
+}
+
+export interface MemberSeasonHistoryEntry {
+  season: string | null;
+  joined_at: string | null;
+}
+
+export interface MemberPaymentSummary {
+  amount_received: string;
+  method: string | null;
+  status: string;
+  received_at: string | null;
+}
+
+export interface MemberDashboard {
+  profile: MemberProfile;
+  memberships: MemberMembershipSummary[];
+  season_history: MemberSeasonHistoryEntry[];
+  payments: MemberPaymentSummary[];
+  library: { transactions: unknown[] };
+}

@@ -178,6 +178,119 @@ export async function apiPostForm<T>(path: string, formData: FormData, opts: Api
 }
 
 // ---------------------------------------------------------------------------
+// Authenticated path — the member portal (§12). The Sanctum token lives only
+// in this Next.js app's own HttpOnly cookie; every call here carries it as
+// a Bearer header to admin-erp, server-side only. Never cached — this is
+// one member's own session-bound data, and Next.js's fetch cache has no
+// concept of "per-viewer", so caching it at all would risk serving one
+// member's dashboard to another.
+// ---------------------------------------------------------------------------
+
+export interface ApiGetAuthenticatedOptions<T> {
+  validate: (json: unknown) => json is T;
+  timeoutMs?: number;
+}
+
+export async function apiGetAuthenticated<T>(path: string, token: string, opts: ApiGetAuthenticatedOptions<T>): Promise<ApiResult<T>> {
+  const base = baseUrl();
+  if (!base) {
+    console.error(`[api] LARAVEL_API_URL is not configured; skipping fetch for ${path}`);
+    return { ok: false, error: "not_configured" };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), opts.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(`${base}${path}`, {
+      signal: controller.signal,
+      headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+  } catch (err) {
+    const reason: ApiErrorReason = err instanceof DOMException && err.name === "AbortError" ? "timeout" : "network_error";
+    logFailure(path, reason, err);
+    return { ok: false, error: reason };
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (!response.ok) {
+    logFailure(path, "http_error", `HTTP ${response.status}`);
+    return { ok: false, error: "http_error" };
+  }
+
+  let json: unknown;
+  try {
+    json = await response.json();
+  } catch (err) {
+    logFailure(path, "invalid_json", err);
+    return { ok: false, error: "invalid_json" };
+  }
+
+  if (!opts.validate(json)) {
+    logFailure(path, "invalid_shape", "response did not match the expected shape");
+    return { ok: false, error: "invalid_shape" };
+  }
+
+  return { ok: true, data: json };
+}
+
+export interface ApiPostAuthenticatedOptions<T> {
+  validate: (json: unknown) => json is T;
+  timeoutMs?: number;
+}
+
+/** Same Bearer-token pattern as apiGetAuthenticated, for a member-session POST with no body (e.g. logout). */
+export async function apiPostAuthenticated<T>(path: string, token: string, opts: ApiPostAuthenticatedOptions<T>): Promise<ApiResult<T>> {
+  const base = baseUrl();
+  if (!base) {
+    console.error(`[api] LARAVEL_API_URL is not configured; skipping POST for ${path}`);
+    return { ok: false, error: "not_configured" };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), opts.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(`${base}${path}`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+  } catch (err) {
+    const reason: ApiErrorReason = err instanceof DOMException && err.name === "AbortError" ? "timeout" : "network_error";
+    logFailure(path, reason, err);
+    return { ok: false, error: reason };
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (!response.ok) {
+    logFailure(path, "http_error", `HTTP ${response.status}`);
+    return { ok: false, error: "http_error" };
+  }
+
+  let json: unknown;
+  try {
+    json = await response.json();
+  } catch (err) {
+    logFailure(path, "invalid_json", err);
+    return { ok: false, error: "invalid_json" };
+  }
+
+  if (!opts.validate(json)) {
+    logFailure(path, "invalid_shape", "response did not match the expected shape");
+    return { ok: false, error: "invalid_shape" };
+  }
+
+  return { ok: true, data: json };
+}
+
+// ---------------------------------------------------------------------------
 // Small runtime guards shared across lib/api/*.ts. Hand-rolled rather than a
 // schema library — no validation dependency existed in this project, and the
 // shapes here are small and stable enough not to need one.
