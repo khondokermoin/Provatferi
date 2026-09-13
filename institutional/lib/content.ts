@@ -204,11 +204,12 @@ export const navLinks: NavItem[] = [
     id: "about",
     href: "/about",
     label: "আমাদের সম্পর্কে",
-    match: ["/about", "/organization"],
+    match: ["/about", "/organization", "/committee"],
     children: [
       { href: "/about", label: "প্রভাতফেরী সম্পর্কে" },
       { href: "/about#story", label: "আমাদের গল্প" },
-      { href: "/organization#committee", label: "নেতৃত্ব ও কমিটি" },
+      { href: "/organization#committee", label: "বর্তমান অন্তর্বর্তীকালীন কমিটি" },
+      { href: "/committee", label: "কমিটির ইতিহাস" },
       { href: "/organization#structure", label: "সাংগঠনিক কাঠামো" },
       { href: "/about#transparency", label: "নথি ও স্বচ্ছতা" },
     ],
@@ -244,7 +245,7 @@ export const navLinks: NavItem[] = [
 export const footerExploreLinks = [
   { href: "/about", label: "আমাদের সম্পর্কে" },
   { href: "/activities", label: "কার্যক্রম" },
-  { href: "/organization#committee", label: "নেতৃত্ব" },
+  { href: "/committee", label: "কমিটির ইতিহাস" },
   { href: "/events", label: "ইভেন্ট" },
 ];
 
