@@ -263,10 +263,23 @@ button:focus-visible {
   box-shadow: none;
 }
 
+/*
+ * FORM-001: this used to also set `box-shadow: 0 0 0 0.15rem rgba(255,95,31,.2)`
+ * here — a leftover from before the :focus-visible outline rule above existed,
+ * back when this box-shadow WAS the only focus ring. Once the outline rule was
+ * added (2026-09-08, see its own comment), every .form-control/.form-select
+ * matched both rules at once — text inputs are always :focus-visible on click,
+ * not just on keyboard nav, unlike buttons/links — so a mouse click into any
+ * field painted the outline AND this box-shadow simultaneously: an inner
+ * ring plus a second, larger outer ring around it. Verified 2026-09-14 by
+ * screenshotting /profile before and after removing this line (design-review/
+ * form-focus-2026-09-14/) — before: visible double ring; after: the single
+ * outline ring only. border-color stays: it tints the actual field border on
+ * focus, which is the "inner border" this fix is explicitly meant to keep.
+ */
 .form-control:focus,
 .form-select:focus {
   border-color: var(--ct-primary);
-  box-shadow: 0 0 0 0.15rem rgba(255, 95, 31, 0.2);
 }
 
 /*
