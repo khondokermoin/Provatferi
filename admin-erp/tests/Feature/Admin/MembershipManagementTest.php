@@ -204,6 +204,51 @@ class MembershipManagementTest extends AdminTestCase
             ->assertOk()->assertSee('এখনো কোনো সদস্য নেই');
     }
 
+    public function test_members_index_and_show_display_public_applicants_name_not_a_dash(): void
+    {
+        $admin = $this->superAdmin();
+        $application = $this->publicApplication($this->type());
+        $application->payments()->create([
+            'membership_type_id' => $application->membership_type_id,
+            'amount_expected' => 0, 'amount_received' => 0, 'received_at' => now()->toDateString(),
+            'method' => 'cash', 'status' => 'waived', 'verified_at' => now(), 'received_by' => $admin->id,
+        ]);
+        $this->actingAs($admin)->patch(route('admin.membership.status', $application), ['status' => 'approved']);
+        $membership = Membership::query()->where('membership_application_id', $application->id)->firstOrFail();
+
+        $this->actingAs($admin)->get(route('admin.membership.members.index'))
+            ->assertOk()->assertSee('রহিমা খাতুন')->assertDontSee('—</td>', false);
+
+        $this->actingAs($admin)->get(route('admin.membership.members.show', $membership))
+            ->assertOk()->assertSee('রহিমা খাতুন')->assertSee($application->applicant_email);
+    }
+
+    public function test_members_show_lists_season_history_for_public_applicants(): void
+    {
+        $admin = $this->superAdmin();
+        $type = $this->type();
+        $season = \App\Models\MembershipSeason::query()->create([
+            'name' => '২০২৬ মৌসুম', 'slug' => 'season-'.uniqid(), 'campaign_type' => 'regular',
+            'status' => 'open', 'display_order' => 0,
+        ]);
+        $application = $this->publicApplication($type);
+        $application->update(['membership_season_id' => $season->id]);
+        $application->payments()->create([
+            'membership_type_id' => $type->id,
+            'amount_expected' => 0, 'amount_received' => 0, 'received_at' => now()->toDateString(),
+            'method' => 'cash', 'status' => 'waived', 'verified_at' => now(), 'received_by' => $admin->id,
+        ]);
+        $this->actingAs($admin)->patch(route('admin.membership.status', $application), ['status' => 'approved']);
+        $membership = Membership::query()->where('membership_application_id', $application->id)->firstOrFail();
+
+        $this->assertDatabaseHas('member_season_history', [
+            'member_id' => $membership->member_id, 'membership_season_id' => $season->id,
+        ]);
+
+        $this->actingAs($admin)->get(route('admin.membership.members.show', $membership))
+            ->assertOk()->assertSee('২০২৬ মৌসুম');
+    }
+
     /* ---------- §0/§18: public applicant identity (no ERP account) ---------- */
 
     private function paidType(): MembershipType
