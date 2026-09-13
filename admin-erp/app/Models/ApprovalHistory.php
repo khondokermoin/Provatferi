@@ -12,6 +12,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class ApprovalHistory extends Model
 {
+    // Laravel's default pluralization would guess 'approval_histories'; the
+    // migration deliberately named it 'approval_history' instead.
+    protected $table = 'approval_history';
+
     public const UPDATED_AT = null;
 
     protected $fillable = ['subject_type', 'subject_id', 'action', 'actor_type', 'actor_id', 'note'];

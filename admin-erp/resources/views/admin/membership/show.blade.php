@@ -12,13 +12,26 @@
             <x-admin.card title="আবেদনকারীর তথ্য">
                 <dl class="row mb-0">
                     <dt class="col-sm-4 fs-13 text-muted">আবেদনকারী</dt>
-                    <dd class="col-sm-8">{{ $application->user->name ?? '—' }}</dd>
+                    <dd class="col-sm-8">
+                        {{ $application->applicantDisplayName() ?: '—' }}
+                        @if ($application->isPublicApplicant())
+                            <span class="badge bg-info-subtle text-info-emphasis fs-11 ms-1">পাবলিক আবেদন</span>
+                        @endif
+                    </dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">ই-মেইল</dt>
-                    <dd class="col-sm-8">{{ $application->user->email ?? '—' }}</dd>
+                    <dd class="col-sm-8">{{ $application->applicantDisplayEmail() ?: '—' }}</dd>
+
+                    @if ($application->applicant_phone)
+                        <dt class="col-sm-4 fs-13 text-muted">মোবাইল</dt>
+                        <dd class="col-sm-8">{{ $application->applicant_phone }}</dd>
+                    @endif
 
                     <dt class="col-sm-4 fs-13 text-muted">সদস্যপদের ধরন</dt>
                     <dd class="col-sm-8">{{ $application->membershipType->name ?? '—' }}</dd>
+
+                    <dt class="col-sm-4 fs-13 text-muted">নিবন্ধন সিজন</dt>
+                    <dd class="col-sm-8">{{ $application->season?->name ?? '—' }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">সাংগঠনিক ইউনিট</dt>
                     <dd class="col-sm-8">{{ $application->organizationUnit?->name ?? '—' }}</dd>
@@ -26,6 +39,67 @@
                     <dt class="col-sm-4 fs-13 text-muted">জমা দেওয়ার তারিখ</dt>
                     <dd class="col-sm-8 mb-0">{{ bn_datetime($application->created_at) }}</dd>
                 </dl>
+            </x-admin.card>
+
+            <x-admin.card title="পরিশোধ (নগদ)">
+                @forelse ($application->payments as $payment)
+                    <div class="d-flex justify-content-between align-items-start border-bottom pb-2 mb-2">
+                        <div>
+                            <span class="fw-semibold">{{ number_format((float) $payment->amount_received, 2) }}</span>
+                            <span class="text-muted fs-12">/ প্রত্যাশিত {{ number_format((float) $payment->amount_expected, 2) }}</span>
+                            <span class="d-block text-muted fs-12">{{ $payment->received_at?->format('d M Y') }} — {{ $payment->reference ?: 'রেফারেন্স নেই' }}</span>
+                            @if ($payment->status === 'waived')
+                                <span class="d-block text-muted fs-12">মওকুফের কারণ: {{ $payment->waiver_reason }}</span>
+                            @endif
+                        </div>
+                        <div class="text-end">
+                            <x-admin.status-badge :status="$payment->status" />
+                            @if ($payment->verified_at)
+                                <span class="d-block text-success fs-11 mt-1"><i class="ti ti-check" aria-hidden="true"></i> যাচাইকৃত</span>
+                            @elseif ($payment->status === 'paid')
+                                @can('payments.approve')
+                                    <form method="POST" action="{{ route('admin.membership.payments.verify', $payment) }}" class="d-inline">
+                                        @csrf @method('PATCH')
+                                        <button type="submit" class="btn btn-sm btn-outline-success mt-1">যাচাই করুন</button>
+                                    </form>
+                                @endcan
+                            @endif
+                        </div>
+                    </div>
+                @empty
+                    <p class="text-muted fs-13 mb-0">এখনো কোনো পরিশোধ রেকর্ড হয়নি।</p>
+                @endforelse
+
+                @can('payments.create')
+                    <details class="mt-3">
+                        <summary class="fs-13 text-primary" style="cursor:pointer">+ নগদ পরিশোধ রেকর্ড করুন</summary>
+                        <form method="POST" action="{{ route('admin.membership.payments.store', $application) }}" class="mt-2">
+                            @csrf
+                            <div class="row">
+                                <div class="col-6">
+                                    <x-admin.form-input name="amount_expected" label="প্রত্যাশিত পরিমাণ" type="number" step="0.01" min="0"
+                                        :value="$application->membershipType->fee ?? 0" required />
+                                </div>
+                                <div class="col-6">
+                                    <x-admin.form-input name="amount_received" label="প্রাপ্ত পরিমাণ" type="number" step="0.01" min="0" required />
+                                </div>
+                            </div>
+                            <x-admin.form-input name="received_at" label="প্রাপ্তির তারিখ" type="date" :value="now()->toDateString()" required />
+                            <x-admin.form-input name="reference" label="রেফারেন্স (ঐচ্ছিক)" />
+                            <button type="submit" class="btn btn-sm btn-primary">রেকর্ড করুন</button>
+                        </form>
+                    </details>
+                    @if ($application->payments->isEmpty())
+                        <details class="mt-2">
+                            <summary class="fs-13 text-muted" style="cursor:pointer">+ পরিশোধ মওকুফ করুন</summary>
+                            <form method="POST" action="{{ route('admin.membership.payments.waive', $application) }}" class="mt-2">
+                                @csrf
+                                <x-admin.form-textarea name="waiver_reason" label="মওকুফের কারণ" :rows="2" required />
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">মওকুফ করুন</button>
+                            </form>
+                        </details>
+                    @endif
+                @endcan
             </x-admin.card>
 
             @if (! empty($application->application_data))
@@ -36,6 +110,23 @@
                             <dd class="col-sm-8">{{ is_scalar($value) ? $value : json_encode($value, JSON_UNESCAPED_UNICODE) }}</dd>
                         @endforeach
                     </dl>
+                </x-admin.card>
+            @endif
+
+            @if ($application->history->isNotEmpty())
+                <x-admin.card title="ইতিহাস" subtitle="শুধুমাত্র প্রশাসনিক ব্যবহারের জন্য।">
+                    <ul class="list-unstyled mb-0 fs-13">
+                        @foreach ($application->history->sortByDesc('created_at') as $entry)
+                            <li class="border-bottom pb-2 mb-2">
+                                <span class="fw-semibold">{{ $statuses[$entry->action] ?? $entry->action }}</span>
+                                — {{ $entry->actor?->name ?? 'সিস্টেম' }}
+                                <span class="text-muted d-block fs-12">{{ bn_datetime($entry->created_at) }}</span>
+                                @if ($entry->note)
+                                    <span class="d-block">{{ $entry->note }}</span>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ul>
                 </x-admin.card>
             @endif
 
@@ -65,12 +156,20 @@
 
             @can('membership.approve')
                 @if (! empty($allowedTransitions))
+                    @if (! $paymentSatisfied && in_array('approved', $allowedTransitions, true))
+                        <div class="alert alert-warning fs-13" role="alert">
+                            <i class="ti ti-alert-triangle me-1" aria-hidden="true"></i>
+                            পরিশোধ যাচাই না হওয়া পর্যন্ত অনুমোদন করা যাবে না — বাঁয়ে পরিশোধ রেকর্ড করুন অথবা মওকুফ করুন।
+                        </div>
+                    @endif
                     <x-admin.card title="স্ট্যাটাস পরিবর্তন করুন">
                         <form method="POST" action="{{ route('admin.membership.status', $application) }}">
                             @csrf @method('PATCH')
 
                             <x-admin.form-select name="status" label="নতুন স্ট্যাটাস"
-                                :options="collect($allowedTransitions)->mapWithKeys(fn ($s) => [$s => $statuses[$s]])->all()"
+                                :options="collect($allowedTransitions)
+                                    ->reject(fn ($s) => $s === 'approved' && ! $paymentSatisfied)
+                                    ->mapWithKeys(fn ($s) => [$s => $statuses[$s]])->all()"
                                 :placeholder="null" required />
 
                             <x-admin.form-textarea name="review_notes" label="অভ্যন্তরীণ নোট (ঐচ্ছিক)" :rows="3"
