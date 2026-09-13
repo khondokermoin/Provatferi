@@ -113,6 +113,65 @@ export interface MembershipType {
   /** Decimal from Laravel, serialized as a string, e.g. "0.00". */
   fee: string;
   is_student: boolean;
+  is_public_self_apply: boolean;
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/public/membership/campaigns/current
+//
+// Always an array — a regular season and a special one-off drive can
+// legitimately be open at the same time (admin-erp's own §2-4 design), so
+// this is never collapsed to a single nullable campaign.
+// ---------------------------------------------------------------------------
+
+export interface MembershipCampaign {
+  id: number;
+  name: string;
+  name_en: string | null;
+  slug: string;
+  campaign_type: "regular" | "special";
+  opens_at: string | null;
+  closes_at: string | null;
+  description: string | null;
+  cash_payment_instructions: string | null;
+  public_profile_opt_in: boolean;
+  membership_types: MembershipType[];
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/public/committees, /public/committees/{slug|id}
+// ---------------------------------------------------------------------------
+
+export interface PublicCommitteeSummary {
+  id: number;
+  slug: string;
+  name: string;
+  committee_type: string | null;
+  term_start: string | null;
+  term_end: string | null;
+  status: string;
+  description: string | null;
+}
+
+export interface PublicCommitteesIndexResponse {
+  current: PublicCommitteeSummary | null;
+  upcoming: PublicCommitteeSummary[];
+  previous: PublicCommitteeSummary[];
+}
+
+export interface PublicCommitteeMember {
+  name: string;
+  position: string;
+  serial_no: number | null;
+  photo_url: string | null;
+  bio: string | null;
+  facebook_url: string | null;
+  linkedin_url: string | null;
+  website_url: string | null;
+}
+
+export interface PublicCommitteeDetail extends PublicCommitteeSummary {
+  members: PublicCommitteeMember[];
 }
 
 // ---------------------------------------------------------------------------
