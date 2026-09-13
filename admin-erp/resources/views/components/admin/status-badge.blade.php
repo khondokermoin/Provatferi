@@ -21,6 +21,12 @@
         'submitted' => ['bg-warning-subtle text-warning-emphasis', 'ti-send'],
         'shortlisted' => ['bg-success-subtle text-success-emphasis', 'ti-star'],
         'selected' => ['bg-success-subtle text-success-emphasis', 'ti-circle-check'],
+        'scheduled' => ['bg-info-subtle text-info-emphasis', 'ti-calendar-event'],
+        'upcoming' => ['bg-info-subtle text-info-emphasis', 'ti-calendar-time'],
+        'completed' => ['bg-success-subtle text-success-emphasis', 'ti-circle-check'],
+        'correction_requested' => ['bg-warning-subtle text-warning-emphasis', 'ti-edit'],
+        'unpublished' => ['bg-secondary-subtle text-secondary-emphasis', 'ti-eye-off'],
+        'paid' => ['bg-success-subtle text-success-emphasis', 'ti-cash'],
     ];
     [$classes, $icon] = $map[$status] ?? ['bg-secondary-subtle text-secondary-emphasis', 'ti-point'];
     $label = status_label($status);

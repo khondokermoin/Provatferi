@@ -10,10 +10,11 @@ use Illuminate\Support\Str;
  * §22: a cryptographically random, revocable, optionally-expiring token that
  * identifies a COMMITTEE only (position is the applicant's own choice, §23).
  * The raw token is never stored — only its hash, same principle as
- * remember_token/API tokens — and is combined with a `signed` route
- * (framework-verified, tamper-evident) for the actual public URL. The
- * signature alone can't be revoked early, which is why `token_hash` +
- * `revoked_at` exist: both the signature AND the DB row must be valid.
+ * remember_token/API tokens. The public link built from it
+ * (provatferi.org/committee/register/{token}) is a Next.js page, not a
+ * Laravel route, so there is no framework URL-signature layer on top —
+ * `token_hash` + `expires_at` + `revoked_at` are the entire security
+ * boundary, checked by a public API endpoint when the page loads.
  */
 class CommitteeRegistrationLink extends Model
 {

@@ -5,6 +5,9 @@ use App\Http\Controllers\Admin\ActivityController;
 use App\Http\Controllers\Admin\ActivityTypeController;
 use App\Http\Controllers\Admin\CommitteeController;
 use App\Http\Controllers\Admin\CommitteeMemberController;
+use App\Http\Controllers\Admin\CommitteePositionController;
+use App\Http\Controllers\Admin\CommitteeRegistrationLinkController;
+use App\Http\Controllers\Admin\CommitteeSubmissionController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\JobApplicationController;
 use App\Http\Controllers\Admin\MemberController;
@@ -85,6 +88,21 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         Route::get('/{committee}/members/{member}/edit', [CommitteeMemberController::class, 'edit'])->middleware('permission:organization.update')->name('members.edit');
         Route::put('/{committee}/members/{member}', [CommitteeMemberController::class, 'update'])->middleware('permission:organization.update')->name('members.update');
         Route::delete('/{committee}/members/{member}', [CommitteeMemberController::class, 'destroy'])->middleware('permission:organization.delete')->name('members.destroy');
+
+        Route::patch('/{committee}/status', [CommitteeController::class, 'updateStatus'])->middleware('permission:organization.approve')->name('status');
+
+        Route::post('/{committee}/positions', [CommitteePositionController::class, 'store'])->middleware('permission:organization.create')->name('positions.store');
+        Route::put('/{committee}/positions/{position}', [CommitteePositionController::class, 'update'])->middleware('permission:organization.update')->name('positions.update');
+        Route::delete('/{committee}/positions/{position}', [CommitteePositionController::class, 'destroy'])->middleware('permission:organization.delete')->name('positions.destroy');
+
+        Route::post('/{committee}/registration-links', [CommitteeRegistrationLinkController::class, 'store'])->middleware('permission:organization.create')->name('registration-links.store');
+        Route::patch('/{committee}/registration-links/{link}/revoke', [CommitteeRegistrationLinkController::class, 'revoke'])->middleware('permission:organization.update')->name('registration-links.revoke');
+
+        Route::get('/{committee}/submissions', [CommitteeSubmissionController::class, 'index'])->middleware('permission:organization.view')->name('submissions.index');
+        Route::get('/{committee}/submissions/{submission}', [CommitteeSubmissionController::class, 'show'])->middleware('permission:organization.view')->name('submissions.show');
+        Route::patch('/{committee}/submissions/{submission}/approve', [CommitteeSubmissionController::class, 'approve'])->middleware('permission:organization.approve')->name('submissions.approve');
+        Route::patch('/{committee}/submissions/{submission}/reject', [CommitteeSubmissionController::class, 'reject'])->middleware('permission:organization.approve')->name('submissions.reject');
+        Route::patch('/{committee}/submissions/{submission}/request-correction', [CommitteeSubmissionController::class, 'requestCorrection'])->middleware('permission:organization.approve')->name('submissions.request-correction');
     });
 
     /* Users / Roles / Permissions — governed by the users.* permission set */

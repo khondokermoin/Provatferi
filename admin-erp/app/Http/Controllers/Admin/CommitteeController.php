@@ -12,13 +12,27 @@ use Illuminate\View\View;
 
 class CommitteeController extends Controller
 {
-    public const STATUSES = ['draft' => 'খসড়া', 'active' => 'সক্রিয়', 'expired' => 'মেয়াদোত্তীর্ণ'];
-
     public const TYPES = [
         'executive' => 'নির্বাহী কমিটি',
         'advisory' => 'উপদেষ্টা পরিষদ',
         'sub' => 'উপ-কমিটি',
         'ad_hoc' => 'আহ্বায়ক কমিটি',
+    ];
+
+    /**
+     * §19: Draft -> Upcoming -> Active -> Completed -> Archived. 'expired' is
+     * a legacy Phase-1 terminal status kept for backward compatibility, not
+     * part of the new lifecycle — nothing transitions into or out of it here.
+     *
+     * @var array<string, array<int, string>>
+     */
+    private const TRANSITIONS = [
+        'draft' => ['upcoming', 'active'],
+        'upcoming' => ['active', 'draft'],
+        'active' => ['completed'],
+        'completed' => ['archived'],
+        'archived' => [],
+        'expired' => [],
     ];
 
     public function index(Request $request): View
@@ -44,7 +58,7 @@ class CommitteeController extends Controller
             'breadcrumbs' => [['label' => 'সংগঠন'], ['label' => 'কমিটি']],
             'committees' => $committees,
             'filters' => $filters,
-            'statuses' => self::STATUSES,
+            'statuses' => Committee::STATUSES,
             'types' => self::TYPES,
             'units' => $this->unitOptions(),
         ]);
@@ -57,14 +71,15 @@ class CommitteeController extends Controller
             'breadcrumbs' => [['label' => 'কমিটি', 'route' => 'admin.committees.index'], ['label' => 'তৈরি করুন']],
             'committee' => new Committee(['status' => 'draft']),
             'units' => $this->unitOptions(),
-            'statuses' => self::STATUSES,
             'types' => self::TYPES,
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $committee = Committee::query()->create($request->validate($this->rules(), [], $this->attributes()));
+        $data = $request->validate($this->rules(), [], $this->attributes());
+        $data['status'] = 'draft';
+        $committee = Committee::query()->create($data);
 
         return redirect()->route('admin.committees.show', $committee)
             ->with('success', "“{$committee->name}” তৈরি হয়েছে।");
@@ -77,6 +92,10 @@ class CommitteeController extends Controller
             'members' => fn ($q) => $q->orderBy('serial_no')->orderBy('id'),
             'members.user',
             'members.position',
+            'members.committeePosition',
+            'members.submission',
+            'positions' => fn ($q) => $q->orderBy('display_order')->orderBy('name'),
+            'registrationLinks' => fn ($q) => $q->latest(),
         ]);
 
         return view('admin.committees.show', [
@@ -84,6 +103,9 @@ class CommitteeController extends Controller
             'breadcrumbs' => [['label' => 'কমিটি', 'route' => 'admin.committees.index'], ['label' => $committee->name]],
             'committee' => $committee,
             'types' => self::TYPES,
+            'statuses' => Committee::STATUSES,
+            'allowedTransitions' => self::TRANSITIONS[$committee->status] ?? [],
+            'pendingSubmissionsCount' => $committee->submissions()->whereIn('status', ['pending', 'correction_requested'])->count(),
         ]);
     }
 
@@ -98,17 +120,46 @@ class CommitteeController extends Controller
             ],
             'committee' => $committee,
             'units' => $this->unitOptions(),
-            'statuses' => self::STATUSES,
             'types' => self::TYPES,
         ]);
     }
 
     public function update(Request $request, Committee $committee): RedirectResponse
     {
+        // 'status' is deliberately excluded from these rules — every
+        // lifecycle transition goes through updateStatus() below so
+        // Committee::activate()'s single-Active invariant can never be
+        // bypassed by a plain field edit.
         $committee->update($request->validate($this->rules(), [], $this->attributes()));
 
         return redirect()->route('admin.committees.show', $committee)
             ->with('success', "“{$committee->name}” হালনাগাদ হয়েছে।");
+    }
+
+    /**
+     * §19/§20: explicit, admin-only lifecycle transitions. Activating goes
+     * through Committee::activate() so "exactly one Active committee" stays
+     * enforced transactionally; every other transition is a plain status
+     * write — historical committees (completed/archived) are never deleted.
+     */
+    public function updateStatus(Request $request, Committee $committee): RedirectResponse
+    {
+        $allowed = self::TRANSITIONS[$committee->status] ?? [];
+
+        // Rule::in([]) correctly rejects every value once a committee is
+        // archived/expired — no fallback to the full status list, or an
+        // empty $allowed would silently accept any transition.
+        $data = $request->validate([
+            'status' => ['required', Rule::in($allowed)],
+        ]);
+
+        if ($data['status'] === 'active') {
+            $committee->activate();
+        } else {
+            $committee->update($data);
+        }
+
+        return back()->with('success', 'কমিটির স্ট্যাটাস হালনাগাদ হয়েছে।');
     }
 
     public function destroy(Committee $committee): RedirectResponse
@@ -134,7 +185,6 @@ class CommitteeController extends Controller
             'committee_type' => ['nullable', Rule::in(array_keys(self::TYPES))],
             'term_start' => ['nullable', 'date'],
             'term_end' => ['nullable', 'date', 'after_or_equal:term_start'],
-            'status' => ['required', Rule::in(array_keys(self::STATUSES))],
             'description' => ['nullable', 'string', 'max:5000'],
         ];
     }
@@ -148,7 +198,6 @@ class CommitteeController extends Controller
             'committee_type' => 'ধরন',
             'term_start' => 'মেয়াদ শুরু',
             'term_end' => 'মেয়াদ শেষ',
-            'status' => 'স্ট্যাটাস',
         ];
     }
 

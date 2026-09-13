@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    // The Next.js institutional site (provatferi.org) — this admin app never
+    // calls it, but needs its base URL to build public links it hands out
+    // (committee registration/correction links, §22/§27) since those forms
+    // are Next.js pages, not Laravel routes.
+    'public_site' => [
+        'url' => env('PUBLIC_SITE_URL', 'https://provatferi.org'),
+    ],
+
 ];
