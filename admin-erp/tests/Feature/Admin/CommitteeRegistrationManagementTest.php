@@ -122,6 +122,21 @@ class CommitteeRegistrationManagementTest extends AdminTestCase
         $this->assertDatabaseHas('committee_positions', ['committee_id' => $committee->id, 'name' => 'কোষাধ্যক্ষ']);
     }
 
+    public function test_a_position_can_be_renamed_and_toggled_to_allow_duplicates(): void
+    {
+        $admin = $this->superAdmin();
+        $committee = $this->committee();
+        $position = $this->position($committee, allowDuplicates: false);
+
+        $this->actingAs($admin)->put(route('admin.committees.positions.update', [$committee, $position]), [
+            'name' => 'সহ-সাধারণ সম্পাদক', 'display_order' => 2, 'status' => 'active', 'allow_duplicates' => '1',
+        ])->assertRedirect();
+
+        $fresh = $position->fresh();
+        $this->assertSame('সহ-সাধারণ সম্পাদক', $fresh->name);
+        $this->assertTrue($fresh->allow_duplicates);
+    }
+
     public function test_a_position_with_an_active_member_cannot_be_deleted(): void
     {
         $admin = $this->superAdmin();
@@ -160,6 +175,14 @@ class CommitteeRegistrationManagementTest extends AdminTestCase
 
         $this->actingAs($admin)->patch(route('admin.committees.registration-links.revoke', [$committee, $link]))
             ->assertRedirect();
+
+        $this->assertNull(CommitteeRegistrationLink::findValidByRawToken($raw));
+    }
+
+    public function test_an_expired_link_is_no_longer_valid_even_though_never_revoked(): void
+    {
+        $committee = $this->committee();
+        [, $raw] = CommitteeRegistrationLink::issue($committee, now()->subMinute(), null);
 
         $this->assertNull(CommitteeRegistrationLink::findValidByRawToken($raw));
     }
