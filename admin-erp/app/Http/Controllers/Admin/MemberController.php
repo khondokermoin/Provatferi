@@ -54,10 +54,16 @@ class MemberController extends Controller
     {
         $membership->load(['user', 'member.seasonHistory.season', 'membershipType', 'application']);
 
+        $pendingProfileVersion = $membership->member
+            ?->profileVersions()->where('status', 'pending')->latest('submitted_at')->first();
+        $liveProfileVersion = $membership->member?->liveProfileVersion()->first();
+
         return view('admin.membership.members.show', [
             'title' => $membership->member_code,
             'breadcrumbs' => [['label' => 'সদস্যবৃন্দ', 'route' => 'admin.membership.members.index'], ['label' => $membership->member_code]],
             'member' => $membership,
+            'pendingProfileVersion' => $pendingProfileVersion,
+            'liveProfileVersion' => $liveProfileVersion,
         ]);
     }
 

@@ -68,6 +68,55 @@
                     </ul>
                 </x-admin.card>
             @endif
+
+            @if ($member->member)
+                <x-admin.card title="পাবলিক প্রোফাইল">
+                    <p class="fs-13 mb-2">
+                        দৃশ্যমানতা (সদস্যের নিজস্ব সুইচ):
+                        <span class="badge {{ $member->member->public_profile_enabled ? 'bg-success-subtle text-success-emphasis' : 'bg-secondary-subtle text-secondary-emphasis' }}">
+                            {{ $member->member->public_profile_enabled ? 'চালু' : 'বন্ধ' }}
+                        </span>
+                    </p>
+
+                    @if ($liveProfileVersion)
+                        <p class="fs-13 text-muted mb-3">সর্বশেষ প্রকাশিত সংস্করণ: {{ bn_datetime($liveProfileVersion->reviewed_at) }}</p>
+                    @else
+                        <p class="fs-13 text-muted mb-3">এখনো কোনো সংস্করণ প্রকাশিত হয়নি।</p>
+                    @endif
+
+                    @if ($pendingProfileVersion)
+                        <div class="border-top pt-3">
+                            <p class="fw-semibold fs-13 mb-2">পর্যালোচনার অপেক্ষায় — {{ bn_datetime($pendingProfileVersion->submitted_at) }}</p>
+                            <dl class="row mb-3">
+                                @if ($pendingProfileVersion->profession)
+                                    <dt class="col-4 fs-12 text-muted">পেশা</dt>
+                                    <dd class="col-8 fs-13">{{ $pendingProfileVersion->profession }}</dd>
+                                @endif
+                                @if ($pendingProfileVersion->bio)
+                                    <dt class="col-4 fs-12 text-muted">পরিচিতি</dt>
+                                    <dd class="col-8 fs-13">{{ $pendingProfileVersion->bio }}</dd>
+                                @endif
+                            </dl>
+                            @can('membership.approve')
+                                <div class="d-flex gap-2">
+                                    <form method="POST" action="{{ route('admin.membership.members.profile.approve', [$member, $pendingProfileVersion]) }}">
+                                        @csrf @method('PATCH')
+                                        <button type="submit" class="btn btn-sm btn-success">অনুমোদন করুন</button>
+                                    </form>
+                                    <details>
+                                        <summary class="btn btn-sm btn-outline-danger" style="cursor:pointer">প্রত্যাখ্যান করুন</summary>
+                                        <form method="POST" action="{{ route('admin.membership.members.profile.reject', [$member, $pendingProfileVersion]) }}" class="mt-2">
+                                            @csrf @method('PATCH')
+                                            <x-admin.form-textarea name="note" label="কারণ" :rows="2" required />
+                                            <button type="submit" class="btn btn-sm btn-danger">নিশ্চিত করুন</button>
+                                        </form>
+                                    </details>
+                                </div>
+                            @endcan
+                        </div>
+                    @endif
+                </x-admin.card>
+            @endif
         </div>
     </div>
 @endsection
