@@ -252,4 +252,5 @@ export const footerExploreLinks = [
 export const footerInvolvedLinks = [
   { href: "/membership", label: "সদস্য হোন" },
   { href: "/recruitment", label: "নিয়োগ বিজ্ঞপ্তি" },
+  { href: "/member/login", label: "সদস্য লগইন" },
 ];
