@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\JobPostingController;
 use App\Http\Controllers\Api\V1\MembershipTypeController;
 use App\Http\Controllers\Api\V1\OrganizationUnitController;
+use App\Http\Controllers\Api\V1\Public\CommitteeController as PublicCommitteeController;
+use App\Http\Controllers\Api\V1\Public\MembershipCampaignController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use Illuminate\Support\Facades\Route;
 
@@ -20,6 +22,14 @@ Route::prefix('v1')->group(function () {
     Route::get('/membership-types', [MembershipTypeController::class, 'index']);
     Route::get('/job-postings', [JobPostingController::class, 'index']);
     Route::get('/job-postings/{jobPosting}', [JobPostingController::class, 'show']);
+
+    // Public — new-phase membership/committee contracts (§41), consumed by
+    // provatferi.org's server-side fetches only, never the browser directly.
+    Route::prefix('public')->group(function () {
+        Route::get('/membership/campaigns/current', [MembershipCampaignController::class, 'current']);
+        Route::get('/committees', [PublicCommitteeController::class, 'index']);
+        Route::get('/committees/{committee}', [PublicCommitteeController::class, 'show']);
+    });
 
     // Auth.
     Route::post('/auth/login', [AuthController::class, 'login']);

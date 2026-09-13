@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class Committee extends Model
 {
@@ -25,12 +26,27 @@ class Committee extends Model
     ];
 
     protected $fillable = [
-        'organization_unit_id', 'name', 'committee_type', 'term_start', 'term_end', 'status', 'description',
+        'organization_unit_id', 'name', 'slug', 'committee_type', 'term_start', 'term_end', 'status', 'description',
     ];
 
     protected function casts(): array
     {
         return ['term_start' => 'date', 'term_end' => 'date'];
+    }
+
+    protected static function booted(): void
+    {
+        // §29's public committee pages need a slug, added after this model's
+        // Phase 1 introduction — CommitteeController generates one
+        // explicitly, but this backstops every other creation path (tests,
+        // tinker, seeders) so `slug` NOT NULL never has to be remembered by
+        // every caller.
+        static::creating(function (self $committee) {
+            if (empty($committee->slug)) {
+                $base = Str::slug($committee->name).'-'.Str::random(6);
+                $committee->slug = $base;
+            }
+        });
     }
 
     public function organizationUnit(): BelongsTo
