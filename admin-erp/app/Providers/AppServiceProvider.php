@@ -24,11 +24,9 @@ class AppServiceProvider extends ServiceProvider
         // perform, so the UI never offers a button that would 403.
         Gate::before(fn (User $user) => $user->hasRole('super_admin') ? true : null);
 
-        foreach (Permission::MODULES as $module) {
-            foreach (Permission::ACTIONS as $action) {
-                $ability = "{$module}.{$action}";
-                Gate::define($ability, fn (User $user) => $user->hasPermission($ability));
-            }
+        foreach (Permission::definitions() as ['module' => $module, 'action' => $action]) {
+            $ability = "{$module}.{$action}";
+            Gate::define($ability, fn (User $user) => $user->hasPermission($ability));
         }
 
         $this->bootPasswordResetMail();

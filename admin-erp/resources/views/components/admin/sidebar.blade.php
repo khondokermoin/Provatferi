@@ -2,13 +2,17 @@
     /**
      * Phase 1 navigation.
      *
-     * 'permission' hides a whole group from users who cannot view that module —
-     * EnsurePermission middleware remains authoritative, this only avoids
-     * offering links that would 403.
+     * 'permission' hides a whole group — or a single item/child — from users
+     * who cannot use it. EnsurePermission middleware remains authoritative;
+     * this only avoids offering links that would 403.
      *
      * 'route' => null marks a module that is planned but not built yet. It
      * renders as a visibly disabled item rather than a dead link, so the
      * information architecture is honest about what exists today.
+     *
+     * A child may carry 'params' (query string for its link) and 'match'
+     * (query values that must be present for it to count as active), so
+     * several links can share one route — e.g. the notice status filters.
      */
     $groups = [
         [
@@ -52,6 +56,18 @@
                         ['label' => 'সদস্যপদের ধরন', 'route' => 'admin.membership.types.index'],
                         ['label' => 'আবেদনসমূহ', 'route' => 'admin.membership.index'],
                         ['label' => 'সদস্যবৃন্দ', 'route' => 'admin.membership.members.index'],
+                    ],
+                ],
+                [
+                    'label' => 'নোটিশ বোর্ড', 'icon' => 'ti-speakerphone', 'id' => 'nav-notices',
+                    'permission' => 'notices.view',
+                    'children' => [
+                        ['label' => 'সকল নোটিশ', 'route' => 'admin.notices.index', 'match' => ['status' => '']],
+                        ['label' => 'নতুন নোটিশ', 'route' => 'admin.notices.create', 'permission' => 'notices.create'],
+                        ['label' => 'প্রকাশিত', 'route' => 'admin.notices.index', 'params' => ['status' => 'published']],
+                        ['label' => 'খসড়া', 'route' => 'admin.notices.index', 'params' => ['status' => 'draft']],
+                        ['label' => 'নির্ধারিত', 'route' => 'admin.notices.index', 'params' => ['status' => 'scheduled']],
+                        ['label' => 'আর্কাইভ', 'route' => 'admin.notices.index', 'params' => ['status' => 'archived']],
                     ],
                 ],
                 [
@@ -102,10 +118,22 @@
         ],
     ];
 
+    $canSee = fn (array $entry) => ! isset($entry['permission']) || auth()->user()->can($entry['permission']);
     $isActive = fn (?string $route) => $route && request()->routeIs($route);
-    $groupHasActiveChild = function (array $item) use ($isActive) {
+    $isChildActive = function (array $child) use ($isActive) {
+        if (! $isActive($child['route'])) {
+            return false;
+        }
+        foreach ($child['match'] ?? $child['params'] ?? [] as $key => $value) {
+            if ((string) request()->query($key, '') !== (string) $value) {
+                return false;
+            }
+        }
+        return true;
+    };
+    $groupHasActiveChild = function (array $item) use ($isChildActive, $canSee) {
         foreach ($item['children'] ?? [] as $child) {
-            if ($isActive($child['route'])) {
+            if ($canSee($child) && $isChildActive($child)) {
                 return true;
             }
         }
@@ -142,7 +170,7 @@
                     <li class="side-nav-title">{{ $group['title'] }}</li>
 
                     @foreach ($group['items'] as $item)
-                        @continue(isset($item['permission']) && ! auth()->user()->can($item['permission']))
+                        @continue(! $canSee($item))
 
                         @if (empty($item['children']))
                             <li class="side-nav-item">
@@ -167,11 +195,13 @@
                                 <div class="collapse {{ $open ? 'show' : '' }}" id="{{ $item['id'] }}">
                                     <ul class="sub-menu">
                                         @foreach ($item['children'] as $child)
+                                            @continue(! $canSee($child))
                                             <li class="side-nav-item">
                                                 @if ($child['route'])
-                                                    <a href="{{ route($child['route']) }}"
-                                                       class="side-nav-link {{ $isActive($child['route']) ? 'active' : '' }}"
-                                                       @if ($isActive($child['route'])) aria-current="page" @endif>
+                                                    @php $childActive = $isChildActive($child); @endphp
+                                                    <a href="{{ route($child['route'], $child['params'] ?? []) }}"
+                                                       class="side-nav-link {{ $childActive ? 'active' : '' }}"
+                                                       @if ($childActive) aria-current="page" @endif>
                                                         <span class="menu-text">{{ $child['label'] }}</span>
                                                     </a>
                                                 @else

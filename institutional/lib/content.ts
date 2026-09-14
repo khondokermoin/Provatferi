@@ -228,6 +228,9 @@ export const navLinks: NavItem[] = [
     ],
   },
   { id: "events", href: "/events", label: "ইভেন্ট" },
+  // Top-level rather than under "সম্পৃক্ত হোন": urgent notices, results and
+  // tenders matter to visitors who aren't looking to get involved at all.
+  { id: "notices", href: "/notices", label: "নোটিশ বোর্ড", match: ["/notices"] },
   {
     id: "involved",
     href: "/membership",

@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\MembershipController;
 use App\Http\Controllers\Admin\MembershipSeasonController;
 use App\Http\Controllers\Admin\MembershipTypeController;
 use App\Http\Controllers\Admin\MissionController;
+use App\Http\Controllers\Admin\NoticeController;
 use App\Http\Controllers\Admin\ObjectiveController;
 use App\Http\Controllers\Admin\OrganizationUnitController;
 use App\Http\Controllers\Admin\PermissionController;
@@ -213,6 +214,21 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         ->middleware('permission:payments.approve')->name('membership.payments.verify');
     Route::post('/membership/{membershipApplication}/payments/waive', [MembershipController::class, 'waiveApplicationPayment'])
         ->middleware('permission:payments.approve')->name('membership.payments.waive');
+
+    /* Notice board — separate from recruitment; publishing and archiving are permissions of their own. */
+    Route::prefix('notices')->name('notices.')->group(function () {
+        Route::get('/', [NoticeController::class, 'index'])->middleware('permission:notices.view')->name('index');
+        Route::get('/create', [NoticeController::class, 'create'])->middleware('permission:notices.create')->name('create');
+        Route::post('/', [NoticeController::class, 'store'])->middleware('permission:notices.create')->name('store');
+        Route::get('/{notice}', [NoticeController::class, 'show'])->middleware('permission:notices.view')->name('show');
+        Route::get('/{notice}/edit', [NoticeController::class, 'edit'])->middleware('permission:notices.update')->name('edit');
+        Route::put('/{notice}', [NoticeController::class, 'update'])->middleware('permission:notices.update')->name('update');
+        Route::patch('/{notice}/publish', [NoticeController::class, 'publish'])->middleware('permission:notices.publish')->name('publish');
+        Route::patch('/{notice}/archive', [NoticeController::class, 'archive'])->middleware('permission:notices.archive')->name('archive');
+        Route::delete('/{notice}', [NoticeController::class, 'destroy'])->middleware('permission:notices.delete')->name('destroy');
+        Route::get('/{notice}/files/{kind}', [NoticeController::class, 'file'])->whereIn('kind', ['attachment', 'cover'])
+            ->middleware('permission:notices.view')->name('file');
+    });
 
     /* Recruitment — Job Postings, full CRUD. admin.recruitment.index kept as-is (linked from the dashboard). */
     Route::get('/recruitment', [RecruitmentController::class, 'index'])

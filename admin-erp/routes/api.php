@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\Public\CommitteeRegistrationController;
 use App\Http\Controllers\Api\V1\Public\MemberDirectoryController;
 use App\Http\Controllers\Api\V1\Public\MembershipApplicationController;
 use App\Http\Controllers\Api\V1\Public\MembershipCampaignController;
+use App\Http\Controllers\Api\V1\Public\NoticeController as PublicNoticeController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use Illuminate\Support\Facades\Route;
 
@@ -47,6 +48,16 @@ Route::prefix('v1')->group(function () {
         // §13/§16: only approved+opted-in members ever appear here.
         Route::get('/members', [MemberDirectoryController::class, 'index']);
         Route::get('/members/{member}', [MemberDirectoryController::class, 'show']);
+
+        // Notice board. /sitemap is registered before /{slug}, and 'sitemap'
+        // is a reserved slug (Notice::RESERVED_SLUGS), so the two never collide.
+        Route::get('/notices', [PublicNoticeController::class, 'index']);
+        Route::get('/notices/sitemap', [PublicNoticeController::class, 'sitemap']);
+        Route::get('/notices/{slug}', [PublicNoticeController::class, 'show']);
+        Route::get('/notices/{slug}/attachment', [PublicNoticeController::class, 'attachment'])
+            ->middleware('throttle:60,1')->name('api.public.notices.attachment');
+        Route::get('/notices/{slug}/cover', [PublicNoticeController::class, 'cover'])
+            ->middleware('throttle:120,1')->name('api.public.notices.cover');
     });
 
     // Auth.

@@ -211,6 +211,11 @@ export interface CommitteeCorrectionInfo {
 // GET /api/v1/job-postings, /job-postings/{id|slug}
 // ---------------------------------------------------------------------------
 
+/**
+ * 2026-09-15: labels come from the ERP's own maps, dates are plain Y-m-d.
+ * A volunteer role never carries a salary and a rolling call never carries
+ * a deadline — both are null by contract, not by accident.
+ */
 export interface JobPosting {
   id: number;
   title: string;
@@ -219,11 +224,79 @@ export interface JobPosting {
   department: string | null;
   description: string | null;
   requirements: string | null;
+  organization_unit: string | null;
   employment_type: string | null;
+  employment_type_label: string | null;
+  is_volunteer: boolean;
+  volunteer_note: string | null;
   salary_range: string | null;
+  application_mode: string;
+  application_mode_label: string;
   opening_date: string | null;
   application_deadline: string | null;
   published_at: string | null;
+  notice_slug: string | null;
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/public/notices, /notices/{slug}, /notices/sitemap
+// ---------------------------------------------------------------------------
+
+export interface PublicNoticeSummary {
+  slug: string;
+  title: string;
+  /** Internal key — used only for filter URLs and styling, never shown. */
+  notice_type: string;
+  notice_type_label: string;
+  summary: string | null;
+  published_at: string;
+  expires_at: string | null;
+  is_pinned: boolean;
+  is_new: boolean;
+  is_expired: boolean;
+  is_archived: boolean;
+}
+
+export interface NoticeTypeFacet {
+  key: string;
+  label: string;
+  count: number;
+}
+
+export interface PublicNoticeList {
+  data: PublicNoticeSummary[];
+  meta: { current_page: number; last_page: number; per_page: number; total: number };
+  filters: { types: NoticeTypeFacet[]; years: number[] };
+}
+
+export interface NoticeRecruitmentInfo {
+  /** Only set while the posting is open — the recruitment page resolves open postings only. */
+  slug: string | null;
+  title: string;
+  employment_type_label: string | null;
+  is_volunteer: boolean;
+  volunteer_note: string | null;
+  salary_range: string | null;
+  application_mode: string;
+  application_mode_label: string;
+  opening_date: string | null;
+  application_deadline: string | null;
+  is_open: boolean;
+}
+
+export interface PublicNoticeDetail extends PublicNoticeSummary {
+  body: string;
+  organization_unit: string | null;
+  action: { url: string; label: string } | null;
+  cover_image_url: string | null;
+  attachment: { url: string; size: number | null; mime: string | null } | null;
+  recruitment: NoticeRecruitmentInfo | null;
+  updated_at: string | null;
+}
+
+export interface NoticeSitemapEntry {
+  slug: string;
+  updated_at: string | null;
 }
 
 // ---------------------------------------------------------------------------
