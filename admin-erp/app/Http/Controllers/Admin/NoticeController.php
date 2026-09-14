@@ -192,7 +192,8 @@ class NoticeController extends Controller
         $expiresAt = Notice::toUtc($data['expires_at'] ?? null);
 
         // The form only carries minute precision; keep the stored moment when the admin didn't move it.
-        if (! $isNew && $this->sameMinute($notice->published_at, $publishedAt)) {
+        // Both null is "not moved" too, but then there is no stored moment to keep.
+        if (! $isNew && $notice->published_at !== null && $this->sameMinute($notice->published_at, $publishedAt)) {
             $publishedAt = $notice->published_at->copy();
         }
 

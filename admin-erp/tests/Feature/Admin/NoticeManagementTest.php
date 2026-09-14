@@ -219,4 +219,31 @@ class NoticeManagementTest extends AdminTestCase
             ->assertJsonPath('data.is_expired', true)
             ->assertJsonPath('data.is_pinned', false);
     }
+
+    /** Regression: editing a never-dated draft with the date left empty 500'd in production (2026-09-14). */
+    public function test_a_draft_without_a_date_can_be_edited_and_then_published_with_the_date_left_empty(): void
+    {
+        $notice = $this->notice(['status' => 'draft', 'published_at' => null]);
+        $admin = $this->superAdmin();
+
+        $this->actingAs($admin)->put(route('admin.notices.update', $notice), $this->payload(['status' => 'draft', 'published_at' => '']))
+            ->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertNull($notice->fresh()->published_at);
+
+        $this->actingAs($admin)->put(route('admin.notices.update', $notice), $this->payload([
+            'status' => 'published',
+            'published_at' => '',
+            'slug' => 'volunteer-team-call',
+            'action_url' => 'https://chat.whatsapp.com/JRJpeNjFVzbFeJf1d9luEb',
+            'action_label' => 'স্বেচ্ছাসেবী হিসেবে যুক্ত হোন',
+        ]))->assertRedirect()->assertSessionHasNoErrors();
+
+        $fresh = $notice->fresh();
+        $this->assertSame('published', $fresh->status);
+        $this->assertSame('volunteer-team-call', $fresh->slug);
+        $this->assertNotNull($fresh->published_at);
+        $this->assertNotNull($fresh->first_published_at);
+        $this->getJson('/api/v1/public/notices/volunteer-team-call')->assertOk()
+            ->assertJsonPath('data.action.label', 'স্বেচ্ছাসেবী হিসেবে যুক্ত হোন');
+    }
 }

@@ -143,4 +143,50 @@ class RecruitmentNoticeIntegrationTest extends AdminTestCase
 
         $this->getJson("/api/v1/job-postings/{$job->slug}")->assertJsonPath('data.notice_slug', $notice->slug);
     }
+
+    /**
+     * Replays the exact production sequence that 500'd on 2026-09-14: posting
+     * saved as a draft with the notice box ticked (so the linked notice is a
+     * dateless draft), the notice then given its own URL/text/CTA and
+     * published with the date left empty, and only then the posting opened.
+     */
+    public function test_the_linked_draft_flow_publishes_a_customised_notice_that_the_posting_never_overwrites(): void
+    {
+        $admin = $this->superAdmin();
+        $this->actingAs($admin)->post(route('admin.recruitment.store'), $this->volunteerPayload([
+            'status' => 'draft', 'publish_to_notice_board' => '1',
+        ]))->assertRedirect()->assertSessionHasNoErrors();
+
+        $job = JobPosting::query()->firstOrFail();
+        $notice = Notice::query()->firstOrFail();
+        $this->assertSame('draft', $notice->status);
+        $this->assertNull($notice->published_at);
+
+        $this->actingAs($admin)->put(route('admin.notices.update', $notice), [
+            'title' => $notice->title,
+            'slug' => 'volunteer-team-call',
+            'notice_type' => 'volunteer',
+            'summary' => $notice->summary,
+            'body' => "সম্পূর্ণ নোটিশের লেখা।\n\nhttps://chat.whatsapp.com/JRJpeNjFVzbFeJf1d9luEb",
+            'action_url' => 'https://chat.whatsapp.com/JRJpeNjFVzbFeJf1d9luEb',
+            'action_label' => 'স্বেচ্ছাসেবী হিসেবে যুক্ত হোন',
+            'status' => 'published',
+            'published_at' => '',
+            'organization_unit_id' => '',
+            'syncs_from_job_posting' => '1',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $notice->refresh();
+        $this->assertSame('published', $notice->status);
+        $this->assertFalse($notice->syncs_from_job_posting);
+
+        $this->actingAs($admin)->put(route('admin.recruitment.update', $job), $this->volunteerPayload(['status' => 'open']))
+            ->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertStringStartsWith('সম্পূর্ণ নোটিশের লেখা।', $notice->fresh()->body);
+        $this->getJson("/api/v1/job-postings/{$job->slug}")->assertOk()->assertJsonPath('data.notice_slug', 'volunteer-team-call');
+        $this->getJson('/api/v1/public/notices/volunteer-team-call')->assertOk()
+            ->assertJsonPath('data.recruitment.slug', $job->slug)
+            ->assertJsonPath('data.recruitment.application_mode_label', 'চলমান');
+    }
 }
