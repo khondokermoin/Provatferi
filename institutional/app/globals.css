@@ -552,8 +552,15 @@ h1, h2, h3, h4 { color: var(--heading); }
 .application-form { display: flex; flex-direction: column; gap: 20px; max-width: 560px; }
 .form-field { display: flex; flex-direction: column; gap: 6px; }
 .form-field label { font-size: 14px; font-weight: 600; color: var(--heading); }
+/* password/number/date/search were missing from this list, so those fields
+   (member login's password among them) rendered with the browser's default
+   chrome instead of the shared border — same control, visibly different box. */
 .form-field input[type="text"],
 .form-field input[type="email"],
+.form-field input[type="password"],
+.form-field input[type="number"],
+.form-field input[type="date"],
+.form-field input[type="search"],
 .form-field input[type="tel"],
 .form-field input[type="url"],
 .form-field input[type="file"],
@@ -570,9 +577,25 @@ h1, h2, h3, h4 { color: var(--heading); }
   min-height: 48px;
 }
 .form-field textarea { min-height: 96px; resize: vertical; }
+/* Mirrors FORM-002 in admin-erp's provatferi-admin.css — the owner's call is
+   that a focused field shows one thin border and nothing outside it. The
+   offset outline this used to paint read as a second border around the box.
+   Focus stays visible from inside: the 1.5px border takes the brand color and
+   a 1px inset ring thickens it inward, so no geometry changes on focus. The
+   bare :focus-visible rule near the top of this file still covers buttons,
+   links and checkboxes, which have no border to tint. */
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus,
 .form-field input:focus-visible,
 .form-field select:focus-visible,
-.form-field textarea:focus-visible { outline: 2px solid var(--brand-orange); outline-offset: 1px; }
+.form-field textarea:focus-visible {
+  outline: none;
+  outline-width: 0;
+  outline-offset: 0;
+  border-color: var(--brand-orange);
+  box-shadow: inset 0 0 0 1px var(--brand-orange);
+}
 .form-field-help { font-size: 13px; color: var(--muted); margin: 0; }
 .form-field-error { font-size: 13px; font-weight: 600; color: var(--danger); margin: 0; }
 .form-checkbox-field { display: flex; align-items: flex-start; gap: 10px; }
