@@ -1,10 +1,12 @@
 {
-  "commit": "f2d19073377ab9990c3485d683b034c7bc30527e",
-  "deployed_at": "2026-09-13T20:55:02Z",
-  "deployed_via": "commit-based release pipeline (deploy/build-release.sh + release-manager.php stage/build/contract-check/migrate-check/smoke-test-isolated/switch/smoke-test-live) — release id r10",
-  "release_id": "r10",
-  "previous_release_path": "/home/u951246149/domains/provatferi.org/laravel-admin-releases/_previous-20260913-205501",
+  "commit": "231ea25c790f12e76d8c1303454e517dc60baece",
+  "deployed_at": "2026-09-14T11:22:02Z",
+  "deployed_via": "commit-based release pipeline (deploy/build-release.sh + release-manager.php stage/build/contract-check/migrate-check/smoke-test-isolated/switch/smoke-test-live) — release id 231ea25c790f-2026-09-1410404",
+  "release_id": "231ea25c790f-2026-09-1410404",
+  "previous_release_path": "/home/u951246149/domains/provatferi.org/laravel-admin-releases/_previous-20260914-112201",
   "note": "This is the last commit confirmed live in production as of this deploy. Update this file after every deploy made THROUGH this pipeline, so the next build's manifest.previous_commit is accurate.",
   "migrations_applied": "None (CSS-only release). migrate-check confirmed pending_migrations_detected: false before switch.",
-  "manual_sync_required": "public/zircos/css/provatferi-admin.css is NOT part of this pipeline's artifact (deploy/build-release.sh only packages public/build and public/brand) -- it must be manually synced to public_html/admin/zircos/css/provatferi-admin.css after any deploy that changes it, then the website cache purged. Missed for the r4 deploy (2026-09-10), causing the site to serve a stale copy of this file for ~6 hours until caught and fixed during the r8 deploy (2026-09-11). Not applicable to this r10 deploy (the fix is in resources/css/provatferi-admin.css, the Vite-built/hashed file, not zircos/)."
+  "upload_url_note": "Generate the TUS upload URL for provatferi.org and point HOSTINGER_UPLOAD_URL at .../api/tus/public_html/admin. A URL whose root is public_html alone stages the release into the MAIN site's web root instead (happened on this deploy; caught before stage ran, files deleted and confirmed 404).",
+  "cron_invocation_note": "Invoke as `/usr/bin/php /home/u951246149/domains/provatferi.org/laravel-admin-releases/_tooling/release-manager.php <cmd> <releaseId> 2>&1`, one command per cron. The `cd <tooling> && php release-manager.php ...` form produced no output and did not run on this host.",
+  "manual_sync_required": "public/zircos/css/provatferi-admin.css is NOT part of this pipeline's artifact (deploy/build-release.sh only packages public/build and public/brand) -- it must be manually synced to public_html/admin/zircos/css/provatferi-admin.css after any deploy that changes it, then the website cache purged. Not applicable to this deploy: the change is in resources/css/provatferi-admin.css, the Vite-built/hashed file (live asset: build/assets/provatferi-admin-DScsJEBb.css)."
 }
