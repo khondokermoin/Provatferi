@@ -4,7 +4,7 @@ import type { ApiResult, JobPosting } from "./types";
 /** Postings can open/close day to day — a shorter window than static content. */
 const REVALIDATE_SECONDS = 120;
 
-function isJobPosting(v: unknown): v is JobPosting {
+export function isJobPosting(v: unknown): v is JobPosting {
   return (
     isRecord(v) &&
     typeof v.id === "number" &&
@@ -14,11 +14,18 @@ function isJobPosting(v: unknown): v is JobPosting {
     isStringOrNull(v.department) &&
     isStringOrNull(v.description) &&
     isStringOrNull(v.requirements) &&
+    isStringOrNull(v.organization_unit) &&
     isStringOrNull(v.employment_type) &&
+    isStringOrNull(v.employment_type_label) &&
+    typeof v.is_volunteer === "boolean" &&
+    isStringOrNull(v.volunteer_note) &&
     isStringOrNull(v.salary_range) &&
+    typeof v.application_mode === "string" &&
+    typeof v.application_mode_label === "string" &&
     isStringOrNull(v.opening_date) &&
     isStringOrNull(v.application_deadline) &&
-    isStringOrNull(v.published_at)
+    isStringOrNull(v.published_at) &&
+    isStringOrNull(v.notice_slug)
   );
 }
 
@@ -39,9 +46,6 @@ export async function getJobPostings(): Promise<ApiResult<JobPosting[]>> {
   return result.ok ? { ok: true, data: result.data.data } : result;
 }
 
-/** Not yet used by any page — no job-posting detail route exists on the
- *  institutional site today. Included so the layer covers the full public
- *  contract, ready for when that route is added. */
 export async function getJobPosting(slug: string): Promise<ApiResult<JobPosting>> {
   const result = await apiGet<{ data: JobPosting }>(`/api/v1/job-postings/${encodeURIComponent(slug)}`, {
     validate: isJobPostingResponse,
@@ -49,4 +53,16 @@ export async function getJobPosting(slug: string): Promise<ApiResult<JobPosting>
   });
 
   return result.ok ? { ok: true, data: result.data.data } : result;
+}
+
+/** "আবেদন চলমান" / "শেষ তারিখ ১৫ সেপ্টেম্বর ২০২৬" — the one place this wording is decided. */
+export function applicationWindowLabel(
+  job: Pick<JobPosting, "application_mode" | "application_deadline">,
+  formatDate: (value: string | null) => string | null,
+  isOpen = true,
+): string {
+  if (!isOpen) return "আবেদন বন্ধ";
+  if (job.application_mode === "rolling") return "আবেদন চলমান";
+  const deadline = formatDate(job.application_deadline);
+  return deadline ? `শেষ তারিখ ${deadline}` : "শেষ তারিখ এখনো ঘোষিত হয়নি";
 }

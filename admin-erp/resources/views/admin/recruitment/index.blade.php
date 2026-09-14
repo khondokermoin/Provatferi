@@ -48,7 +48,7 @@
                     <a href="{{ route('admin.recruitment.show', $job) }}" class="fw-semibold">{{ $job->title }}</a>
                 </td>
                 <td data-label="স্ট্যাটাস"><x-admin.status-badge :status="$job->status" /></td>
-                <td data-label="শেষ তারিখ">{{ $job->application_deadline ? bn_date($job->application_deadline) : '—' }}</td>
+                <td data-label="শেষ তারিখ">{{ $job->isRolling() ? 'চলমান' : ($job->application_deadline ? bn_date($job->application_deadline) : '—') }}</td>
                 <td data-label="আবেদনসমূহ">{{ $job->applications_count }}</td>
                 <td data-label="অ্যাকশন" class="text-end">
                     <div class="dropdown">

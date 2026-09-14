@@ -20,15 +20,21 @@ class PermissionNormalizationTest extends AdminTestCase
 
     public function test_every_permission_slug_uses_a_sanctioned_action(): void
     {
-        $sanctioned = Permission::ACTIONS;
-
-        foreach (Permission::query()->pluck('action') as $action) {
+        foreach (Permission::query()->get(['module', 'action']) as $permission) {
             $this->assertContains(
-                $action,
-                $sanctioned,
-                "Permission action '{$action}' is not in Permission::ACTIONS — CRUD semantics must stay view/create/update/delete/approve.",
+                $permission->action,
+                Permission::actionsFor($permission->module),
+                "Permission action '{$permission->action}' is not sanctioned for '{$permission->module}' — CRUD semantics stay view/create/update/delete/approve unless Permission::MODULE_ACTIONS declares a genuinely distinct operation for that module.",
             );
         }
+    }
+
+    public function test_workflow_actions_exist_only_where_a_module_declares_them(): void
+    {
+        $this->assertDatabaseHas('permissions', ['slug' => 'notices.publish']);
+        $this->assertDatabaseHas('permissions', ['slug' => 'notices.archive']);
+        $this->assertDatabaseMissing('permissions', ['slug' => 'recruitment.publish']);
+        $this->assertDatabaseMissing('permissions', ['slug' => 'notices.approve']);
     }
 
     public function test_organization_update_permission_exists_and_grants_the_edit_ui(): void

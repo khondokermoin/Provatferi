@@ -1,13 +1,18 @@
 import Link from "next/link";
 import { activityCategories, org, recentActivities } from "@/lib/content";
+import { getNotices } from "@/lib/api/notices";
+import NoticeList from "@/components/NoticeList";
 
 const numbers = ["০১", "০২", "০৩", "০৪"];
 const categoryNotes = [
-  "বইয়ের পাতায় নতুন ভাবনা, পাঠচক্রে চিন্তার আদান-প্রদান।",
+  "বইয়ের পাতায় নতুন ভাবনা, পাঠচক্রে চিন্তার আদান-প্রদান।",
   "নিজেকে প্রকাশের ভাষা খুঁজি সুরে, শব্দে ও মঞ্চে।",
   "সচেতনতা ও সম্মিলিত উদ্যোগে সুন্দর সমাজের পথে।",
-  "সহমর্মিতা থেকে এগিয়ে আসা, মানুষের পাশে থাকা।",
+  "সহমর্মিতা থেকে এগিয়ে আসা, মানুষের পাশে থাকা।",
 ];
+
+/** Kept small on purpose — the homepage introduces the institution; the board lives at /notices. */
+const HOME_NOTICE_COUNT = 4;
 
 function ActivityIcon({ index }: { index: number }) {
   const paths = [
@@ -19,14 +24,18 @@ function ActivityIcon({ index }: { index: number }) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[index]}</svg>;
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  // No notices, or the ERP unreachable, means no section at all — never an empty box.
+  const noticesResult = await getNotices({ perPage: HOME_NOTICE_COUNT });
+  const latestNotices = noticesResult.ok ? noticesResult.data.data : [];
+
   return (
     <div className="home-page">
       <section className="home-hero" aria-labelledby="hero-title">
         <div className="hero-copy">
           <p className="eyebrow"><span className="sun-dot" /> শিক্ষা · সাহিত্য · সংস্কৃতি · মানবতা</p>
           <h1 id="hero-title">আলোর পথে,<br /><span>মানুষের সাথে।</span></h1>
-          <p className="hero-intro">বইয়ের প্রতি ভালোবাসা, সংস্কৃতির চর্চা আর মানুষের পাশে দাঁড়ানোর অঙ্গীকার নিয়ে—প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র।</p>
+          <p className="hero-intro">বইয়ের প্রতি ভালোবাসা, সংস্কৃতির চর্চা আর মানুষের পাশে দাঁড়ানোর অঙ্গীকার নিয়ে—প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র।</p>
           <div className="hero-actions">
             <Link href="/activities" className="button button-primary">আমাদের কার্যক্রম <span aria-hidden="true">↗</span></Link>
             <Link href="/about" className="text-link">প্রভাতফেরীর গল্প <span aria-hidden="true">→</span></Link>
@@ -34,7 +43,7 @@ export default function HomePage() {
           <p className="hero-location"><span aria-hidden="true">◎</span> চান্দিনা, কুমিল্লা থেকে—আলোকিত সমাজের পথে</p>
         </div>
         <div className="dawn-poster" aria-label="নতুন সকালের প্রতীকী সূর্য ও খোলা বই">
-          <div className="poster-top"><span>প্রভাতফেরী</span><span>একটি নতুন ভোরের প্রত্যয়</span></div>
+          <div className="poster-top"><span>প্রভাতফেরী</span><span>একটি নতুন ভোরের প্রত্যয়</span></div>
           <div className="dawn-art" aria-hidden="true">
             <div className="sun-halo" /><div className="rising-sun" /><div className="horizon" />
             <svg className="open-book" viewBox="0 0 400 140" fill="none">
@@ -47,7 +56,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="values-strip" aria-label="আমাদের মূল্যবোধ"><span>আমাদের পথচলা</span><p>জ্ঞানচর্চা <i aria-hidden="true">✳</i> সৃজনশীলতা <i aria-hidden="true">✳</i> সহমর্মিতা <i aria-hidden="true">✳</i> সামাজিক দায়িত্ব</p></div>
+      <div className="values-strip" aria-label="আমাদের মূল্যবোধ"><span>আমাদের পথচলা</span><p>জ্ঞানচর্চা <i aria-hidden="true">✳</i> সৃজনশীলতা <i aria-hidden="true">✳</i> সহমর্মিতা <i aria-hidden="true">✳</i> সামাজিক দায়িত্ব</p></div>
 
       <section className="recent-section home-section" aria-labelledby="recent-title">
         <div className="recent-intro"><p className="eyebrow">আমাদের দিনলিপি</p><h2 id="recent-title">ছোট ছোট উদ্যোগে<br />বদলে যাক আগামী।</h2><p>প্রভাতফেরীর সাম্প্রতিক কার্যক্রম ও সমাজের সঙ্গে আমাদের পথচলার কথা।</p><Link href="/activities" className="text-link">কার্যক্রমের নথি <span aria-hidden="true">↗</span></Link></div>
@@ -61,8 +70,18 @@ export default function HomePage() {
         </div>
       </section>
 
+      {latestNotices.length > 0 && (
+        <section className="home-section home-notices" aria-labelledby="notices-title">
+          <div className="section-heading">
+            <div><p className="eyebrow">নোটিশ বোর্ড</p><h2 id="notices-title">সর্বশেষ নোটিশ</h2></div>
+            <Link href="/notices" className="text-link">সব নোটিশ দেখুন <span aria-hidden="true">↗</span></Link>
+          </div>
+          <NoticeList notices={latestNotices} compact />
+        </section>
+      )}
+
       <section className="home-section" aria-labelledby="activities-title">
-        <div className="section-heading"><div><p className="eyebrow">যে কাজে আমাদের পরিচয়</p><h2 id="activities-title">একসাথে, সুন্দর আগামীর জন্য।</h2></div><Link href="/activities" className="text-link">সব কার্যক্রম <span aria-hidden="true">↗</span></Link></div>
+        <div className="section-heading"><div><p className="eyebrow">যে কাজে আমাদের পরিচয়</p><h2 id="activities-title">একসাথে, সুন্দর আগামীর জন্য।</h2></div><Link href="/activities" className="text-link">সব কার্যক্রম <span aria-hidden="true">↗</span></Link></div>
         <div className="activity-grid">
           {activityCategories.map((category, index) => (
             <Link href="/activities" className="activity-card" key={category.title}>
@@ -75,11 +94,11 @@ export default function HomePage() {
       </section>
 
       <section className="join-section" aria-labelledby="join-title">
-        <div><p className="eyebrow">এই পথচলায় আপনিও</p><h2 id="join-title">একটি সুন্দর সমাজ গড়তে<br />আপনার অংশগ্রহণও প্রয়োজন।</h2><p>বই পড়তে, সংস্কৃতির চর্চায় কিংবা মানুষের পাশে দাঁড়াতে—প্রভাতফেরীর সঙ্গে যুক্ত হোন।</p></div>
+        <div><p className="eyebrow">এই পথচলায় আপনিও</p><h2 id="join-title">একটি সুন্দর সমাজ গড়তে<br />আপনার অংশগ্রহণও প্রয়োজন।</h2><p>বই পড়তে, সংস্কৃতির চর্চায় কিংবা মানুষের পাশে দাঁড়াতে—প্রভাতফেরীর সঙ্গে যুক্ত হোন।</p></div>
         <Link href="/membership" className="button button-dark">সদস্য হোন <span aria-hidden="true">↗</span></Link>
       </section>
 
-      <section className="literature-door" aria-labelledby="literature-title"><span className="literature-mark" aria-hidden="true">অ</span><div><p className="eyebrow">শব্দের আপন ঠিকানা</p><h2 id="literature-title">প্রভাতফেরী সাহিত্যপাতা</h2><p>কবিতা, গল্প, প্রবন্ধ ও সৃজনশীল ভাবনার আলাদা ভুবন।</p></div><a href={org.literatureUrl} className="text-link">সাহিত্যপাতায় প্রবেশ করুন <span aria-hidden="true">↗</span></a></section>
+      <section className="literature-door" aria-labelledby="literature-title"><span className="literature-mark" aria-hidden="true">অ</span><div><p className="eyebrow">শব্দের আপন ঠিকানা</p><h2 id="literature-title">প্রভাতফেরী সাহিত্যপাতা</h2><p>কবিতা, গল্প, প্রবন্ধ ও সৃজনশীল ভাবনার আলাদা ভুবন।</p></div><a href={org.literatureUrl} className="text-link">সাহিত্যপাতায় প্রবেশ করুন <span aria-hidden="true">↗</span></a></section>
     </div>
   );
 }

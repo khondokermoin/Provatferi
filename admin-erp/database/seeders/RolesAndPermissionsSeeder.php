@@ -11,17 +11,15 @@ class RolesAndPermissionsSeeder extends Seeder
     public function run(): void
     {
         $permissions = [];
-        foreach (Permission::MODULES as $module) {
-            foreach (Permission::ACTIONS as $action) {
-                $permissions[] = Permission::query()->firstOrCreate(
-                    ['slug' => "{$module}.{$action}"],
-                    [
-                        'name' => ucfirst($action)." {$module}",
-                        'module' => $module,
-                        'action' => $action,
-                    ],
-                );
-            }
+        foreach (Permission::definitions() as ['module' => $module, 'action' => $action]) {
+            $permissions[] = Permission::query()->firstOrCreate(
+                ['slug' => "{$module}.{$action}"],
+                [
+                    'name' => ucfirst($action)." {$module}",
+                    'module' => $module,
+                    'action' => $action,
+                ],
+            );
         }
 
         $superAdmin = Role::query()->firstOrCreate(
