@@ -1,10 +1,10 @@
 {
-  "commit": "e7a7d358fb84d8fca95e0ec744d8cd360f1ef9de",
-  "deployed_at": "2026-09-13T15:13:02Z",
-  "deployed_via": "commit-based release pipeline (deploy/build-release.sh + release-manager.php stage/build/contract-check/migrate-check/migrate-apply/smoke-test-isolated/switch/smoke-test-live) — release id r9",
-  "release_id": "r9",
-  "previous_release_path": "/home/u951246149/domains/provatferi.org/laravel-admin-releases/_previous-20260913-151301",
+  "commit": "f2d19073377ab9990c3485d683b034c7bc30527e",
+  "deployed_at": "2026-09-13T20:55:02Z",
+  "deployed_via": "commit-based release pipeline (deploy/build-release.sh + release-manager.php stage/build/contract-check/migrate-check/smoke-test-isolated/switch/smoke-test-live) — release id r10",
+  "release_id": "r10",
+  "previous_release_path": "/home/u951246149/domains/provatferi.org/laravel-admin-releases/_previous-20260913-205501",
   "note": "This is the last commit confirmed live in production as of this deploy. Update this file after every deploy made THROUGH this pipeline, so the next build's manifest.previous_commit is accurate.",
-  "migrations_applied": "17 new migrations for the membership-season/committee-registration/member-portal phase (2026_09_13_010000 through 2026_09_13_011600) — all additive (new tables, new nullable columns, or NOT NULL relaxed to nullable on existing FK columns); reviewed via migrate-check's pretend_output before migrate-apply, no destructive statements. committees.slug backfilled from existing rows before being made NOT NULL/unique.",
-  "manual_sync_required": "public/zircos/css/provatferi-admin.css is NOT part of this pipeline's artifact (deploy/build-release.sh only packages public/build and public/brand) -- it must be manually synced to public_html/admin/zircos/css/provatferi-admin.css after any deploy that changes it, then the website cache purged. Missed for the r4 deploy (2026-09-10), causing the site to serve a stale copy of this file for ~6 hours until caught and fixed during the r8 deploy (2026-09-11). Not applicable to this r9 deploy (no zircos/ changes)."
+  "migrations_applied": "None (CSS-only release). migrate-check confirmed pending_migrations_detected: false before switch.",
+  "manual_sync_required": "public/zircos/css/provatferi-admin.css is NOT part of this pipeline's artifact (deploy/build-release.sh only packages public/build and public/brand) -- it must be manually synced to public_html/admin/zircos/css/provatferi-admin.css after any deploy that changes it, then the website cache purged. Missed for the r4 deploy (2026-09-10), causing the site to serve a stale copy of this file for ~6 hours until caught and fixed during the r8 deploy (2026-09-11). Not applicable to this r10 deploy (the fix is in resources/css/provatferi-admin.css, the Vite-built/hashed file, not zircos/)."
 }
