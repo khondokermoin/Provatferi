@@ -246,11 +246,14 @@ body {
  * all. Note getComputedStyle() misreports outline-width as 0px here even
  * when the ring paints, so trust the pixels, not the computed value.
  * Only :focus-visible is targeted, so mouse clicks still show no ring.
+ *
+ * Text-entry controls are deliberately absent from this list — FORM-002
+ * below gives them an in-border treatment instead. They still match the
+ * bare `:focus-visible` selector, which is exactly why FORM-002 has to
+ * override these longhands with !important rather than just opt out here.
  */
 :focus-visible,
 .btn:focus-visible,
-.form-control:focus-visible,
-.form-select:focus-visible,
 .side-nav-link:focus-visible,
 .topbar-link:focus-visible,
 .dropdown-item:focus-visible,
@@ -264,25 +267,71 @@ button:focus-visible {
 }
 
 /*
- * FORM-001: this used to also set `box-shadow: 0 0 0 0.15rem rgba(255,95,31,.2)`
- * here — a leftover from before the :focus-visible outline rule above existed,
- * back when this box-shadow WAS the only focus ring. Once the outline rule was
- * added (2026-09-08, see its own comment), every .form-control/.form-select
- * matched both rules at once — text inputs are always :focus-visible on click,
- * not just on keyboard nav, unlike buttons/links — so a mouse click into any
- * field painted the outline AND this box-shadow simultaneously: an inner
- * ring plus a second, larger outer ring around it. Confirmed 2026-09-14 by
- * cascade/specificity review (this was the only conflicting box-shadow
- * declaration on .form-control/.form-select in this file, and both
- * layouts/admin.blade.php and components/layouts/auth.blade.php load only
- * this stylesheet, so the fix covers every admin screen) plus a clean
- * `php artisan test` run — no live before/after screenshot was taken.
- * border-color stays: it tints the actual field border on focus, which is
- * the "inner border" this fix is explicitly meant to keep.
+ * FORM-002 (owner decision 2026-09-14, supersedes FORM-001): a focused form
+ * control paints NOTHING outside its own border box — no outline, no
+ * outline-offset, no outer box-shadow, no halo.
+ *
+ * Why: an offset outline around a text field reads as a second border
+ * floating around the field, because inputs match :focus-visible on a plain
+ * mouse click too — unlike buttons and links, which only match it on
+ * keyboard nav. So every click into a field painted the field's own border
+ * AND a detached ring around it. FORM-001 removed the box-shadow half of
+ * that pair; the outline half remained, and that is the ring the owner's
+ * reference screenshot still showed. The owner's call is explicit: one thin
+ * border, nothing outside it.
+ *
+ * Focus stays obvious without leaving the border box: the border takes the
+ * brand color and a 1px INSET ring doubles its apparent thickness from the
+ * inside, giving a ~2px brand-colored perimeter (SC 2.4.11 asks for 2px)
+ * with zero geometry change — inset shadows never affect layout, so there
+ * is no reflow or 1px jump when a field takes focus.
+ *
+ * The !important is load-bearing, not defensive: the baseline rule above
+ * sets the outline longhands with !important and its bare `:focus-visible`
+ * selector matches inputs as well, so only a higher-specificity !important
+ * declaration can clear it. Both :focus and :focus-visible are listed so
+ * mouse and keyboard focus resolve to the same treatment. Checkboxes and
+ * radios are intentionally excluded — a 24px box has no meaningful border
+ * to tint, so they keep the outline above as their only focus signal.
  */
 .form-control:focus,
-.form-select:focus {
+.form-control:focus-visible,
+.form-select:focus,
+.form-select:focus-visible,
+input[type="text"]:focus-visible,
+input[type="email"]:focus-visible,
+input[type="password"]:focus-visible,
+input[type="number"]:focus-visible,
+input[type="date"]:focus-visible,
+input[type="search"]:focus-visible,
+input[type="url"]:focus-visible,
+input[type="tel"]:focus-visible,
+input[type="file"]:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none !important;
+  outline-width: 0 !important;
+  outline-offset: 0 !important;
   border-color: var(--ct-primary);
+  box-shadow: inset 0 0 0 1px var(--ct-primary);
+}
+
+/*
+ * An error state has to stay louder than ordinary focus, and must never sit
+ * a red border next to an orange ring — two competing signals on one field.
+ * So an invalid field keeps the danger color in BOTH layers while focused.
+ * Bootstrap's own .is-invalid:focus is more specific than the block above,
+ * so without this the inset ring would vanish on error fields and the error
+ * state would end up visually thinner than the normal one.
+ */
+.form-control.is-invalid:focus,
+.form-control.is-invalid:focus-visible,
+.form-select.is-invalid:focus,
+.form-select.is-invalid:focus-visible,
+.was-validated .form-control:invalid:focus,
+.was-validated .form-select:invalid:focus {
+  border-color: var(--ct-form-invalid-border-color);
+  box-shadow: inset 0 0 0 1px var(--ct-form-invalid-border-color);
 }
 
 /*
@@ -347,6 +396,17 @@ input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0 1000px var(--ct-secondary-bg) inset;
   box-shadow: 0 0 0 1000px var(--ct-secondary-bg) inset;
   transition: background-color 9999s ease-in-out 0s;
+}
+/*
+ * box-shadow is one property, and the autofill fill above is more specific
+ * than FORM-002's focus rule — so without this an autofilled field would
+ * lose its focus ring entirely the moment it took focus. Both layers are
+ * restated here, ring first so it paints on top of the 1000px fill. Still
+ * entirely inset: an autofilled field focuses exactly like a typed one.
+ */
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: inset 0 0 0 1px var(--ct-primary), 0 0 0 1000px var(--ct-secondary-bg) inset;
+  box-shadow: inset 0 0 0 1px var(--ct-primary), 0 0 0 1000px var(--ct-secondary-bg) inset;
 }
 
 /*
