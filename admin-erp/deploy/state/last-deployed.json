@@ -1,13 +1,14 @@
 {
-  "commit": "4c8a1867f58b4c713ef942564771364103e14ec9",
-  "deployed_at": "2026-09-14T19:39:01Z",
-  "deployed_via": "commit-based release pipeline (deploy/build-release.sh + release-manager.php stage/build/contract-check/migrate-check/smoke-test-isolated/switch/smoke-test-live) — release id 4c8a1867f58b-2026-09-1419204",
-  "release_id": "4c8a1867f58b-2026-09-1419204",
-  "previous_release_path": "/home/u951246149/domains/provatferi.org/laravel-admin-releases/_previous-20260914-193901",
+  "commit": "d0ed9452e3059d470bd93d81f10d18637bb25e4d",
+  "deployed_at": "2026-09-14T21:39:02Z",
+  "deployed_via": "commit-based release pipeline (deploy/build-release.sh + release-manager.php stage/build/contract-check/migrate-check/migrate-apply/smoke-test-isolated/switch/smoke-test-live) — release id d0ed9452e305-2026-09-1421173",
+  "release_id": "d0ed9452e305-2026-09-1421173",
+  "previous_release_path": "/home/u951246149/domains/provatferi.org/laravel-admin-releases/_previous-20260914-213901",
   "note": "This is the last commit confirmed live in production as of this deploy. Update this file after every deploy made THROUGH this pipeline, so the next build's manifest.previous_commit is accurate.",
-  "migrations_applied": "None (CSS-only release). migrate-check confirmed pending_migrations_detected: false before switch.",
-  "upload_url_note": "Generate the TUS upload URL for provatferi.org and point HOSTINGER_UPLOAD_URL at .../api/tus/public_html/admin. A URL whose root is public_html alone stages the release into the MAIN site's web root instead (happened on the 231ea25 deploy; caught before stage ran, files deleted and confirmed 404).",
+  "migrations_applied": "3, all additive, applied with migrate-apply after reviewing migrate-check's pretend SQL: 2026_09_15_100000_create_notices_table, 2026_09_15_100001_add_application_mode_to_job_postings_table (varchar default 'fixed'), 2026_09_15_100002_add_notice_permissions (6 notices.* rows, granted to super_admin). No drops or column changes.",
+  "switch_gate_note": "release-manager.php `switch` requires stage/build/contract_check/smoke_test_isolated but NOT migrate_apply, even when migrate-check reported pending migrations. Always read migrate-check and run migrate-apply before scheduling switch; never pre-schedule switch on a release that carries migrations.",
+  "upload_url_note": "Generate the TUS upload URL for provatferi.org and point HOSTINGER_UPLOAD_URL at .../api/tus/public_html/admin. A URL whose root is public_html alone stages the release into the MAIN site's web root instead. The file-browser session behind a generated URL can expire well before its token's exp (a 2h-old one returned 403 on 2026-09-14) — regenerate if an upload is refused.",
   "cron_invocation_note": "Invoke as `/usr/bin/php /home/u951246149/domains/provatferi.org/laravel-admin-releases/_tooling/release-manager.php <cmd> <releaseId> 2>&1`, one command per cron. The `cd <tooling> && php release-manager.php ...` form produced no output and did not run on this host.",
   "maintenance_script_note": "Any one-off PHP script uploaded to public_html/admin that bootstraps Laravel from absolute paths WILL execute when requested over HTTP, not only via cron. Guard such scripts with `if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }` before uploading.",
-  "manual_sync_required": "public/zircos/css/provatferi-admin.css is NOT part of this pipeline's artifact (deploy/build-release.sh only packages public/build and public/brand) -- it must be manually synced to public_html/admin/zircos/css/provatferi-admin.css after any deploy that changes it, then the website cache purged. Not applicable to this deploy: the change is in resources/css/provatferi-admin.css, the Vite-built/hashed file (live asset: build/assets/provatferi-admin-Dw_dnSkP.css)."
+  "manual_sync_required": "public/zircos/css/provatferi-admin.css is NOT part of this pipeline's artifact (deploy/build-release.sh only packages public/build and public/brand) -- it must be manually synced to public_html/admin/zircos/css/provatferi-admin.css after any deploy that changes it, then the website cache purged. Not applicable to this deploy."
 }
