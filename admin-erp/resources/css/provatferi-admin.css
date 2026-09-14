@@ -271,11 +271,14 @@ button:focus-visible {
  * matched both rules at once — text inputs are always :focus-visible on click,
  * not just on keyboard nav, unlike buttons/links — so a mouse click into any
  * field painted the outline AND this box-shadow simultaneously: an inner
- * ring plus a second, larger outer ring around it. Verified 2026-09-14 by
- * screenshotting /profile before and after removing this line (design-review/
- * form-focus-2026-09-14/) — before: visible double ring; after: the single
- * outline ring only. border-color stays: it tints the actual field border on
- * focus, which is the "inner border" this fix is explicitly meant to keep.
+ * ring plus a second, larger outer ring around it. Confirmed 2026-09-14 by
+ * cascade/specificity review (this was the only conflicting box-shadow
+ * declaration on .form-control/.form-select in this file, and both
+ * layouts/admin.blade.php and components/layouts/auth.blade.php load only
+ * this stylesheet, so the fix covers every admin screen) plus a clean
+ * `php artisan test` run — no live before/after screenshot was taken.
+ * border-color stays: it tints the actual field border on focus, which is
+ * the "inner border" this fix is explicitly meant to keep.
  */
 .form-control:focus,
 .form-select:focus {
