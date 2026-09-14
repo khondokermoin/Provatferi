@@ -335,6 +335,38 @@ select:focus-visible {
 }
 
 /*
+ * app.min.css (Zircos) sets `box-shadow: none !important` on
+ * `.form-control:valid:focus`, `:invalid:focus`, `.is-valid:focus` and
+ * `.is-invalid:focus`. Every field is either :valid or :invalid, so that one
+ * rule cancelled the inset ring above on EVERY admin input — measured live on
+ * 2026-09-14 right after FORM-002 shipped: focused admin inputs computed
+ * `box-shadow: none`, while member-portal inputs (no Zircos) computed the
+ * inset. Admin and portal were therefore drawing two different focus styles.
+ *
+ * Overriding an !important takes !important plus equal-or-higher
+ * specificity later in the cascade; repeating the class adds one class of
+ * specificity without touching markup. Invalid stays one class higher so it
+ * still beats ordinary focus, and autofilled fields restate their 1000px fill
+ * layer here too, since an !important ring would otherwise wipe it out and
+ * bring Chrome's yellow autofill background back on focus. All layers are
+ * inset: nothing is painted outside the border box.
+ */
+.form-control.form-control:focus,
+.form-select.form-select:focus {
+  box-shadow: inset 0 0 0 1px var(--ct-primary) !important;
+}
+.form-control.form-control.is-invalid:focus,
+.form-select.form-select.is-invalid:focus,
+.was-validated .form-control.form-control:invalid:focus,
+.was-validated .form-select.form-select:invalid:focus {
+  box-shadow: inset 0 0 0 1px var(--ct-form-invalid-border-color) !important;
+}
+input.form-control.form-control:-webkit-autofill:focus {
+  -webkit-box-shadow: inset 0 0 0 1px var(--ct-primary), 0 0 0 1000px var(--ct-secondary-bg) inset !important;
+  box-shadow: inset 0 0 0 1px var(--ct-primary), 0 0 0 1000px var(--ct-secondary-bg) inset !important;
+}
+
+/*
  * app.min.css hardcodes checked checkboxes/radios to a Zircos blue
  * (#188ae2) with no --ct-* token backing it. The tick/dot glyph itself
  * stays white — a small filled control, not text, so white-on-orange
