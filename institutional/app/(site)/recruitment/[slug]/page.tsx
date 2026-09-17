@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { org } from "@/lib/content";
-import { applicationWindowLabel, getJobPosting } from "@/lib/api/recruitment";
+import { applicationWindowLabel, applyCtaLabel, communityCtaLabel, getJobPosting } from "@/lib/api/recruitment";
 import { formatBnDate } from "@/lib/format";
 import { excerpt } from "@/lib/text-blocks";
 import TextBlocks from "@/components/TextBlocks";
@@ -40,7 +40,7 @@ export default async function RecruitmentDetailPage({ params }: { params: Promis
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "হোম", item: org.website },
-      { "@type": "ListItem", position: 2, name: "নিয়োগ বিজ্ঞপ্তি", item: `${org.website}/recruitment` },
+      { "@type": "ListItem", position: 2, name: "নিয়োগ ও স্বেচ্ছাসেবী সুযোগ", item: `${org.website}/recruitment` },
       { "@type": "ListItem", position: 3, name: job.title },
     ],
   };
@@ -54,7 +54,7 @@ export default async function RecruitmentDetailPage({ params }: { params: Promis
           <nav className="breadcrumb" aria-label="ব্রেডক্রাম্ব">
             <Link href="/">হোম</Link>
             <span aria-hidden="true">/</span>
-            <Link href="/recruitment">নিয়োগ বিজ্ঞপ্তি</Link>
+            <Link href="/recruitment">নিয়োগ ও স্বেচ্ছাসেবী সুযোগ</Link>
             <span aria-hidden="true">/</span>
             <span aria-current="page">{job.title}</span>
           </nav>
@@ -109,14 +109,29 @@ export default async function RecruitmentDetailPage({ params }: { params: Promis
                 )}
               </dl>
 
-              {job.notice_slug ? (
-                <Link href={`/notices/${job.notice_slug}`} className="button button-primary">
-                  বিস্তারিত নোটিশ ও যোগদানের নির্দেশনা <span aria-hidden="true">→</span>
+              {/* §10: applying happens on the website form. The WhatsApp
+                  group is offered afterwards, as a community channel. */}
+              {job.accepts_applications && job.apply_path ? (
+                <Link href={job.apply_path} className="button button-primary">
+                  {applyCtaLabel(job.is_volunteer)} <span aria-hidden="true">→</span>
                 </Link>
               ) : (
                 <a href={`mailto:${org.email}?subject=${encodeURIComponent(job.title)}`} className="button button-primary">
                   আবেদন সংক্রান্ত যোগাযোগ
                 </a>
+              )}
+
+              {job.notice_action && (
+                <a className="button button-outline" href={job.notice_action.url} target="_blank" rel="noopener noreferrer">
+                  {communityCtaLabel(job.notice_action.url, job.notice_action.label)} <span aria-hidden="true">↗</span>
+                  <span className="sr-only"> (নতুন ট্যাবে খুলবে)</span>
+                </a>
+              )}
+
+              {job.notice_slug && (
+                <Link href={`/notices/${job.notice_slug}`} className="text-link">
+                  এই সুযোগের অফিসিয়াল বিজ্ঞপ্তি দেখুন <span aria-hidden="true">→</span>
+                </Link>
               )}
             </section>
           </aside>
@@ -139,7 +154,7 @@ export default async function RecruitmentDetailPage({ params }: { params: Promis
 
         <p className="notice-back">
           <Link href="/recruitment" className="text-link">
-            <span aria-hidden="true">←</span> সব নিয়োগ বিজ্ঞপ্তি
+            <span aria-hidden="true">←</span> সব সুযোগ দেখুন
           </Link>
         </p>
       </article>

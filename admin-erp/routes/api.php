@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\Public\MemberDirectoryController;
 use App\Http\Controllers\Api\V1\Public\MembershipApplicationController;
 use App\Http\Controllers\Api\V1\Public\MembershipCampaignController;
 use App\Http\Controllers\Api\V1\Public\NoticeController as PublicNoticeController;
+use App\Http\Controllers\Api\V1\Public\VolunteerApplicationController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use Illuminate\Support\Facades\Route;
 
@@ -58,6 +59,11 @@ Route::prefix('v1')->group(function () {
             ->middleware('throttle:60,1')->name('api.public.notices.attachment');
         Route::get('/notices/{slug}/cover', [PublicNoticeController::class, 'cover'])
             ->middleware('throttle:120,1')->name('api.public.notices.cover');
+
+        // §2/§21: the volunteer/recruitment intake. Rate-limited per IP, and
+        // the posting itself decides whether it accepts applications at all.
+        Route::post('/recruitment/{slug}/applications', [VolunteerApplicationController::class, 'store'])
+            ->middleware('throttle:5,1')->name('api.public.recruitment.apply');
     });
 
     // Auth.

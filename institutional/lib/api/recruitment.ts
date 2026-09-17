@@ -1,5 +1,13 @@
 import { apiGet, isRecord, isStringOrNull } from "./client";
-import type { ApiResult, JobPosting } from "./types";
+import type { ApiResult, JobPosting, SkillOption } from "./types";
+
+function isSkillOption(v: unknown): v is SkillOption {
+  return isRecord(v) && typeof v.key === "string" && typeof v.label === "string";
+}
+
+function isNoticeAction(v: unknown): v is { url: string; label: string } | null {
+  return v === null || (isRecord(v) && typeof v.url === "string" && typeof v.label === "string");
+}
 
 /** Postings can open/close day to day — a shorter window than static content. */
 const REVALIDATE_SECONDS = 120;
@@ -25,8 +33,26 @@ export function isJobPosting(v: unknown): v is JobPosting {
     isStringOrNull(v.opening_date) &&
     isStringOrNull(v.application_deadline) &&
     isStringOrNull(v.published_at) &&
-    isStringOrNull(v.notice_slug)
+    isStringOrNull(v.notice_slug) &&
+    typeof v.accepts_applications === "boolean" &&
+    isStringOrNull(v.apply_path) &&
+    isNoticeAction(v.notice_action) &&
+    (v.skill_options === null || (Array.isArray(v.skill_options) && v.skill_options.every(isSkillOption)))
   );
+}
+
+/** "স্বেচ্ছাসেবী হিসেবে আবেদন করুন" / "আবেদন করুন" — the primary CTA's wording, decided in one place. */
+export function applyCtaLabel(isVolunteer: boolean): string {
+  return isVolunteer ? "স্বেচ্ছাসেবী হিসেবে আবেদন করুন" : "আবেদন করুন";
+}
+
+/**
+ * A WhatsApp destination is named for what it is, so the secondary button
+ * never reads like the way to apply. Any other action keeps the label the
+ * admin gave it.
+ */
+export function communityCtaLabel(url: string, fallbackLabel: string): string {
+  return /(^|\/\/|\.)(wa\.me|chat\.whatsapp\.com)/.test(url) ? "WhatsApp Group-এ যুক্ত হোন" : fallbackLabel;
 }
 
 function isJobPostingsResponse(json: unknown): json is { data: JobPosting[] } {

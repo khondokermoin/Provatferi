@@ -216,6 +216,11 @@ export interface CommitteeCorrectionInfo {
  * A volunteer role never carries a salary and a rolling call never carries
  * a deadline — both are null by contract, not by accident.
  */
+export interface SkillOption {
+  key: string;
+  label: string;
+}
+
 export interface JobPosting {
   id: number;
   title: string;
@@ -236,6 +241,14 @@ export interface JobPosting {
   application_deadline: string | null;
   published_at: string | null;
   notice_slug: string | null;
+  /** The ERP decides whether the website form is open for this posting. */
+  accepts_applications: boolean;
+  /** Derived from the posting's own slug in the ERP — never composed here. */
+  apply_path: string | null;
+  /** The linked notice's own CTA (the WhatsApp community group): a SECONDARY channel, never the way to apply. */
+  notice_action: { url: string; label: string } | null;
+  /** Only present on the detail contract, and only while the form is open. */
+  skill_options: SkillOption[] | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -282,6 +295,10 @@ export interface NoticeRecruitmentInfo {
   opening_date: string | null;
   application_deadline: string | null;
   is_open: boolean;
+  /** Whether the ERP has the website application form open for this posting. */
+  accepts_applications: boolean;
+  /** Derived in the ERP from the posting's slug — never composed in the front end. */
+  apply_path: string | null;
 }
 
 export interface PublicNoticeDetail extends PublicNoticeSummary {

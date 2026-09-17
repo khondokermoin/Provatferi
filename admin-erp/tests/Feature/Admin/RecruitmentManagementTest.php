@@ -81,23 +81,24 @@ class RecruitmentManagementTest extends AdminTestCase
         $application = $this->application();
 
         $this->actingAs($this->superAdmin())->patch(route('admin.recruitment.applications.status', $application), [
-            'status' => 'shortlisted', 'interview_notes' => 'ভালো প্রোফাইল।',
+            'status' => 'shortlisted', 'internal_note' => 'ভালো প্রোফাইল।',
         ])->assertRedirect();
 
         $fresh = $application->fresh();
         $this->assertSame('shortlisted', $fresh->status);
-        $this->assertSame('ভালো প্রোফাইল।', $fresh->interview_notes);
+        $this->assertSame('ভালো প্রোফাইল।', $fresh->internal_note);
     }
 
-    public function test_an_application_can_be_rejected(): void
+    /** "Rejected" became "not_selected" when the vocabulary widened for volunteer interest (§6). */
+    public function test_an_application_can_be_marked_not_selected(): void
     {
         $application = $this->application();
 
         $this->actingAs($this->superAdmin())->patch(route('admin.recruitment.applications.status', $application), [
-            'status' => 'rejected',
+            'status' => 'not_selected',
         ])->assertRedirect();
 
-        $this->assertSame('rejected', $application->fresh()->status);
+        $this->assertSame('not_selected', $application->fresh()->status);
     }
 
     public function test_applications_can_be_filtered_by_posting(): void

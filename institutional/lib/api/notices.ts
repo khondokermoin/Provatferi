@@ -86,7 +86,12 @@ function isRecruitmentInfo(v: unknown): v is NoticeRecruitmentInfo {
     typeof v.application_mode_label === "string" &&
     isStringOrNull(v.opening_date) &&
     isStringOrNull(v.application_deadline) &&
-    isBoolean(v.is_open)
+    isBoolean(v.is_open) &&
+    // The notice's primary CTA depends on these two, so a payload without
+    // them is rejected rather than silently rendering a notice with no way
+    // to apply.
+    isBoolean(v.accepts_applications) &&
+    isStringOrNull(v.apply_path)
   );
 }
 

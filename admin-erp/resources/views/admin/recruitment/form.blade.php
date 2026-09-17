@@ -44,6 +44,16 @@
                     <x-admin.form-input name="application_deadline" label="আবেদনের শেষ তারিখ" type="date"
                         :value="$jobPosting->application_deadline?->format('Y-m-d')"
                         help="শুধু নির্দিষ্ট সময়সীমার ক্ষেত্রে প্রযোজ্য।" />
+
+                    <div class="form-check mt-3">
+                        <input type="checkbox" class="form-check-input" id="accepts_applications" name="accepts_applications" value="1"
+                               aria-describedby="accepts_applications-help"
+                               @checked(old('accepts_applications', $jobPosting->accepts_applications))>
+                        <label class="form-check-label" for="accepts_applications">আবেদন গ্রহণ করা হবে</label>
+                    </div>
+                    <div class="form-text" id="accepts_applications-help">
+                        চালু করলে ওয়েবসাইটে আবেদন ফরম খুলবে এবং যুক্ত নোটিশেও “আবেদন করুন” বোতাম দেখাবে। আবেদনসমূহ ERP-তে জমা হবে।
+                    </div>
                 </x-admin.card>
 
                 <x-admin.card title="প্রকাশনা">

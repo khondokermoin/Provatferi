@@ -175,6 +175,11 @@ class NoticeController extends Controller
             'opening_date' => $job->opening_date?->toDateString(),
             'application_deadline' => $job->isRolling() ? null : $job->application_deadline?->toDateString(),
             'is_open' => $job->status === 'open',
+            // §9/§19: the notice's primary CTA is the website form, and the
+            // path is derived from the posting rather than written into
+            // notice content by hand.
+            'accepts_applications' => $job->acceptsApplications(),
+            'apply_path' => $job->applyPath(),
         ];
     }
 }

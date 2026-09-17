@@ -229,9 +229,19 @@ h1, h2, h3, h4 { color: var(--heading); }
 @media (min-width: 744px) {
   .main-navigation > a,
   .main-navigation > .nav-group { align-self: flex-start; }
-  .nav-dropdown { min-width: 230px; background: var(--surface); border: 1px solid var(--border); border-radius: 0 0 10px 10px; box-shadow: 0 16px 32px rgba(20, 15, 10, .22); padding: 8px; }
-  .main-navigation .nav-dropdown a { padding: 10px 12px; border-radius: 6px; border-bottom: none; font-size: 14px; min-height: 0; }
+  /* Nav polish pass: the panel used to sit under a heavy 32px shadow that
+     read as a floating card over a page it is actually in flow with. It now
+     reads as an extension of the header — same surface, a hairline border,
+     and a shadow just deep enough to separate it from the content below.
+     Item padding grew to match the 14px rhythm of the rest of the nav, and
+     every item spans the panel so their hover targets are the same width. */
+  .nav-dropdown { min-width: 244px; background: var(--surface); border: 1px solid var(--border); border-top-color: transparent; border-radius: 0 0 10px 10px; box-shadow: 0 10px 22px rgba(20, 15, 10, .13); padding: 6px; }
+  .main-navigation .nav-dropdown a { display: block; width: 100%; padding: 10px 14px; border-radius: 6px; border-bottom: none; font-size: 14px; line-height: 1.5; min-height: 0; color: var(--body); }
   .main-navigation .nav-dropdown a:hover { background: var(--soft); color: var(--accent-text); }
+  .main-navigation .nav-dropdown a[aria-current="page"] { background: var(--soft); color: var(--accent-text); font-weight: 600; }
+  /* Top-level items breathe a little more between 744px and 1050px, where
+     seven of them plus a dropdown caret were the tightest fit. */
+  .main-navigation { column-gap: clamp(16px, 2.1vw, 26px); }
 }
 
 /* ---------- Shared page header (all inner pages) ---------- */
@@ -603,6 +613,66 @@ h1, h2, h3, h4 { color: var(--heading); }
 /* Off-screen, never focusable — a sighted or keyboard user never encounters
    this; a scripted bot filling every field on the page still finds it. */
 .honeypot-field { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- Volunteer application form (§3-5) ----------
+   Longer than the other public forms, so it is grouped into labelled
+   sections instead of one unbroken column, and the skill catalogue is a
+   chip grid rather than eighteen stacked checkboxes. Same tokens as above. */
+.volunteer-form { max-width: 780px; gap: 26px; }
+.form-intro { font-size: 15px; color: var(--muted); margin: 0; }
+.form-section { display: flex; flex-direction: column; gap: 18px; margin: 0; padding: 22px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
+.form-section > legend { padding: 0 8px; font-size: 14px; font-weight: 700; color: var(--heading); }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(224px, 1fr)); gap: 18px; }
+.form-field-legend { font-size: 14px; font-weight: 600; color: var(--heading); }
+.checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 8px; }
+.checkbox-chip { display: flex; align-items: flex-start; gap: 9px; padding: 11px 13px; border: 1.5px solid var(--border-strong); border-radius: 8px; background: var(--card); font-size: 14px; line-height: 1.45; cursor: pointer; }
+.checkbox-chip:hover { border-color: var(--brand-orange); }
+.checkbox-chip input { margin-top: 2px; flex: none; }
+.checkbox-chip:has(input:checked) { border-color: var(--brand-orange); background: var(--soft); }
+
+/* §23 — shown in place of the form, no reload, no separate URL to share. */
+.application-success { display: flex; flex-direction: column; gap: 12px; max-width: 680px; padding: 26px; border: 1px solid var(--border); border-left: 3px solid var(--brand-orange); border-radius: 12px; background: var(--card); }
+.application-success h2 { margin: 0; font-size: 20px; line-height: 1.4; }
+.application-success p { margin: 0; color: var(--muted); }
+.application-success-no code { font-size: 14px; color: var(--heading); }
+.application-success-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 6px; }
+
+/* ---------- Share control on a notice (§11-12) ---------- */
+.share-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); }
+.share-bar-label { font-size: 14px; font-weight: 600; color: var(--heading); }
+.share-bar-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.share-button { min-height: 40px; padding: 8px 14px; font-size: 14px; }
+.share-menu-wrap { position: relative; }
+.share-menu { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; min-width: 244px; display: flex; flex-direction: column; gap: 2px; padding: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 10px 22px rgba(20, 15, 10, .14); }
+.share-menu a { padding: 9px 12px; border-radius: 6px; font-size: 14px; color: var(--body); }
+.share-menu a:hover { background: var(--soft); color: var(--accent-text); }
+.share-menu-url { display: block; margin-top: 4px; padding: 8px 12px 2px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); word-break: break-all; }
+/* Reserves its own line so the row never reflows when the message appears. */
+.share-copied { flex-basis: 100%; min-height: 20px; margin: 0; font-size: 13px; font-weight: 600; color: var(--accent-text); }
+
+/* CTA stack on a notice: the website form first, the community link under it. */
+.notice-cta .button { width: 100%; }
+.notice-cta .button + .button { margin-top: 8px; }
+.notice-cta-note { margin: 10px 0 0; font-size: 13px; line-height: 1.6; color: var(--muted); }
+.notice-facts-relation { margin: 0 0 12px; font-size: 13px; line-height: 1.6; color: var(--muted); }
+
+/* Opportunity list filter (§15) — one page, two views, never two pages. */
+.listing-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+.filter-pill { padding: 8px 15px; border: 1.5px solid var(--border-strong); border-radius: 999px; font-size: 14px; color: var(--body); }
+.filter-pill:hover { border-color: var(--brand-orange); color: var(--accent-text); }
+.filter-pill.is-active { background: var(--heading); border-color: var(--heading); color: var(--bg); }
+.job-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 6px; }
+
+@media (max-width: 743px) {
+  .form-section { padding: 16px; }
+  .checkbox-grid { grid-template-columns: 1fr; }
+  .application-success { padding: 20px; }
+  .application-success-actions .button { width: 100%; }
+}
+@media (max-width: 480px) {
+  /* Keeps the menu inside the viewport when the button sits near the right edge. */
+  .share-menu { left: auto; right: 0; }
+}
 /* ---------- Notice board (/notices, homepage "সর্বশেষ নোটিশ", notice + recruitment detail) ----------
    Documentary, not editorial: a ruled register of subject and date that
    scans top to bottom the way an institutional notice board reads — no card
