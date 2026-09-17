@@ -236,9 +236,14 @@ export const navLinks: NavItem[] = [
     href: "/membership",
     label: "সম্পৃক্ত হোন",
     match: ["/membership", "/recruitment"],
+    // "নিয়োগ বিজ্ঞপ্তি" alone was wrong as the only label: the same page
+    // carries volunteer calls, which are not নিয়োগ. The destination is now
+    // named for everything it holds, with the volunteer view as its own
+    // filtered entry rather than a second page that would duplicate it.
     children: [
       { href: "/membership", label: "সদস্য হোন" },
-      { href: "/recruitment", label: "নিয়োগ বিজ্ঞপ্তি" },
+      { href: "/recruitment?type=volunteer", label: "স্বেচ্ছাসেবী সুযোগ" },
+      { href: "/recruitment", label: "নিয়োগ ও অন্যান্য সুযোগ" },
     ],
   },
   { id: "contact", href: "/contact", label: "যোগাযোগ" },
@@ -255,6 +260,6 @@ export const footerExploreLinks = [
 
 export const footerInvolvedLinks = [
   { href: "/membership", label: "সদস্য হোন" },
-  { href: "/recruitment", label: "নিয়োগ বিজ্ঞপ্তি" },
+  { href: "/recruitment", label: "নিয়োগ ও স্বেচ্ছাসেবী সুযোগ" },
   { href: "/member/login", label: "সদস্য লগইন" },
 ];

@@ -9,40 +9,131 @@
 @section('content')
     <div class="row">
         <div class="col-lg-7">
-            <x-admin.card title="আবেদনকারীর তথ্য">
-                <dl class="row mb-0">
-                    <dt class="col-sm-4 fs-13 text-muted">নাম</dt>
-                    <dd class="col-sm-8">{{ $application->applicant_name }}</dd>
+            <x-admin.card title="আবেদনকারীর তথ্য" :subtitle="$application->application_no">
+                <div class="d-flex gap-3 align-items-start mb-3">
+                    @if ($application->photo_path)
+                        <img src="{{ route('admin.recruitment.applications.file', [$application, 'photo']) }}"
+                            alt="{{ $application->applicant_name }}" width="88" height="88"
+                            class="rounded object-fit-cover flex-shrink-0" style="object-fit: cover;">
+                    @endif
+                    <dl class="row mb-0 flex-grow-1">
+                        <dt class="col-sm-4 fs-13 text-muted">নাম</dt>
+                        <dd class="col-sm-8">{{ $application->applicant_name }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">ই-মেইল</dt>
-                    <dd class="col-sm-8"><a href="mailto:{{ $application->applicant_email }}">{{ $application->applicant_email }}</a></dd>
+                        <dt class="col-sm-4 fs-13 text-muted">মোবাইল</dt>
+                        <dd class="col-sm-8"><a href="tel:{{ $application->applicant_phone }}">{{ $application->applicant_phone ?: '—' }}</a></dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">ফোন</dt>
-                    <dd class="col-sm-8">{{ $application->applicant_phone ?: '—' }}</dd>
+                        <dt class="col-sm-4 fs-13 text-muted">ই-মেইল</dt>
+                        <dd class="col-sm-8"><a href="mailto:{{ $application->applicant_email }}">{{ $application->applicant_email }}</a></dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">পদ</dt>
-                    <dd class="col-sm-8">{{ $application->jobPosting?->title ?? '—' }}</dd>
+                        <dt class="col-sm-4 fs-13 text-muted">জেলা</dt>
+                        <dd class="col-sm-8">{{ $application->district ?: '—' }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">আবেদনের তারিখ</dt>
-                    <dd class="col-sm-8 mb-0">{{ bn_datetime($application->created_at) }}</dd>
-                </dl>
+                        <dt class="col-sm-4 fs-13 text-muted">বর্তমান অবস্থান</dt>
+                        <dd class="col-sm-8">{{ $application->current_location ?: '—' }}</dd>
+
+                        <dt class="col-sm-4 fs-13 text-muted">পেশা / শিক্ষা</dt>
+                        <dd class="col-sm-8">{{ $application->profession ?: '—' }}</dd>
+
+                        <dt class="col-sm-4 fs-13 text-muted">পছন্দের যোগাযোগ</dt>
+                        <dd class="col-sm-8">{{ $contactLabels[$application->preferred_contact] ?? '—' }}</dd>
+
+                        <dt class="col-sm-4 fs-13 text-muted">সময় দিতে পারবেন</dt>
+                        <dd class="col-sm-8">{{ $application->availability ?: '—' }}</dd>
+
+                        <dt class="col-sm-4 fs-13 text-muted">বিজ্ঞপ্তি</dt>
+                        <dd class="col-sm-8">
+                            @if ($application->jobPosting)
+                                <a href="{{ route('admin.recruitment.show', $application->jobPosting) }}">{{ $application->jobPosting->title }}</a>
+                            @else
+                                —
+                            @endif
+                        </dd>
+
+                        <dt class="col-sm-4 fs-13 text-muted">আবেদনের তারিখ</dt>
+                        <dd class="col-sm-8 mb-0">{{ bn_datetime($application->submitted_at ?? $application->created_at) }}</dd>
+                    </dl>
+                </div>
             </x-admin.card>
+
+            @php $skillLabels = $application->skillLabels(); @endphp
+            @if ($skillLabels !== [] || $application->other_skills)
+                <x-admin.card title="আগ্রহ ও দক্ষতা">
+                    @if ($skillLabels !== [])
+                        <div class="d-flex flex-wrap gap-1 mb-2">
+                            @foreach ($skillLabels as $label)
+                                <span class="badge bg-primary-subtle text-primary-emphasis">{{ $label }}</span>
+                            @endforeach
+                        </div>
+                    @endif
+                    @if ($application->other_skills)
+                        <p class="mb-0 fs-14"><span class="text-muted">অন্যান্য:</span> {{ $application->other_skills }}</p>
+                    @endif
+                </x-admin.card>
+            @endif
+
+            @if ($application->experience)
+                <x-admin.card title="কাজের অভিজ্ঞতা">
+                    <p class="mb-0" style="white-space: pre-line;">{{ $application->experience }}</p>
+                </x-admin.card>
+            @endif
+
+            @if ($application->contribution)
+                <x-admin.card title="প্রভাতফেরীতে যেভাবে অবদান রাখতে চান">
+                    <p class="mb-0" style="white-space: pre-line;">{{ $application->contribution }}</p>
+                </x-admin.card>
+            @endif
 
             @if ($application->cover_note)
                 <x-admin.card title="কভার নোট">
-                    <p class="mb-0">{{ $application->cover_note }}</p>
+                    <p class="mb-0" style="white-space: pre-line;">{{ $application->cover_note }}</p>
                 </x-admin.card>
             @endif
         </div>
 
         <div class="col-lg-5">
             <x-admin.card title="স্ট্যাটাস">
-                <x-admin.status-badge :status="$application->status" class="mb-3" />
+                <x-admin.status-badge :status="$application->status" class="mb-2" />
+                @if ($application->reviewer)
+                    <p class="text-muted fs-12 mb-0">সর্বশেষ হালনাগাদ: {{ $application->reviewer->name }}</p>
+                @endif
             </x-admin.card>
 
-            @if ($application->interview_notes)
+            @if ($application->cv_path || $application->linkedin_url || $application->facebook_url || $application->portfolio_url)
+                <x-admin.card title="সংযুক্তি ও লিংক">
+                    <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
+                        @if ($application->cv_path)
+                            <li>
+                                <a href="{{ route('admin.recruitment.applications.file', [$application, 'cv']) }}" class="btn btn-light border btn-sm">
+                                    <i class="ti ti-file-cv me-1" aria-hidden="true"></i>সিভি ডাউনলোড করুন (PDF)
+                                </a>
+                            </li>
+                        @endif
+                        @foreach (['linkedin_url' => 'LinkedIn', 'facebook_url' => 'Facebook', 'portfolio_url' => 'Portfolio / Website'] as $field => $label)
+                            @if ($application->{$field})
+                                <li class="fs-13">
+                                    <span class="text-muted">{{ $label }}:</span>
+                                    <a href="{{ $application->{$field} }}" target="_blank" rel="noopener noreferrer">{{ $application->{$field} }}</a>
+                                </li>
+                            @endif
+                        @endforeach
+                    </ul>
+                </x-admin.card>
+            @endif
+
+            <x-admin.card title="সম্মতি">
+                <ul class="list-unstyled mb-0 fs-13 d-flex flex-column gap-1">
+                    @foreach (['accuracy_declaration' => 'তথ্যের সঠিকতার ঘোষণা', 'privacy_consent' => 'গোপনীয়তা নীতিতে সম্মতি', 'contact_consent' => 'যোগাযোগের অনুমতি'] as $field => $label)
+                        <li>
+                            <i class="ti {{ $application->{$field} ? 'ti-circle-check text-success' : 'ti-circle-x text-muted' }} me-1" aria-hidden="true"></i>{{ $label }}
+                        </li>
+                    @endforeach
+                </ul>
+            </x-admin.card>
+
+            @if ($application->internal_note)
                 <x-admin.card title="অভ্যন্তরীণ নোট" subtitle="পাবলিকভাবে প্রকাশিত হয় না।">
-                    <p class="mb-0">{{ $application->interview_notes }}</p>
+                    <p class="mb-0" style="white-space: pre-line;">{{ $application->internal_note }}</p>
                 </x-admin.card>
             @endif
 
@@ -54,8 +145,8 @@
                         <x-admin.form-select name="status" label="নতুন স্ট্যাটাস" :options="$statuses"
                             :value="$application->status" :placeholder="null" required />
 
-                        <x-admin.form-textarea name="interview_notes" label="অভ্যন্তরীণ নোট (ঐচ্ছিক)" :rows="3"
-                            :value="$application->interview_notes" />
+                        <x-admin.form-textarea name="internal_note" label="অভ্যন্তরীণ নোট (ঐচ্ছিক)" :rows="3"
+                            :value="$application->internal_note" />
 
                         <button type="submit" class="btn btn-primary w-100">
                             <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>হালনাগাদ করুন

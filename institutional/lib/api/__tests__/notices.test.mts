@@ -86,6 +86,7 @@ test("getNotice accepts a detail with an action, attachment and live recruitment
           slug: "volunteer-ab12", title: "স্বেচ্ছাসেবী", employment_type_label: "স্বেচ্ছাসেবী", is_volunteer: true,
           volunteer_note: "এটি একটি স্বেচ্ছাসেবী সুযোগ; বর্তমানে আর্থিক পারিশ্রমিকের প্রতিশ্রুতি নেই।", salary_range: null,
           application_mode: "rolling", application_mode_label: "চলমান", opening_date: "2026-09-15", application_deadline: null, is_open: true,
+          accepts_applications: true, apply_path: "/recruitment/volunteer-ab12/apply",
         },
         updated_at: "2026-09-15T04:00:00+00:00",
       },
@@ -97,7 +98,27 @@ test("getNotice accepts a detail with an action, attachment and live recruitment
   if (result.ok) {
     assert.equal(result.data.recruitment?.salary_range, null);
     assert.equal(result.data.action?.label, "স্বেচ্ছাসেবী হিসেবে যুক্ত হোন");
+    // The apply route is resolved by the ERP, never composed in the page.
+    assert.equal(result.data.recruitment?.apply_path, "/recruitment/volunteer-ab12/apply");
   }
+});
+
+test("getNotice rejects a recruitment block that predates the application form", async () => {
+  const recruitment = {
+    slug: "volunteer-ab12", title: "স্বেচ্ছাসেবী", employment_type_label: "স্বেচ্ছাসেবী", is_volunteer: true,
+    volunteer_note: null, salary_range: null, application_mode: "rolling", application_mode_label: "চলমান",
+    opening_date: "2026-09-15", application_deadline: null, is_open: true,
+  };
+  globalThis.fetch = mock.fn(async () =>
+    jsonResponse({
+      data: {
+        ...summary, body: "B", organization_unit: null, action: null, cover_image_url: null, attachment: null,
+        updated_at: null, recruitment,
+      },
+    }),
+  ) as unknown as typeof fetch;
+
+  assert.equal((await getNotice("volunteer-team-call")).ok, false);
 });
 
 test("getNotice rejects a detail whose recruitment block is malformed", async () => {
@@ -121,6 +142,9 @@ test("getJobPosting requires the volunteer/rolling contract fields", async () =>
     volunteer_note: "এটি একটি স্বেচ্ছাসেবী সুযোগ; বর্তমানে আর্থিক পারিশ্রমিকের প্রতিশ্রুতি নেই।", salary_range: null,
     application_mode: "rolling", application_mode_label: "চলমান", opening_date: "2026-09-15", application_deadline: null,
     published_at: "2026-09-15T04:00:00+00:00", notice_slug: "volunteer-team-call",
+    accepts_applications: true, apply_path: "/recruitment/volunteer-ab12/apply",
+    notice_action: { url: "https://chat.whatsapp.com/example", label: "স্বেচ্ছাসেবী হিসেবে যুক্ত হোন" },
+    skill_options: [{ key: "fundraising", label: "Fundraising / Donation / Sponsorship" }],
   };
   globalThis.fetch = mock.fn(async () => jsonResponse({ data: job })) as unknown as typeof fetch;
   assert.equal((await getJobPosting("volunteer-ab12")).ok, true);
@@ -128,6 +152,16 @@ test("getJobPosting requires the volunteer/rolling contract fields", async () =>
   // The pre-2026-09-15 shape (no is_volunteer) must be rejected, not half-rendered.
   globalThis.fetch = mock.fn(async () => jsonResponse({ data: without(job, "is_volunteer") })) as unknown as typeof fetch;
   assert.equal((await getJobPosting("volunteer-ab12")).ok, false);
+
+  // So must a payload from before the application form existed.
+  globalThis.fetch = mock.fn(async () => jsonResponse({ data: without(job, "accepts_applications") })) as unknown as typeof fetch;
+  assert.equal((await getJobPosting("volunteer-ab12")).ok, false);
+
+  // A closed form is a valid payload — it simply carries no route or catalogue.
+  globalThis.fetch = mock.fn(async () =>
+    jsonResponse({ data: { ...job, accepts_applications: false, apply_path: null, skill_options: null } }),
+  ) as unknown as typeof fetch;
+  assert.equal((await getJobPosting("volunteer-ab12")).ok, true);
 });
 
 test("applicationWindowLabel never invents a deadline", () => {

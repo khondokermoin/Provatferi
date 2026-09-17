@@ -131,6 +131,11 @@ class RecruitmentController extends Controller
             $data['salary_range'] = null;
         }
 
+        // An unticked checkbox is absent from the request entirely, so the
+        // flag is read from the request rather than the validated payload —
+        // otherwise turning it off would silently leave it on.
+        $data['accepts_applications'] = $request->boolean('accepts_applications');
+
         unset($data['publish_to_notice_board']);
 
         return $data;
@@ -168,6 +173,7 @@ class RecruitmentController extends Controller
             'opening_date' => ['nullable', 'date'],
             'application_mode' => ['nullable', Rule::in(array_keys(JobPosting::APPLICATION_MODES))],
             'application_deadline' => ['nullable', 'date', 'after_or_equal:opening_date'],
+            'accepts_applications' => ['nullable', 'boolean'],
             'status' => ['required', Rule::in(array_keys(JobPosting::STATUSES))],
             'publish_to_notice_board' => ['nullable', 'boolean'],
         ];

@@ -28,12 +28,18 @@ class JobPosting extends Model
 
     protected $fillable = [
         'title', 'slug', 'summary', 'organization_unit_id', 'department', 'description', 'requirements',
-        'employment_type', 'salary_range', 'opening_date', 'application_mode', 'application_deadline', 'status', 'created_by', 'published_at',
+        'employment_type', 'salary_range', 'opening_date', 'application_mode', 'application_deadline',
+        'accepts_applications', 'status', 'created_by', 'published_at',
     ];
 
     protected function casts(): array
     {
-        return ['opening_date' => 'date', 'application_deadline' => 'date', 'published_at' => 'datetime'];
+        return [
+            'opening_date' => 'date',
+            'application_deadline' => 'date',
+            'published_at' => 'datetime',
+            'accepts_applications' => 'boolean',
+        ];
     }
 
     public function applications(): HasMany
@@ -69,5 +75,24 @@ class JobPosting extends Model
     public function applicationModeLabel(): string
     {
         return self::APPLICATION_MODES[$this->application_mode] ?? self::APPLICATION_MODES['fixed'];
+    }
+
+    /**
+     * §19: a closed posting stops taking applications even if the box is
+     * still ticked, so this is the single question every caller asks —
+     * the public contract, the intake endpoint and the admin UI included.
+     */
+    public function acceptsApplications(): bool
+    {
+        return $this->status === 'open' && (bool) $this->accepts_applications;
+    }
+
+    /**
+     * The website form's path, derived from the posting itself so no notice
+     * content or front-end constant ever hardcodes an apply URL.
+     */
+    public function applyPath(): ?string
+    {
+        return $this->acceptsApplications() ? "/recruitment/{$this->slug}/apply" : null;
     }
 }
