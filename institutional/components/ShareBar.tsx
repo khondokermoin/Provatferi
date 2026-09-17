@@ -1,23 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { shareTargets } from "@/lib/share";
 
 /**
+ * Whether this device can open a native share sheet. Read through
+ * useSyncExternalStore rather than set from an effect: the server snapshot is
+ * always false, so the server and the first client render agree (no hydration
+ * mismatch), and the real value is available from the first commit without a
+ * setState round trip. `subscribe` is a no-op because the capability cannot
+ * change during a session.
+ */
+const subscribeToNothing = () => () => {};
+const hasNativeShare = () => typeof navigator !== "undefined" && typeof navigator.share === "function";
+const noNativeShareOnServer = () => false;
+
+/**
  * §11/§12: a share control that prefers the device's own share sheet and
- * falls back to an explicit menu. `navigator.share` is detected in an effect
- * rather than during render — the server has no navigator, and branching on
- * it while rendering would hydrate a different tree than the server sent.
+ * falls back to an explicit menu.
  */
 export default function ShareBar({ url, title }: { url: string; title: string }) {
-  const [canNativeShare, setCanNativeShare] = useState(false);
+  const canNativeShare = useSyncExternalStore(subscribeToNothing, hasNativeShare, noNativeShareOnServer);
   const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setCanNativeShare(typeof navigator !== "undefined" && typeof navigator.share === "function");
-  }, []);
 
   useEffect(() => {
     if (!menuOpen) return;
