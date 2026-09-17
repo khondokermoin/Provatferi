@@ -204,38 +204,55 @@ h1, h2, h3, h4 { color: var(--heading); }
 .nav-dropdown { display: none; }
 .nav-group.is-open .nav-dropdown { display: flex; flex-direction: column; }
 /*
- * PUB-026 (real fix): the opaque-surface pass above fixed the original
- * text-bleed-through bug, but `position: absolute` takes the dropdown out
- * of document flow — so opening it never pushed the hero section down, and
- * the panel's own height (~230px) genuinely overlapped the hero H1 by
- * ~100px at every desktop width (measured live: dropdown bottom edge at
- * ~437px, hero H1 starting at ~337px). An opaque background hides the
- * text-bleed but does nothing to the geometry; the panel was still
- * physically sitting on top of the heading. The comment this replaced
- * claimed "never collides with the header" — true, but the collision was
- * always with the *hero*, one section down, not the header.
+ * PUB-027: opening a desktop dropdown must not change the header's geometry.
  *
- * Fixed at the geometry level instead: the dropdown is back in normal flow
- * (mobile already does this — .nav-dropdown is `position: static` below
- * 744px and has never had this bug). `align-self: flex-start` on the nav's
- * direct children stops Bootstrap-style stretch from also inflating every
- * *other* nav link to the open dropdown's height (align-items: stretch is
- * still needed for other layout, so it's overridden per-child instead of
- * removed). Opening a dropdown now grows the header in-flow and pushes the
- * hero down by exactly the dropdown's real height — there is no width at
- * which the two rectangles can overlap, because the hero literally isn't
- * there yet until the dropdown's box ends.
+ * The previous pass took the panel OUT of absolute positioning and put it
+ * back into normal flow, to stop it overlapping the hero. That removed the
+ * overlap but created a worse bug, which is the one the owner screenshotted:
+ * an in-flow panel grows .nav-group, which grows .main-navigation, which
+ * grows .nav-border and .site-header — so the whole page shifted down on
+ * open, and the grown header box showed as a tall blank block beside the
+ * 244px panel (the box had the panel's height but only the panel's width was
+ * filled).
+ *
+ * A dropdown's correct architecture is the one restored here: the panel is
+ * out of flow and anchored to its own .nav-group, which is already
+ * `position: relative`, so the header's height is the nav row's height
+ * whether the panel is open or shut — no push-down, no blank block.
+ *
+ * Floating over the hero is then correct behaviour rather than the old bug.
+ * What made it a bug before was transparency, not geometry: the panel is
+ * opaque (var(--surface)), bordered and shadowed, and it paints above page
+ * content because .site-header already establishes a stacking context at
+ * z-index 21 while .site-main establishes none. No ancestor sets `overflow`,
+ * so nothing clips it.
+ *
+ * `align-self: flex-start` is kept purely for vertical alignment — it keeps
+ * each item's active underline on the nav row's baseline under
+ * `align-items: stretch`. It no longer has anything to do with height.
+ *
+ * Mobile is deliberately NOT this: below 744px the panel stays
+ * `position: static` and expands in flow as an accordion inside the open
+ * menu panel (see the max-width: 743px block).
  */
 @media (min-width: 744px) {
   .main-navigation > a,
   .main-navigation > .nav-group { align-self: flex-start; }
-  /* Nav polish pass: the panel used to sit under a heavy 32px shadow that
-     read as a floating card over a page it is actually in flow with. It now
-     reads as an extension of the header — same surface, a hairline border,
-     and a shadow just deep enough to separate it from the content below.
-     Item padding grew to match the 14px rhythm of the rest of the nav, and
-     every item spans the panel so their hover targets are the same width. */
-  .nav-dropdown { min-width: 244px; background: var(--surface); border: 1px solid var(--border); border-top-color: transparent; border-radius: 0 0 10px 10px; box-shadow: 0 10px 22px rgba(20, 15, 10, .13); padding: 6px; }
+  .nav-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 30;
+    min-width: 244px;
+    /* Never wider than the viewport it must sit inside. */
+    max-width: min(320px, calc(100vw - 24px));
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top-color: transparent;
+    border-radius: 0 0 10px 10px;
+    box-shadow: 0 10px 22px rgba(20, 15, 10, .13);
+    padding: 6px;
+  }
   .main-navigation .nav-dropdown a { display: block; width: 100%; padding: 10px 14px; border-radius: 6px; border-bottom: none; font-size: 14px; line-height: 1.5; min-height: 0; color: var(--body); }
   .main-navigation .nav-dropdown a:hover { background: var(--soft); color: var(--accent-text); }
   .main-navigation .nav-dropdown a[aria-current="page"] { background: var(--soft); color: var(--accent-text); font-weight: 600; }
