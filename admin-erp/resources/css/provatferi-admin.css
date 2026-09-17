@@ -317,6 +317,52 @@ select:focus-visible {
 }
 
 /*
+ * CHECKBOX-001 (2026-09-18): the brand fill for a CHECKED .form-check-input
+ * already exists further down this file (see the app.min.css blue override) —
+ * this block deliberately does NOT repeat it. What was still missing:
+ *
+ *  - `accent-color` for native checkboxes/radios that never get Bootstrap's
+ *    .form-check-input class (filters, one-off forms), which otherwise render
+ *    the browser default;
+ *  - the indeterminate state, which Bootstrap paints from its own blue;
+ *  - a visible-but-legible disabled treatment.
+ *
+ * The native input is kept throughout: no appearance: none, no pseudo-element
+ * checkmark, so semantics, keyboard behaviour and the checkmark glyph stay
+ * the browser's. Focus stays with the outline rule above — FORM-002 explains
+ * why a small box keeps its ring rather than an in-border tint.
+ */
+input[type="checkbox"],
+input[type="radio"],
+.form-check-input {
+  accent-color: var(--ct-primary);
+}
+.form-check-input:indeterminate {
+  background-color: var(--ct-primary);
+  border-color: var(--ct-primary);
+}
+.form-check-input:disabled,
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+.form-check-input:disabled ~ .form-check-label {
+  opacity: .75;
+}
+
+/*
+ * Owner decision 2026-09-18: textareas are not user-resizable anywhere. The
+ * native bottom-right handle is removed and the height stays a design
+ * decision; width is unaffected because .form-control is already 100%, so
+ * nothing breaks on a narrow screen.
+ */
+textarea,
+textarea.form-control {
+  resize: none;
+}
+
+/*
  * An error state has to stay louder than ordinary focus, and must never sit
  * a red border next to an orange ring — two competing signals on one field.
  * So an invalid field keeps the danger color in BOTH layers while focused.
