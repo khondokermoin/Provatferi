@@ -56,13 +56,10 @@ export default async function VolunteerApplyPage({ params }: { params: Promise<{
       </header>
 
       <section className="content-section">
-        <VolunteerApplicationForm
-          slug={job.slug}
-          jobTitle={job.title}
-          skills={job.skill_options}
-          communityUrl={job.notice_action?.url ?? null}
-          noticeSlug={job.notice_slug}
-        />
+        {/* The form no longer owns a success panel — a successful submission
+            redirects to apply/success, which reads the community group from
+            the posting itself, so neither prop belongs here any more. */}
+        <VolunteerApplicationForm slug={job.slug} jobTitle={job.title} skills={job.skill_options} />
       </section>
     </article>
   );

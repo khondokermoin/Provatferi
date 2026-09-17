@@ -603,7 +603,20 @@ h1, h2, h3, h4 { color: var(--heading); }
   padding: 12px 14px;
   min-height: 48px;
 }
-.form-field textarea { min-height: 96px; resize: vertical; }
+/* §1: no manual resizing. The native handle is gone and the height is a
+   design decision rather than something a visitor drags. Width stays fluid —
+   the control is a flex child at 100% — so nothing breaks at 320px. Two
+   deliberate heights: a medium answer and a long one. */
+.form-field textarea {
+  width: 100%;
+  height: 132px;
+  min-height: 132px;
+  resize: none;
+  overflow-y: auto;
+  line-height: 1.7;
+}
+.form-field textarea.textarea-long { height: 168px; min-height: 168px; }
+.form-field textarea.textarea-short { height: 96px; min-height: 96px; }
 /* Mirrors FORM-002 in admin-erp's provatferi-admin.css — the owner's call is
    that a focused field shows one thin border and nothing outside it. The
    offset outline this used to paint read as a second border around the box.
@@ -625,8 +638,56 @@ h1, h2, h3, h4 { color: var(--heading); }
 }
 .form-field-help { font-size: 13px; color: var(--muted); margin: 0; }
 .form-field-error { font-size: 13px; font-weight: 600; color: var(--danger); margin: 0; }
+
+/* §2: the invalid state belongs to the field boundary, exactly like focus —
+   a danger border plus a 1px inset ring, never an outer glow or a second
+   border outside the box. */
+.form-field input[aria-invalid="true"],
+.form-field select[aria-invalid="true"],
+.form-field textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+  box-shadow: inset 0 0 0 1px var(--danger);
+}
+.form-field input[aria-invalid="true"]:focus,
+.form-field select[aria-invalid="true"]:focus,
+.form-field textarea[aria-invalid="true"]:focus {
+  border-color: var(--danger);
+  box-shadow: inset 0 0 0 1px var(--danger);
+}
+
+/* §6: live character count, only on the long free-text answers. */
+.form-field-counter { align-self: flex-end; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.form-field-counter[data-near="true"] { color: var(--danger); font-weight: 600; }
+
 .form-checkbox-field { display: flex; align-items: flex-start; gap: 10px; }
 .form-checkbox-field label { font-size: 14px; color: var(--body); font-weight: 500; }
+
+/* §3/§4: ONE brand checkbox for every form on the site — public forms,
+   consent boxes, skill cards and filters alike. `accent-color` repaints the
+   native control's fill and checkmark in brand orange while keeping the real
+   input: native semantics, native keyboard behaviour, native checkmark, no
+   hand-drawn pseudo-element that could drift out of sync, and no blue
+   browser default left anywhere. */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--brand-orange);
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible {
+  outline: 3px solid var(--accent-text);
+  outline-offset: 2px;
+}
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled { cursor: not-allowed; opacity: .55; }
+.form-checkbox-field input:disabled ~ label,
+.checkbox-chip input:disabled ~ span { color: var(--muted); }
+
+/* §7: a submitting button must look unavailable without losing its label. */
+.button:disabled { opacity: .62; cursor: not-allowed; transform: none; }
+.button[aria-busy="true"] { cursor: progress; }
 /* Off-screen, never focusable — a sighted or keyboard user never encounters
    this; a scripted bot filling every field on the page still finds it. */
 .honeypot-field { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -637,22 +698,65 @@ h1, h2, h3, h4 { color: var(--heading); }
    chip grid rather than eighteen stacked checkboxes. Same tokens as above. */
 .volunteer-form { max-width: 780px; gap: 26px; }
 .form-intro { font-size: 15px; color: var(--muted); margin: 0; }
-.form-section { display: flex; flex-direction: column; gap: 18px; margin: 0; padding: 22px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); }
+/* `min-width: 0` is load-bearing, not tidying: a <fieldset> computes
+   `min-width: min-content` by default, so it refuses to shrink below its
+   content's intrinsic minimum and drags the whole form wider than the
+   viewport. Measured at 320px: the section sat at 346px with its right edge
+   at 362, and every input inside inherited a 318px box starting off-screen —
+   42px of horizontal overflow. Clearing the fieldset's minimum (and capping
+   it at the container) is what actually lets the form obey a 320px screen. */
+.form-section { display: flex; flex-direction: column; gap: 18px; margin: 0; padding: 22px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); min-width: 0; max-width: 100%; }
+/* Same reason, one level down: a grid or flex child with content wider than
+   its track will not shrink unless its own minimum is cleared. */
+.form-field, .form-grid, .checkbox-grid, .checkbox-chip { min-width: 0; }
+.form-field input, .form-field select, .form-field textarea { max-width: 100%; }
 .form-section > legend { padding: 0 8px; font-size: 14px; font-weight: 700; color: var(--heading); }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(224px, 1fr)); gap: 18px; }
 .form-field-legend { font-size: 14px; font-weight: 600; color: var(--heading); }
 .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 8px; }
-.checkbox-chip { display: flex; align-items: flex-start; gap: 9px; padding: 11px 13px; border: 1.5px solid var(--border-strong); border-radius: 8px; background: var(--card); font-size: 14px; line-height: 1.45; cursor: pointer; }
+/* §5: the whole card is the control. The <label> wraps its own input, so a
+   click anywhere toggles once; these rules only make that obvious. */
+.checkbox-chip { display: flex; align-items: flex-start; gap: 9px; padding: 11px 13px; border: 1.5px solid var(--border-strong); border-radius: 8px; background: var(--card); font-size: 14px; line-height: 1.45; cursor: pointer; transition: border-color .15s, background .15s; }
 .checkbox-chip:hover { border-color: var(--brand-orange); }
 .checkbox-chip input { margin-top: 2px; flex: none; }
+/* Keyboard users get the same signal as hover, on the card rather than just
+   the 18px box. */
+.checkbox-chip:focus-within { border-color: var(--brand-orange); box-shadow: inset 0 0 0 1px var(--brand-orange); }
+/* Selected state stays a tint, not a slab of orange, and the text colour
+   (not its weight) changes so nothing reflows on toggle. */
 .checkbox-chip:has(input:checked) { border-color: var(--brand-orange); background: var(--soft); }
+.checkbox-chip:has(input:checked) span { color: var(--heading); }
 
-/* §23 — shown in place of the form, no reload, no separate URL to share. */
-.application-success { display: flex; flex-direction: column; gap: 12px; max-width: 680px; padding: 26px; border: 1px solid var(--border); border-left: 3px solid var(--brand-orange); border-radius: 12px; background: var(--card); }
-.application-success h2 { margin: 0; font-size: 20px; line-height: 1.4; }
-.application-success p { margin: 0; color: var(--muted); }
-.application-success-no code { font-size: 14px; color: var(--heading); }
-.application-success-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 6px; }
+/* Summary shown above the form when a submission comes back rejected. */
+.form-summary { padding: 12px 14px; border: 1.5px solid var(--danger); border-radius: 8px; background: var(--card); font-size: 14px; font-weight: 600; color: var(--danger); }
+
+/* ---------- §8/§9: the volunteer application success page ----------
+   Its own route, so a refresh cannot resubmit. Deliberately quiet: the
+   confirmation leads, the WhatsApp invitation sits under it as a real but
+   secondary step, and nothing on the page identifies the applicant. */
+.apply-success { max-width: 660px; }
+.apply-success-badge {
+  display: inline-flex; align-items: center; gap: 8px; margin: 0 0 18px;
+  padding: 6px 13px; border-radius: 999px;
+  background: var(--soft); border: 1px solid var(--brand-orange);
+  font-size: 13px; font-weight: 700; color: var(--accent-text);
+}
+.apply-success h1 { font-size: clamp(24px, 3.4vw, 34px); font-weight: 700; line-height: 1.35; letter-spacing: -.015em; margin: 0 0 16px; text-wrap: balance; }
+.apply-success-lead { font-size: 18px; line-height: 1.75; color: var(--heading); margin: 0 0 14px; }
+.apply-success p { max-width: 62ch; line-height: 1.8; color: var(--muted); }
+.apply-success-community {
+  margin: 26px 0 22px; padding: 20px 22px;
+  border: 1px solid var(--border); border-left: 3px solid var(--brand-orange);
+  border-radius: 12px; background: var(--card);
+}
+.apply-success-community p { margin: 0 0 14px; color: var(--body); }
+.apply-success-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+.apply-success-footnote { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 14px; }
+
+@media (max-width: 480px) {
+  .apply-success-community { padding: 16px; }
+  .apply-success-community .button, .apply-success-actions .button { width: 100%; }
+}
 
 /* ---------- Share control on a notice (§11-12) ---------- */
 .share-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border); }
@@ -685,6 +789,27 @@ h1, h2, h3, h4 { color: var(--heading); }
   .checkbox-grid { grid-template-columns: 1fr; }
   .application-success { padding: 20px; }
   .application-success-actions .button { width: 100%; }
+}
+/* §15: at 320–360px the section padding plus the page gutter left the grid's
+   232px minimum wider than the viewport, which pushed the page sideways
+   (measured 52px of overflow at 320px). Below 430px the form sheds its inner
+   padding and every grid collapses to one column, so nothing has a minimum
+   width larger than the screen. */
+@media (max-width: 430px) {
+  .form-section { padding: 13px; border-radius: 10px; }
+  .form-section > legend { padding: 0 4px; }
+  .form-grid { grid-template-columns: 1fr; gap: 14px; }
+  .checkbox-grid { grid-template-columns: 1fr; gap: 6px; }
+  .checkbox-chip { padding: 10px 11px; }
+  .volunteer-form { gap: 20px; }
+  .form-field input[type="text"],
+  .form-field input[type="email"],
+  .form-field input[type="tel"],
+  .form-field input[type="url"],
+  .form-field input[type="file"],
+  .form-field select,
+  .form-field textarea { padding: 11px 12px; }
+  .volunteer-form > button[type="submit"] { width: 100%; }
 }
 @media (max-width: 480px) {
   /* Keeps the menu inside the viewport when the button sits near the right edge. */
