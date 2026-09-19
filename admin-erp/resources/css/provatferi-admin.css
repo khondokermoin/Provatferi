@@ -22,9 +22,86 @@
  * see ADMIN_AUTH_PROFILE_UI_AUDIT.md §10 for the pairing table this closes.
  */
 
+/*
+ * THEME MOTION (2026-09-18) — these two values are the shared contract with
+ * the public site's institutional/app/globals.css. Same duration, same easing,
+ * so a light/dark change feels identical whichever product you are in. Keep
+ * them in step; they are the whole of "consistent motion behaviour" between
+ * the two codebases, which cannot share a stylesheet.
+ *
+ * 280ms sits in the middle of the 250-400ms band the owner asked for: long
+ * enough to read as a fade rather than a cut, short enough not to feel slow on
+ * a repeat toggle. The easing is the standard-decelerate curve — no bounce, no
+ * overshoot. box-shadow is included so raised surfaces settle with everything
+ * else instead of snapping a frame early.
+ */
+:root {
+  --theme-transition-duration: 280ms;
+  --theme-transition-ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /*
+   * CIRCULAR THEME WIPE — the same measured reference values as the public
+   * site's globals.css (ease-in-out, 300ms, fitted from four transitions in the
+   * owner's reference capture). Keep the two in step by hand; the codebases
+   * cannot share a stylesheet.
+   */
+  --wipe-duration: 300ms;
+  --wipe-ease: cubic-bezier(0.42, 0, 0.58, 1);
+
+  /*
+   * One 30fps frame. The reference holds the reveal at the control's own size
+   * for exactly this long before the circle travels, and only on
+   * light -> dark. The expansion duration above is unchanged; this is a hold
+   * in front of it.
+   */
+  --wipe-lead-in: 33ms;
+}
+
+/*
+ * Cancel the default cross-fade so the old theme stays fully opaque beneath
+ * while the new one is revealed by a circle growing from the clicked control
+ * (origin and radius set at runtime by public/js/provatferi-theme.js).
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) { z-index: 1; }
+::view-transition-new(root) { z-index: 2; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* `both`: the backwards half holds the `from` keyframe through the delay,
+   * so the new theme shows inside the control-sized circle for the lead-in
+   * beat without animating the control itself. */
+  :root.theme-wipe::view-transition-new(root) {
+    animation: pf-theme-wipe var(--wipe-duration) var(--wipe-ease) var(--wipe-delay, 0ms) both;
+  }
+}
+
+@keyframes pf-theme-wipe {
+  from { clip-path: circle(var(--wipe-r0, 0px) at var(--wipe-x) var(--wipe-y)); }
+  to { clip-path: circle(var(--wipe-r) at var(--wipe-x) var(--wipe-y)); }
+}
+
+/* Suppress the colour fade while the wipe runs; it would surface as a tail
+ * when the snapshots are removed. It still serves the fallback path and
+ * OS-driven changes. */
+:root.theme-wipe *,
+:root.theme-wipe *::before,
+:root.theme-wipe *::after {
+  transition: none !important;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   *, *::before, *::after {
-    transition: background-color 220ms ease, border-color 220ms ease, color 220ms ease, fill 220ms ease, stroke 220ms ease;
+    transition:
+      background-color var(--theme-transition-duration) var(--theme-transition-ease),
+      border-color var(--theme-transition-duration) var(--theme-transition-ease),
+      color var(--theme-transition-duration) var(--theme-transition-ease),
+      fill var(--theme-transition-duration) var(--theme-transition-ease),
+      stroke var(--theme-transition-duration) var(--theme-transition-ease),
+      box-shadow var(--theme-transition-duration) var(--theme-transition-ease);
   }
 }
 @media (prefers-reduced-motion: reduce) {

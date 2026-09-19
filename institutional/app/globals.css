@@ -1,17 +1,66 @@
 @import "tailwindcss";
 
 /*
- * Design system V2 — institutional, light-first.
+ * Design system V2 — institutional.
  *
- * Light is the deliberate zero-JS default (no `prefers-color-scheme` here on
- * purpose): a visitor with OS dark mode enabled still sees light on first
- * visit. Dark is fully supported but opt-in only, via [data-theme="dark"]
- * set by ThemeToggle + persisted to localStorage. See
- * COLOR_AND_LOGO_GUIDELINES.md changelog for why this superseded the
- * earlier auto-OS-detection approach.
+ * Both themes are first-class and selected by [data-theme] on <html>, which the
+ * pre-paint script in app/layout.tsx always sets to a concrete light|dark from
+ * "explicit choice (localStorage) > OS preference". That is why there is no
+ * root-level `prefers-color-scheme` block here: the resolution happens once, in
+ * one place, instead of being split between CSS and JS where the two can
+ * disagree. These light tokens are also the no-JS fallback, since without the
+ * script the attribute is absent.
+ *
+ * 2026-09-18 (owner decision): the OS preference is honoured on a first visit,
+ * REVERSING the light-first default recorded in COLOR_AND_LOGO_GUIDELINES.md
+ * 1.1 (2026-09-08). An explicit choice still wins over the OS in both
+ * directions. See that file's changelog entry 1.4.
  */
 :root {
   color-scheme: light;
+
+  /*
+   * THEME MOTION — the shared contract with the admin panel's
+   * admin-erp/resources/css/provatferi-admin.css, which declares the same two
+   * values. Same duration, same easing, so a light/dark change feels identical
+   * in either product; the two codebases cannot share a stylesheet, so keep
+   * these in step by hand.
+   *
+   * 280ms sits mid-band of the 250-400ms target: long enough to read as a fade
+   * rather than a cut, short enough not to drag on a repeat toggle. The easing
+   * is standard-decelerate — no bounce, no overshoot.
+   */
+  --theme-transition-duration: 280ms;
+  --theme-transition-ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /*
+   * CIRCULAR THEME WIPE — measured from the owner's reference capture
+   * (Screen Recording 2026-09-17 172603.mp4), not estimated.
+   *
+   * Four transitions were analysed frame-by-frame at 30fps. Radius-vs-time was
+   * fitted against candidate curves with both start time and duration
+   * grid-searched, so a sub-frame phase offset could not bias the result:
+   *
+   *   LIGHT -> DARK  x2 : ease-in-out, 300ms (RMSE 34.6 / 34.7 px)
+   *   DARK  -> LIGHT x2 : ease-in-out, 295-330ms (RMSE 25.3 / 13.4 px)
+   *
+   * Linear fitted 2-3x worse and every ease-out variant 2-5x worse, so the
+   * accelerate-then-decelerate shape is not a judgement call. Per-frame radius
+   * deltas (207, 281, 285, 232, 175, 131) show the mid-curve speed peak
+   * directly.
+   */
+  --wipe-duration: 300ms;
+  --wipe-ease: cubic-bezier(0.42, 0, 0.58, 1);
+
+  /*
+   * Lead-in before the circle travels. The reference holds the reveal at the
+   * control's own size for exactly one captured frame at 30fps (coverage
+   * pinned at 1.0%, radius pinned at 79px across frames 52-53 and 135-136)
+   * and only on light -> dark. 33ms is that one frame. The expansion itself
+   * is unchanged at --wipe-duration; this is a hold in front of it, not a
+   * slowdown of it.
+   */
+  --wipe-lead-in: 33ms;
 
   /* Surfaces */
   --bg: #fbf9f4;
@@ -119,16 +168,84 @@
 /*
  * Smooth light/dark fade. Applies broadly rather than to a hand-picked list of
  * surfaces, since every element's background/border/text color is theme-driven
- * via CSS variables. Elements with their own transition (e.g. .button's hover
- * transform) simply override this via normal specificity. The pre-paint theme
- * script in layout.tsx sets the attribute before first render, so this never
- * fires as a flash on load — only on an explicit toggle. The existing
- * prefers-reduced-motion block below disables this with !important, so it
- * never overrides that preference.
+ * via CSS variables — that is what keeps page, header, cards, tables, inputs,
+ * dropdowns and modals fading together instead of in visible stages. Elements
+ * with their own transition (e.g. .button's hover transform) simply override
+ * this via normal specificity. The pre-paint theme script in layout.tsx sets
+ * the attribute before first render, so this never fires as a flash on load —
+ * only on an explicit toggle.
+ *
+ * Only colour-ish properties are listed. box-shadow is included so raised
+ * surfaces settle with everything else rather than snapping a frame early;
+ * transform and opacity are deliberately NOT here — they belong to the few
+ * controls that actually move (the theme switch's thumb and icons), and a
+ * global transform transition would animate unrelated hover lifts.
+ *
+ * Gated on `no-preference` rather than relying on the reduce block below to
+ * undo it, matching the admin panel's stylesheet exactly.
  */
-*, *::before, *::after {
-  transition: background-color 220ms ease, border-color 220ms ease, color 220ms ease, fill 220ms ease, stroke 220ms ease;
+@media (prefers-reduced-motion: no-preference) {
+  *, *::before, *::after {
+    transition:
+      background-color var(--theme-transition-duration) var(--theme-transition-ease),
+      border-color var(--theme-transition-duration) var(--theme-transition-ease),
+      color var(--theme-transition-duration) var(--theme-transition-ease),
+      fill var(--theme-transition-duration) var(--theme-transition-ease),
+      stroke var(--theme-transition-duration) var(--theme-transition-ease),
+      box-shadow var(--theme-transition-duration) var(--theme-transition-ease);
+  }
 }
+/*
+ * ---------- Circular theme wipe ----------
+ *
+ * The browser's default root transition is a cross-fade; both snapshots have
+ * their animation cancelled so the OLD theme stays fully opaque underneath
+ * while the NEW one is revealed by a growing circle on top. That is what the
+ * reference shows: outside the circle the page — including the toggle itself —
+ * is still entirely in the old theme, with no fade anywhere.
+ *
+ * The circle's centre and radius come from the clicked control at runtime
+ * (see ThemeToggle.tsx); nothing here is hardcoded to a corner, so the same
+ * rules work for the desktop header, the mobile header and any other origin.
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) { z-index: 1; }
+::view-transition-new(root) { z-index: 2; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /*
+   * `both` matters: the backwards half holds the `from` keyframe during the
+   * delay, so the new theme is already showing inside the control-sized
+   * circle while the rest of the page is still the old theme. That is the
+   * reference's lead-in, achieved without animating the control separately.
+   */
+  :root.theme-wipe::view-transition-new(root) {
+    animation: pf-theme-wipe var(--wipe-duration) var(--wipe-ease) var(--wipe-delay, 0ms) both;
+  }
+}
+
+@keyframes pf-theme-wipe {
+  from { clip-path: circle(var(--wipe-r0, 0px) at var(--wipe-x) var(--wipe-y)); }
+  to { clip-path: circle(var(--wipe-r) at var(--wipe-x) var(--wipe-y)); }
+}
+
+/*
+ * While the wipe runs, the global colour transition is suppressed. The live DOM
+ * sits beneath the snapshots, so a second 280ms fade there is invisible during
+ * the wipe but would surface as a tail once the snapshots are removed. The
+ * colour transition still does its job for the no-View-Transitions fallback and
+ * for OS-driven changes.
+ */
+:root.theme-wipe *,
+:root.theme-wipe *::before,
+:root.theme-wipe *::after {
+  transition: none !important;
+}
+
 /*
  * The texture rides on the root element so it covers the full scrollable page
  * and needs no extra layer or stacking-context tricks. body must stay
@@ -170,14 +287,106 @@ h1, h2, h3, h4 { color: var(--heading); }
 :root[data-theme="dark"] .logo-dark { display: block; }
 .masthead-motto { margin-left: auto; padding-right: 24px; border-right: 1px solid var(--border); font-size: 14px; line-height: 1.7; color: var(--muted); }
 .masthead-motto strong { color: var(--heading); font-weight: 600; }
-.theme-toggle { display: inline-flex; align-items: center; justify-content: center; position: relative; width: 44px; height: 44px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--muted); flex-shrink: 0; }
-.theme-toggle:hover { color: var(--accent-text); border-color: var(--border-strong); }
-/* Cross-fade rather than display:none/block, so the icon swap fades like the rest of the theme change. */
-.theme-toggle svg { width: 20px; height: 20px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); transition: opacity 220ms ease; }
-.theme-toggle .icon-sun { opacity: 0; }
-.theme-toggle .icon-moon { opacity: 1; }
-:root[data-theme="dark"] .theme-toggle .icon-moon { opacity: 0; }
-:root[data-theme="dark"] .theme-toggle .icon-sun { opacity: 1; }
+/*
+ * ---------- Day/night switch ----------
+ *
+ * Driven entirely by [data-theme] on <html>, never by React state, so the
+ * thumb is already in the right place in the pre-paint frame and cannot jump
+ * on hydration. ThemeToggle.tsx explains the full reasoning.
+ *
+ * Geometry: the 62px track is border-box, so its padding box is 60x32. A 26px
+ * thumb inset 3px occupies 3..29; sliding it to a matching 3px gap on the
+ * right means left edge 60-3-26 = 31, hence translateX(28px). The icon layer
+ * is the same 26px box and rides the same transform, so the icon travels
+ * inside the thumb rather than being covered by it.
+ */
+.theme-switch {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  width: 62px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--soft);
+  cursor: pointer;
+}
+/*
+ * Lifts the tap target to 46x46 for touch without changing the pill's size or
+ * the header's layout. The focus ring still follows the border box, so this
+ * never shows as an oversized outline.
+ */
+.theme-switch::after { content: ""; position: absolute; inset: -6px; }
+.theme-switch:hover { border-color: var(--accent-text); }
+
+.theme-switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  /* Explicit values, not --surface: in dark mode --surface (#24282e) sits too
+   * close to this track to read as a separate knob. --border-strong does. */
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(32, 27, 23, 0.26);
+}
+.theme-switch-icons {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 26px;
+  height: 26px;
+  color: var(--accent-text);
+  pointer-events: none;
+}
+/*
+ * transform and opacity are deliberately absent from the global theme
+ * transition, so they are declared here — the only moving parts. The colour
+ * properties have to be repeated because this class-level rule replaces the
+ * `*` rule rather than adding to it.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .theme-switch-thumb, .theme-switch-icons {
+    transition:
+      transform var(--theme-transition-duration) var(--theme-transition-ease),
+      background-color var(--theme-transition-duration) var(--theme-transition-ease),
+      box-shadow var(--theme-transition-duration) var(--theme-transition-ease),
+      color var(--theme-transition-duration) var(--theme-transition-ease);
+  }
+}
+
+/* Centred with margins, leaving transform free for the rotation below. */
+.theme-switch-icons svg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 15px;
+  height: 15px;
+  margin: -7.5px 0 0 -7.5px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .theme-switch-icons svg {
+    transition:
+      opacity var(--theme-transition-duration) var(--theme-transition-ease),
+      transform var(--theme-transition-duration) var(--theme-transition-ease);
+  }
+}
+/* A slight counter-rotation on the way out; no spin, no bounce. */
+.theme-switch-sun { opacity: 1; transform: rotate(0deg); }
+.theme-switch-moon { opacity: 0; transform: rotate(-35deg); }
+
+:root[data-theme="dark"] .theme-switch { background: var(--bg); }
+:root[data-theme="dark"] .theme-switch-thumb {
+  transform: translateX(28px);
+  background: var(--border-strong);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.38);
+}
+:root[data-theme="dark"] .theme-switch-icons { transform: translateX(28px); }
+:root[data-theme="dark"] .theme-switch-sun { opacity: 0; transform: rotate(35deg); }
+:root[data-theme="dark"] .theme-switch-moon { opacity: 1; transform: rotate(0deg); }
 
 .button { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 48px; padding: 14px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; transition: background .18s, transform .18s, border-color .18s; }
 .button span { font-size: 19px; line-height: 1; }
