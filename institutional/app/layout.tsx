@@ -84,16 +84,34 @@ const structuredData = [
 ];
 
 /**
- * Light is the deliberate default (see globals.css). This inline script runs
- * before paint so a visitor who previously chose dark doesn't see a flash of
- * light first — but a new visitor with OS dark mode enabled still gets light,
- * since we deliberately don't read prefers-color-scheme here.
+ * Pre-paint theme resolution. Runs before first paint, so there is never a
+ * flash of the wrong theme — neither light-then-dark nor dark-then-light.
+ *
+ * Precedence: explicit user choice (localStorage) > OS preference. This is the
+ * same rule and the same shape as the admin panel's snippet in
+ * layouts/admin.blade.php; only the storage key differs, because the two live
+ * on different origins and cannot share storage anyway.
+ *
+ * 2026-09-18 (owner decision): the OS preference is now honoured on a first
+ * visit. This REVERSES the earlier light-first default, which deliberately
+ * ignored prefers-color-scheme — a visitor whose OS is in dark mode now sees
+ * dark immediately instead of light. An explicit choice still always wins, so
+ * anyone who has picked a theme is unaffected.
+ *
+ * The attribute is always set to a concrete value (never left absent), which
+ * is why globals.css can drive everything from [data-theme] alone and needs no
+ * prefers-color-scheme block of its own. With JS unavailable the attribute is
+ * missing and the :root light tokens apply, which is a correct fallback.
  */
 const themeInitScript = `
-try {
-  var t = localStorage.getItem('provatferi-theme');
-  if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
-} catch (e) {}
+(function () {
+  var t = null;
+  try { t = localStorage.getItem('provatferi-theme'); } catch (e) {}
+  if (t !== 'light' && t !== 'dark') {
+    t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  document.documentElement.setAttribute('data-theme', t);
+})();
 `;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
