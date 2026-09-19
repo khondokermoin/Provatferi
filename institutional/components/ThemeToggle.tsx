@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const STORAGE_KEY = "provatferi-theme";
 
@@ -16,13 +16,11 @@ type ViewTransitionDocument = Document & {
 /**
  * Drives the circular reveal: the new theme is painted as one layer that is
  * clipped by a circle growing from the control the user clicked, over a frozen
- * snapshot of the old theme. Matches the reference capture, where the toggle
- * inside the circle already shows its new state while the rest of the page
- * still shows the old one.
+ * snapshot of the old theme.
  *
- * The radius must reach the farthest viewport corner, computed rather than
- * hardcoded, so the circle fully covers the page at any size or toggle
- * position (header on desktop, a different spot on mobile).
+ * UNCHANGED from the approved implementation — only the element handed in
+ * differs (now the clicked segment rather than a single pill). Every timing
+ * value below is the measured reference contract and must stay as-is.
  */
 function startThemeWipe(origin: HTMLElement | null, toDark: boolean, applyTheme: () => void) {
   const root = document.documentElement;
@@ -45,18 +43,11 @@ function startThemeWipe(origin: HTMLElement | null, toDark: boolean, applyTheme:
   /*
    * Lead-in (reference match). The reference holds the reveal at a small
    * radius for one frame before expanding, and that radius measured ~79px.
-   * So the circle does not start at zero: it starts large enough to show the
-   * control's new state for a beat before the wipe travels.
    *
-   * The radius is the control's circumradius, floored at MIN_START_RADIUS.
-   * The floor matters here and only here: this site's toggle is a 62x34 pill
-   * whose circumradius is just 35.4px — under half the reference's opening
-   * reveal, which made the beat read as a small dot rather than a control
-   * reveal. The admin control is a dropdown row and already computes ~80.7px
-   * on its own, so it carries no floor and is deliberately left untouched.
-   *
-   * Kept as a floor rather than a constant so a larger control still derives
-   * its own radius, and so the origin stays exactly at the control's centre.
+   * The floor is what governs here: a segment of roughly 60x28 has a
+   * circumradius near 33px, well under the reference's opening reveal, so the
+   * floor decides the value exactly as it did for the previous pill. Changing
+   * the control's shape therefore cannot change the wipe geometry.
    */
   const MIN_START_RADIUS = 79;
   const startRadius = Math.max(MIN_START_RADIUS, Math.hypot(rect.width, rect.height) / 2);
@@ -90,29 +81,56 @@ function systemTheme(): "light" | "dark" {
   return typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
+function SunIcon() {
+  return (
+    <svg className="theme-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="4.4" />
+      <path d="M12 2.4v2.3M12 19.3v2.3M4.7 12H2.4M21.6 12h-2.3M6 6l1.6 1.6M16.4 16.4 18 18M18 6l-1.6 1.6M7.6 16.4 6 18" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg className="theme-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
+    </svg>
+  );
+}
+
+type Choice = "light" | "dark";
+
+const OPTIONS: { value: Choice; label: string; Icon: () => React.JSX.Element }[] = [
+  { value: "light", label: "লাইট", Icon: SunIcon },
+  { value: "dark", label: "ডার্ক", Icon: MoonIcon },
+];
+
 /**
- * Day/night switch for the public site and the member portal (both render this
+ * Theme selector for the public site and the member portal (both render this
  * one control, via the shared site Header).
  *
- * Deliberately NOT React-state-driven for its visual position: the pre-paint
- * script in app/layout.tsx sets [data-theme] on <html> before hydration, and
- * the thumb/icons are positioned from that attribute in CSS. If the position
- * came from component state, the server-rendered markup would have to guess a
- * theme it cannot know, and the switch would visibly jump on hydration. Only
- * `aria-checked` is synced in an effect, after mount, for assistive tech.
+ * A segmented radiogroup rather than a switch: a switch communicates on/off,
+ * which leaves "on" ambiguous, while two labelled options state outright that
+ * the choice is between লাইট and ডার্ক.
  *
- * Precedence matches the admin panel exactly: explicit choice > OS. While the
- * visitor has made no explicit choice, the OS is followed live, so changing
- * the system theme updates the page without a reload.
+ * Desktop shows both segments. Below 744px the header has no room for two
+ * Bengali labels beside the logo and menu button, so CSS swaps to an icon
+ * trigger that opens a popover carrying the same two labelled options. The
+ * swap is CSS-only and both markups are always rendered: choosing between
+ * them in JS would depend on viewport width, which the server cannot know,
+ * and would mismatch on hydration. display:none also removes the hidden one
+ * from the accessibility tree, so screen readers never see duplicates.
  */
 export default function ThemeToggle() {
-  const [isDark, setIsDark] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [theme, setTheme] = useState<Choice>("light");
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const segRefs = useRef<Record<Choice, HTMLButtonElement | null>>({ light: null, dark: null });
 
   useEffect(() => {
     const root = document.documentElement;
-
-    const sync = () => setIsDark(root.getAttribute("data-theme") === "dark");
+    const sync = () => setTheme(root.getAttribute("data-theme") === "dark" ? "dark" : "light");
     sync();
 
     // Follow the OS live, but only while no explicit choice exists.
@@ -138,43 +156,109 @@ export default function ThemeToggle() {
     };
   }, []);
 
-  const toggle = () => {
-    const root = document.documentElement;
-    const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+  // Popover dismissal: outside click and Escape, with focus returned to the
+  // trigger so keyboard users are not dropped at the top of the document.
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (event: MouseEvent) => {
+      if (!wrapRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
-    startThemeWipe(buttonRef.current, next === "dark", () => {
+  const choose = useCallback((next: Choice, origin: HTMLElement | null) => {
+    const root = document.documentElement;
+    if (root.getAttribute("data-theme") === next) {
+      setOpen(false);
+      return;
+    }
+    startThemeWipe(origin, next === "dark", () => {
       root.setAttribute("data-theme", next);
-      setIsDark(next === "dark");
+      setTheme(next);
       try {
         localStorage.setItem(STORAGE_KEY, next);
       } catch {
-        // Private browsing / storage blocked — the choice applies to this page view only.
+        // Private browsing / storage blocked — applies to this page view only.
       }
     });
+    setOpen(false);
+  }, []);
+
+  /* Roving tabindex: one tab stop for the group, arrows move between options,
+   * which is the expected keyboard model for a radiogroup. */
+  const onSegKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    const keys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"];
+    if (!keys.includes(event.key)) return;
+    event.preventDefault();
+    const next: Choice =
+      event.key === "Home" ? "light"
+        : event.key === "End" ? "dark"
+          : theme === "light" ? "dark" : "light";
+    const el = segRefs.current[next];
+    el?.focus();
+    choose(next, el);
   };
 
   return (
-    <button
-      ref={buttonRef}
-      type="button"
-      className="theme-switch"
-      role="switch"
-      aria-checked={isDark}
-      aria-label="গাঢ় থিম"
-      title="থিম পরিবর্তন করুন (হালকা / গাঢ়)"
-      onClick={toggle}
-    >
-      {/* Track icons sit under the thumb and stay put; only their opacity moves. */}
-      <span className="theme-switch-icons" aria-hidden="true">
-        <svg className="theme-switch-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="4.5" />
-          <path d="M12 2.5v2.2M12 19.3v2.2M4.5 12H2.3M21.7 12h-2.2M5.9 5.9l1.6 1.6M16.5 16.5l1.6 1.6M18.1 5.9l-1.6 1.6M7.5 16.5l-1.6 1.6" />
-        </svg>
-        <svg className="theme-switch-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
-        </svg>
-      </span>
-      <span className="theme-switch-thumb" aria-hidden="true" />
-    </button>
+    <div className="theme-control" ref={wrapRef}>
+      {/* Desktop: both options visible and labelled. */}
+      <div className="theme-seg" role="radiogroup" aria-label="থিম নির্বাচন করুন">
+        {OPTIONS.map(({ value, label, Icon }) => (
+          <button
+            key={value}
+            ref={(el) => { segRefs.current[value] = el; }}
+            type="button"
+            role="radio"
+            aria-checked={theme === value}
+            tabIndex={theme === value ? 0 : -1}
+            className="theme-seg-option"
+            onKeyDown={onSegKeyDown}
+            onClick={(event) => choose(value, event.currentTarget)}
+          >
+            <Icon />
+            <span className="theme-seg-label">{label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Mobile: icon trigger + popover carrying the same labelled options. */}
+      <button
+        ref={triggerRef}
+        type="button"
+        className="theme-trigger"
+        aria-haspopup="true"
+        aria-expanded={open}
+        aria-label={`থিম নির্বাচন করুন (বর্তমান: ${theme === "dark" ? "ডার্ক" : "লাইট"})`}
+        onClick={() => setOpen((v) => !v)}
+      >
+        {theme === "dark" ? <MoonIcon /> : <SunIcon />}
+      </button>
+      <div className="theme-pop" role="radiogroup" aria-label="থিম নির্বাচন করুন" hidden={!open}>
+        {OPTIONS.map(({ value, label, Icon }) => (
+          <button
+            key={value}
+            type="button"
+            role="radio"
+            aria-checked={theme === value}
+            className="theme-pop-option"
+            onClick={(event) => choose(value, event.currentTarget)}
+          >
+            <Icon />
+            <span>{label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

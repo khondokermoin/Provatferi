@@ -84,6 +84,47 @@
   to { clip-path: circle(var(--wipe-r) at var(--wipe-x) var(--wipe-y)); }
 }
 
+/*
+ * ---------- Scrollbar ----------
+ *
+ * The same four colour values and the same 8px width as the public site's
+ * globals.css, so both products scroll alike. Keep them in step by hand; the
+ * two codebases cannot share a stylesheet.
+ *
+ * Guarded on (pointer: fine): touch platforms draw overlay scrollbars that
+ * fade out on their own, and styling ::-webkit-scrollbar there would replace
+ * that with a permanently visible bar. Pointer capability is the property that
+ * matters, not viewport width.
+ */
+:root {
+  --scrollbar-track: rgba(172, 53, 10, 0.07);
+  --scrollbar-thumb: rgba(172, 53, 10, 0.30);
+  --scrollbar-thumb-hover: rgba(172, 53, 10, 0.52);
+}
+
+[data-bs-theme="dark"] {
+  --scrollbar-track: rgba(255, 255, 255, 0.05);
+  --scrollbar-thumb: rgba(255, 174, 131, 0.26);
+  --scrollbar-thumb-hover: rgba(255, 174, 131, 0.46);
+}
+
+@media (pointer: fine) {
+  html {
+    /* No gutter reservation here: the admin shell is a fixed-height flex
+     * layout whose panels scroll internally, so the page-level scroll/no-scroll
+     * jump the public site has simply does not occur. */
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: 999px; }
+  ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+  ::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+  ::-webkit-scrollbar-corner { background: transparent; }
+}
+
 /* Suppress the colour fade while the wipe runs; it would surface as a tail
  * when the snapshots are removed. It still serves the fallback path and
  * OS-driven changes. */

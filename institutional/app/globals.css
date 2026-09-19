@@ -109,6 +109,15 @@
    */
   --texture-wash: rgba(251, 249, 244, 0.5);
 
+  /*
+   * SCROLLBAR — shared contract with the admin panel's provatferi-admin.css,
+   * which declares the same four values. Muted warm accent rather than solid
+   * brand orange: a full-strength bar would compete with the orange CTAs.
+   */
+  --scrollbar-track: rgba(172, 53, 10, 0.07);
+  --scrollbar-thumb: rgba(172, 53, 10, 0.30);
+  --scrollbar-thumb-hover: rgba(172, 53, 10, 0.52);
+
   --background: var(--bg);
   --foreground: var(--body);
 }
@@ -155,6 +164,12 @@
    * separation. Browser-measured, not estimated.
    */
   --texture-wash: rgba(27, 30, 34, 0.45);
+
+  /* Warm but restrained: the dark ground is already low-contrast, so the thumb
+   * needs less opacity than in light mode to read at the same weight. */
+  --scrollbar-track: rgba(255, 255, 255, 0.05);
+  --scrollbar-thumb: rgba(255, 174, 131, 0.26);
+  --scrollbar-thumb-hover: rgba(255, 174, 131, 0.46);
 }
 
 @theme inline {
@@ -266,6 +281,38 @@ a { text-underline-offset: 5px; color: inherit; }
 button, a { touch-action: manipulation; }
 :focus-visible { outline: 3px solid var(--accent-text); outline-offset: 3px; }
 
+/*
+ * ---------- Scrollbar ----------
+ *
+ * Guarded on (pointer: fine) rather than a width breakpoint: touch platforms
+ * already draw overlay scrollbars that appear while scrolling and fade away,
+ * and styling ::-webkit-scrollbar there replaces that with a permanently
+ * visible bar. Pointer capability is the property that actually matters, so a
+ * touchscreen tablet keeps its native behaviour regardless of how wide it is.
+ *
+ * scrollbar-gutter: stable is deliberate. It reserves the gutter only where
+ * the UA draws classic scrollbars, so it removes the horizontal jump between a
+ * page that scrolls and one that doesn't, while staying a no-op on overlay-
+ * scrollbar platforms — no blank strip on mobile or macOS.
+ */
+@media (pointer: fine) {
+  html {
+    scrollbar-gutter: stable;
+    /* Firefox: no pseudo-elements, no hover state, no radius — these two
+     * declarations are the whole of what it supports. */
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+  }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--scrollbar-track); border-radius: 999px; }
+  ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+  /* No stepper arrows, no corner patch. */
+  ::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+  ::-webkit-scrollbar-corner { background: transparent; }
+}
+
 h1, h2, h3, h4 { color: var(--heading); }
 
 .site-container { width: min(1200px, calc(100% - 40px)); margin-inline: auto; }
@@ -294,99 +341,133 @@ h1, h2, h3, h4 { color: var(--heading); }
  * thumb is already in the right place in the pre-paint frame and cannot jump
  * on hydration. ThemeToggle.tsx explains the full reasoning.
  *
- * Geometry: the 62px track is border-box, so its padding box is 60x32. A 26px
- * thumb inset 3px occupies 3..29; sliding it to a matching 3px gap on the
- * right means left edge 60-3-26 = 31, hence translateX(28px). The icon layer
- * is the same 26px box and rides the same transform, so the icon travels
+ * Geometry: the 46px track is border-box, so its padding box is 44x23. A 19px
+ * thumb inset 2px occupies 2..21; sliding it to a matching 2px gap on the
+ * right means left edge 44-2-19 = 23, hence translateX(21px). The icon layer
+ * is the same 19px box and rides the same transform, so the icon travels
  * inside the thumb rather than being covered by it.
+ *
+ * Sized to sit quietly beside the membership button rather than compete with
+ * it. The masthead is a centred flex row, so the pill self-aligns against
+ * taller neighbours without any vertical nudge.
  */
-.theme-switch {
-  position: relative;
-  flex-shrink: 0;
+.theme-control { position: relative; flex-shrink: 0; display: inline-flex; align-items: center; }
+
+/*
+ * Segmented selector. Two labelled options rather than a switch: a switch says
+ * on/off, which leaves "on" ambiguous; লাইট and ডার্ক say what the choice is.
+ *
+ * 1px hairline, no shadow, no glow. The selected segment is marked by a soft
+ * raised surface, not a saturated fill — brand orange stays an accent on the
+ * icon and label, never the whole control.
+ */
+.theme-seg {
+  /*
+   * Fixed width, not content-width. লাইট and ডার্ক do not render at the same
+   * measure, so a content-sized container yields visibly unequal segments
+   * (measured 67px vs 63px). Pinning the container and letting the options
+   * flex to equal halves makes them equal by construction, independent of the
+   * label metrics or the loaded font.
+   *
+   * 128px sits at the top of the target band deliberately: the wider label
+   * needs ~57px of content box, and a tighter container crowds the Bengali
+   * glyphs against the pill edge.
+   */
   display: inline-flex;
   align-items: center;
-  width: 62px;
-  height: 34px;
+  gap: 2px;
+  width: 128px;
+  height: 31px;
+  padding: 2px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--soft);
+}
+.theme-seg-option {
+  display: inline-flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 25px;
+  padding: 0 5px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.theme-seg-option:hover { color: var(--accent-text); }
+.theme-seg-option[aria-checked="true"] {
+  background: var(--surface);
+  color: var(--accent-text);
+  box-shadow: 0 1px 2px rgba(32, 27, 23, 0.10);
+}
+.theme-seg-option:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 1px; }
+.theme-ico { width: 15px; height: 15px; flex-shrink: 0; }
+
+/* Mobile trigger + popover: shown only under 744px (see the media block). */
+.theme-trigger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 31px;
   padding: 0;
   border: 1px solid var(--border-strong);
   border-radius: 999px;
   background: var(--soft);
+  color: var(--accent-text);
   cursor: pointer;
 }
-/*
- * Lifts the tap target to 46x46 for touch without changing the pill's size or
- * the header's layout. The focus ring still follows the border box, so this
- * never shows as an oversized outline.
- */
-.theme-switch::after { content: ""; position: absolute; inset: -6px; }
-.theme-switch:hover { border-color: var(--accent-text); }
+.theme-trigger:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 1px; }
+.theme-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  min-width: 132px;
+  padding: 4px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 6px 20px rgba(32, 27, 23, 0.14);
+}
+.theme-pop[hidden] { display: none; }
+.theme-pop-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--body);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.theme-pop-option:hover { background: var(--soft); color: var(--accent-text); }
+.theme-pop-option[aria-checked="true"] { color: var(--accent-text); font-weight: 600; }
+.theme-pop-option:focus-visible { outline: 2px solid var(--accent-text); outline-offset: -2px; }
 
-.theme-switch-thumb {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  /* Explicit values, not --surface: in dark mode --surface (#24282e) sits too
-   * close to this track to read as a separate knob. --border-strong does. */
-  background: #ffffff;
-  box-shadow: 0 1px 3px rgba(32, 27, 23, 0.26);
-}
-.theme-switch-icons {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 26px;
-  height: 26px;
-  color: var(--accent-text);
-  pointer-events: none;
-}
 /*
  * transform and opacity are deliberately absent from the global theme
  * transition, so they are declared here — the only moving parts. The colour
  * properties have to be repeated because this class-level rule replaces the
  * `*` rule rather than adding to it.
  */
-@media (prefers-reduced-motion: no-preference) {
-  .theme-switch-thumb, .theme-switch-icons {
-    transition:
-      transform var(--theme-transition-duration) var(--theme-transition-ease),
-      background-color var(--theme-transition-duration) var(--theme-transition-ease),
-      box-shadow var(--theme-transition-duration) var(--theme-transition-ease),
-      color var(--theme-transition-duration) var(--theme-transition-ease);
-  }
-}
 
-/* Centred with margins, leaving transform free for the rotation below. */
-.theme-switch-icons svg {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 15px;
-  height: 15px;
-  margin: -7.5px 0 0 -7.5px;
-}
-@media (prefers-reduced-motion: no-preference) {
-  .theme-switch-icons svg {
-    transition:
-      opacity var(--theme-transition-duration) var(--theme-transition-ease),
-      transform var(--theme-transition-duration) var(--theme-transition-ease);
-  }
-}
-/* A slight counter-rotation on the way out; no spin, no bounce. */
-.theme-switch-sun { opacity: 1; transform: rotate(0deg); }
-.theme-switch-moon { opacity: 0; transform: rotate(-35deg); }
 
-:root[data-theme="dark"] .theme-switch { background: var(--bg); }
-:root[data-theme="dark"] .theme-switch-thumb {
-  transform: translateX(28px);
-  background: var(--border-strong);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.38);
-}
-:root[data-theme="dark"] .theme-switch-icons { transform: translateX(28px); }
-:root[data-theme="dark"] .theme-switch-sun { opacity: 0; transform: rotate(35deg); }
-:root[data-theme="dark"] .theme-switch-moon { opacity: 1; transform: rotate(0deg); }
 
 .button { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 48px; padding: 14px 24px; border-radius: 8px; font-size: 15px; font-weight: 600; transition: background .18s, transform .18s, border-color .18s; }
 .button span { font-size: 19px; line-height: 1; }
@@ -720,6 +801,15 @@ h1, h2, h3, h4 { color: var(--heading); }
   .topline-inner { font-size: 11px; padding-block: 8px; }
   .topline-inner > a { display: none; }
   .masthead { gap: 14px; padding-block: 12px; }
+  /*
+   * Below this width the masthead carries the logo, the theme control and the
+   * menu button in one row; two Bengali labels would not fit without shrinking
+   * the logo further. The segmented group is swapped for an icon trigger whose
+   * popover states both options in full, so the purpose stays explicit rather
+   * than being reduced to a bare glyph.
+   */
+  .theme-seg { display: none; }
+  .theme-trigger { display: inline-flex; }
   .brand-logo { width: 148px; }
   .masthead-motto, .desktop-join { display: none; }
   .menu-toggle { display: inline-flex; align-items: center; justify-content: center; margin-left: auto; min-width: 44px; min-height: 44px; padding: 0 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; background: var(--surface); color: var(--heading); }
