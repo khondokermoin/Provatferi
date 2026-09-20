@@ -83,6 +83,16 @@ foreach ([
     checkFile($appPath.'/public/brand/'.$file, "brand asset: $file", $present, $missing);
 }
 
+// 4b. Generated icon subset (build-icon-subset.mjs). layouts/admin.blade.php
+//     loads these instead of the vendor's full Tabler set, so a build that
+//     forgets them renders every ti-* icon as a blank box in production.
+foreach ([
+    'provatferi-icons.css',
+    'provatferi-icons.woff2',
+] as $file) {
+    checkFile($appPath.'/public/brand-icons/'.$file, "icon subset: $file", $present, $missing);
+}
+
 // 5. Favicon.
 checkFile($appPath.'/public/favicon.ico', 'favicon.ico', $present, $missing);
 

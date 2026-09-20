@@ -53,7 +53,14 @@
 
     <link href="{{ asset('zircos/css/vendor.min.css') }}" rel="stylesheet">
     <link href="{{ asset('zircos/css/app.min.css') }}" rel="stylesheet" id="app-style">
-    <link href="{{ asset('zircos/css/icons.min.css') }}" rel="stylesheet">
+    {{--
+        Subset icon font instead of the vendor's icons.min.css: the theme ships
+        all 5,936 Tabler glyphs (801 KB woff2 + 242 KB CSS) on every page and
+        this panel renders 82 of them. build-icon-subset.mjs regenerates both
+        from the same vendor source, keeping the ti-* class names identical —
+        run it after introducing a new icon.
+    --}}
+    <link href="{{ asset('brand-icons/provatferi-icons.css') }}" rel="stylesheet">
     {{--
         Brand layer last so it wins over the template. SYSTEM-006: built
         through Vite and referenced by content hash (public/build/manifest.json)
