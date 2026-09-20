@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { socialMeta } from "@/lib/social-meta";
 import { activityCategories, org } from "@/lib/content";
 import { getActivitiesWithFallback } from "@/lib/api/activities";
 import PageHeader from "@/components/PageHeader";
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
   title: "কার্যক্রম",
   description,
   alternates: { canonical: "/activities" },
-  openGraph: { title: `কার্যক্রম | ${org.shortName}`, description, url: "/activities", images: [{ ...org.ogImage, alt: org.nameBn }] },
+  ...socialMeta({ title: `কার্যক্রম | ${org.shortName}`, description, url: "/activities" }),
 };
 
 export default async function ActivitiesPage({ searchParams }: { searchParams: Promise<{ category?: string }> }) {

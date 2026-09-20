@@ -169,6 +169,13 @@ class NoticeController extends Controller
             return $this->files->response($notice->cover_image_path, "{$notice->slug}-cover.{$extension}", $this->files->coverMime($notice->cover_image_path), true);
         }
 
+        if ($kind === 'share') {
+            abort_unless($notice->share_image_path, 404);
+            $extension = pathinfo($notice->share_image_path, PATHINFO_EXTENSION);
+
+            return $this->files->response($notice->share_image_path, "{$notice->slug}-share.{$extension}", $this->files->coverMime($notice->share_image_path), true);
+        }
+
         abort_unless($notice->attachment_path, 404);
 
         return $this->files->response($notice->attachment_path, "{$notice->slug}.pdf", $notice->attachment_mime ?? 'application/pdf', false);
@@ -258,6 +265,7 @@ class NoticeController extends Controller
         }
 
         $newCover = null;
+        $newShareImage = null;
         $newAttachment = null;
         if ($request->hasFile('cover_image')) {
             try {
@@ -266,11 +274,20 @@ class NoticeController extends Controller
                 throw ValidationException::withMessages(['cover_image' => $e->getMessage()]);
             }
         }
+        if ($request->hasFile('share_image')) {
+            try {
+                $newShareImage = $this->files->storeShareImage($request->file('share_image'));
+            } catch (RuntimeException $e) {
+                $this->files->delete($newCover);
+                throw ValidationException::withMessages(['share_image' => $e->getMessage()]);
+            }
+        }
         if ($request->hasFile('attachment')) {
             try {
                 $newAttachment = $this->files->storeAttachment($request->file('attachment'));
             } catch (RuntimeException $e) {
                 $this->files->delete($newCover);
+                $this->files->delete($newShareImage);
                 throw ValidationException::withMessages(['attachment' => $e->getMessage()]);
             }
         }
@@ -306,12 +323,19 @@ class NoticeController extends Controller
         }
 
         $oldCover = $notice->cover_image_path;
+        $oldShareImage = $notice->share_image_path;
         $oldAttachment = $notice->attachment_path;
 
         if ($newCover !== null) {
             $notice->cover_image_path = $newCover;
         } elseif ($request->boolean('remove_cover_image')) {
             $notice->cover_image_path = null;
+        }
+
+        if ($newShareImage !== null) {
+            $notice->share_image_path = $newShareImage;
+        } elseif ($request->boolean('remove_share_image')) {
+            $notice->share_image_path = null;
         }
 
         if ($newAttachment !== null) {
@@ -334,6 +358,9 @@ class NoticeController extends Controller
         // Only after the new state is persisted: drop files nothing references any more.
         if ($oldCover !== null && $oldCover !== $notice->cover_image_path) {
             $this->files->delete($oldCover);
+        }
+        if ($oldShareImage !== null && $oldShareImage !== $notice->share_image_path) {
+            $this->files->delete($oldShareImage);
         }
         if ($oldAttachment !== null && $oldAttachment !== $notice->attachment_path) {
             $this->files->delete($oldAttachment);
@@ -364,8 +391,10 @@ class NoticeController extends Controller
             'expires_at' => ['nullable', 'date'],
             'organization_unit_id' => ['nullable', Rule::exists('organizational_units', 'id')],
             'cover_image' => ['nullable', 'file', 'max:5120'],
+            'share_image' => ['nullable', 'file', 'max:5120'],
             'attachment' => ['nullable', 'file', 'max:10240'],
             'remove_cover_image' => ['nullable', 'boolean'],
+            'remove_share_image' => ['nullable', 'boolean'],
             'remove_attachment' => ['nullable', 'boolean'],
             'action_url' => ['nullable', 'url:http,https', 'max:500'],
             'action_label' => ['nullable', 'string', 'max:100', 'required_with:action_url'],
@@ -388,6 +417,7 @@ class NoticeController extends Controller
             'expires_at' => 'মেয়াদ শেষের তারিখ',
             'organization_unit_id' => 'সাংগঠনিক ইউনিট',
             'cover_image' => 'ছবি',
+            'share_image' => 'সামাজিক শেয়ার ছবি',
             'attachment' => 'সংযুক্তি',
             'action_url' => 'অ্যাকশন লিংক',
             'action_label' => 'বাটনের লেখা',

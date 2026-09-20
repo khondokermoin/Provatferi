@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { socialMeta } from "@/lib/social-meta";
 import { membershipTypes as fallbackMembershipTypes, org } from "@/lib/content";
 import { getCurrentCampaigns, getMembershipTypes } from "@/lib/api/membership";
 import PageHeader from "@/components/PageHeader";
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
   title: "সদস্য হোন",
   description,
   alternates: { canonical: "/membership" },
-  openGraph: { title: `সদস্য হোন | ${org.shortName}`, description, url: "/membership", images: [{ ...org.ogImage, alt: org.nameBn }] },
+  ...socialMeta({ title: `সদস্য হোন | ${org.shortName}`, description, url: "/membership" }),
 };
 
 const journey = [

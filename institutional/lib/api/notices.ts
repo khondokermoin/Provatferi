@@ -103,6 +103,11 @@ export function isNoticeDetail(v: unknown): v is PublicNoticeDetail {
     typeof record.body === "string" &&
     isStringOrNull(record.organization_unit) &&
     isStringOrNull(record.cover_image_url) &&
+    // §12: optional-or-null, not just nullable — the ERP and this site deploy
+    // through separate pipelines, so a build can run against a not-yet-
+    // migrated backend that omits the key entirely. Rejecting `undefined`
+    // here would 404 every notice the moment this code ships first.
+    (record.share_image_url === undefined || isStringOrNull(record.share_image_url)) &&
     isStringOrNull(record.updated_at) &&
     (action === null || (isRecord(action) && typeof action.url === "string" && typeof action.label === "string")) &&
     (attachment === null ||

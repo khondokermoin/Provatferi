@@ -6,16 +6,22 @@ use App\Http\Controllers\Controller;
 use App\Models\JobPosting;
 use App\Models\OrganizationalUnit;
 use App\Services\NoticeRecruitmentLinker;
+use App\Services\RecruitmentFileService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use RuntimeException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class RecruitmentController extends Controller
 {
-    public function __construct(private readonly NoticeRecruitmentLinker $linker)
-    {
+    public function __construct(
+        private readonly NoticeRecruitmentLinker $linker,
+        private readonly RecruitmentFileService $files,
+    ) {
     }
 
     public function index(Request $request): View
@@ -55,11 +61,27 @@ class RecruitmentController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validated($request);
-        $data['slug'] = Str::slug($data['title']).'-'.Str::lower(Str::random(4));
+        // §3: a blank slug field falls back to the title, exactly like a
+        // fresh Notice does — but the result is now a readable, admin-chosen
+        // URL rather than title-plus-four-random-characters.
+        $data['slug'] = JobPosting::uniqueSlug(($data['slug'] ?? null) ?: $data['title']);
         $data['created_by'] = $request->user()->id;
         $data = $this->stampPublishedAt($data);
 
-        $jobPosting = JobPosting::query()->create($data);
+        // §12: uploaded and validated BEFORE the model is built, so a bad
+        // file fails the whole request rather than leaving a half-created
+        // posting behind. share_image_path is deliberately not mass-assigned
+        // — like Notice's cover_image_path, a raw storage path is never
+        // settable straight from $fillable/request data, only from this
+        // upload path.
+        $newShare = $this->uploadShareImage($request);
+
+        $jobPosting = new JobPosting($data);
+        if ($newShare !== null) {
+            $jobPosting->share_image_path = $newShare;
+        }
+        $jobPosting->save();
+
         $note = $this->publishToNoticeBoard($request, $jobPosting);
 
         return redirect()->route('admin.recruitment.show', $jobPosting)->with('success', "\u{201c}{$jobPosting->title}\u{201d} তৈরি হয়েছে।".$note);
@@ -97,11 +119,70 @@ class RecruitmentController extends Controller
         $data = $this->validated($request);
         $data = $this->stampPublishedAt($data, $jobPosting);
 
-        $jobPosting->update($data);
+        // §3: the slug is now editable — but the URL it replaces must keep
+        // working. The retiring slug is written to permanent history BEFORE
+        // the new one is saved, and only when it actually changed (a no-op
+        // edit that leaves the field untouched must not create a history row).
+        $newSlug = JobPosting::uniqueSlug(($data['slug'] ?? null) ?: $jobPosting->slug, $jobPosting->id);
+        if ($newSlug !== $jobPosting->slug) {
+            $jobPosting->slugHistory()->create(['slug' => $jobPosting->slug]);
+        }
+        $data['slug'] = $newSlug;
+
+        // §12: same upload-before-fill ordering as store(), plus the
+        // replace/remove handling — a new upload wins over a ticked "remove"
+        // box, matching how Notice's cover image behaves.
+        $newShare = $this->uploadShareImage($request);
+        $oldShare = $jobPosting->share_image_path;
+
+        $jobPosting->fill($data);
+        if ($newShare !== null) {
+            $jobPosting->share_image_path = $newShare;
+        } elseif ($request->boolean('remove_share_image')) {
+            $jobPosting->share_image_path = null;
+        }
+        $jobPosting->save();
+
+        // Only after the new state is persisted: drop a file nothing references any more.
+        if ($oldShare !== null && $oldShare !== $jobPosting->share_image_path) {
+            $this->files->delete($oldShare);
+        }
+
         $this->linker->syncFrom($jobPosting, $request->user());
         $note = $this->publishToNoticeBoard($request, $jobPosting);
 
         return redirect()->route('admin.recruitment.show', $jobPosting)->with('success', "\u{201c}{$jobPosting->title}\u{201d} হালনাগাদ হয়েছে।".$note);
+    }
+
+    /**
+     * §12: private-disk share image for this posting, streamed only to a
+     * signed-in admin holding recruitment.view — mirrors
+     * NoticeController::file()'s cover branch exactly.
+     */
+    public function shareImage(JobPosting $jobPosting): StreamedResponse
+    {
+        abort_unless($jobPosting->share_image_path, 404);
+        $extension = pathinfo($jobPosting->share_image_path, PATHINFO_EXTENSION);
+
+        return $this->files->response(
+            $jobPosting->share_image_path,
+            "{$jobPosting->slug}-share.{$extension}",
+            $this->files->mime($jobPosting->share_image_path),
+        );
+    }
+
+    /** @throws ValidationException when a file was provided but failed validation */
+    private function uploadShareImage(Request $request): ?string
+    {
+        if (! $request->hasFile('share_image')) {
+            return null;
+        }
+
+        try {
+            return $this->files->storeShareImage($request->file('share_image'));
+        } catch (RuntimeException $e) {
+            throw ValidationException::withMessages(['share_image' => $e->getMessage()]);
+        }
     }
 
     public function destroy(JobPosting $jobPosting): RedirectResponse
@@ -119,6 +200,14 @@ class RecruitmentController extends Controller
     /** @return array<string, mixed> */
     private function validated(Request $request): array
     {
+        // §3: a blank slug field means "auto-generate from the title", which
+        // requires the value to be genuinely absent for the `nullable` rule
+        // to take effect — an empty string is not null to Laravel's
+        // validator, so left as-is it would fail the slug regex instead.
+        if ($request->input('slug') === '') {
+            $request->merge(['slug' => null]);
+        }
+
         $data = $request->validate($this->rules(), [], $this->attributes());
         $data['application_mode'] = $data['application_mode'] ?? 'fixed';
 
@@ -163,6 +252,11 @@ class RecruitmentController extends Controller
     {
         return [
             'title' => ['required', 'string', 'max:255'],
+            // §3: lowercase-dash form only — uniqueSlug() re-slugifies it
+            // anyway, but rejecting an obviously-wrong value here (spaces,
+            // uppercase, punctuation) gives the admin an error next to the
+            // field instead of a silently-transformed result.
+            'slug' => ['nullable', 'string', 'max:80', 'regex:/^[a-z0-9]+(-[a-z0-9]+)*$/'],
             'summary' => ['nullable', 'string', 'max:500'],
             'organization_unit_id' => ['nullable', Rule::exists('organizational_units', 'id')],
             'department' => ['nullable', 'string', 'max:255'],
@@ -176,13 +270,20 @@ class RecruitmentController extends Controller
             'accepts_applications' => ['nullable', 'boolean'],
             'status' => ['required', Rule::in(array_keys(JobPosting::STATUSES))],
             'publish_to_notice_board' => ['nullable', 'boolean'],
+            // §12: same rule shape as Notice's cover_image — PhotoUploadService
+            // enforces JPG/PNG/WEBP and the 5 MB limit inside storeShareImage().
+            'share_image' => ['nullable', 'file', 'max:5120'],
+            'remove_share_image' => ['nullable', 'boolean'],
         ];
     }
 
     /** @return array<string, string> */
     private function attributes(): array
     {
-        return ['title' => 'শিরোনাম', 'description' => 'বিবরণ', 'status' => 'স্ট্যাটাস', 'application_mode' => 'আবেদনের পদ্ধতি'];
+        return [
+            'title' => 'শিরোনাম', 'slug' => 'ইউআরএল স্লাগ', 'description' => 'বিবরণ', 'status' => 'স্ট্যাটাস',
+            'application_mode' => 'আবেদনের পদ্ধতি', 'share_image' => 'সামাজিক শেয়ার ছবি',
+        ];
     }
 
     /** @param array<string, mixed> $data */

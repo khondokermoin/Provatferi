@@ -6,7 +6,12 @@
         $linkedNotice = $isEdit ? $jobPosting->notice : null;
     @endphp
 
-    <form method="POST" action="{{ $isEdit ? route('admin.recruitment.update', $jobPosting) : route('admin.recruitment.store') }}">
+    {{-- §12 regression: the share-image file input is useless without this —
+         without multipart encoding a browser submits only the filename as
+         plain text, never the file itself. PHPUnit's UploadedFile::fake()
+         builds the test request directly and never exercises this template,
+         which is exactly why this was only caught by a real browser submit. --}}
+    <form method="POST" action="{{ $isEdit ? route('admin.recruitment.update', $jobPosting) : route('admin.recruitment.store') }}" enctype="multipart/form-data">
         @csrf
         @if ($isEdit) @method('PUT') @endif
 
@@ -14,6 +19,8 @@
             <div class="col-lg-8">
                 <x-admin.card title="বিবরণ">
                     <x-admin.form-input name="title" label="শিরোনাম" :value="$jobPosting->title" required />
+                    <x-admin.form-input name="slug" label="ইউআরএল স্লাগ" :value="$jobPosting->slug"
+                        help="{{ $isEdit ? 'পরিবর্তন করলে পুরনো লিংকটি চিরস্থায়ীভাবে নতুন লিংকে রিডাইরেক্ট হবে — আগের ভিজিটর/শেয়ার করা লিংক নষ্ট হবে না।' : 'খালি রাখলে শিরোনাম থেকে স্বয়ংক্রিয়ভাবে তৈরি হবে। শুধু ছোট হাতের ইংরেজি অক্ষর, সংখ্যা ও হাইফেন।' }}" />
                     <x-admin.form-textarea name="summary" label="সংক্ষিপ্ত বিবরণ" :value="$jobPosting->summary" :rows="2" />
                     <x-admin.form-textarea name="description" label="পূর্ণ বিবরণ" :value="$jobPosting->description" :rows="6" required />
                     <x-admin.form-textarea name="requirements" label="যোগ্যতা" :value="$jobPosting->requirements" :rows="4" />
@@ -54,6 +61,26 @@
                     <div class="form-text" id="accepts_applications-help">
                         চালু করলে ওয়েবসাইটে আবেদন ফরম খুলবে এবং যুক্ত নোটিশেও “আবেদন করুন” বোতাম দেখাবে। আবেদনসমূহ ERP-তে জমা হবে।
                     </div>
+                </x-admin.card>
+
+                {{-- §12: a dedicated Open Graph / social-share image — sized for how
+                     link previews render, separate from any in-page content. --}}
+                <x-admin.card title="সামাজিক শেয়ার ছবি">
+                    @if ($jobPosting->share_image_path)
+                        <img src="{{ route('admin.recruitment.files.share', $jobPosting) }}" alt=""
+                             class="rounded border mb-2" style="max-width: 240px; max-height: 126px; object-fit: cover;">
+                    @endif
+                    <x-admin.form-input name="share_image" label="শেয়ার ছবি (ঐচ্ছিক)" type="file" accept="image/jpeg,image/png,image/webp"
+                        help="সেরা ফলাফলের জন্য 1200 × 630 পিক্সেল (1.91:1) ছবি ব্যবহার করুন। JPG, PNG বা WEBP, সর্বোচ্চ ৫ MB। ফেসবুক, WhatsApp ও Twitter-এ লিংক শেয়ার করলে এই ছবিটি দেখানো হবে।" />
+                    @if ($jobPosting->share_image_path)
+                        <div class="form-check mb-3">
+                            <input type="checkbox" class="form-check-input" id="remove_share_image" name="remove_share_image" value="1">
+                            <label class="form-check-label" for="remove_share_image">
+                                বর্তমান শেয়ার ছবি সরিয়ে দিন
+                                (<a href="{{ route('admin.recruitment.files.share', $jobPosting) }}" target="_blank" rel="noopener noreferrer">দেখুন</a>)
+                            </label>
+                        </div>
+                    @endif
                 </x-admin.card>
 
                 <x-admin.card title="প্রকাশনা">

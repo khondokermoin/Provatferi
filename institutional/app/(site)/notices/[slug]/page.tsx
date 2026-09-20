@@ -24,6 +24,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const notice = result.data;
   const description = notice.summary ?? excerpt(notice.body);
   const url = `/notices/${notice.slug}`;
+  // §12/§13 priority: the DEDICATED share image (admin-instructed 1200x630)
+  // first, since it is sized for exactly how a link preview renders; the
+  // in-page cover image next, whatever its real aspect ratio; the approved
+  // brand mark last — og:image is therefore never empty.
+  const shareImageUrl = notice.share_image_url ?? notice.cover_image_url;
 
   return {
     title: notice.title,
@@ -36,16 +41,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       url,
       publishedTime: notice.published_at,
       modifiedTime: notice.updated_at ?? undefined,
-      images: [notice.cover_image_url ? { url: notice.cover_image_url, alt: notice.title } : { ...org.ogImage, alt: org.nameBn }],
+      images: [shareImageUrl ? { url: shareImageUrl, alt: notice.title } : { ...org.ogImage, alt: org.nameBn }],
     },
     // §13: a shared notice must render as a card on X too, not as a bare
-    // link. The image is the notice's own cover when it has one, and the
-    // approved brand asset otherwise — never a generated one.
+    // link. The image is the notice's own (share, then cover) when it has
+    // one, and the approved brand asset otherwise — never a generated one.
     twitter: {
       card: "summary_large_image",
       title: `${notice.title} | ${org.shortName}`,
       description,
-      images: [notice.cover_image_url ?? org.ogImage.url],
+      images: [shareImageUrl ?? org.ogImage.url],
     },
   };
 }

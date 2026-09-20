@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { org } from "@/lib/content";
+import { socialMeta } from "@/lib/social-meta";
 import { getCommittee } from "@/lib/api/committees";
 import type { PublicCommitteeMember } from "@/lib/api/types";
 
@@ -44,12 +45,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: result.data.name,
     description,
     alternates: { canonical: `/committee/${result.data.slug}` },
-    openGraph: {
-      title: `${result.data.name} | ${org.shortName}`,
-      description,
-      url: `/committee/${result.data.slug}`,
-      images: [{ ...org.ogImage, alt: org.nameBn }],
-    },
+    ...socialMeta({ title: `${result.data.name} | ${org.shortName}`, description, url: `/committee/${result.data.slug}` }),
   };
 }
 

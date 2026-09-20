@@ -81,6 +81,7 @@ test("getNotice accepts a detail with an action, attachment and live recruitment
         organization_unit: "প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র",
         action: { url: "https://chat.whatsapp.com/example", label: "স্বেচ্ছাসেবী হিসেবে যুক্ত হোন" },
         cover_image_url: null,
+        share_image_url: null,
         attachment: { url: "https://admin.example.test/api/v1/public/notices/volunteer-team-call/attachment", size: 2500000, mime: "application/pdf" },
         recruitment: {
           slug: "volunteer-ab12", title: "স্বেচ্ছাসেবী", employment_type_label: "স্বেচ্ছাসেবী", is_volunteer: true,
@@ -103,6 +104,23 @@ test("getNotice accepts a detail with an action, attachment and live recruitment
   }
 });
 
+test("getNotice accepts a detail from a not-yet-migrated ERP that omits share_image_url entirely", async () => {
+  // §12 regression: this exact case broke `next build` against the live ERP
+  // the moment share_image_url became a required field — production had not
+  // been migrated yet, so the key was absent (not null), and the guard
+  // rejected every notice production actually returned.
+  globalThis.fetch = mock.fn(async () =>
+    jsonResponse({
+      data: without(
+        { ...summary, body: "B", organization_unit: null, action: null, cover_image_url: null, attachment: null, updated_at: null, recruitment: null },
+        "share_image_url",
+      ),
+    }),
+  ) as unknown as typeof fetch;
+
+  assert.equal((await getNotice("volunteer-team-call")).ok, true);
+});
+
 test("getNotice rejects a recruitment block that predates the application form", async () => {
   const recruitment = {
     slug: "volunteer-ab12", title: "স্বেচ্ছাসেবী", employment_type_label: "স্বেচ্ছাসেবী", is_volunteer: true,
@@ -112,7 +130,7 @@ test("getNotice rejects a recruitment block that predates the application form",
   globalThis.fetch = mock.fn(async () =>
     jsonResponse({
       data: {
-        ...summary, body: "B", organization_unit: null, action: null, cover_image_url: null, attachment: null,
+        ...summary, body: "B", organization_unit: null, action: null, cover_image_url: null, share_image_url: null, attachment: null,
         updated_at: null, recruitment,
       },
     }),
@@ -125,7 +143,7 @@ test("getNotice rejects a detail whose recruitment block is malformed", async ()
   globalThis.fetch = mock.fn(async () =>
     jsonResponse({
       data: {
-        ...summary, body: "B", organization_unit: null, action: null, cover_image_url: null, attachment: null, updated_at: null,
+        ...summary, body: "B", organization_unit: null, action: null, cover_image_url: null, share_image_url: null, attachment: null, updated_at: null,
         recruitment: { title: "X" },
       },
     }),
@@ -145,6 +163,7 @@ test("getJobPosting requires the volunteer/rolling contract fields", async () =>
     accepts_applications: true, apply_path: "/recruitment/volunteer-ab12/apply",
     notice_action: { url: "https://chat.whatsapp.com/example", label: "স্বেচ্ছাসেবী হিসেবে যুক্ত হোন" },
     skill_options: [{ key: "fundraising", label: "Fundraising / Donation / Sponsorship" }],
+    share_image_url: null,
   };
   globalThis.fetch = mock.fn(async () => jsonResponse({ data: job })) as unknown as typeof fetch;
   assert.equal((await getJobPosting("volunteer-ab12")).ok, true);
@@ -161,6 +180,12 @@ test("getJobPosting requires the volunteer/rolling contract fields", async () =>
   globalThis.fetch = mock.fn(async () =>
     jsonResponse({ data: { ...job, accepts_applications: false, apply_path: null, skill_options: null } }),
   ) as unknown as typeof fetch;
+  assert.equal((await getJobPosting("volunteer-ab12")).ok, true);
+
+  // §12 regression: a not-yet-migrated ERP omits share_image_url entirely
+  // (not null) — this build's own log against the live ERP caught exactly
+  // this, rejecting every posting production actually returned.
+  globalThis.fetch = mock.fn(async () => jsonResponse({ data: without(job, "share_image_url") })) as unknown as typeof fetch;
   assert.equal((await getJobPosting("volunteer-ab12")).ok, true);
 });
 

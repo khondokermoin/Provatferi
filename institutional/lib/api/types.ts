@@ -249,6 +249,8 @@ export interface JobPosting {
   notice_action: { url: string; label: string } | null;
   /** Only present on the detail contract, and only while the form is open. */
   skill_options: SkillOption[] | null;
+  /** §12/§13: this posting's own image, or its linked notice's — never composed client-side. */
+  share_image_url: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -306,6 +308,8 @@ export interface PublicNoticeDetail extends PublicNoticeSummary {
   organization_unit: string | null;
   action: { url: string; label: string } | null;
   cover_image_url: string | null;
+  /** §12: the dedicated Open Graph image, when one was uploaded — never the same as cover_image_url. */
+  share_image_url: string | null;
   attachment: { url: string; size: number | null; mime: string | null } | null;
   recruitment: NoticeRecruitmentInfo | null;
   updated_at: string | null;

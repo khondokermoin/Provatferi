@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { socialMeta } from "@/lib/social-meta";
 import type { Metadata } from "next";
 import {
   coreValues,
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
   title: "আমাদের সম্পর্কে",
   description,
   alternates: { canonical: "/about" },
-  openGraph: { title: `আমাদের সম্পর্কে | ${org.shortName}`, description, url: "/about", images: [{ ...org.ogImage, alt: org.nameBn }] },
+  ...socialMeta({ title: `আমাদের সম্পর্কে | ${org.shortName}`, description, url: "/about" }),
 };
 
 export default async function AboutPage() {
