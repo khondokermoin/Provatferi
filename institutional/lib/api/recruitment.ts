@@ -37,7 +37,12 @@ export function isJobPosting(v: unknown): v is JobPosting {
     typeof v.accepts_applications === "boolean" &&
     isStringOrNull(v.apply_path) &&
     isNoticeAction(v.notice_action) &&
-    (v.skill_options === null || (Array.isArray(v.skill_options) && v.skill_options.every(isSkillOption)))
+    (v.skill_options === null || (Array.isArray(v.skill_options) && v.skill_options.every(isSkillOption))) &&
+    // §12: optional-or-null, not just nullable — see the identical note on
+    // isNoticeDetail in notices.ts. This build's own log caught the hazard:
+    // the live ERP (not yet migrated) omits this key entirely, and a strict
+    // isStringOrNull() rejected every posting production actually returned.
+    (v.share_image_url === undefined || isStringOrNull(v.share_image_url))
   );
 }
 

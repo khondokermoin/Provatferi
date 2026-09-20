@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { socialMeta } from "@/lib/social-meta";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { org } from "@/lib/content";
@@ -18,7 +19,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: result.data.name,
     description,
     alternates: { canonical: `/members/${slug}` },
-    openGraph: { title: `${result.data.name} | ${org.shortName}`, description, url: `/members/${slug}`, images: [{ ...org.ogImage, alt: org.nameBn }] },
+    ...socialMeta({ title: `${result.data.name} | ${org.shortName}`, description, url: `/members/${slug}` }),
   };
 }
 

@@ -98,6 +98,12 @@ class NoticeController extends Controller
                 ? ['url' => $notice->action_url, 'label' => $notice->action_label ?: 'বিস্তারিত দেখুন']
                 : null,
             'cover_image_url' => $notice->cover_image_path ? route('api.public.notices.cover', $notice->slug) : null,
+            // §12/§13: the DEDICATED Open Graph image, when the admin uploaded
+            // one — never the cover image, which may be a different aspect
+            // ratio entirely. null here means "no dedicated image"; the caller
+            // (generateMetadata) falls back to cover_image_url, then the
+            // global brand mark, so og:image is never empty.
+            'share_image_url' => $notice->share_image_path ? route('api.public.notices.share', $notice->slug) : null,
             'attachment' => $notice->attachment_path
                 ? ['url' => route('api.public.notices.attachment', $notice->slug), 'size' => $notice->attachment_size, 'mime' => $notice->attachment_mime]
                 : null,
@@ -130,6 +136,15 @@ class NoticeController extends Controller
         $extension = pathinfo($notice->cover_image_path, PATHINFO_EXTENSION);
 
         return $this->files->response($notice->cover_image_path, "{$notice->slug}-cover.{$extension}", $this->files->coverMime($notice->cover_image_path), true);
+    }
+
+    public function shareImage(string $slug): StreamedResponse
+    {
+        $notice = Notice::query()->publiclyVisible()->where('slug', $slug)->firstOrFail();
+        abort_unless($notice->share_image_path, 404);
+        $extension = pathinfo($notice->share_image_path, PATHINFO_EXTENSION);
+
+        return $this->files->response($notice->share_image_path, "{$notice->slug}-share.{$extension}", $this->files->coverMime($notice->share_image_path), true);
     }
 
     /** @return array<string, mixed> */

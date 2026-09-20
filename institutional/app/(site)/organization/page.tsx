@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { socialMeta } from "@/lib/social-meta";
 import { governancePositions, org } from "@/lib/content";
 import { getOrganizationUnits } from "@/lib/api/organization";
 import PageHeader from "@/components/PageHeader";
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
   title: "সংগঠন",
   description,
   alternates: { canonical: "/organization" },
-  openGraph: { title: `সংগঠন | ${org.shortName}`, description, url: "/organization", images: [{ ...org.ogImage, alt: org.nameBn }] },
+  ...socialMeta({ title: `সংগঠন | ${org.shortName}`, description, url: "/organization" }),
 };
 
 const levels = ["কেন্দ্রীয়", "বিভাগ", "জেলা", "উপজেলা", "ইউনিয়ন/ইউনিট"];

@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { socialMeta } from "@/lib/social-meta";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { org } from "@/lib/content";
 import { applicationWindowLabel, applyCtaLabel, communityCtaLabel, getJobPosting } from "@/lib/api/recruitment";
 import { formatBnDate } from "@/lib/format";
@@ -18,12 +19,20 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const job = result.data;
   const description = job.summary ?? excerpt(job.description ?? job.title);
   const url = `/recruitment/${job.slug}`;
+  // §12/§13: share_image_url already encodes the full priority server-side
+  // (this posting's own upload, then its linked notice's share/cover image)
+  // — omitting width/height here on purpose, since a linked notice's cover
+  // image isn't guaranteed to be 1200x630 the way a dedicated upload is, and
+  // an incorrect size hint is worse than none. socialMeta()'s own fallback
+  // (the approved brand mark, with its real known dimensions) applies when
+  // this is null.
+  const image = job.share_image_url ? { url: job.share_image_url, alt: job.title } : undefined;
 
   return {
     title: job.title,
     description,
     alternates: { canonical: url },
-    openGraph: { title: `${job.title} | ${org.shortName}`, description, url, images: [{ ...org.ogImage, alt: org.nameBn }] },
+    ...socialMeta({ title: `${job.title} | ${org.shortName}`, description, url, image }),
   };
 }
 
@@ -33,6 +42,12 @@ export default async function RecruitmentDetailPage({ params }: { params: Promis
   if (!result.ok) notFound();
 
   const job = result.data;
+  // §3: the requested segment may be a retired slug that JobPostingController
+  // resolved through history. job.slug is always the CURRENT one (present()
+  // reads it straight off the model), so a mismatch here is exactly the
+  // "old URL" case — a 308 keeps the visitor's link working forever while
+  // telling search engines and browsers to remember the new address.
+  if (job.slug !== slug) permanentRedirect(`/recruitment/${job.slug}`);
   const opening = formatBnDate(job.opening_date);
 
   const breadcrumbData = {

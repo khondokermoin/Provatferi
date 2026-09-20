@@ -68,6 +68,29 @@
                             @endif
                         </div>
                     </div>
+
+                    {{-- §12: a dedicated Open Graph image, separate from the in-page cover
+                         image above — sized for how link previews render, not for the page. --}}
+                    <hr class="my-3">
+                    <div class="row">
+                        <div class="col-md-6">
+                            @if ($notice->share_image_path)
+                                <img src="{{ route('admin.notices.file', [$notice, 'share']) }}" alt=""
+                                     class="rounded border mb-2" style="max-width: 240px; max-height: 126px; object-fit: cover;">
+                            @endif
+                            <x-admin.form-input name="share_image" label="সামাজিক শেয়ার ছবি (ঐচ্ছিক)" type="file" accept="image/jpeg,image/png,image/webp"
+                                help="সেরা ফলাফলের জন্য 1200 × 630 পিক্সেল (1.91:1) ছবি ব্যবহার করুন। JPG, PNG বা WEBP, সর্বোচ্চ ৫ MB। ফেসবুক, WhatsApp ও Twitter-এ লিংক শেয়ার করলে এই ছবিটি দেখানো হবে।" />
+                            @if ($notice->share_image_path)
+                                <div class="form-check mb-3">
+                                    <input type="checkbox" class="form-check-input" id="remove_share_image" name="remove_share_image" value="1">
+                                    <label class="form-check-label" for="remove_share_image">
+                                        বর্তমান শেয়ার ছবি সরিয়ে দিন
+                                        (<a href="{{ route('admin.notices.file', [$notice, 'share']) }}" target="_blank" rel="noopener noreferrer">দেখুন</a>)
+                                    </label>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
                 </x-admin.card>
 
                 <x-admin.card title="অ্যাকশন বাটন (ঐচ্ছিক)">

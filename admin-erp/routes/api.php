@@ -32,6 +32,10 @@ Route::prefix('v1')->group(function () {
     Route::get('/membership-types', [MembershipTypeController::class, 'index']);
     Route::get('/job-postings', [JobPostingController::class, 'index']);
     Route::get('/job-postings/{jobPosting}', [JobPostingController::class, 'show']);
+    // §12: public, unauthenticated — social-media crawlers (Facebook, Twitter,
+    // WhatsApp) fetch og:image directly and never send the admin session.
+    Route::get('/job-postings/{jobPosting}/share-image', [JobPostingController::class, 'shareImage'])
+        ->middleware('throttle:120,1')->name('api.job-postings.share');
 
     // Public — new-phase membership/committee contracts (§41), consumed by
     // provatferi.org's server-side fetches only, never the browser directly.
@@ -59,6 +63,8 @@ Route::prefix('v1')->group(function () {
             ->middleware('throttle:60,1')->name('api.public.notices.attachment');
         Route::get('/notices/{slug}/cover', [PublicNoticeController::class, 'cover'])
             ->middleware('throttle:120,1')->name('api.public.notices.cover');
+        Route::get('/notices/{slug}/share-image', [PublicNoticeController::class, 'shareImage'])
+            ->middleware('throttle:120,1')->name('api.public.notices.share');
 
         // §2/§21: the volunteer/recruitment intake. Rate-limited per IP, and
         // the posting itself decides whether it accepts applications at all.

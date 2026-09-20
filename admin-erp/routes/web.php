@@ -226,7 +226,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         Route::patch('/{notice}/publish', [NoticeController::class, 'publish'])->middleware('permission:notices.publish')->name('publish');
         Route::patch('/{notice}/archive', [NoticeController::class, 'archive'])->middleware('permission:notices.archive')->name('archive');
         Route::delete('/{notice}', [NoticeController::class, 'destroy'])->middleware('permission:notices.delete')->name('destroy');
-        Route::get('/{notice}/files/{kind}', [NoticeController::class, 'file'])->whereIn('kind', ['attachment', 'cover'])
+        Route::get('/{notice}/files/{kind}', [NoticeController::class, 'file'])->whereIn('kind', ['attachment', 'cover', 'share'])
             ->middleware('permission:notices.view')->name('file');
     });
 
@@ -245,6 +245,8 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         ->middleware('permission:recruitment.update')->name('recruitment.update');
     Route::delete('/recruitment/{jobPosting}', [RecruitmentController::class, 'destroy'])
         ->middleware('permission:recruitment.delete')->name('recruitment.destroy');
+    Route::get('/recruitment/{jobPosting}/files/share', [RecruitmentController::class, 'shareImage'])
+        ->middleware('permission:recruitment.view')->name('recruitment.files.share');
 
     /* Recruitment Applications review */
     Route::prefix('recruitment-applications')->name('recruitment.applications.')->group(function () {

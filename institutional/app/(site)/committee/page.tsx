@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { socialMeta } from "@/lib/social-meta";
 import Link from "next/link";
 import { org } from "@/lib/content";
 import { getCommittees } from "@/lib/api/committees";
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
   title: "কমিটি",
   description,
   alternates: { canonical: "/committee" },
-  openGraph: { title: `কমিটি | ${org.shortName}`, description, url: "/committee", images: [{ ...org.ogImage, alt: org.nameBn }] },
+  ...socialMeta({ title: `কমিটি | ${org.shortName}`, description, url: "/committee" }),
 };
 
 // Mirrors admin-erp's own CommitteeController::TYPES / Committee::STATUSES

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { socialMeta } from "@/lib/social-meta";
 import { org } from "@/lib/content";
 import { getSettings } from "@/lib/api/settings";
 import PageHeader from "@/components/PageHeader";
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
   title: "যোগাযোগ",
   description,
   alternates: { canonical: "/contact" },
-  openGraph: { title: `যোগাযোগ | ${org.shortName}`, description, url: "/contact", images: [{ ...org.ogImage, alt: org.nameBn }] },
+  ...socialMeta({ title: `যোগাযোগ | ${org.shortName}`, description, url: "/contact" }),
 };
 
 export default async function ContactPage() {

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { org } from "@/lib/content";
+import { socialMeta } from "@/lib/social-meta";
 import { getActivitiesWithFallback } from "@/lib/api/activities";
 
 // Same source as the listing page and the sitemap (getActivitiesWithFallback)
@@ -29,12 +30,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: activity.title,
     description,
     alternates: { canonical: `/activities/${activity.slug}` },
-    openGraph: {
-      title: `${activity.title} | ${org.shortName}`,
-      description,
-      url: `/activities/${activity.slug}`,
-      images: [{ ...org.ogImage, alt: org.nameBn }],
-    },
+    ...socialMeta({ title: `${activity.title} | ${org.shortName}`, description, url: `/activities/${activity.slug}` }),
   };
 }
 

@@ -25,6 +25,9 @@ class ApplicationDocumentService
 
     private const FOLDER = 'applications/cv';
 
+    /** ISO 32000-1 §7.5.2: the %PDF- header may appear anywhere in this window. */
+    private const HEADER_SCAN_BYTES = 1024;
+
     /**
      * @throws RuntimeException when the file is not a genuine PDF within the size limit
      */
@@ -44,13 +47,26 @@ class ApplicationDocumentService
             throw new RuntimeException('ফাইলটি পড়া যায়নি।');
         }
 
+        /*
+         * The PDF specification (ISO 32000-1 §7.5.2) allows the "%PDF-" header
+         * anywhere within the first 1024 bytes, and readers are required to
+         * accept it there. Requiring it at byte 0 rejected genuine PDFs that
+         * carry a UTF-8 BOM or leading whitespace — routinely produced by Word
+         * exports and online converters — and that is exactly what broke the
+         * live volunteer intake: the CV was refused, and storeFiles() then
+         * deleted the photo that had already been stored alongside it.
+         *
+         * The finfo MIME check below is unchanged, so this only widens WHERE
+         * the header may legitimately sit; it does not weaken type detection.
+         * A file whose header appears only beyond 1024 bytes is still refused.
+         */
         $handle = fopen($realPath, 'rb');
-        $magic = $handle !== false ? (string) fread($handle, 5) : '';
+        $head = $handle !== false ? (string) fread($handle, self::HEADER_SCAN_BYTES) : '';
         if ($handle !== false) {
             fclose($handle);
         }
         $detected = (new finfo(FILEINFO_MIME_TYPE))->file($realPath);
-        if ($magic !== '%PDF-' || $detected !== 'application/pdf') {
+        if (!str_contains($head, '%PDF-') || $detected !== 'application/pdf') {
             throw new RuntimeException('ফাইলটি একটি বৈধ PDF নয়।');
         }
 

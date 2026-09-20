@@ -34,6 +34,12 @@ class NoticeFileService
         return $this->photos->storePrivate($file, 'notices/covers');
     }
 
+    /** §12: a dedicated Open Graph image — same validation, its own subfolder. */
+    public function storeShareImage(UploadedFile $file): string
+    {
+        return $this->photos->storePrivate($file, 'notices/share');
+    }
+
     /**
      * @return array{path: string, mime: string, size: int}
      *

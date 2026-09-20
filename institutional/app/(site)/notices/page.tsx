@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { socialMeta } from "@/lib/social-meta";
 import Link from "next/link";
 import { org } from "@/lib/content";
 import { getNotices, type NoticeQuery } from "@/lib/api/notices";
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
   title: "নোটিশ বোর্ড",
   description,
   alternates: { canonical: "/notices" },
-  openGraph: { title: `নোটিশ বোর্ড | ${org.shortName}`, description, url: "/notices", images: [{ ...org.ogImage, alt: org.nameBn }] },
+  ...socialMeta({ title: `নোটিশ বোর্ড | ${org.shortName}`, description, url: "/notices" }),
 };
 
 const PER_PAGE = 20;

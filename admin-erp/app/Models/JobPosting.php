@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class JobPosting extends Model
 {
@@ -22,6 +23,13 @@ class JobPosting extends Model
     ];
 
     public const APPLICATION_MODES = ['fixed' => 'নির্দিষ্ট সময়সীমা', 'rolling' => 'চলমান'];
+
+    /**
+     * §3: slugs that would collide with a static segment under
+     * /recruitment/{slug}/... — "apply" and "success" are route segments of
+     * the application flow itself; "sitemap" mirrors Notice's own guard.
+     */
+    public const RESERVED_SLUGS = ['apply', 'success', 'sitemap'];
 
     /** Shown in place of any salary on volunteer roles — "৳0" would read as a paid job that pays nothing. */
     public const VOLUNTEER_NOTE = 'এটি একটি স্বেচ্ছাসেবী সুযোগ; বর্তমানে আর্থিক পারিশ্রমিকের প্রতিশ্রুতি নেই।';
@@ -55,6 +63,39 @@ class JobPosting extends Model
     public function notice(): HasOne
     {
         return $this->hasOne(Notice::class);
+    }
+
+    /** §3: every slug this posting has ever been given up — never the current one. */
+    public function slugHistory(): HasMany
+    {
+        return $this->hasMany(JobPostingSlug::class);
+    }
+
+    /**
+     * §3: mirrors Notice::uniqueSlug() — the same 80-char limit, reserved-word
+     * guard and numeric suffixing — plus one addition: a slug already retired
+     * by any posting (job_posting_slugs) is excluded too, so a URL that used
+     * to work is never later handed to different content.
+     */
+    public static function uniqueSlug(string $source, ?int $ignoreId = null): string
+    {
+        $base = trim(Str::limit(Str::slug($source), 80, ''), '-');
+        if ($base === '') {
+            $base = 'recruitment';
+        } elseif (in_array($base, self::RESERVED_SLUGS, true)) {
+            $base .= '-recruitment';
+        }
+
+        $slug = $base;
+        $suffix = 2;
+        while (
+            static::withTrashed()->where('slug', $slug)->when($ignoreId, fn ($q) => $q->whereKeyNot($ignoreId))->exists()
+            || JobPostingSlug::query()->where('slug', $slug)->exists()
+        ) {
+            $slug = $base.'-'.$suffix++;
+        }
+
+        return $slug;
     }
 
     public function isVolunteer(): bool

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { socialMeta } from "@/lib/social-meta";
 import type { Metadata } from "next";
 import { org, recentActivities } from "@/lib/content";
 import PageHeader from "@/components/PageHeader";
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
   title: "ইভেন্ট",
   description,
   alternates: { canonical: "/events" },
-  openGraph: { title: `ইভেন্ট | ${org.shortName}`, description, url: "/events", images: [{ ...org.ogImage, alt: org.nameBn }] },
+  ...socialMeta({ title: `ইভেন্ট | ${org.shortName}`, description, url: "/events" }),
 };
 
 export default function EventsPage() {

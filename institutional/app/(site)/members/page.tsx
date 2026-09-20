@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { socialMeta } from "@/lib/social-meta";
 import Link from "next/link";
 import { org } from "@/lib/content";
 import { getMemberDirectory } from "@/lib/api/member-directory";
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
   title: "সদস্য পরিচিতি",
   description,
   alternates: { canonical: "/members" },
-  openGraph: { title: `সদস্য পরিচিতি | ${org.shortName}`, description, url: "/members", images: [{ ...org.ogImage, alt: org.nameBn }] },
+  ...socialMeta({ title: `সদস্য পরিচিতি | ${org.shortName}`, description, url: "/members" }),
 };
 
 export default async function MembersDirectoryPage() {

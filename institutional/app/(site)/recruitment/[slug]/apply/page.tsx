@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { org } from "@/lib/content";
 import { applicationWindowLabel, getJobPosting } from "@/lib/api/recruitment";
 import { formatBnDate } from "@/lib/format";
@@ -34,6 +34,9 @@ export default async function VolunteerApplyPage({ params }: { params: Promise<{
   if (!result.ok) notFound();
 
   const job = result.data;
+  // §3: same history-resolved-slug case as the detail page, redirected to
+  // the canonical /apply URL rather than the canonical detail page.
+  if (job.slug !== slug) permanentRedirect(`/recruitment/${job.slug}/apply`);
   if (!job.accepts_applications || job.skill_options === null) notFound();
 
   return (
