@@ -189,10 +189,15 @@ echo "private.tar: $(du -h "$PRIVATE_TAR" | cut -f1)"
 step "Packaging public docroot assets (built frontend, brand assets — NOT index.php)"
 [ -d "$APP/public/build" ] || fail "public/build/ missing at packaging time — frontend build step above should have created it"
 PUBLIC_TAR="$RELEASE_DIR/public-assets.tar"
+# brand-icons/ holds the generated Tabler subset (build-icon-subset.mjs) that
+# layouts/admin.blade.php loads instead of the vendor's full 5,936-glyph set.
+# It is Provatferi-owned output, so it ships here and the asset contract
+# verifies it — omitting it would 404 every icon in production, which is
+# exactly the SYSTEM-006 failure class this packaging list exists to prevent.
 tar -cf "$PUBLIC_TAR" -C "$APP/public" \
   --exclude='index.php' \
   --exclude='.htaccess' \
-  build brand favicon.ico robots.txt 2>/dev/null || true
+  build brand brand-icons favicon.ico robots.txt 2>/dev/null || true
 echo "public-assets.tar: $(du -h "$PUBLIC_TAR" | cut -f1)"
 
 # index.php is deliberately reported, never silently bundled for auto-apply —

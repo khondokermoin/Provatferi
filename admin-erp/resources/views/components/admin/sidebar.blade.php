@@ -26,7 +26,10 @@
             'permission' => 'organization.view',
             'items' => [
                 [
-                    'label' => 'সংগঠন', 'icon' => 'ti-sitemap', 'id' => 'nav-organization',
+                    // Deliberately not repeating the group title above it — a
+                    // section header and its only item reading the same word
+                    // looks like a duplicated menu entry.
+                    'label' => 'কাঠামো ও কমিটি', 'icon' => 'ti-sitemap', 'id' => 'nav-organization',
                     'children' => [
                         ['label' => 'সাংগঠনিক ইউনিট', 'route' => 'admin.organization.units.index'],
                         ['label' => 'পদসমূহ', 'route' => 'admin.positions.index'],
@@ -54,7 +57,7 @@
                     'children' => [
                         ['label' => 'নিবন্ধন সিজন', 'route' => 'admin.membership.seasons.index'],
                         ['label' => 'সদস্যপদের ধরন', 'route' => 'admin.membership.types.index'],
-                        ['label' => 'আবেদনসমূহ', 'route' => 'admin.membership.index'],
+                        ['label' => 'সদস্যপদ আবেদন', 'route' => 'admin.membership.index'],
                         ['label' => 'সদস্যবৃন্দ', 'route' => 'admin.membership.members.index'],
                     ],
                 ],
@@ -75,7 +78,7 @@
                     'permission' => 'recruitment.view',
                     'children' => [
                         ['label' => 'চাকরির বিজ্ঞপ্তি', 'route' => 'admin.recruitment.index'],
-                        ['label' => 'আবেদনসমূহ', 'route' => 'admin.recruitment.applications.index'],
+                        ['label' => 'নিয়োগ আবেদন', 'route' => 'admin.recruitment.applications.index'],
                     ],
                 ],
             ],
@@ -85,7 +88,7 @@
             'permission' => 'settings.view',
             'items' => [
                 [
-                    'label' => 'বিষয়বস্তু', 'icon' => 'ti-file-text', 'id' => 'nav-content',
+                    'label' => 'পেজ ও সেটিংস', 'icon' => 'ti-file-text', 'id' => 'nav-content',
                     'children' => [
                         ['label' => 'আমাদের সম্পর্কে', 'route' => 'admin.content.about.edit'],
                         ['label' => 'লক্ষ্য', 'route' => 'admin.content.mission.edit'],
@@ -101,7 +104,7 @@
             'permission' => 'users.view',
             'items' => [
                 [
-                    'label' => 'সিস্টেম', 'icon' => 'ti-shield-lock', 'id' => 'nav-system',
+                    'label' => 'ব্যবহারকারী ও অনুমতি', 'icon' => 'ti-shield-lock', 'id' => 'nav-system',
                     'children' => [
                         ['label' => 'ব্যবহারকারী', 'route' => 'admin.users.index'],
                         ['label' => 'ভূমিকা', 'route' => 'admin.roles.index'],
