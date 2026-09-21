@@ -47,7 +47,7 @@ carries a `Reply-To` chosen by message class:
 
 | Message class | Reply-To | Config key |
 |---|---|---|
-| Password reset, login/account, membership application status | `support@` | `mail.reply_to.support` |
+| Password reset, login/account, membership and volunteer application status | `support@` | `mail.reply_to.support` |
 | General notifications, public-form acknowledgements | `info@` | `mail.reply_to.general` |
 | Security notices | `security@` | `mail.reply_to.security` |
 | Internal ERP/staff operational notices | `admin@` (as recipient) | `mail.reply_to.operations` |

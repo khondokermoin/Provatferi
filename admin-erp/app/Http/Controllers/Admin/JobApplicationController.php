@@ -5,13 +5,17 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\JobApplication;
 use App\Models\JobPosting;
+use App\Notifications\VolunteerApplicationStatusChangedNotification;
 use App\Services\ApplicationDocumentService;
 use App\Services\NoticeFileService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 /**
  * §7: review of applications filed through the public form. Everything an
@@ -90,6 +94,8 @@ class JobApplicationController extends Controller
             'internal_note' => ['nullable', 'string', 'max:2000'],
         ], [], ['status' => 'স্ট্যাটাস', 'internal_note' => 'অভ্যন্তরীণ নোট']);
 
+        $previousStatus = $jobApplication->status;
+
         $jobApplication->update([
             'status' => $data['status'],
             // An empty box leaves the existing note alone rather than wiping it.
@@ -97,8 +103,48 @@ class JobApplicationController extends Controller
             'reviewed_by' => $request->user()->id,
         ]);
 
+        // Only on a real transition into a decision state: re-saving an already
+        // accepted application to edit its internal note must not email the
+        // applicant a second time. (Membership's equivalent does not guard this.)
+        if ($previousStatus !== $data['status']
+            && in_array($data['status'], VolunteerApplicationStatusChangedNotification::NOTIFIABLE_STATUSES, true)) {
+            $this->notifyApplicant($jobApplication);
+        }
+
         return redirect()->route('admin.recruitment.applications.show', $jobApplication)
             ->with('success', 'আবেদনের স্ট্যাটাস হালনাগাদ হয়েছে — '.$jobApplication->statusLabel().'।');
+    }
+
+    /**
+     * An email-transport failure must never turn an already-persisted status
+     * change into a 500 — it is logged, not raised. Sends no internal note:
+     * the notification has no parameter that could carry one.
+     */
+    private function notifyApplicant(JobApplication $application): void
+    {
+        $email = trim((string) $application->applicant_email);
+        if ($email === '') {
+            return;
+        }
+
+        try {
+            // withTrashed: a posting closed/removed after the application came in
+            // still has a title worth naming; the default scope would return null.
+            $title = $application->jobPosting()->withTrashed()->value('title');
+
+            Notification::route('mail', $email)->notify(new VolunteerApplicationStatusChangedNotification(
+                $application->application_no,
+                $application->status,
+                $application->applicant_name,
+                $title,
+            ));
+        } catch (Throwable $e) {
+            Log::warning('Volunteer application status notification failed to send.', [
+                'application_no' => $application->application_no,
+                'status' => $application->status,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
