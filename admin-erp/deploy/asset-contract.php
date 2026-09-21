@@ -90,7 +90,7 @@ foreach ([
     'provatferi-icons.css',
     'provatferi-icons.woff2',
 ] as $file) {
-    checkFile($appPath.'/public/brand-icons/'.$file, "icon subset: $file", $present, $missing);
+    checkFile($appPath.'/public/brand/icons/'.$file, "icon subset: $file", $present, $missing);
 }
 
 // 5. Favicon.

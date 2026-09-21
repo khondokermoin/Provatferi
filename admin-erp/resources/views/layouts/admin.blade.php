@@ -60,7 +60,7 @@
         from the same vendor source, keeping the ti-* class names identical —
         run it after introducing a new icon.
     --}}
-    <link href="{{ asset('brand-icons/provatferi-icons.css') }}" rel="stylesheet">
+    <link href="{{ asset('brand/icons/provatferi-icons.css') }}" rel="stylesheet">
     {{--
         Brand layer last so it wins over the template. SYSTEM-006: built
         through Vite and referenced by content hash (public/build/manifest.json)
