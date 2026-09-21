@@ -38,27 +38,27 @@ class IconSubsetTest extends TestCase
 
     public function test_the_generated_subset_files_exist(): void
     {
-        $this->assertFileExists(public_path('brand-icons/provatferi-icons.css'));
-        $this->assertFileExists(public_path('brand-icons/provatferi-icons.woff2'));
+        $this->assertFileExists(public_path('brand/icons/provatferi-icons.css'));
+        $this->assertFileExists(public_path('brand/icons/provatferi-icons.woff2'));
     }
 
     public function test_every_icon_the_app_renders_is_in_the_subset(): void
     {
-        $css = (string) file_get_contents(public_path('brand-icons/provatferi-icons.css'));
+        $css = (string) file_get_contents(public_path('brand/icons/provatferi-icons.css'));
 
         $missing = array_values(array_filter(
             $this->usedIconClasses(),
             fn (string $icon) => ! str_contains($css, ".{$icon}:before"),
         ));
 
-        $this->assertSame([], $missing, 'Icons referenced in the app but absent from the subset — re-run `node build-icon-subset.mjs` and commit public/brand-icons/: '.implode(', ', $missing));
+        $this->assertSame([], $missing, 'Icons referenced in the app but absent from the subset — re-run `node build-icon-subset.mjs` and commit public/brand/icons/: '.implode(', ', $missing));
     }
 
     public function test_the_layout_loads_the_subset_and_not_the_full_vendor_icon_sheet(): void
     {
         $layout = (string) file_get_contents(base_path('resources/views/layouts/admin.blade.php'));
 
-        $this->assertStringContainsString('brand-icons/provatferi-icons.css', $layout);
+        $this->assertStringContainsString('brand/icons/provatferi-icons.css', $layout);
         $this->assertStringNotContainsString('zircos/css/icons.min.css', $layout);
     }
 }
