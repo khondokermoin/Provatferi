@@ -8,10 +8,14 @@ use App\Models\JobPosting;
 use App\Notifications\VolunteerApplicationStatusChangedNotification;
 use App\Services\ApplicationDocumentService;
 use App\Services\NoticeFileService;
+use App\Services\RecruitmentPdfService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -28,6 +32,7 @@ class JobApplicationController extends Controller
     public function __construct(
         private readonly ApplicationDocumentService $documents,
         private readonly NoticeFileService $files,
+        private readonly RecruitmentPdfService $pdf,
     ) {
     }
 
@@ -145,6 +150,71 @@ class JobApplicationController extends Controller
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Print view: plain authenticated HTML, no admin chrome (layouts.print).
+     * The photo is fetched by the BROWSER via the normal authenticated file
+     * route — the admin viewing this page already has that session, exactly
+     * like the detail page's own photo thumbnail.
+     */
+    public function print(JobApplication $jobApplication): View
+    {
+        $jobApplication->load(['jobPosting', 'reviewer']);
+
+        return view('admin.recruitment.applications.print', [
+            'title' => $jobApplication->applicant_name,
+            'application' => $jobApplication,
+            'contactLabels' => JobApplication::PREFERRED_CONTACTS,
+            'photoSrc' => $jobApplication->photo_path
+                ? route('admin.recruitment.applications.file', [$jobApplication, 'photo'])
+                : null,
+            'logoSrc' => asset('brand/provatferi-logo-light.png'),
+            'generatedAt' => Carbon::now(),
+        ]);
+    }
+
+    /**
+     * PDF download: mPDF renders server-side with no browser/session
+     * involved, so the photo and the org mark are embedded as base64 data
+     * URIs read directly off disk here — a route URL would mean nothing to
+     * mPDF's own HTML parser. Same document.blade.php partial as print(),
+     * so the two outputs never drift apart.
+     */
+    public function pdf(JobApplication $jobApplication): Response
+    {
+        $jobApplication->load(['jobPosting', 'reviewer']);
+
+        $photoSrc = null;
+        if ($jobApplication->photo_path && Storage::disk('uploads_private')->exists($jobApplication->photo_path)) {
+            $mime = $this->files->coverMime($jobApplication->photo_path);
+            if ($mime !== 'application/octet-stream') {
+                $bytes = Storage::disk('uploads_private')->get($jobApplication->photo_path);
+                $photoSrc = "data:{$mime};base64,".base64_encode((string) $bytes);
+            }
+        }
+
+        $logoPath = public_path('brand/provatferi-logo-light.png');
+        $logoSrc = is_file($logoPath)
+            ? 'data:image/png;base64,'.base64_encode((string) file_get_contents($logoPath))
+            : null;
+
+        $html = view('admin.recruitment.applications.document', [
+            'application' => $jobApplication,
+            'contactLabels' => JobApplication::PREFERRED_CONTACTS,
+            'photoSrc' => $photoSrc,
+            'logoSrc' => $logoSrc,
+            'generatedAt' => Carbon::now(),
+        ])->render();
+
+        $bytes = $this->pdf->render($html);
+
+        return response($bytes, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$jobApplication->application_no.'.pdf"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store',
+        ]);
     }
 
     /**

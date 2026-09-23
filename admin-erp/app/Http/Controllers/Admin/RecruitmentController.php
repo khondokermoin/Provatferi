@@ -225,6 +225,18 @@ class RecruitmentController extends Controller
         // otherwise turning it off would silently leave it on.
         $data['accepts_applications'] = $request->boolean('accepts_applications');
 
+        // §Application Form Settings: only known keys are ever stored — a
+        // stray key could never reach here from this form anyway (it isn't
+        // in $this->rules()'s field_requirements.* validation), but this
+        // guards the case of a hand-crafted request too. A value equal to
+        // the class default is kept as-is rather than pruned: an explicit
+        // "required" that happens to match the default is still a real,
+        // intentional admin choice, not noise.
+        $data['field_requirements'] = array_intersect_key(
+            $request->input('field_requirements', []),
+            JobPosting::CONFIGURABLE_APPLICATION_FIELDS,
+        );
+
         unset($data['publish_to_notice_board']);
 
         return $data;
@@ -269,6 +281,8 @@ class RecruitmentController extends Controller
             'application_deadline' => ['nullable', 'date', 'after_or_equal:opening_date'],
             'accepts_applications' => ['nullable', 'boolean'],
             'status' => ['required', Rule::in(array_keys(JobPosting::STATUSES))],
+            'field_requirements' => ['nullable', 'array'],
+            'field_requirements.*' => ['nullable', 'string', Rule::in(['required', 'optional'])],
             'publish_to_notice_board' => ['nullable', 'boolean'],
             // §12: same rule shape as Notice's cover_image — PhotoUploadService
             // enforces JPG/PNG/WEBP and the 5 MB limit inside storeShareImage().
@@ -307,6 +321,8 @@ class RecruitmentController extends Controller
             'statuses' => JobPosting::STATUSES,
             'employmentTypes' => JobPosting::EMPLOYMENT_TYPES,
             'applicationModes' => JobPosting::APPLICATION_MODES,
+            'configurableFields' => JobPosting::CONFIGURABLE_APPLICATION_FIELDS,
+            'fieldRequirementOptions' => ['required' => 'আবশ্যক', 'optional' => 'ঐচ্ছিক'],
         ];
     }
 }

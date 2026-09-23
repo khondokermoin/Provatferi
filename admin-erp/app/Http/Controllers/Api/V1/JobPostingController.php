@@ -108,6 +108,12 @@ class JobPostingController extends Controller
                 : null,
             // The skill catalogue only matters where the form is rendered.
             'skill_options' => $detailed && $job->acceptsApplications() ? $this->skillOptions() : null,
+            // Required/optional per field for this posting — rides along with
+            // skill_options (detail view + form open only) so the public form
+            // can show the right indicator and Laravel's own validation
+            // (built from the same resolvedFieldRequirements()) is always the
+            // authority; this is presentation only, never trusted for its own sake.
+            'field_requirements' => $detailed && $job->acceptsApplications() ? $job->resolvedFieldRequirements() : null,
             'share_image_url' => $this->shareImageUrl($job),
         ];
     }

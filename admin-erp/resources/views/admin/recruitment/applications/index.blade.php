@@ -4,7 +4,7 @@
     @php $isFiltered = collect($filters)->filter(fn ($v) => $v !== '')->isNotEmpty(); @endphp
 
     <x-admin.table :paginator="$applications" caption="আবেদনের তালিকা"
-        :headers="['আবেদনকারী', 'বিজ্ঞপ্তি', 'জেলা', 'আগ্রহের ক্ষেত্র', 'স্ট্যাটাস', 'আবেদনের তারিখ']">
+        :headers="['আবেদনকারী', 'বিজ্ঞপ্তি', 'জেলা', 'আগ্রহের ক্ষেত্র', 'সংযুক্তি', 'স্ট্যাটাস', 'আবেদনের তারিখ']">
 
         <x-slot:toolbar>
             <form method="GET" action="{{ route('admin.recruitment.applications.index') }}" class="row g-2 align-items-end">
@@ -88,11 +88,19 @@
                         @endif
                     @endif
                 </td>
+                <td data-label="সংযুক্তি">
+                    {{-- Compact yes/no — a title tooltip carries the detail, so this
+                         stays two small glyphs instead of two more text columns. --}}
+                    <i class="ti ti-photo {{ $application->photo_path ? 'text-success' : 'text-muted opacity-50' }} me-1"
+                       title="{{ $application->photo_path ? 'ছবি আছে' : 'ছবি নেই' }}" aria-label="{{ $application->photo_path ? 'ছবি আছে' : 'ছবি নেই' }}"></i>
+                    <i class="ti ti-file-cv {{ $application->cv_path ? 'text-success' : 'text-muted opacity-50' }}"
+                       title="{{ $application->cv_path ? 'সিভি আছে' : 'সিভি নেই' }}" aria-label="{{ $application->cv_path ? 'সিভি আছে' : 'সিভি নেই' }}"></i>
+                </td>
                 <td data-label="স্ট্যাটাস"><x-admin.status-badge :status="$application->status" /></td>
                 <td data-label="আবেদনের তারিখ">{{ bn_date($application->created_at) }}</td>
             </tr>
         @empty
-            <x-admin.empty-state colspan="6" icon="{{ $isFiltered ? 'ti-search-off' : 'ti-user-off' }}"
+            <x-admin.empty-state colspan="7" icon="{{ $isFiltered ? 'ti-search-off' : 'ti-user-off' }}"
                 :title="$isFiltered ? 'এই ফিল্টারে কিছু পাওয়া যায়নি' : 'এখনো কোনো আবেদন নেই'" />
         @endforelse
     </x-admin.table>
