@@ -6,11 +6,24 @@
     <title>{{ $title ?? 'আবেদনপত্র' }} — Provatferi ERP</title>
     <link rel="icon" href="{{ asset('brand/provatferi-icon-light.png') }}" type="image/png">
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
-
     <style>
+        /* Self-hosted — no fonts.googleapis.com/fonts.gstatic.com request.
+           Same TTF source as mPDF's own font (resources/fonts/), converted to
+           WOFF2 by deploy/build-print-font.mjs, so the print preview and the
+           PDF are set in the literal same typeface, not look-alikes. */
+        @font-face {
+            font-family: 'Noto Sans Bengali';
+            font-style: normal; font-weight: 400;
+            src: url('{{ asset('brand/fonts/NotoSansBengali-Regular.woff2') }}') format('woff2');
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Noto Sans Bengali';
+            font-style: normal; font-weight: 700;
+            src: url('{{ asset('brand/fonts/NotoSansBengali-Bold.woff2') }}') format('woff2');
+            font-display: swap;
+        }
+
         @page { size: A4; margin: 15mm; }
         * { box-sizing: border-box; }
         html, body { margin: 0; padding: 0; background: #F4F1EC; }
@@ -34,9 +47,9 @@
         }
 
         /* notosansbengali is what document.blade.php's own inline <style>
-           targets (matching the PDF route's mPDF font-family exactly, so the
-           two outputs stay visually consistent) — mapped here to the
-           browser-loaded Google Font of the same family. */
+           targets — mapped here to the self-hosted @font-face of the same
+           family, so print preview and the mPDF-rendered PDF are set in the
+           literal same font file's glyphs, not merely similar-looking ones. */
         .print-page, .print-page * { font-family: 'Noto Sans Bengali', sans-serif; }
 
         @media print {

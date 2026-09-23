@@ -15,12 +15,21 @@
 @endsection
 
 @section('content')
+    @php
+        // Computed once: which private-disk files genuinely exist right now,
+        // not merely which paths are recorded — see JobApplication::photoFileExists()'s
+        // own docblock for why the distinction matters. Every conditional in
+        // this view that renders (or offers) a file uses these, never the
+        // raw photo_path/cv_path columns.
+        $photoExists = $application->photoFileExists();
+        $cvExists = $application->cvFileExists();
+    @endphp
     <div class="row">
         <div class="col-lg-7">
             {{-- আবেদনকারী সারসংক্ষেপ --}}
             <x-admin.card title="আবেদনকারী সারসংক্ষেপ" :subtitle="$application->application_no">
                 <div class="d-flex gap-3 align-items-start">
-                    @if ($application->photo_path)
+                    @if ($photoExists)
                         <a href="{{ route('admin.recruitment.applications.file', [$application, 'photo']) }}" target="_blank" rel="noopener noreferrer"
                            class="flex-shrink-0" title="পূর্ণ আকারে দেখুন">
                             <img src="{{ route('admin.recruitment.applications.file', [$application, 'photo']) }}"
@@ -29,7 +38,7 @@
                         </a>
                     @else
                         <div class="rounded border d-flex align-items-center justify-content-center flex-shrink-0 bg-light text-muted"
-                             style="width: 88px; height: 88px;" title="ছবি প্রদান করা হয়নি">
+                             style="width: 88px; height: 88px;" title="ছবি পাওয়া যায়নি">
                             <i class="ti ti-user fs-24" aria-hidden="true"></i>
                         </div>
                     @endif
@@ -134,20 +143,30 @@
                 <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
                     <li class="d-flex align-items-center justify-content-between">
                         <span class="fs-13"><i class="ti ti-photo me-1 text-muted" aria-hidden="true"></i>প্রোফাইল ছবি</span>
-                        @if ($application->photo_path)
+                        @if ($photoExists)
                             <a href="{{ route('admin.recruitment.applications.file', [$application, 'photo']) }}" class="btn btn-light border btn-sm" target="_blank" rel="noopener noreferrer">
                                 <i class="ti ti-eye me-1" aria-hidden="true"></i>দেখুন
                             </a>
+                        @elseif ($application->photo_path)
+                            {{-- Recorded but the file itself is gone — a genuinely different,
+                                 more useful thing for an admin to know than "never provided". --}}
+                            <span class="fs-12 text-warning-emphasis" title="আপলোড করা হয়েছিল কিন্তু ফাইলটি এখন পাওয়া যাচ্ছে না।">
+                                <i class="ti ti-alert-triangle me-1" aria-hidden="true"></i>ফাইল পাওয়া যায়নি
+                            </span>
                         @else
                             <span class="fs-12 text-muted">ছবি প্রদান করা হয়নি</span>
                         @endif
                     </li>
                     <li class="d-flex align-items-center justify-content-between">
                         <span class="fs-13"><i class="ti ti-file-cv me-1 text-muted" aria-hidden="true"></i>সিভি</span>
-                        @if ($application->cv_path)
+                        @if ($cvExists)
                             <a href="{{ route('admin.recruitment.applications.file', [$application, 'cv']) }}" class="btn btn-light border btn-sm">
                                 <i class="ti ti-download me-1" aria-hidden="true"></i>ডাউনলোড (PDF)
                             </a>
+                        @elseif ($application->cv_path)
+                            <span class="fs-12 text-warning-emphasis" title="আপলোড করা হয়েছিল কিন্তু ফাইলটি এখন পাওয়া যাচ্ছে না।">
+                                <i class="ti ti-alert-triangle me-1" aria-hidden="true"></i>ফাইল পাওয়া যায়নি
+                            </span>
                         @else
                             <span class="fs-12 text-muted">সিভি প্রদান করা হয়নি</span>
                         @endif

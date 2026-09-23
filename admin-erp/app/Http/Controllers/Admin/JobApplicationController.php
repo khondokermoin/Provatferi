@@ -166,7 +166,10 @@ class JobApplicationController extends Controller
             'title' => $jobApplication->applicant_name,
             'application' => $jobApplication,
             'contactLabels' => JobApplication::PREFERRED_CONTACTS,
-            'photoSrc' => $jobApplication->photo_path
+            // photoFileExists(), not photo_path truthiness — a recorded path
+            // whose file is gone must render the placeholder, not an <img>
+            // pointing at a route that will 404 (a broken image icon).
+            'photoSrc' => $jobApplication->photoFileExists()
                 ? route('admin.recruitment.applications.file', [$jobApplication, 'photo'])
                 : null,
             'logoSrc' => asset('brand/provatferi-logo-light.png'),
@@ -186,7 +189,7 @@ class JobApplicationController extends Controller
         $jobApplication->load(['jobPosting', 'reviewer']);
 
         $photoSrc = null;
-        if ($jobApplication->photo_path && Storage::disk('uploads_private')->exists($jobApplication->photo_path)) {
+        if ($jobApplication->photoFileExists()) {
             $mime = $this->files->coverMime($jobApplication->photo_path);
             if ($mime !== 'application/octet-stream') {
                 $bytes = Storage::disk('uploads_private')->get($jobApplication->photo_path);

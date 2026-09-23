@@ -179,6 +179,65 @@ class RecruitmentApplicationDocumentTest extends AdminTestCase
             ->assertSee('সিভি প্রদান করা হয়নি');
     }
 
+    /**
+     * The actual defect reported 2026-09-24: photo_path/cv_path recorded in
+     * the DB, but the file itself genuinely gone from the private disk (root
+     * cause: every deploy before release-manager.php's storage-persistence
+     * fix silently orphaned previously-uploaded files on each release
+     * switch). Every view that decides whether to render a photo/CV MUST
+     * check JobApplication::photoFileExists()/cvFileExists() — actual disk
+     * presence — never the raw column, which is exactly what previously
+     * rendered a real <img src="..."> pointing at a route that 404s: a
+     * broken image icon in the browser.
+     */
+    public function test_an_orphaned_photo_path_never_renders_a_broken_image_tag(): void
+    {
+        Storage::fake('uploads_private');
+        // Deliberately NOT put on disk — path recorded, file genuinely absent.
+        $application = $this->application($this->posting(), [
+            'photo_path' => 'applications/photos/gone.jpg',
+            'cv_path' => 'applications/cv/gone.pdf',
+        ]);
+
+        $this->assertFalse($application->photoFileExists());
+        $this->assertFalse($application->cvFileExists());
+
+        $html = $this->actingAs($this->superAdmin())
+            ->get(route('admin.recruitment.applications.show', $application))
+            ->assertOk()
+            ->getContent();
+
+        // No <img> pointing at the photo file route — that would 404 in the
+        // browser and render as a broken image icon.
+        $this->assertStringNotContainsString('<img src="https://admin.provatferi.org/admin/recruitment-applications', $html);
+        $this->assertStringNotContainsString(route('admin.recruitment.applications.file', [$application, 'photo']).'"', $html);
+        // Distinct, honest wording for "was uploaded but is now unavailable"
+        // — not the same string used for "never provided" (asserted above,
+        // in the sibling test, to genuinely mean something different).
+        $this->assertStringContainsString('ফাইল পাওয়া যায়নি', $html);
+    }
+
+    public function test_an_orphaned_photo_resolves_to_no_photo_in_print_and_pdf_too(): void
+    {
+        Storage::fake('uploads_private');
+        $application = $this->application($this->posting(), [
+            'photo_path' => 'applications/photos/gone.jpg',
+        ]);
+        $admin = $this->superAdmin();
+
+        // print() must not hand the view a route URL for a file that will 404.
+        $printHtml = $this->actingAs($admin)
+            ->get(route('admin.recruitment.applications.print', $application))
+            ->assertOk()->getContent();
+        $this->assertStringNotContainsString(route('admin.recruitment.applications.file', [$application, 'photo']), $printHtml);
+        $this->assertStringContainsString('ছবি নেই', $printHtml); // document.blade.php's placeholder
+
+        // pdf() must fall back to the no-photo placeholder rather than embedding nothing/garbage.
+        $this->actingAs($admin)
+            ->get(route('admin.recruitment.applications.pdf', $application))
+            ->assertOk();
+    }
+
     public function test_a_historical_application_with_no_photo_or_cv_renders_everywhere_without_error(): void
     {
         // Simulates a row from before photo/cv or the newer fields existed:
@@ -212,6 +271,8 @@ class RecruitmentApplicationDocumentTest extends AdminTestCase
     public function test_the_list_shows_compact_photo_and_cv_indicators(): void
     {
         Storage::fake('uploads_private');
+        Storage::disk('uploads_private')->put('applications/photos/a.jpg', 'fake-jpeg-bytes');
+        Storage::disk('uploads_private')->put('applications/cv/a.pdf', '%PDF-1.4 fake');
         $posting = $this->posting();
         $withBoth = $this->application($posting, [
             'applicant_email' => 'with-both@example.test',

@@ -9,15 +9,25 @@
 
     {{--
         Deliberately standalone — no Zircos vendor CSS, no admin session
-        assumption. A 419/500/503 can happen to a signed-out visitor or
-        mid-outage, when pulling in the full admin bundle would be both
-        wasteful and, for 500/503, possibly part of what's broken.
+        assumption, no third-party font request. A 419/500/503 can happen to
+        a signed-out visitor or mid-outage, when pulling in the full admin
+        bundle — or depending on fonts.googleapis.com resolving — would be
+        both wasteful and, for 500/503, possibly part of what's already broken.
     --}}
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
-
     <style>
+        @font-face {
+            font-family: 'Noto Sans Bengali';
+            font-style: normal; font-weight: 400;
+            src: url('{{ asset('brand/fonts/NotoSansBengali-Regular.woff2') }}') format('woff2');
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'Noto Sans Bengali';
+            font-style: normal; font-weight: 700;
+            src: url('{{ asset('brand/fonts/NotoSansBengali-Bold.woff2') }}') format('woff2');
+            font-display: swap;
+        }
+
         :root {
             --bg: #FFFDF8; --card: #FFFFFF; --border: #E6DFD5; --heading: #201B17;
             --body: #4A4038; --muted: #6B5F53; --accent: #AC350A; --accent-hover: #8F2C08;
@@ -32,30 +42,43 @@
             background: var(--bg); color: var(--body);
             display: flex; align-items: center; justify-content: center; padding: 24px;
         }
-        .error-card { max-width: 460px; text-align: center; }
-        .error-card img { height: 44px; margin-bottom: 22px; }
-        .logo-dark { display: none; }
+
+        .error-card { max-width: 420px; width: 100%; text-align: center; }
+
+        {{-- The small icon mark only — not the full text logo. The full
+             wordmark already spells out "প্রভাতফেরী..." in the image itself,
+             which read as a second, redundant announcement of the org name
+             sitting directly above the Bengali heading text. One brand
+             signal (this icon), one heading — never both forms at once. --}}
+        .error-mark { height: 34px; margin-bottom: 20px; }
+        .mark-dark { display: none; }
         @media (prefers-color-scheme: dark) {
-            .logo-light { display: none; }
-            .logo-dark { display: inline-block; }
+            .mark-light { display: none; }
+            .mark-dark { display: inline-block; }
         }
-        .error-code { font-size: 14px; font-weight: 700; letter-spacing: .08em; color: var(--accent); margin: 0 0 10px; }
-        .error-card h1 { font-size: 22px; color: var(--heading); margin: 0 0 12px; }
-        .error-card p.message { font-size: 15px; line-height: 1.75; color: var(--muted); margin: 0 0 26px; }
+
+        .error-code { font-size: 13px; font-weight: 700; letter-spacing: .1em; color: var(--accent); margin: 0 0 8px; font-variant-numeric: tabular-nums; }
+        .error-card h1 { font-size: 21px; font-weight: 700; color: var(--heading); margin: 0 0 10px; line-height: 1.35; }
+        .error-card p.message { font-size: 14.5px; line-height: 1.7; color: var(--muted); margin: 0 0 24px; }
         .error-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
         .error-actions a, .error-actions button {
             font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
-            padding: 11px 20px; border-radius: 8px; text-decoration: none; line-height: 1.3;
+            padding: 10px 18px; border-radius: 8px; text-decoration: none; line-height: 1.3;
             border: 1px solid var(--border); background: var(--card); color: var(--heading);
         }
         .error-actions .primary { background: var(--accent); border-color: var(--accent); color: #fff; }
         .error-actions .primary:hover { background: var(--accent-hover); }
+
+        @media (max-width: 380px) {
+            .error-actions { flex-direction: column; }
+            .error-actions a, .error-actions button { width: 100%; }
+        }
     </style>
 </head>
 <body>
     <div class="error-card">
-        <img src="{{ asset('brand/provatferi-logo-light.png') }}" alt="Provatferi" class="logo-light" style="display: block; margin-inline: auto;">
-        <img src="{{ asset('brand/provatferi-logo-dark.png') }}" alt="Provatferi" class="logo-dark" style="margin-inline: auto;">
+        <img src="{{ asset('brand/provatferi-icon-light.png') }}" alt="" class="error-mark mark-light">
+        <img src="{{ asset('brand/provatferi-icon-dark.png') }}" alt="" class="error-mark mark-dark">
         <p class="error-code">@yield('code')</p>
         <h1>@yield('heading')</h1>
         <p class="message">@yield('message')</p>

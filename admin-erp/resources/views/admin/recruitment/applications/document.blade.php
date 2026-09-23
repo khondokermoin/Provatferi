@@ -21,10 +21,15 @@
 --}}
 <style>
     body { font-family: notosansbengali, sans-serif; font-size: 10.5pt; color: #201B17; line-height: 1.5; }
-    .doc-header { width: 100%; border-bottom: 2px solid #AC350A; padding-bottom: 10px; margin-bottom: 14px; }
+    /* One mark, one identity block: the logo appears exactly once, to the
+       left of the org name in both languages — no repetition of either
+       elsewhere in the document (§4 of the 2026-09-24 redesign). */
+    .doc-header { width: 100%; margin-bottom: 0; }
     .doc-header td { vertical-align: middle; }
-    .doc-header .org-name { font-family: notosansbengali, sans-serif; font-weight: bold; font-size: 15pt; color: #201B17; }
-    .doc-header .doc-title { font-size: 10pt; color: #6B5F53; margin-top: 2px; }
+    .doc-header .org-name-bn { font-family: notosansbengali, sans-serif; font-weight: bold; font-size: 14pt; color: #201B17; line-height: 1.3; }
+    .doc-header .org-name-en { font-size: 9pt; color: #6B5F53; margin-top: 1px; }
+    .doc-header .doc-title { font-family: notosansbengali, sans-serif; font-size: 9.5pt; color: #AC350A; font-weight: bold; margin-top: 4px; }
+    .doc-divider { border: none; border-top: 1px solid #E6DFD5; margin: 10px 0 14px; }
     .doc-meta { width: 100%; margin-bottom: 14px; }
     .doc-meta td { font-size: 10pt; padding: 2px 0; }
     .doc-meta .meta-label { color: #6B5F53; width: 110px; }
@@ -37,7 +42,6 @@
     }
     .applicant-block .name-cell { vertical-align: top; padding-left: 14px; }
     .applicant-block .applicant-name { font-family: notosansbengali, sans-serif; font-weight: bold; font-size: 13pt; }
-    .applicant-block .app-no { color: #6B5F53; font-size: 9.5pt; margin-top: 2px; }
 
     table.fields { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
     table.fields th, table.fields td { border: 1px solid #E6DFD5; padding: 6px 8px; text-align: left; vertical-align: top; font-size: 10pt; }
@@ -55,19 +59,22 @@
     .doc-footer { margin-top: 20px; padding-top: 8px; border-top: 1px solid #E6DFD5; font-size: 8.5pt; color: #A89F94; }
 </style>
 
+{{-- Logo appears exactly once, here, for the whole document. --}}
 <table class="doc-header">
     <tr>
-        <td style="width: 70px;">
+        <td style="width: 62px;">
             @if ($logoSrc)
-                <img src="{{ $logoSrc }}" style="height: 46px;" alt="">
+                <img src="{{ $logoSrc }}" style="height: 42px;" alt="">
             @endif
         </td>
         <td>
-            <div class="org-name">প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র</div>
-            <div class="doc-title">স্বেচ্ছাসেবী আবেদনপত্র</div>
+            <div class="org-name-bn">প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র</div>
+            <div class="org-name-en">Provatferi Literary and Cultural Center</div>
+            <div class="doc-title">স্বেচ্ছাসেবী আবেদনপত্র / Volunteer Application</div>
         </td>
     </tr>
 </table>
+<hr class="doc-divider">
 
 <table class="doc-meta">
     <tr>
@@ -93,7 +100,6 @@
         </td>
         <td class="name-cell">
             <div class="applicant-name">{{ $application->applicant_name }}</div>
-            <div class="app-no">{{ $application->profession ?: '' }}</div>
         </td>
     </tr>
 </table>
