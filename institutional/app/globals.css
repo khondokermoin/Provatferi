@@ -589,6 +589,17 @@ h1, h2, h3, h4 { color: var(--heading); }
 .empty-state .button { margin: 0 6px; }
 .empty-state.is-compact { padding: 28px 24px; }
 
+/* 404 / route-error boundaries (not-found.tsx, error.tsx) */
+.error-page { max-width: 560px; margin: 0 auto; padding: 64px 24px; text-align: center; }
+.error-page.error-page-standalone { padding-block: 96px; }
+.error-page-code { font-size: 15px; font-weight: 700; letter-spacing: .06em; color: var(--accent-text); margin: 0 0 10px; font-variant-numeric: tabular-nums; }
+.error-page h1 { font-size: 26px; color: var(--heading); margin: 0 0 14px; }
+.error-page-message { font-size: 16px; line-height: 1.75; color: var(--muted); margin: 0 0 28px; }
+.error-page-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-bottom: 22px; }
+.error-page-actions button.button { border: none; }
+.error-page-footnote { font-size: 13px; color: var(--muted); }
+.error-page-footnote a { color: var(--accent-text); font-weight: 600; }
+
 /* ---------- V2 institutional-depth components (About/Organization/Activities/Membership) ---------- */
 .info-card-tag.is-vacant { color: var(--muted); background: var(--soft); }
 .info-card .info-card-name { font-size: 15px; color: var(--muted); margin: 0; }

@@ -255,6 +255,10 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         Route::patch('/{jobApplication}/status', [JobApplicationController::class, 'updateStatus'])->middleware('permission:recruitment.approve')->name('status');
         Route::get('/{jobApplication}/files/{kind}', [JobApplicationController::class, 'file'])->whereIn('kind', ['photo', 'cv'])
             ->middleware('permission:recruitment.view')->name('file');
+        Route::get('/{jobApplication}/pdf', [JobApplicationController::class, 'pdf'])
+            ->middleware('permission:recruitment.view')->name('pdf');
+        Route::get('/{jobApplication}/print', [JobApplicationController::class, 'print'])
+            ->middleware('permission:recruitment.view')->name('print');
     });
     Route::get('/settings', [SettingsController::class, 'index'])
         ->middleware('permission:settings.view')->name('settings.index');

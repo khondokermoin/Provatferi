@@ -63,6 +63,27 @@
                     </div>
                 </x-admin.card>
 
+                {{-- Application Form Settings: per-posting Required/Optional for the
+                     form's non-core fields. field_requirements[<key>] posts as a flat
+                     array; RecruitmentController::validated() keeps only known keys. --}}
+                <x-admin.card title="আবেদন ফরমের ফিল্ড সেটিংস"
+                    subtitle="প্রতিটি ঘর এই বিজ্ঞপ্তির আবেদন ফরমে আবশ্যক না ঐচ্ছিক থাকবে তা ঠিক করুন। নাম, মোবাইল, ই-মেইল ও সম্মতিসমূহ সবসময় আবশ্যক থাকে — এখানে পরিবর্তনযোগ্য নয়।">
+                    @php $resolved = $jobPosting->resolvedFieldRequirements(); @endphp
+                    <div class="row">
+                        @foreach ($configurableFields as $key => $label)
+                            <div class="col-md-6">
+                                {{-- old() only understands dot notation for nested input, but an HTML
+                                     name must use bracket syntax for PHP to parse it into an array —
+                                     so the redisplay-safe value is resolved here (dot notation) and
+                                     handed in as :value; the component's own old($name,...) call can't
+                                     find a bracketed key and falls through to exactly this. --}}
+                                <x-admin.form-select :name="'field_requirements['.$key.']'" :label="$label"
+                                    :options="$fieldRequirementOptions" :value="old('field_requirements.'.$key, $resolved[$key])" :placeholder="null" />
+                            </div>
+                        @endforeach
+                    </div>
+                </x-admin.card>
+
                 {{-- §12: a dedicated Open Graph / social-share image — sized for how
                      link previews render, separate from any in-page content. --}}
                 <x-admin.card title="সামাজিক শেয়ার ছবি">

@@ -37,7 +37,10 @@ export default async function VolunteerApplyPage({ params }: { params: Promise<{
   // §3: same history-resolved-slug case as the detail page, redirected to
   // the canonical /apply URL rather than the canonical detail page.
   if (job.slug !== slug) permanentRedirect(`/recruitment/${job.slug}/apply`);
-  if (!job.accepts_applications || job.skill_options === null) notFound();
+  // Both fields share the identical backend guard ($detailed && acceptsApplications()),
+  // so they are always null together — checking both here lets TypeScript narrow
+  // field_requirements too, the same way skill_options already was.
+  if (!job.accepts_applications || job.skill_options === null || job.field_requirements === null) notFound();
 
   return (
     <article className="notice-detail">
@@ -62,7 +65,12 @@ export default async function VolunteerApplyPage({ params }: { params: Promise<{
         {/* The form no longer owns a success panel — a successful submission
             redirects to apply/success, which reads the community group from
             the posting itself, so neither prop belongs here any more. */}
-        <VolunteerApplicationForm slug={job.slug} jobTitle={job.title} skills={job.skill_options} />
+        <VolunteerApplicationForm
+          slug={job.slug}
+          jobTitle={job.title}
+          skills={job.skill_options}
+          fieldRequirements={job.field_requirements}
+        />
       </section>
     </article>
   );

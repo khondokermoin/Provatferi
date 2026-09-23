@@ -9,6 +9,10 @@ function isNoticeAction(v: unknown): v is { url: string; label: string } | null 
   return v === null || (isRecord(v) && typeof v.url === "string" && typeof v.label === "string");
 }
 
+function isFieldRequirements(v: unknown): v is Record<string, "required" | "optional"> | null {
+  return v === null || (isRecord(v) && Object.values(v).every((x) => x === "required" || x === "optional"));
+}
+
 /** Postings can open/close day to day — a shorter window than static content. */
 const REVALIDATE_SECONDS = 120;
 
@@ -38,6 +42,10 @@ export function isJobPosting(v: unknown): v is JobPosting {
     isStringOrNull(v.apply_path) &&
     isNoticeAction(v.notice_action) &&
     (v.skill_options === null || (Array.isArray(v.skill_options) && v.skill_options.every(isSkillOption))) &&
+    // Same undefined-tolerant shape as share_image_url just below — a live
+    // ERP not yet carrying this deploy would omit the key entirely rather
+    // than send null, and a strict check would reject every posting.
+    (v.field_requirements === undefined || isFieldRequirements(v.field_requirements)) &&
     // §12: optional-or-null, not just nullable — see the identical note on
     // isNoticeDetail in notices.ts. This build's own log caught the hazard:
     // the live ERP (not yet migrated) omits this key entirely, and a strict

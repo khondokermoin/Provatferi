@@ -72,15 +72,23 @@ export default function VolunteerApplicationForm({
   slug,
   jobTitle,
   skills,
+  fieldRequirements,
 }: {
   slug: string;
   jobTitle: string;
   skills: SkillOption[];
+  fieldRequirements: Record<string, "required" | "optional">;
 }) {
   const boundAction = submitVolunteerApplication.bind(null, slug);
   const [state, formAction, isPending] = useActionState(boundAction, initialState);
   const formRef = useRef<HTMLFormElement>(null);
   const uid = useId();
+
+  // The ERP's Application Form Settings decide this per posting; Laravel's own
+  // validation (built from the same source) is the real authority — this only
+  // controls the label/asterisk and the browser's own (non-authoritative) required hint.
+  const isRequired = (key: string) => (fieldRequirements[key] ?? "optional") === "required";
+  const mark = (key: string) => (isRequired(key) ? " *" : " (ঐচ্ছিক)");
 
   const errors = state.status === "validation" ? state.errors : undefined;
   // §14: re-render what was typed. React resets an uncontrolled form once the
@@ -174,12 +182,12 @@ export default function VolunteerApplicationForm({
           </div>
 
           <div className="form-field">
-            <label htmlFor="district">জেলা *</label>
+            <label htmlFor="district">জেলা{mark("district")}</label>
             <input
               id="district"
               name="district"
               type="text"
-              required
+              required={isRequired("district")}
               maxLength={120}
               defaultValue={values.district ?? ""}
               aria-invalid={invalid("district") || undefined}
@@ -189,12 +197,12 @@ export default function VolunteerApplicationForm({
           </div>
 
           <div className="form-field">
-            <label htmlFor="current_location">বর্তমান অবস্থান *</label>
+            <label htmlFor="current_location">বর্তমান অবস্থান{mark("current_location")}</label>
             <input
               id="current_location"
               name="current_location"
               type="text"
-              required
+              required={isRequired("current_location")}
               maxLength={255}
               defaultValue={values.current_location ?? ""}
               aria-invalid={invalid("current_location") || undefined}
@@ -206,12 +214,12 @@ export default function VolunteerApplicationForm({
         </div>
 
         <div className="form-field">
-          <label htmlFor="profession">পেশা / শিক্ষা *</label>
+          <label htmlFor="profession">পেশা / শিক্ষা{mark("profession")}</label>
           <input
             id="profession"
             name="profession"
             type="text"
-            required
+            required={isRequired("profession")}
             maxLength={255}
             defaultValue={values.profession ?? ""}
             aria-invalid={invalid("profession") || undefined}
@@ -221,8 +229,15 @@ export default function VolunteerApplicationForm({
         </div>
 
         <div className="form-field">
-          <label htmlFor="photo">প্রোফাইল ছবি (ঐচ্ছিক)</label>
-          <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" aria-invalid={invalid("photo") || undefined} />
+          <label htmlFor="photo">প্রোফাইল ছবি{mark("photo")}</label>
+          <input
+            id="photo"
+            name="photo"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            required={isRequired("photo")}
+            aria-invalid={invalid("photo") || undefined}
+          />
           <p className="form-field-help">JPG, PNG বা WEBP — সর্বোচ্চ ৫ মেগাবাইট। ছবি প্রকাশ করা হয় না; শুধু যাচাইয়ের জন্য সংরক্ষিত থাকে।</p>
           <FieldError message={errorFor(errors, "photo")} id={errId("photo")} />
         </div>
@@ -232,7 +247,7 @@ export default function VolunteerApplicationForm({
         <legend>অভিজ্ঞতা ও দক্ষতা</legend>
 
         <div className="form-field">
-          <label htmlFor="experience">কাজের অভিজ্ঞতা *</label>
+          <label htmlFor="experience">কাজের অভিজ্ঞতা{mark("experience")}</label>
           <CountedTextarea
             id="experience"
             name="experience"
@@ -249,7 +264,7 @@ export default function VolunteerApplicationForm({
 
         <div className="form-field">
           <span className="form-field-legend" id="skills-label">
-            কোন কোন কাজে আগ্রহী / দক্ষ *
+            কোন কোন কাজে আগ্রহী / দক্ষ{mark("skills")}
           </span>
           {/* §5: each card is a <label> wrapping its own input, so a click
               anywhere on the card toggles exactly once, and the label stays
@@ -281,7 +296,7 @@ export default function VolunteerApplicationForm({
         </div>
 
         <div className="form-field">
-          <label htmlFor="contribution">প্রভাতফেরীতে কীভাবে অবদান রাখতে চান *</label>
+          <label htmlFor="contribution">প্রভাতফেরীতে কীভাবে অবদান রাখতে চান{mark("contribution")}</label>
           <CountedTextarea
             id="contribution"
             name="contribution"
@@ -297,11 +312,12 @@ export default function VolunteerApplicationForm({
 
         <div className="form-grid">
           <div className="form-field">
-            <label htmlFor="availability">সপ্তাহে কত সময় দিতে পারবেন (ঐচ্ছিক)</label>
+            <label htmlFor="availability">সপ্তাহে কত সময় দিতে পারবেন{mark("availability")}</label>
             <input
               id="availability"
               name="availability"
               type="text"
+              required={isRequired("availability")}
               maxLength={150}
               placeholder="যেমন: সপ্তাহে ৫–৮ ঘণ্টা"
               defaultValue={values.availability ?? ""}
@@ -312,10 +328,11 @@ export default function VolunteerApplicationForm({
           </div>
 
           <div className="form-field">
-            <label htmlFor="preferred_contact">পছন্দের যোগাযোগ মাধ্যম (ঐচ্ছিক)</label>
+            <label htmlFor="preferred_contact">পছন্দের যোগাযোগ মাধ্যম{mark("preferred_contact")}</label>
             <select
               id="preferred_contact"
               name="preferred_contact"
+              required={isRequired("preferred_contact")}
               defaultValue={values.preferred_contact ?? ""}
               aria-invalid={invalid("preferred_contact") || undefined}
               aria-describedby={described("preferred_contact")}
@@ -380,8 +397,15 @@ export default function VolunteerApplicationForm({
           </div>
 
           <div className="form-field">
-            <label htmlFor="cv">সিভি / রেজিউমে</label>
-            <input id="cv" name="cv" type="file" accept="application/pdf" aria-invalid={invalid("cv") || undefined} />
+            <label htmlFor="cv">সিভি / রেজিউমে{mark("cv")}</label>
+            <input
+              id="cv"
+              name="cv"
+              type="file"
+              accept="application/pdf"
+              required={isRequired("cv")}
+              aria-invalid={invalid("cv") || undefined}
+            />
             <p className="form-field-help">শুধু PDF — সর্বোচ্চ ৫ মেগাবাইট।</p>
             <FieldError message={errorFor(errors, "cv")} id={errId("cv")} />
           </div>

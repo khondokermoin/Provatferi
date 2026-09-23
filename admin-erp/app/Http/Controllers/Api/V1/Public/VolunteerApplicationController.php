@@ -53,7 +53,7 @@ class VolunteerApplicationController extends Controller
             throw ValidationException::withMessages(['status' => 'এই বিজ্ঞপ্তিতে আবেদনের সময়সীমা শেষ হয়েছে।']);
         }
 
-        $data = $request->validate($this->rules(), $this->messages(), $this->attributes());
+        $data = $request->validate($this->rules($posting), $this->messages(), $this->attributes());
 
         $this->refuseDuplicate($posting, $data['applicant_email']);
 
@@ -65,13 +65,16 @@ class VolunteerApplicationController extends Controller
             'applicant_name' => $data['applicant_name'],
             'applicant_email' => $data['applicant_email'],
             'applicant_phone' => $data['applicant_phone'],
-            'district' => $data['district'],
-            'current_location' => $data['current_location'],
-            'profession' => $data['profession'],
-            'experience' => $data['experience'],
-            'skills' => $data['skills'],
+            // Every field below this line is configurable (JobPosting::CONFIGURABLE_APPLICATION_FIELDS):
+            // when optional-and-omitted, validate() drops the key entirely rather than
+            // handing back a null — direct $data[...] access would throw, not just store null.
+            'district' => $data['district'] ?? null,
+            'current_location' => $data['current_location'] ?? null,
+            'profession' => $data['profession'] ?? null,
+            'experience' => $data['experience'] ?? null,
+            'skills' => $data['skills'] ?? null,
             'other_skills' => $data['other_skills'] ?? null,
-            'contribution' => $data['contribution'],
+            'contribution' => $data['contribution'] ?? null,
             'linkedin_url' => $data['linkedin_url'] ?? null,
             'facebook_url' => $data['facebook_url'] ?? null,
             'portfolio_url' => $data['portfolio_url'] ?? null,
@@ -91,9 +94,23 @@ class VolunteerApplicationController extends Controller
         return response()->json(['data' => ['application_no' => $application->application_no]], 201);
     }
 
-    /** @return array<string, mixed> */
-    private function rules(): array
+    /**
+     * Identity and contact fields (name/email/phone) and the three consent
+     * declarations are built in directly below — never touched by a
+     * posting's configuration, per the organization's own floor: these are
+     * never "casually optional". Every OTHER field's leading
+     * required/nullable comes from $posting->resolvedFieldRequirements(),
+     * so a posting's Application Form Settings and this endpoint's
+     * validation can never drift apart — there is exactly one place
+     * (JobPosting::CONFIGURABLE_APPLICATION_FIELDS) that decides what is
+     * configurable at all.
+     *
+     * @return array<string, mixed>
+     */
+    private function rules(JobPosting $posting): array
     {
+        $required = fn (string $key): array => [$posting->isFieldRequired($key) ? 'required' : 'nullable'];
+
         return [
             'applicant_name' => ['required', 'string', 'max:255'],
             'applicant_email' => ['required', 'email:rfc', 'max:255'],
@@ -102,21 +119,21 @@ class VolunteerApplicationController extends Controller
             // Bangladeshi or international number, strict enough to reject
             // a name or a sentence typed into the phone box.
             'applicant_phone' => ['required', 'string', 'max:30', 'regex:/^\+?[\d][\d\s\-()]{7,}$/'],
-            'district' => ['required', 'string', 'max:120'],
-            'current_location' => ['required', 'string', 'max:255'],
-            'profession' => ['required', 'string', 'max:255'],
-            'experience' => ['required', 'string', 'max:5000'],
-            'skills' => ['required', 'array', 'min:1'],
+            'district' => [...$required('district'), 'string', 'max:120'],
+            'current_location' => [...$required('current_location'), 'string', 'max:255'],
+            'profession' => [...$required('profession'), 'string', 'max:255'],
+            'experience' => [...$required('experience'), 'string', 'max:5000'],
+            'skills' => [...$required('skills'), 'array', ...($posting->isFieldRequired('skills') ? ['min:1'] : [])],
             'skills.*' => [Rule::in(array_keys(JobApplication::SKILLS))],
             'other_skills' => ['nullable', 'string', 'max:1000'],
-            'contribution' => ['required', 'string', 'max:5000'],
+            'contribution' => [...$required('contribution'), 'string', 'max:5000'],
             'linkedin_url' => ['nullable', 'url', 'max:255'],
             'facebook_url' => ['nullable', 'url', 'max:255'],
             'portfolio_url' => ['nullable', 'url', 'max:255'],
-            'availability' => ['nullable', 'string', 'max:150'],
-            'preferred_contact' => ['nullable', Rule::in(array_keys(JobApplication::PREFERRED_CONTACTS))],
-            'photo' => ['nullable', 'file', 'max:5120'],
-            'cv' => ['nullable', 'file', 'max:5120'],
+            'availability' => [...$required('availability'), 'string', 'max:150'],
+            'preferred_contact' => [...$required('preferred_contact'), Rule::in(array_keys(JobApplication::PREFERRED_CONTACTS))],
+            'photo' => [...$required('photo'), 'file', 'max:5120'],
+            'cv' => [...$required('cv'), 'file', 'max:5120'],
             'accuracy_declaration' => ['accepted'],
             'privacy_consent' => ['accepted'],
             'contact_consent' => ['accepted'],
