@@ -90,11 +90,15 @@
                 </td>
                 <td data-label="সংযুক্তি">
                     {{-- Compact yes/no — a title tooltip carries the detail, so this
-                         stays two small glyphs instead of two more text columns. --}}
-                    <i class="ti ti-photo {{ $application->photo_path ? 'text-success' : 'text-muted opacity-50' }} me-1"
-                       title="{{ $application->photo_path ? 'ছবি আছে' : 'ছবি নেই' }}" aria-label="{{ $application->photo_path ? 'ছবি আছে' : 'ছবি নেই' }}"></i>
-                    <i class="ti ti-file-cv {{ $application->cv_path ? 'text-success' : 'text-muted opacity-50' }}"
-                       title="{{ $application->cv_path ? 'সিভি আছে' : 'সিভি নেই' }}" aria-label="{{ $application->cv_path ? 'সিভি আছে' : 'সিভি নেই' }}"></i>
+                         stays two small glyphs instead of two more text columns.
+                         photoFileExists()/cvFileExists(), not the raw path columns —
+                         "আছে" must mean a file an admin can actually open, not just a
+                         path once recorded (see JobApplication::photoFileExists()). --}}
+                    @php $rowPhoto = $application->photoFileExists(); $rowCv = $application->cvFileExists(); @endphp
+                    <i class="ti ti-photo {{ $rowPhoto ? 'text-success' : 'text-muted opacity-50' }} me-1"
+                       title="{{ $rowPhoto ? 'ছবি আছে' : 'ছবি নেই' }}" aria-label="{{ $rowPhoto ? 'ছবি আছে' : 'ছবি নেই' }}"></i>
+                    <i class="ti ti-file-cv {{ $rowCv ? 'text-success' : 'text-muted opacity-50' }}"
+                       title="{{ $rowCv ? 'সিভি আছে' : 'সিভি নেই' }}" aria-label="{{ $rowCv ? 'সিভি আছে' : 'সিভি নেই' }}"></i>
                 </td>
                 <td data-label="স্ট্যাটাস"><x-admin.status-badge :status="$application->status" /></td>
                 <td data-label="আবেদনের তারিখ">{{ bn_date($application->created_at) }}</td>

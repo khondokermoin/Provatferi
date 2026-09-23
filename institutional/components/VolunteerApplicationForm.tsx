@@ -337,7 +337,13 @@ export default function VolunteerApplicationForm({
               aria-invalid={invalid("preferred_contact") || undefined}
               aria-describedby={described("preferred_contact")}
             >
-              <option value="">— নির্বাচন করুন —</option>
+              {/* disabled: once a real option is chosen, this can't be
+                  re-selected from the dropdown list — a genuine placeholder,
+                  not a selectable "no answer" value. value="" is what makes
+                  a native `required` correctly reject it as unanswered; the
+                  form's own noValidate means Laravel's server-side check is
+                  what actually enforces this either way. */}
+              <option value="" disabled>— নির্বাচন করুন —</option>
               <option value="phone">ফোন কল</option>
               <option value="whatsapp">WhatsApp</option>
               <option value="email">ই-মেইল</option>

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 class JobApplication extends Model
 {
@@ -115,5 +116,26 @@ class JobApplication extends Model
             ->map(fn (string $key) => self::SKILLS[$key] ?? $key)
             ->values()
             ->all();
+    }
+
+    /**
+     * Whether a photo genuinely exists RIGHT NOW on the private disk — not
+     * merely whether photo_path is set in the database. These can disagree:
+     * found 2026-09-24 that every deploy before this date's release-manager.php
+     * fix silently orphaned previously-uploaded files on each atomic release
+     * switch, leaving photo_path/cv_path intact in the DB while the file
+     * itself was gone. Every view that conditionally renders a photo/CV
+     * MUST call this (or cvFileExists()) rather than check the raw column —
+     * checking the column alone is exactly what rendered a real <img> tag
+     * pointing at a 404, i.e. a broken image, for those orphaned rows.
+     */
+    public function photoFileExists(): bool
+    {
+        return $this->photo_path !== null && Storage::disk('uploads_private')->exists($this->photo_path);
+    }
+
+    public function cvFileExists(): bool
+    {
+        return $this->cv_path !== null && Storage::disk('uploads_private')->exists($this->cv_path);
     }
 }

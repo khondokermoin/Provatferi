@@ -279,13 +279,36 @@ case 'stage':
         copy($liveEnv, $releaseDir.'/app/.env');
     }
 
+    // storage/app/private/uploads (the uploads_private disk — every
+    // recruitment applicant's photo and CV) is anonymous-visitor runtime
+    // data: never in git, never in the artifact, and — until this fix —
+    // never carried forward here either. Every switch() atomically pointed
+    // laravel-admin at a BRAND NEW directory whose uploads tree started
+    // empty, silently orphaning every previously-uploaded file in the old,
+    // now-unreachable release directory: the DB row and photo_path/cv_path
+    // stayed correct, but the file itself 404'd — a broken image in Admin,
+    // a broken image in the PDF, for every application older than the most
+    // recent deploy at the time. Found 2026-09-24 tracing a reported broken-
+    // photo defect back to its actual root cause. Copied the same way
+    // .env is, immediately above — from the currently-live app, server-side
+    // only — before this release ever goes live.
+    $liveUploads = $LIVE_APP.'/storage/app/private/uploads';
+    if (is_dir($liveUploads)) {
+        copyRecursive($liveUploads, $releaseDir.'/app/storage/app/private/uploads');
+    }
+
     // staging tars served their purpose — remove from the public docroot
     @unlink($stagingDir.'/private.tar');
     @unlink($stagingDir.'/public-assets.tar');
 
     copy($manifestPath, $releaseDir.'/manifest.json');
 
-    $result = ['ok' => true, 'release_dir' => $releaseDir, 'checksum_checks' => $checks, 'env_copied' => is_file($releaseDir.'/app/.env')];
+    $uploadsDest = $releaseDir.'/app/storage/app/private/uploads';
+    $result = [
+        'ok' => true, 'release_dir' => $releaseDir, 'checksum_checks' => $checks,
+        'env_copied' => is_file($releaseDir.'/app/.env'),
+        'uploads_persisted' => ['source_existed' => is_dir($liveUploads), 'dest_file_count' => is_dir($uploadsDest) ? iterator_count(new RecursiveIteratorIterator(new RecursiveDirectoryIterator($uploadsDest, FilesystemIterator::SKIP_DOTS))) : 0],
+    ];
     mergeStatus($releaseDir, 'stage', $result);
     jout($result);
     break;
