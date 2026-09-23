@@ -12,6 +12,17 @@ $app = Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Behind Cloudflare: believe forwarded client-IP/proto headers from
+        // Cloudflare's ranges ONLY (never '*'), so throttling and audit logs
+        // key on the real visitor. See App\Support\CloudflareProxies.
+        $middleware->trustProxies(
+            at: \App\Support\CloudflareProxies::RANGES,
+            headers: \Illuminate\Http\Request::HEADER_X_FORWARDED_FOR
+                | \Illuminate\Http\Request::HEADER_X_FORWARDED_HOST
+                | \Illuminate\Http\Request::HEADER_X_FORWARDED_PORT
+                | \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO,
+        );
+
         $middleware->alias([
             'permission' => \App\Http\Middleware\EnsurePermission::class,
             'member.auth' => \App\Http\Middleware\EnsureMemberAuthenticated::class,
