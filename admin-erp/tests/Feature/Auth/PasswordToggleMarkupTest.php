@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -59,8 +58,7 @@ class PasswordToggleMarkupTest extends TestCase
 
     public function test_confirm_password_page_has_one_password_toggle(): void
     {
-        $user = User::factory()->create(['email_verified_at' => now(), 'status' => 'active']);
-        $user->roles()->attach(Role::query()->where('slug', 'super_admin')->firstOrFail());
+        $user = User::factory()->create();
 
         $html = $this->actingAs($user)->get('/confirm-password')->assertOk()->getContent();
 
@@ -69,8 +67,7 @@ class PasswordToggleMarkupTest extends TestCase
 
     public function test_profile_page_has_password_toggles_on_change_password_and_delete_account(): void
     {
-        $user = User::factory()->create(['email_verified_at' => now(), 'status' => 'active']);
-        $user->roles()->attach(Role::query()->where('slug', 'super_admin')->firstOrFail());
+        $user = User::factory()->create();
 
         $html = $this->actingAs($user)->get('/profile')->assertOk()->getContent();
 
