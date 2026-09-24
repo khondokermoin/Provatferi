@@ -154,13 +154,17 @@ test("apiPostForm returns network_error when fetch rejects", async () => {
 });
 
 // 2026-09-24: an untouched <input type="file"> submits as a present key
-// holding an empty File (size 0, name "") — never an absent key. Re-
-// serializing that empty File into the outgoing fetch to Laravel was found
-// to sometimes reach Laravel corrupted (reported as exceeding the 5MB
-// limit) after a real browser -> Server Action round trip, even though the
-// field was never touched — see stripEmptyFiles' docblock in client.ts.
-// apiPostForm must never forward a File field with size 0.
-test("apiPostForm strips an untouched (0-byte, empty-name) file field before sending", async () => {
+// holding an empty File — never an absent key. Confirmed live (logged
+// server-side from the real deployed form) that by the time a Server
+// Action's FormData sees it, Next.js's own request parsing has already
+// normalized it to size:0, name:"undefined" (the literal string) — not
+// name:"" as File/FormData semantics would suggest. Forwarding that shape
+// to Laravel was found to sometimes reach it corrupted (reported as
+// exceeding the 5MB limit) after a real browser -> Server Action round
+// trip, even though the field was never touched — see stripEmptyFiles'
+// docblock in client.ts. The strip is on size alone, precisely because name
+// is what this normalization was found to mangle.
+test("apiPostForm strips an untouched (0-byte) file field before sending, regardless of its name", async () => {
   let sentBody: FormData | undefined;
   globalThis.fetch = mock.fn(async (_input, init) => {
     sentBody = init?.body as FormData;
@@ -170,7 +174,8 @@ test("apiPostForm strips an untouched (0-byte, empty-name) file field before sen
   const formData = new FormData();
   formData.append("applicant_name", "Someone");
   formData.append("photo", new File(["real bytes"], "photo.jpg", { type: "image/jpeg" }));
-  formData.append("cv", new File([], "", { type: "" })); // untouched CV input
+  // Next.js's actual normalized shape for an untouched input — not name: "".
+  formData.append("cv", new File([], "undefined", { type: "application/octet-stream" }));
 
   await apiPostForm("/api/v1/whatever", formData, { validate: isNumber });
 
@@ -180,10 +185,7 @@ test("apiPostForm strips an untouched (0-byte, empty-name) file field before sen
   assert.equal(sentBody!.get("cv"), null, "an untouched empty file field must be stripped, not forwarded");
 });
 
-test("apiPostForm keeps a genuinely named 0-byte file (not the untouched-input shape)", async () => {
-  // Narrow the strip to the exact untouched-input shape (size 0 AND name
-  // "") so a real — if unusual — 0-byte file the visitor actually picked
-  // is never silently dropped.
+test("apiPostForm keeps a real, non-empty file untouched", async () => {
   let sentBody: FormData | undefined;
   globalThis.fetch = mock.fn(async (_input, init) => {
     sentBody = init?.body as FormData;
@@ -191,9 +193,11 @@ test("apiPostForm keeps a genuinely named 0-byte file (not the untouched-input s
   });
 
   const formData = new FormData();
-  formData.append("cv", new File([], "empty-but-named.pdf", { type: "application/pdf" }));
+  formData.append("cv", new File(["%PDF-1.4 fake"], "resume.pdf", { type: "application/pdf" }));
 
   await apiPostForm("/api/v1/whatever", formData, { validate: isNumber });
 
-  assert.ok(sentBody!.get("cv") instanceof File, "a named file must be forwarded even if 0 bytes");
+  const sentCv = sentBody!.get("cv");
+  assert.ok(sentCv instanceof File, "a real file must be forwarded");
+  assert.equal((sentCv as File).name, "resume.pdf");
 });

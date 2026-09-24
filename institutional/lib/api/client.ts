@@ -121,30 +121,34 @@ function isLaravelValidationErrorBody(json: unknown): json is { message: string;
 
 /**
  * An untouched `<input type="file">` submits as a PRESENT key holding an
- * empty File (size 0, name "") — never an absent key. Laravel's own
- * handling of that is correct (nullable + no file = null, verified directly
- * against admin-erp with a Node-constructed FormData). But this FormData has
- * already made one real hop by the time a Server Action sees it — parsed by
- * Next.js out of the browser's actual multipart POST — and re-serializing
- * that same empty File into the second, outgoing multipart request (here)
- * was found, 2026-09-24, to sometimes reach Laravel corrupted: not absent,
- * not 0 bytes, but reported as exceeding the 5MB `max:5120` rule. Confirmed
- * on the live volunteer-application form — a real photo upload alongside an
- * untouched, optional CV field failed with "সিভির আকার সর্বোচ্চ ৫ MB হতে
- * পারে" even though the CV input was never touched. Reproducible only
- * through a real browser -> Server Action -> fetch round trip; a
- * Node-constructed FormData sent directly to Laravel (bypassing Next.js's
- * own parse-then-reserialize step) never showed it — so the corruption is
- * somewhere in that hop, not in this codebase's own logic or in Laravel.
- * Given a practical fix inside Next.js itself isn't available here, every
- * File field with size 0 is dropped before the outgoing request is built,
- * so the corruption path is never exercised: Laravel receives a genuinely
- * absent field, exactly as it already correctly handles.
+ * empty File — never an absent key. Confirmed live 2026-09-24 exactly what
+ * that empty File looks like BY THE TIME a Server Action's FormData sees it
+ * (logged server-side from the real, deployed volunteer-application form):
+ * `size: 0`, but `name: "undefined"` (the literal string, not an absent
+ * name) and `type: "application/octet-stream"` — Next.js's own parsing of
+ * the browser's incoming multipart request normalizes an empty file part to
+ * this shape, not to `name: ""` as MDN's File/FormData semantics would
+ * suggest. Forwarding that shape on to Laravel in the outgoing request was
+ * found to sometimes reach it corrupted: not absent, not 0 bytes, but
+ * reported as exceeding the 5MB `max:5120` rule — reproduced live as "CV
+ * optional" silently behaving as required, since photo (always provided,
+ * required on the live posting) triggers the same multipart request as the
+ * untouched, optional CV field.
+ *
+ * A direct Node-constructed FormData sent straight to Laravel (bypassing
+ * Next.js's own request parsing entirely) never showed this, confirming the
+ * corruption is in that Next.js hop, not in Laravel or in this codebase's
+ * request-building logic. Since a fix inside Next.js itself isn't available
+ * here, every File field with size 0 is dropped before the outgoing request
+ * is built — checked on size alone, not name, since name is exactly what
+ * this normalization was found to mangle — so the corruption path is never
+ * exercised: Laravel receives a genuinely absent field, exactly as it
+ * already correctly handles.
  */
 function stripEmptyFiles(formData: FormData): FormData {
   const clean = new FormData();
   for (const [key, value] of formData.entries()) {
-    if (value instanceof File && value.size === 0 && value.name === "") continue;
+    if (value instanceof File && value.size === 0) continue;
     clean.append(key, value);
   }
   return clean;
