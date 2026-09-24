@@ -194,10 +194,16 @@ PUBLIC_TAR="$RELEASE_DIR/public-assets.tar"
 # It rides along inside public/brand/ (already synced by the remote switch step,
 # which copies a hardcoded list) and the asset contract verifies it — a path
 # outside that list 404s every icon in production, as it did on 2026-09-20.
+# public/js/ (plain, Provatferi-owned static scripts — never Vite-built, see
+# vite.config.js's header comment) had the identical omission until
+# 2026-09-24: present in git and in every build report, absent from this tar
+# and from release-manager.php's switch-time sync, so a real script 404'd in
+# production silently. Packaged the same way brand/ is; asset-contract.php
+# now checks for it by name too.
 tar -cf "$PUBLIC_TAR" -C "$APP/public" \
   --exclude='index.php' \
   --exclude='.htaccess' \
-  build brand favicon.ico robots.txt 2>/dev/null || true
+  build brand js favicon.ico robots.txt 2>/dev/null || true
 echo "public-assets.tar: $(du -h "$PUBLIC_TAR" | cut -f1)"
 
 # index.php is deliberately reported, never silently bundled for auto-apply —

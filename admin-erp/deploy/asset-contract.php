@@ -96,6 +96,25 @@ foreach ([
 // 5. Favicon.
 checkFile($appPath.'/public/favicon.ico', 'favicon.ico', $present, $missing);
 
+// 4c. Provatferi-owned plain-JS assets (public/js/ — never built by Vite,
+//     see resources/js's own absence and vite.config.js's header comment).
+//     Found 2026-09-24, the exact same class of bug this whole script
+//     exists to catch (see the file's own docblock, SYSTEM-006): public/js/
+//     was never in build-release.sh's packaging list OR release-manager.php's
+//     switch-time sync list, so a real production file
+//     (provatferi-password-toggle.js) shipped in git and in every build
+//     report but never actually reached the live docroot — every page
+//     referencing it 404'd on that one script, silently, until this check
+//     existed and until build-release.sh/release-manager.php were fixed to
+//     package/sync public/js/ (see those two files for the other half of
+//     this fix).
+foreach ([
+    'provatferi-theme.js',
+    'provatferi-password-toggle.js',
+] as $file) {
+    checkFile($appPath.'/public/js/'.$file, "js asset: $file", $present, $missing);
+}
+
 // 6. Explicitly confirm the artifact does NOT carry what it must never
 //    carry — this is a "prove what's excluded" check, not just "what's
 //    included". A hit here fails the build the same as a missing asset.

@@ -481,6 +481,12 @@ case 'switch':
     $t0 = microtime(true);
     copyRecursive($releaseDir.'/public_assets/build', $PUBLIC_DOCROOT.'/build');
     if (is_dir($releaseDir.'/public_assets/brand')) copyRecursive($releaseDir.'/public_assets/brand', $PUBLIC_DOCROOT.'/brand');
+    // public/js/ (plain static scripts) — found 2026-09-24 missing from this
+    // list entirely: build-release.sh already packages it into public_assets/js
+    // (see that file), but nothing here ever copied it into the live docroot,
+    // so a real file could ship in git, pass every build check, and still
+    // 404 in production forever. Same treatment as brand/ above.
+    if (is_dir($releaseDir.'/public_assets/js')) copyRecursive($releaseDir.'/public_assets/js', $PUBLIC_DOCROOT.'/js');
     foreach (['favicon.ico', 'robots.txt'] as $f) {
         if (is_file($releaseDir.'/public_assets/'.$f)) copy($releaseDir.'/public_assets/'.$f, $PUBLIC_DOCROOT.'/'.$f);
     }
