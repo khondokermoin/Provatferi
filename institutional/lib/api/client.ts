@@ -120,6 +120,37 @@ function isLaravelValidationErrorBody(json: unknown): json is { message: string;
 }
 
 /**
+ * An untouched `<input type="file">` submits as a PRESENT key holding an
+ * empty File (size 0, name "") — never an absent key. Laravel's own
+ * handling of that is correct (nullable + no file = null, verified directly
+ * against admin-erp with a Node-constructed FormData). But this FormData has
+ * already made one real hop by the time a Server Action sees it — parsed by
+ * Next.js out of the browser's actual multipart POST — and re-serializing
+ * that same empty File into the second, outgoing multipart request (here)
+ * was found, 2026-09-24, to sometimes reach Laravel corrupted: not absent,
+ * not 0 bytes, but reported as exceeding the 5MB `max:5120` rule. Confirmed
+ * on the live volunteer-application form — a real photo upload alongside an
+ * untouched, optional CV field failed with "সিভির আকার সর্বোচ্চ ৫ MB হতে
+ * পারে" even though the CV input was never touched. Reproducible only
+ * through a real browser -> Server Action -> fetch round trip; a
+ * Node-constructed FormData sent directly to Laravel (bypassing Next.js's
+ * own parse-then-reserialize step) never showed it — so the corruption is
+ * somewhere in that hop, not in this codebase's own logic or in Laravel.
+ * Given a practical fix inside Next.js itself isn't available here, every
+ * File field with size 0 is dropped before the outgoing request is built,
+ * so the corruption path is never exercised: Laravel receives a genuinely
+ * absent field, exactly as it already correctly handles.
+ */
+function stripEmptyFiles(formData: FormData): FormData {
+  const clean = new FormData();
+  for (const [key, value] of formData.entries()) {
+    if (value instanceof File && value.size === 0 && value.name === "") continue;
+    clean.append(key, value);
+  }
+  return clean;
+}
+
+/**
  * POSTs a FormData body (so a File field works without hand-rolled
  * multipart encoding) to a public admin-erp write endpoint. Never throws.
  * `errors` on the validation branch is Laravel's own field=>messages[] map,
@@ -140,7 +171,7 @@ export async function apiPostForm<T>(path: string, formData: FormData, opts: Api
   try {
     response = await fetch(`${base}${path}`, {
       method: "POST",
-      body: formData,
+      body: stripEmptyFiles(formData),
       signal: controller.signal,
       headers: { Accept: "application/json" },
     });
@@ -310,7 +341,7 @@ export async function apiPostFormAuthenticated<T>(path: string, token: string, f
   try {
     response = await fetch(`${base}${path}`, {
       method: "POST",
-      body: formData,
+      body: stripEmptyFiles(formData), // see stripEmptyFiles' docblock above apiPostForm
       signal: controller.signal,
       headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
       cache: "no-store",
