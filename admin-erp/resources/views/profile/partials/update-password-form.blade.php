@@ -7,10 +7,13 @@
             <label class="form-label" for="update_password_current_password">
                 বর্তমান পাসওয়ার্ড <span class="pf-required" aria-hidden="true">*</span><span class="visually-hidden">(আবশ্যক)</span>
             </label>
-            <input type="password" id="update_password_current_password" name="current_password"
-                   class="form-control @error('current_password', 'updatePassword') is-invalid @enderror"
-                   autocomplete="current-password"
-                   @error('current_password', 'updatePassword') aria-invalid="true" aria-describedby="update-current-password-error" @enderror>
+            <div class="pf-password-field">
+                <input type="password" id="update_password_current_password" name="current_password"
+                       class="form-control pf-password-input @error('current_password', 'updatePassword') is-invalid @enderror"
+                       autocomplete="current-password"
+                       @error('current_password', 'updatePassword') aria-invalid="true" aria-describedby="update-current-password-error" @enderror>
+                <x-password-toggle-button/>
+            </div>
             @error('current_password', 'updatePassword')
                 <div class="invalid-feedback d-block" id="update-current-password-error">
                     <i class="ti ti-alert-circle" aria-hidden="true"></i> {{ $message }}
@@ -22,10 +25,13 @@
             <label class="form-label" for="update_password_password">
                 নতুন পাসওয়ার্ড <span class="pf-required" aria-hidden="true">*</span><span class="visually-hidden">(আবশ্যক)</span>
             </label>
-            <input type="password" id="update_password_password" name="password"
-                   class="form-control @error('password', 'updatePassword') is-invalid @enderror"
-                   autocomplete="new-password" aria-describedby="update-password-help"
-                   @error('password', 'updatePassword') aria-invalid="true" @enderror>
+            <div class="pf-password-field">
+                <input type="password" id="update_password_password" name="password"
+                       class="form-control pf-password-input @error('password', 'updatePassword') is-invalid @enderror"
+                       autocomplete="new-password" aria-describedby="update-password-help"
+                       @error('password', 'updatePassword') aria-invalid="true" @enderror>
+                <x-password-toggle-button/>
+            </div>
             <div class="form-text" id="update-password-help">অন্তত ৮ অক্ষরের শক্তিশালী পাসওয়ার্ড দিন।</div>
             @error('password', 'updatePassword')
                 <div class="invalid-feedback d-block">
@@ -38,9 +44,12 @@
             <label class="form-label" for="update_password_password_confirmation">
                 নতুন পাসওয়ার্ড নিশ্চিত করুন <span class="pf-required" aria-hidden="true">*</span><span class="visually-hidden">(আবশ্যক)</span>
             </label>
-            <input type="password" id="update_password_password_confirmation" name="password_confirmation"
-                   class="form-control @error('password_confirmation', 'updatePassword') is-invalid @enderror"
-                   autocomplete="new-password">
+            <div class="pf-password-field">
+                <input type="password" id="update_password_password_confirmation" name="password_confirmation"
+                       class="form-control pf-password-input @error('password_confirmation', 'updatePassword') is-invalid @enderror"
+                       autocomplete="new-password">
+                <x-password-toggle-button/>
+            </div>
             @error('password_confirmation', 'updatePassword')
                 <div class="invalid-feedback d-block">
                     <i class="ti ti-alert-circle" aria-hidden="true"></i> {{ $message }}

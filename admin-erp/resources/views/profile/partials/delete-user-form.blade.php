@@ -28,10 +28,13 @@
 
         <div class="mb-0">
             <label class="form-label visually-hidden" for="delete_password">পাসওয়ার্ড</label>
-            <input type="password" id="delete_password" name="password"
-                   class="form-control @error('password', 'userDeletion') is-invalid @enderror"
-                   placeholder="পাসওয়ার্ড" autocomplete="current-password"
-                   @error('password', 'userDeletion') aria-invalid="true" aria-describedby="delete-password-error" @enderror>
+            <div class="pf-password-field">
+                <input type="password" id="delete_password" name="password"
+                       class="form-control pf-password-input @error('password', 'userDeletion') is-invalid @enderror"
+                       placeholder="পাসওয়ার্ড" autocomplete="current-password"
+                       @error('password', 'userDeletion') aria-invalid="true" aria-describedby="delete-password-error" @enderror>
+                <x-password-toggle-button/>
+            </div>
             @error('password', 'userDeletion')
                 <div class="invalid-feedback d-block" id="delete-password-error">
                     <i class="ti ti-alert-circle" aria-hidden="true"></i> {{ $message }}

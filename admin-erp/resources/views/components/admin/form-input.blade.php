@@ -25,15 +25,30 @@
         @endif
     </label>
 
-    <input type="{{ $type }}"
-           id="{{ $id }}"
-           name="{{ $name }}"
-           value="{{ old($name, $value) }}"
-           @if ($placeholder) placeholder="{{ $placeholder }}" @endif
-           @if ($required) required @endif
-           @if ($describedBy) aria-describedby="{{ $describedBy }}" @endif
-           @if ($errors->has($name)) aria-invalid="true" @endif
-           {{ $attributes->merge(['class' => 'form-control'.($errors->has($name) ? ' is-invalid' : '')]) }}>
+    @if ($type === 'password')
+        <div class="pf-password-field">
+            <input type="password"
+                   id="{{ $id }}"
+                   name="{{ $name }}"
+                   value="{{ old($name, $value) }}"
+                   @if ($placeholder) placeholder="{{ $placeholder }}" @endif
+                   @if ($required) required @endif
+                   @if ($describedBy) aria-describedby="{{ $describedBy }}" @endif
+                   @if ($errors->has($name)) aria-invalid="true" @endif
+                   {{ $attributes->merge(['class' => 'form-control pf-password-input'.($errors->has($name) ? ' is-invalid' : '')]) }}>
+            <x-password-toggle-button/>
+        </div>
+    @else
+        <input type="{{ $type }}"
+               id="{{ $id }}"
+               name="{{ $name }}"
+               value="{{ old($name, $value) }}"
+               @if ($placeholder) placeholder="{{ $placeholder }}" @endif
+               @if ($required) required @endif
+               @if ($describedBy) aria-describedby="{{ $describedBy }}" @endif
+               @if ($errors->has($name)) aria-invalid="true" @endif
+               {{ $attributes->merge(['class' => 'form-control'.($errors->has($name) ? ' is-invalid' : '')]) }}>
+    @endif
 
     @if ($help)
         <div class="form-text" id="{{ $helpId }}">{{ $help }}</div>

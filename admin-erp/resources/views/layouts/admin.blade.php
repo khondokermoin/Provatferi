@@ -104,6 +104,7 @@
 <script src="{{ asset('zircos/js/app.js') }}"></script>
 {{-- After Zircos, so our control owns the theme state. --}}
 <script src="{{ asset('js/provatferi-theme.js') }}"></script>
+<script src="{{ asset('js/provatferi-password-toggle.js') }}"></script>
 @stack('scripts')
 </body>
 </html>

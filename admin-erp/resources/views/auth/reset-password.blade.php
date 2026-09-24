@@ -22,9 +22,12 @@
                 <label class="form-label" for="password">
                     নতুন পাসওয়ার্ড <span class="pf-required" aria-hidden="true">*</span><span class="visually-hidden">(আবশ্যক)</span>
                 </label>
-                <input type="password" id="password" name="password"
-                       class="form-control @error('password') is-invalid @enderror"
-                       required autocomplete="new-password" aria-describedby="password-help">
+                <div class="pf-password-field">
+                    <input type="password" id="password" name="password"
+                           class="form-control pf-password-input @error('password') is-invalid @enderror"
+                           required autocomplete="new-password" aria-describedby="password-help">
+                    <x-password-toggle-button/>
+                </div>
                 <div class="form-text" id="password-help">অন্তত ৮ অক্ষরের শক্তিশালী পাসওয়ার্ড দিন।</div>
                 @error('password')
                     <div class="invalid-feedback d-block"><i class="ti ti-alert-circle" aria-hidden="true"></i> {{ $message }}</div>
@@ -35,9 +38,12 @@
                 <label class="form-label" for="password_confirmation">
                     পাসওয়ার্ড নিশ্চিত করুন <span class="pf-required" aria-hidden="true">*</span><span class="visually-hidden">(আবশ্যক)</span>
                 </label>
-                <input type="password" id="password_confirmation" name="password_confirmation"
-                       class="form-control @error('password_confirmation') is-invalid @enderror"
-                       required autocomplete="new-password">
+                <div class="pf-password-field">
+                    <input type="password" id="password_confirmation" name="password_confirmation"
+                           class="form-control pf-password-input @error('password_confirmation') is-invalid @enderror"
+                           required autocomplete="new-password">
+                    <x-password-toggle-button/>
+                </div>
                 @error('password_confirmation')
                     <div class="invalid-feedback d-block"><i class="ti ti-alert-circle" aria-hidden="true"></i> {{ $message }}</div>
                 @enderror

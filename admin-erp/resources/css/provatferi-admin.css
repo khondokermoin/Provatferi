@@ -916,3 +916,53 @@ input:-webkit-autofill:focus {
   width: auto;
   float: none;
 }
+
+/*
+ * MAIL-007 — password show/hide toggle
+ * ============================================================================
+ * Every <input type="password"> across login, reset, confirm-password and the
+ * profile change-password form gets the same eye-icon toggle
+ * (public/js/provatferi-password-toggle.js). The button sits inside the
+ * input's own box (absolutely positioned within a position:relative
+ * wrapper) rather than beside it, so no existing form layout shifts.
+ * Right padding on the input keeps typed text clear of the button.
+ */
+.pf-password-field {
+  position: relative;
+}
+.pf-password-input {
+  padding-right: 2.5rem;
+}
+.pf-password-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--ct-secondary-color);
+  cursor: pointer;
+  border-radius: 0 var(--ct-border-radius) var(--ct-border-radius) 0;
+}
+.pf-password-toggle:hover {
+  color: var(--ct-body-color);
+}
+.pf-password-toggle:focus-visible {
+  outline: 2px solid var(--ct-primary);
+  outline-offset: -2px;
+}
+.pf-password-toggle svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+}
+/* Only one of the two icons is ever visible; JS toggles this attribute. */
+.pf-password-toggle[data-showing='false'] .pf-icon-eye-off,
+.pf-password-toggle[data-showing='true'] .pf-icon-eye {
+  display: none;
+}

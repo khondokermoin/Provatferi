@@ -86,5 +86,6 @@
 
 <script src="{{ asset('zircos/js/vendor.min.js') }}"></script>
 <script src="{{ asset('zircos/js/app.js') }}"></script>
+<script src="{{ asset('js/provatferi-password-toggle.js') }}"></script>
 </body>
 </html>
