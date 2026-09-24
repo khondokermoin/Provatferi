@@ -1,0 +1,28 @@
+{
+  "_snapshot_note": "Full Cloudflare DNS zone export for provatferi.org, taken immediately before the 2026-09-24 mail-incident remediation (MX restored to Hostinger, SPF corrected). Zone id 9d06e29d9167b04903e270ff11b0f2f3. Pulled via Cloudflare API GET /zones/{id}/dns_records, all 16 records, no pagination truncation.",
+  "zone": {
+    "id": "9d06e29d9167b04903e270ff11b0f2f3",
+    "name": "provatferi.org",
+    "name_servers": ["marek.ns.cloudflare.com", "nataly.ns.cloudflare.com"],
+    "original_name_servers": ["aurora.dns-parking.com", "nebula.dns-parking.com"],
+    "created_on": "2026-09-21T09:26:04.165059Z"
+  },
+  "records_before_fix": [
+    {"name": "admin.provatferi.org", "type": "A", "content": "82.180.152.27", "proxied": true, "ttl": 1},
+    {"name": "archive.provatferi.org", "type": "A", "content": "82.180.152.27", "proxied": true, "ttl": 1},
+    {"name": "cms.provatferi.org", "type": "A", "content": "82.180.152.27", "proxied": true, "ttl": 1},
+    {"name": "ftp.provatferi.org", "type": "A", "content": "82.180.152.27", "proxied": false, "ttl": 1},
+    {"name": "provatferi.org", "type": "A", "content": "82.180.152.27", "proxied": true, "ttl": 1},
+    {"name": "sahittopata.provatferi.org", "type": "A", "content": "82.180.152.27", "proxied": true, "ttl": 1},
+    {"name": "autoconfig.provatferi.org", "type": "CNAME", "content": "autoconfig.mail.hostinger.com", "proxied": false, "ttl": 1},
+    {"name": "autodiscover.provatferi.org", "type": "CNAME", "content": "autodiscover.mail.hostinger.com", "proxied": false, "ttl": 1},
+    {"name": "hostingermail-a._domainkey.provatferi.org", "type": "CNAME", "content": "hostingermail-a.dkim.mail.hostinger.com", "proxied": false, "ttl": 1},
+    {"name": "hostingermail-b._domainkey.provatferi.org", "type": "CNAME", "content": "hostingermail-b.dkim.mail.hostinger.com", "proxied": false, "ttl": 1},
+    {"name": "hostingermail-c._domainkey.provatferi.org", "type": "CNAME", "content": "hostingermail-c.dkim.mail.hostinger.com", "proxied": false, "ttl": 1},
+    {"name": "www.provatferi.org", "type": "CNAME", "content": "provatferi.org", "proxied": true, "ttl": 1},
+    {"name": "provatferi.org", "type": "MX", "content": "smtp.google.com", "priority": 1, "ttl": 1, "_note": "THE BUG: sole MX record, points at Google; docs/MAIL_ROLES.md documents the intended state as mx1/mx2.hostinger.com priority 5/10 -- this is a regression, likely from the 2026-09-21 Cloudflare cutover scan-import"},
+    {"name": "_dmarc.provatferi.org", "type": "TXT", "content": "v=DMARC1; p=none; rua=mailto:postmaster@provatferi.org, mailto:dmarc@provatferi.org; pct=100; adkim=s; aspf=s", "ttl": 1, "_note": "left unchanged by this fix -- already conservative (p=none) with a reporting address"},
+    {"name": "provatferi.org", "type": "TXT", "content": "v=spf1 include:_spf.google.com include:_spf.mail.hostinger.com ~all", "ttl": 1, "_note": "dual-include SPF; docs/MAIL_ROLES.md documents the intended state as Hostinger-only -- being corrected"},
+    {"name": "provatferi.org", "type": "TXT", "content": "google-site-verification=QMQvWD2fVr-B68AmifnJDENRcjFSOXcAm0ojWe6gyJU", "ttl": 1, "_note": "left unchanged -- Search Console/site-verification ownership proof, unrelated to mail routing"}
+  ]
+}

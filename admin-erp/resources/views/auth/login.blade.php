@@ -38,10 +38,13 @@
             <label class="form-label" for="password">
                 পাসওয়ার্ড <span class="pf-required" aria-hidden="true">*</span><span class="visually-hidden">(আবশ্যক)</span>
             </label>
-            <input type="password" id="password" name="password"
-                   class="form-control @error('password') is-invalid @enderror"
-                   required autocomplete="current-password"
-                   @error('password') aria-invalid="true" aria-describedby="password-error" @enderror>
+            <div class="pf-password-field">
+                <input type="password" id="password" name="password"
+                       class="form-control pf-password-input @error('password') is-invalid @enderror"
+                       required autocomplete="current-password"
+                       @error('password') aria-invalid="true" aria-describedby="password-error" @enderror>
+                <x-password-toggle-button/>
+            </div>
             @error('password')
                 <div class="invalid-feedback d-block" id="password-error">
                     <i class="ti ti-alert-circle" aria-hidden="true"></i> {{ $message }}
