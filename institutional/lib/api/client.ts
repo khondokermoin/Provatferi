@@ -400,3 +400,16 @@ export function isStringOrNull(v: unknown): v is string | null {
 export function isNumberOrNull(v: unknown): v is number | null {
   return v === null || typeof v === "number";
 }
+
+/**
+ * Phase 2 (bilingual site) fields: admin-erp and institutional deploy through
+ * separate pipelines (see this file's own header) — the exact reason
+ * share_image_url below tolerates `undefined`, extended here as a named
+ * helper for the many new `_en` fields added across lib/api/*.ts's guards.
+ * A build can legitimately run against a not-yet-migrated backend that omits
+ * the key entirely; rejecting `undefined` would break every existing
+ * request the moment institutional's stricter guard ships first.
+ */
+export function isOptionalString(v: unknown): v is string | null | undefined {
+  return v === undefined || isStringOrNull(v);
+}

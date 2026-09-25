@@ -84,7 +84,8 @@ class JobPosting extends Model
     public const VOLUNTEER_NOTE = 'এটি একটি স্বেচ্ছাসেবী সুযোগ; বর্তমানে আর্থিক পারিশ্রমিকের প্রতিশ্রুতি নেই।';
 
     protected $fillable = [
-        'title', 'slug', 'summary', 'organization_unit_id', 'department', 'description', 'requirements',
+        'title', 'title_en', 'slug', 'summary', 'summary_en', 'organization_unit_id', 'department',
+        'description', 'description_en', 'requirements', 'requirements_en',
         'employment_type', 'salary_range', 'opening_date', 'application_mode', 'application_deadline',
         'accepts_applications', 'field_requirements', 'status', 'created_by', 'published_at',
     ];

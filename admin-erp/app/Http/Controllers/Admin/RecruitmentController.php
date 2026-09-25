@@ -264,16 +264,20 @@ class RecruitmentController extends Controller
     {
         return [
             'title' => ['required', 'string', 'max:255'],
+            'title_en' => ['nullable', 'string', 'max:255'],
             // §3: lowercase-dash form only — uniqueSlug() re-slugifies it
             // anyway, but rejecting an obviously-wrong value here (spaces,
             // uppercase, punctuation) gives the admin an error next to the
             // field instead of a silently-transformed result.
             'slug' => ['nullable', 'string', 'max:80', 'regex:/^[a-z0-9]+(-[a-z0-9]+)*$/'],
             'summary' => ['nullable', 'string', 'max:500'],
+            'summary_en' => ['nullable', 'string', 'max:500'],
             'organization_unit_id' => ['nullable', Rule::exists('organizational_units', 'id')],
             'department' => ['nullable', 'string', 'max:255'],
             'description' => ['required', 'string', 'max:10000'],
+            'description_en' => ['nullable', 'string', 'max:10000'],
             'requirements' => ['nullable', 'string', 'max:5000'],
+            'requirements_en' => ['nullable', 'string', 'max:5000'],
             'employment_type' => ['nullable', Rule::in(array_keys(JobPosting::EMPLOYMENT_TYPES))],
             'salary_range' => ['nullable', 'string', 'max:255'],
             'opening_date' => ['nullable', 'date'],

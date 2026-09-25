@@ -42,8 +42,10 @@ class Notice extends Model
     public const NEW_FOR_DAYS = 7;
 
     protected $fillable = [
-        'title', 'slug', 'notice_type', 'summary', 'body', 'status', 'published_at', 'expires_at',
-        'is_pinned', 'organization_unit_id', 'action_url', 'action_label', 'job_posting_id', 'syncs_from_job_posting',
+        'title', 'title_en', 'slug', 'notice_type', 'summary', 'summary_en', 'body', 'body_en',
+        'status', 'published_at', 'expires_at',
+        'is_pinned', 'organization_unit_id', 'action_url', 'action_label', 'action_label_en',
+        'job_posting_id', 'syncs_from_job_posting',
     ];
 
     protected function casts(): array
@@ -183,6 +185,26 @@ class Notice extends Model
         $body = trim((string) $job->description);
         if (filled($job->requirements)) {
             $body .= "\n\nযোগ্যতা:\n".trim($job->requirements);
+        }
+
+        return $body;
+    }
+
+    /**
+     * English counterpart of bodyFromJobPosting() — null (not an empty
+     * string) when the posting has no English description yet, so a synced
+     * notice correctly falls back to Bangla per Phase 2's fallback policy
+     * rather than storing an empty body_en.
+     */
+    public static function bodyEnFromJobPosting(JobPosting $job): ?string
+    {
+        if (blank($job->description_en)) {
+            return null;
+        }
+
+        $body = trim($job->description_en);
+        if (filled($job->requirements_en)) {
+            $body .= "\n\nRequirements:\n".trim($job->requirements_en);
         }
 
         return $body;

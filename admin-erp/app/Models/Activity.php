@@ -16,8 +16,10 @@ class Activity extends Model
     public const STATUSES = ['draft' => 'খসড়া', 'published' => 'প্রকাশিত', 'archived' => 'সংরক্ষিত'];
 
     protected $fillable = [
-        'activity_type_id', 'organization_unit_id', 'title', 'slug', 'summary', 'description', 'objective',
-        'coordinator_id', 'venue', 'address', 'hero_image_path', 'what_happened', 'outcomes', 'gallery',
+        'activity_type_id', 'organization_unit_id', 'title', 'title_en', 'slug', 'summary', 'summary_en',
+        'description', 'description_en', 'objective', 'objective_en',
+        'coordinator_id', 'venue', 'address', 'hero_image_path', 'what_happened', 'what_happened_en',
+        'outcomes', 'outcomes_en', 'gallery',
         'related_links', 'facebook_post_url', 'start_datetime', 'end_datetime', 'status',
         'featured', 'participant_count', 'created_by', 'published_at',
     ];

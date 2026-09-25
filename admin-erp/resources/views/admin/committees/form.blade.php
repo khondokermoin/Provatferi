@@ -11,6 +11,7 @@
             <div class="col-lg-8">
                 <x-admin.card title="কমিটির তথ্য">
                     <x-admin.form-input name="name" label="কমিটির নাম" :value="$committee->name" required />
+                    <x-admin.form-input name="name_en" label="কমিটির নাম (English, ঐচ্ছিক)" :value="$committee->name_en" />
 
                     <div class="row">
                         <div class="col-md-6">
@@ -25,6 +26,8 @@
 
                     <x-admin.form-textarea name="description" label="নোট / বিবরণ"
                         :value="$committee->description" :rows="4" />
+                    <x-admin.form-textarea name="description_en" label="নোট / বিবরণ (English, ঐচ্ছিক)"
+                        :value="$committee->description_en" :rows="4" />
                 </x-admin.card>
             </div>
 

@@ -63,6 +63,7 @@ class CommitteePositionController extends Controller
                     ->where(fn ($q) => $q->where('committee_id', $committee->id))
                     ->ignore($position?->id),
             ],
+            'name_en' => ['nullable', 'string', 'max:255'],
             'display_order' => ['required', 'integer', 'min:0', 'max:65535'],
             'allow_duplicates' => ['nullable', 'boolean'],
             'status' => ['required', Rule::in(['active', 'inactive'])],

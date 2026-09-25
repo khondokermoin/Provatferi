@@ -154,6 +154,7 @@ class OrganizationUnitController extends Controller
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'name_en' => ['nullable', 'string', 'max:255'],
             'unit_type' => ['required', Rule::in(array_keys(self::UNIT_TYPES))],
             // A unit cannot be its own parent; deeper cycles are prevented by
             // excluding the unit's own descendants from parentOptions().

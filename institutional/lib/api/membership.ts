@@ -1,4 +1,4 @@
-import { apiGet, isRecord, isNumberOrNull, isStringOrNull } from "./client";
+import { apiGet, isOptionalString, isRecord, isNumberOrNull, isStringOrNull } from "./client";
 import type { ApiResult, MembershipCampaign, MembershipType } from "./types";
 
 const REVALIDATE_SECONDS = 300;
@@ -11,8 +11,10 @@ function isMembershipType(v: unknown): v is MembershipType {
     isRecord(v) &&
     typeof v.id === "number" &&
     typeof v.name === "string" &&
+    isOptionalString(v.name_en) &&
     typeof v.slug === "string" &&
     isStringOrNull(v.description) &&
+    isOptionalString(v.description_en) &&
     isNumberOrNull(v.duration_months) &&
     typeof v.fee === "string" &&
     typeof v.is_student === "boolean" &&

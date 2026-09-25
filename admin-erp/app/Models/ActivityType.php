@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ActivityType extends Model
 {
-    protected $fillable = ['name', 'slug', 'description', 'icon', 'status', 'sort_order'];
+    protected $fillable = ['name', 'name_en', 'slug', 'description', 'icon', 'status', 'sort_order'];
 
     protected function casts(): array
     {

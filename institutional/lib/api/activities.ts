@@ -1,4 +1,4 @@
-import { apiGet, isRecord, isNumberOrNull, isStringOrNull } from "./client";
+import { apiGet, isOptionalString, isRecord, isNumberOrNull, isStringOrNull } from "./client";
 import type { Activity, ActivityListResponse, ApiResult } from "./types";
 import { recentActivities } from "../content";
 
@@ -25,15 +25,21 @@ function isActivity(v: unknown): v is Activity {
     isNumberOrNull(v.activity_type_id) &&
     isNumberOrNull(v.organization_unit_id) &&
     typeof v.title === "string" &&
+    isOptionalString(v.title_en) &&
     typeof v.slug === "string" &&
     isStringOrNull(v.summary) &&
+    isOptionalString(v.summary_en) &&
     isStringOrNull(v.description) &&
+    isOptionalString(v.description_en) &&
     isStringOrNull(v.objective) &&
+    isOptionalString(v.objective_en) &&
     isStringOrNull(v.venue) &&
     isStringOrNull(v.address) &&
     isStringOrNull(v.hero_image_path) &&
     isStringOrNull(v.what_happened) &&
+    isOptionalString(v.what_happened_en) &&
     isStringOrNull(v.outcomes) &&
+    isOptionalString(v.outcomes_en) &&
     Array.isArray(v.gallery) &&
     Array.isArray(v.related_links) &&
     isStringOrNull(v.facebook_post_url) &&
@@ -42,8 +48,10 @@ function isActivity(v: unknown): v is Activity {
     typeof v.featured === "boolean" &&
     isNumberOrNull(v.participant_count) &&
     isStringOrNull(v.published_at) &&
-    (type === null || (isRecord(type) && typeof type.id === "number" && typeof type.name === "string" && typeof type.slug === "string")) &&
-    (unit === null || (isRecord(unit) && typeof unit.id === "number" && typeof unit.name === "string" && typeof unit.slug === "string"))
+    (type === null ||
+      (isRecord(type) && typeof type.id === "number" && typeof type.name === "string" && isOptionalString(type.name_en) && typeof type.slug === "string")) &&
+    (unit === null ||
+      (isRecord(unit) && typeof unit.id === "number" && typeof unit.name === "string" && isOptionalString(unit.name_en) && typeof unit.slug === "string"))
   );
 }
 

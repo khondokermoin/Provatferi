@@ -188,7 +188,7 @@ class NoticeController extends Controller
         $user = $request->user();
         $isNew = ! $notice->exists;
 
-        foreach (['title', 'summary', 'body'] as $field) {
+        foreach (['title', 'title_en', 'summary', 'summary_en', 'body', 'body_en'] as $field) {
             if (isset($data[$field])) {
                 $data[$field] = str_replace(["\r\n", "\r"], "\n", $data[$field]);
             }
@@ -248,8 +248,11 @@ class NoticeController extends Controller
         $resync = false;
         if (! $isNew && $notice->job_posting_id !== null) {
             $copyChanged = $notice->title !== $data['title']
+                || (string) $notice->title_en !== (string) ($data['title_en'] ?? '')
                 || (string) $notice->summary !== (string) ($data['summary'] ?? '')
-                || $notice->body !== $data['body'];
+                || (string) $notice->summary_en !== (string) ($data['summary_en'] ?? '')
+                || $notice->body !== $data['body']
+                || (string) $notice->body_en !== (string) ($data['body_en'] ?? '');
             $wantsSync = $request->boolean('syncs_from_job_posting');
 
             if ($notice->syncs_from_job_posting && $copyChanged) {
@@ -298,9 +301,12 @@ class NoticeController extends Controller
 
         $notice->fill([
             'title' => $data['title'],
+            'title_en' => $data['title_en'] ?? null,
             'notice_type' => $data['notice_type'],
             'summary' => $data['summary'] ?? null,
+            'summary_en' => $data['summary_en'] ?? null,
             'body' => $data['body'],
+            'body_en' => $data['body_en'] ?? null,
             'status' => $status,
             'published_at' => $publishedAt,
             'expires_at' => $expiresAt,
@@ -308,6 +314,7 @@ class NoticeController extends Controller
             'organization_unit_id' => $data['organization_unit_id'] ?? null,
             'action_url' => $data['action_url'] ?? null,
             'action_label' => filled($data['action_url'] ?? null) ? ($data['action_label'] ?? null) : null,
+            'action_label_en' => filled($data['action_url'] ?? null) ? ($data['action_label_en'] ?? null) : null,
         ]);
 
         if ($resync && $notice->jobPosting !== null) {
@@ -383,10 +390,13 @@ class NoticeController extends Controller
     {
         return [
             'title' => ['required', 'string', 'max:255'],
+            'title_en' => ['nullable', 'string', 'max:255'],
             'slug' => ['nullable', 'string', 'max:120', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::notIn(Notice::RESERVED_SLUGS), Rule::unique('notices', 'slug')->ignore($notice->id)],
             'notice_type' => ['required', Rule::in(array_keys(Notice::TYPES))],
             'summary' => ['nullable', 'string', 'max:500'],
+            'summary_en' => ['nullable', 'string', 'max:500'],
             'body' => ['required', 'string', 'max:30000'],
+            'body_en' => ['nullable', 'string', 'max:30000'],
             'published_at' => ['nullable', 'date'],
             'expires_at' => ['nullable', 'date'],
             'organization_unit_id' => ['nullable', Rule::exists('organizational_units', 'id')],
@@ -398,6 +408,7 @@ class NoticeController extends Controller
             'remove_attachment' => ['nullable', 'boolean'],
             'action_url' => ['nullable', 'url:http,https', 'max:500'],
             'action_label' => ['nullable', 'string', 'max:100', 'required_with:action_url'],
+            'action_label_en' => ['nullable', 'string', 'max:100'],
             'is_pinned' => ['nullable', 'boolean'],
             'syncs_from_job_posting' => ['nullable', 'boolean'],
             'status' => ['required', Rule::in(array_keys(Notice::STATUSES))],

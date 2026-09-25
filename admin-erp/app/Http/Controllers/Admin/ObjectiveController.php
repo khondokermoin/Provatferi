@@ -112,7 +112,9 @@ class ObjectiveController extends Controller
     {
         $data = $request->validate([
             'title' => ['nullable', 'string', 'max:255'],
+            'title_en' => ['nullable', 'string', 'max:255'],
             'body' => ['required', 'string', 'max:2000'],
+            'body_en' => ['nullable', 'string', 'max:2000'],
             'sort_order' => ['required', 'integer', 'min:0', 'max:65535'],
         ], [], ['body' => 'বিবরণ', 'sort_order' => 'ক্রম']);
         $data['active'] = $request->boolean('active');

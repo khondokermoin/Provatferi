@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ContentBlock extends Model
 {
-    protected $fillable = ['key', 'title', 'body', 'group_name', 'is_public', 'updated_by'];
+    protected $fillable = ['key', 'title', 'body', 'body_en', 'group_name', 'is_public', 'updated_by'];
 
     protected function casts(): array
     {

@@ -13,8 +13,9 @@ class AboutPage extends Model
     protected $table = 'about_page';
 
     protected $fillable = [
-        'introduction', 'description', 'history', 'why_exists',
-        'identity_explanation', 'registration_status', 'is_published', 'updated_by',
+        'introduction', 'introduction_en', 'description', 'description_en', 'history', 'history_en',
+        'why_exists', 'why_exists_en', 'identity_explanation', 'identity_explanation_en',
+        'registration_status', 'is_published', 'updated_by',
     ];
 
     protected function casts(): array

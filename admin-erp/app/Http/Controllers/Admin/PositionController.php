@@ -105,6 +105,7 @@ class PositionController extends Controller
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'name_en' => ['nullable', 'string', 'max:255'],
             'organization_unit_id' => ['nullable', Rule::exists('organizational_units', 'id')],
             'level' => ['required', 'integer', 'min:0', 'max:255'],
             'status' => ['required', Rule::in(array_keys(self::STATUSES))],

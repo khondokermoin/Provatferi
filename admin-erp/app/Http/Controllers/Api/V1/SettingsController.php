@@ -62,24 +62,31 @@ class SettingsController extends Controller
         return response()->json(['data' => [
             'about' => $about->is_published ? [
                 'introduction' => $about->introduction,
+                'introduction_en' => $about->introduction_en,
                 'description' => $about->description,
+                'description_en' => $about->description_en,
                 'history' => $about->history,
+                'history_en' => $about->history_en,
                 'why_exists' => $about->why_exists,
+                'why_exists_en' => $about->why_exists_en,
                 'identity_explanation' => $about->identity_explanation,
+                'identity_explanation_en' => $about->identity_explanation_en,
                 'registration_status' => $about->registration_status,
             ] : null,
             'mission' => ($mission && $mission->is_public) ? [
                 'body' => $mission->body,
+                'body_en' => $mission->body_en,
                 'updated_at' => $mission->updated_at?->toIso8601String(),
             ] : null,
             'vision' => ($vision && $vision->is_public) ? [
                 'body' => $vision->body,
+                'body_en' => $vision->body_en,
                 'updated_at' => $vision->updated_at?->toIso8601String(),
             ] : null,
             'objectives' => Objective::query()
                 ->where('active', true)
                 ->orderBy('sort_order')->orderBy('id')
-                ->get(['id', 'title', 'body', 'sort_order'])
+                ->get(['id', 'title', 'title_en', 'body', 'body_en', 'sort_order'])
                 ->values(),
         ]]);
     }

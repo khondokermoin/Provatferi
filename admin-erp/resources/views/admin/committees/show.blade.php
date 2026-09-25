@@ -100,6 +100,7 @@
                         <form method="POST" action="{{ route('admin.committees.positions.store', $committee) }}" class="mt-2">
                             @csrf
                             <x-admin.form-input name="name" label="পদের নাম" required />
+                            <x-admin.form-input name="name_en" label="পদের নাম (English, ঐচ্ছিক)" />
                             <x-admin.form-input name="display_order" label="ক্রম" type="number" min="0" :value="0" required />
                             <div class="form-check mb-3">
                                 <input type="checkbox" class="form-check-input" id="allow_duplicates" name="allow_duplicates" value="1">

@@ -23,10 +23,15 @@ class AboutController extends Controller
     {
         $data = $request->validate([
             'introduction' => ['nullable', 'string', 'max:2000'],
+            'introduction_en' => ['nullable', 'string', 'max:2000'],
             'description' => ['nullable', 'string', 'max:5000'],
+            'description_en' => ['nullable', 'string', 'max:5000'],
             'history' => ['nullable', 'string', 'max:10000'],
+            'history_en' => ['nullable', 'string', 'max:10000'],
             'why_exists' => ['nullable', 'string', 'max:5000'],
+            'why_exists_en' => ['nullable', 'string', 'max:5000'],
             'identity_explanation' => ['nullable', 'string', 'max:5000'],
+            'identity_explanation_en' => ['nullable', 'string', 'max:5000'],
             'registration_status' => ['nullable', 'string', 'max:255'],
         ]);
         $data['is_published'] = $request->boolean('is_published');

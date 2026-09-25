@@ -26,7 +26,8 @@ class Committee extends Model
     ];
 
     protected $fillable = [
-        'organization_unit_id', 'name', 'slug', 'committee_type', 'term_start', 'term_end', 'status', 'description',
+        'organization_unit_id', 'name', 'name_en', 'slug', 'committee_type', 'term_start', 'term_end',
+        'status', 'description', 'description_en',
     ];
 
     protected function casts(): array

@@ -12,7 +12,7 @@ class OrganizationalUnit extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'parent_id', 'name', 'slug', 'code', 'unit_type', 'description',
+        'parent_id', 'name', 'name_en', 'slug', 'code', 'unit_type', 'description',
         'address', 'phone', 'email', 'latitude', 'longitude', 'status', 'sort_order', 'established_date',
     ];
 
