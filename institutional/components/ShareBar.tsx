@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { shareTargets } from "@/lib/share";
+import { getStrings, type Locale } from "@/lib/i18n";
 
 /**
  * Whether this device can open a native share sheet. Read through
@@ -19,7 +20,8 @@ const noNativeShareOnServer = () => false;
  * §11/§12: a share control that prefers the device's own share sheet and
  * falls back to an explicit menu.
  */
-export default function ShareBar({ url, title }: { url: string; title: string }) {
+export default function ShareBar({ url, title, locale = "bn" }: { url: string; title: string; locale?: Locale }) {
+  const t = getStrings(locale);
   const canNativeShare = useSyncExternalStore(subscribeToNothing, hasNativeShare, noNativeShareOnServer);
   const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -42,7 +44,7 @@ export default function ShareBar({ url, title }: { url: string; title: string })
     return () => clearTimeout(timer);
   }, [copied]);
 
-  const targets = shareTargets(url, title);
+  const targets = shareTargets(url, title, locale);
 
   const share = async () => {
     try {
@@ -65,12 +67,12 @@ export default function ShareBar({ url, title }: { url: string; title: string })
 
   return (
     <div className="share-bar" ref={wrapRef} onKeyDown={(event) => { if (event.key === "Escape") setMenuOpen(false); }}>
-      <span className="share-bar-label">এই নোটিশটি শেয়ার করুন</span>
+      <span className="share-bar-label">{t.common.shareThis}</span>
 
       <div className="share-bar-actions">
         {canNativeShare && (
           <button type="button" className="button button-outline share-button" onClick={share}>
-            শেয়ার করুন
+            {t.common.share}
           </button>
         )}
 
@@ -82,7 +84,7 @@ export default function ShareBar({ url, title }: { url: string; title: string })
             aria-controls="share-menu"
             onClick={() => setMenuOpen(!menuOpen)}
           >
-            {canNativeShare ? "অন্যান্য মাধ্যম" : "শেয়ার করুন"}
+            {canNativeShare ? t.common.otherOptions : t.common.share}
           </button>
 
           <div id="share-menu" className="share-menu" hidden={!menuOpen}>
@@ -96,13 +98,13 @@ export default function ShareBar({ url, title }: { url: string; title: string })
         </div>
 
         <button type="button" className="button button-outline share-button" onClick={copy}>
-          লিংক কপি করুন
+          {t.common.copyLink}
         </button>
       </div>
 
       {/* Announced to screen readers and shown to everyone, without a reload. */}
       <p className="share-copied" role="status" aria-live="polite">
-        {copied ? "লিংক কপি হয়েছে" : ""}
+        {copied ? t.common.linkCopied : ""}
       </p>
     </div>
   );

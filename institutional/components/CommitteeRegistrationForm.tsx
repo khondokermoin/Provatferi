@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { submitCommitteeRegistration, type CommitteeRegistrationState } from "@/app/(site)/committee/register/[token]/actions";
+import { submitCommitteeRegistration, type CommitteeRegistrationState } from "@/app/[locale]/(site)/committee/register/[token]/actions";
 import type { CommitteePositionOption } from "@/lib/api/types";
 
 const initialState: CommitteeRegistrationState = { status: "idle" };

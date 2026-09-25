@@ -1,6 +1,7 @@
 import { apiGet, isOptionalString, isRecord, isNumberOrNull, isStringOrNull } from "./client";
 import type { Activity, ActivityListResponse, ApiResult } from "./types";
 import { recentActivities } from "../content";
+import { recentActivities as recentActivitiesEn } from "../content.en";
 
 /**
  * Wired into app/(site)/activities/page.tsx and .../activities/[slug]/page.tsx
@@ -97,11 +98,19 @@ export interface DisplayActivity {
   slug: string;
   date: string;
   title: string;
+  titleEn: string | null;
   place: string;
+  /** Filter/comparison key — always the bn category name; see ActivityFilter.tsx for how the label is localized separately. */
   category: string;
+  categoryEn: string | null;
   photos: string[];
   outcomes: string | null;
+  outcomesEn: string | null;
   summary: string | null;
+  summaryEn: string | null;
+  descriptionEn: string | null;
+  objectiveEn: string | null;
+  whatHappenedEn: string | null;
   participantCount: number | null;
 }
 
@@ -134,14 +143,21 @@ function activityToDisplay(a: Activity): DisplayActivity {
     slug: a.slug,
     date: toDisplayDate(a.start_datetime),
     title: a.title,
+    titleEn: a.title_en,
     place: a.venue ?? "",
     category: a.type?.name ?? "",
+    categoryEn: a.type?.name_en ?? null,
     photos: a.gallery,
     outcomes: a.outcomes,
+    outcomesEn: a.outcomes_en,
     // Prefer the curated summary; fall back to the freeform "what happened"
     // narrative if only that was filled in. Never fabricated — both are
     // simply unused API fields until an admin actually writes them.
     summary: a.summary ?? a.what_happened,
+    summaryEn: a.summary_en ?? a.what_happened_en,
+    descriptionEn: a.description_en,
+    objectiveEn: a.objective_en,
+    whatHappenedEn: a.what_happened_en,
     // A recorded 0 is indistinguishable from "field never filled in" on this
     // form, so only a genuinely positive count is treated as a real fact —
     // never render an unset default as if it were a fabricated headcount.
@@ -149,18 +165,33 @@ function activityToDisplay(a: Activity): DisplayActivity {
   };
 }
 
+/**
+ * lib/content.en.ts's `recentActivities` mirrors lib/content.ts's own —
+ * indices line up 1:1 (same three real records), so the English fallback
+ * copy is looked up by index rather than duplicating slugs/dates/places here.
+ */
 function fallbackToDisplay(): DisplayActivity[] {
-  return recentActivities.map((a) => ({
-    slug: a.slug,
-    date: a.date,
-    title: a.title,
-    place: a.place,
-    category: a.category,
-    photos: a.photos,
-    outcomes: a.outcomes,
-    summary: a.summary,
-    participantCount: a.participantCount,
-  }));
+  return recentActivities.map((a, i) => {
+    const en = recentActivitiesEn[i];
+    return {
+      slug: a.slug,
+      date: a.date,
+      title: a.title,
+      titleEn: en?.title ?? null,
+      place: a.place,
+      category: a.category,
+      categoryEn: en?.category ?? null,
+      photos: a.photos,
+      outcomes: a.outcomes,
+      outcomesEn: en?.outcomes ?? null,
+      summary: a.summary,
+      summaryEn: en?.summary ?? null,
+      descriptionEn: null,
+      objectiveEn: null,
+      whatHappenedEn: null,
+      participantCount: a.participantCount,
+    };
+  });
 }
 
 /**

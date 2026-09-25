@@ -1,5 +1,7 @@
 import { apiGet, isOptionalString, isRecord, isStringOrNull } from "./client";
 import type { ApiResult, JobPosting, SkillOption } from "./types";
+import type { Locale } from "../i18n/index";
+import { getStrings } from "../i18n/index";
 
 function isSkillOption(v: unknown): v is SkillOption {
   return isRecord(v) && typeof v.key === "string" && typeof v.label === "string";
@@ -60,17 +62,19 @@ export function isJobPosting(v: unknown): v is JobPosting {
 }
 
 /** "স্বেচ্ছাসেবী হিসেবে আবেদন করুন" / "আবেদন করুন" — the primary CTA's wording, decided in one place. */
-export function applyCtaLabel(isVolunteer: boolean): string {
-  return isVolunteer ? "স্বেচ্ছাসেবী হিসেবে আবেদন করুন" : "আবেদন করুন";
+export function applyCtaLabel(isVolunteer: boolean, locale: Locale = "bn"): string {
+  const t = getStrings(locale).common;
+  return isVolunteer ? t.applyAsVolunteer : t.apply;
 }
 
 /**
  * A WhatsApp destination is named for what it is, so the secondary button
  * never reads like the way to apply. Any other action keeps the label the
- * admin gave it.
+ * admin gave it (in whichever locale-appropriate form the caller already
+ * resolved, e.g. via pickText on action.label/label_en).
  */
-export function communityCtaLabel(url: string, fallbackLabel: string): string {
-  return /(^|\/\/|\.)(wa\.me|chat\.whatsapp\.com)/.test(url) ? "WhatsApp Group-এ যুক্ত হোন" : fallbackLabel;
+export function communityCtaLabel(url: string, fallbackLabel: string, locale: Locale = "bn"): string {
+  return /(^|\/\/|\.)(wa\.me|chat\.whatsapp\.com)/.test(url) ? getStrings(locale).common.joinCommunityGroup : fallbackLabel;
 }
 
 function isJobPostingsResponse(json: unknown): json is { data: JobPosting[] } {
@@ -104,9 +108,11 @@ export function applicationWindowLabel(
   job: Pick<JobPosting, "application_mode" | "application_deadline">,
   formatDate: (value: string | null) => string | null,
   isOpen = true,
+  locale: Locale = "bn",
 ): string {
-  if (!isOpen) return "আবেদন বন্ধ";
-  if (job.application_mode === "rolling") return "আবেদন চলমান";
+  const t = getStrings(locale).common;
+  if (!isOpen) return t.applicationClosed;
+  if (job.application_mode === "rolling") return t.applicationRolling;
   const deadline = formatDate(job.application_deadline);
-  return deadline ? `শেষ তারিখ ${deadline}` : "শেষ তারিখ এখনো ঘোষিত হয়নি";
+  return deadline ? t.applicationDeadline(deadline) : t.applicationDeadlineUnset;
 }

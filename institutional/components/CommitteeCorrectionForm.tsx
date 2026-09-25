@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { submitCommitteeCorrection, type CommitteeCorrectionState } from "@/app/(site)/committee/register/correct/[token]/actions";
+import { submitCommitteeCorrection, type CommitteeCorrectionState } from "@/app/[locale]/(site)/committee/register/correct/[token]/actions";
 import type { CommitteeCorrectionInfo } from "@/lib/api/types";
 
 const initialState: CommitteeCorrectionState = { status: "idle" };

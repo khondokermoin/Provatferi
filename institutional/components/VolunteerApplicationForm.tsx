@@ -2,8 +2,9 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { useActionState } from "react";
-import { submitVolunteerApplication, type VolunteerApplicationState } from "@/app/(site)/recruitment/[slug]/apply/actions";
+import { submitVolunteerApplication, type VolunteerApplicationState } from "@/app/[locale]/(site)/recruitment/[slug]/apply/actions";
 import type { SkillOption } from "@/lib/api/types";
+import type { Locale } from "@/lib/i18n";
 
 const initialState: VolunteerApplicationState = { status: "idle" };
 
@@ -68,17 +69,21 @@ function CountedTextarea({
   );
 }
 
+/** Field labels/chrome localized here; server-returned validation messages stay whatever Laravel sent (Phase 2's documented limitation — see plan Section B/J). */
 export default function VolunteerApplicationForm({
   slug,
   jobTitle,
   skills,
   fieldRequirements,
+  locale = "bn",
 }: {
   slug: string;
   jobTitle: string;
   skills: SkillOption[];
   fieldRequirements: Record<string, "required" | "optional">;
+  locale?: Locale;
 }) {
+  const en = locale === "en";
   const boundAction = submitVolunteerApplication.bind(null, slug);
   const [state, formAction, isPending] = useActionState(boundAction, initialState);
   const formRef = useRef<HTMLFormElement>(null);
@@ -88,7 +93,7 @@ export default function VolunteerApplicationForm({
   // validation (built from the same source) is the real authority — this only
   // controls the label/asterisk and the browser's own (non-authoritative) required hint.
   const isRequired = (key: string) => (fieldRequirements[key] ?? "optional") === "required";
-  const mark = (key: string) => (isRequired(key) ? " *" : " (ঐচ্ছিক)");
+  const mark = (key: string) => (isRequired(key) ? " *" : en ? " (optional)" : " (ঐচ্ছিক)");
 
   const errors = state.status === "validation" ? state.errors : undefined;
   // §14: re-render what was typed. React resets an uncontrolled form once the
@@ -117,22 +122,26 @@ export default function VolunteerApplicationForm({
   return (
     <form ref={formRef} action={formAction} className="application-form volunteer-form" noValidate encType="multipart/form-data">
       <p className="form-intro">
-        “{jobTitle}” — এ যুক্ত হতে নিচের তথ্যগুলো দিন। <strong>*</strong> চিহ্নিত ঘরগুলো আবশ্যক।
+        {en ? (
+          <>Please provide the following details to join &ldquo;{jobTitle}&rdquo;. Fields marked <strong>*</strong> are required.</>
+        ) : (
+          <>&ldquo;{jobTitle}&rdquo; — এ যুক্ত হতে নিচের তথ্যগুলো দিন। <strong>*</strong> চিহ্নিত ঘরগুলো আবশ্যক।</>
+        )}
       </p>
 
       {(state.status === "validation" || state.status === "error") && (
         <div className="form-summary" role="alert">
           {state.status === "validation"
-            ? "কিছু তথ্য ঠিক করতে হবে — নিচে চিহ্নিত ঘরগুলো দেখুন। আপনার লেখা তথ্য মুছে যায়নি।"
+            ? (en ? "Some fields need fixing — see those marked below. What you've entered has not been lost." : "কিছু তথ্য ঠিক করতে হবে — নিচে চিহ্নিত ঘরগুলো দেখুন। আপনার লেখা তথ্য মুছে যায়নি।")
             : state.message}
         </div>
       )}
 
       <fieldset className="form-section">
-        <legend>ব্যক্তিগত তথ্য</legend>
+        <legend>{en ? "Personal Information" : "ব্যক্তিগত তথ্য"}</legend>
 
         <div className="form-field">
-          <label htmlFor="applicant_name">পূর্ণ নাম *</label>
+          <label htmlFor="applicant_name">{en ? "Full Name *" : "পূর্ণ নাম *"}</label>
           <input
             id="applicant_name"
             name="applicant_name"
@@ -149,7 +158,7 @@ export default function VolunteerApplicationForm({
 
         <div className="form-grid">
           <div className="form-field">
-            <label htmlFor="applicant_phone">মোবাইল নম্বর *</label>
+            <label htmlFor="applicant_phone">{en ? "Mobile Number *" : "মোবাইল নম্বর *"}</label>
             <input
               id="applicant_phone"
               name="applicant_phone"
@@ -166,7 +175,7 @@ export default function VolunteerApplicationForm({
           </div>
 
           <div className="form-field">
-            <label htmlFor="applicant_email">ই-মেইল *</label>
+            <label htmlFor="applicant_email">{en ? "Email *" : "ই-মেইল *"}</label>
             <input
               id="applicant_email"
               name="applicant_email"
@@ -182,7 +191,7 @@ export default function VolunteerApplicationForm({
           </div>
 
           <div className="form-field">
-            <label htmlFor="district">জেলা{mark("district")}</label>
+            <label htmlFor="district">{en ? "District" : "জেলা"}{mark("district")}</label>
             <input
               id="district"
               name="district"
@@ -197,7 +206,7 @@ export default function VolunteerApplicationForm({
           </div>
 
           <div className="form-field">
-            <label htmlFor="current_location">বর্তমান অবস্থান{mark("current_location")}</label>
+            <label htmlFor="current_location">{en ? "Current Location" : "বর্তমান অবস্থান"}{mark("current_location")}</label>
             <input
               id="current_location"
               name="current_location"
@@ -208,13 +217,13 @@ export default function VolunteerApplicationForm({
               aria-invalid={invalid("current_location") || undefined}
               aria-describedby={described("current_location")}
             />
-            <p className="form-field-help">যে এলাকায় এখন থাকছেন।</p>
+            <p className="form-field-help">{en ? "The area you currently live in." : "যে এলাকায় এখন থাকছেন।"}</p>
             <FieldError message={errorFor(errors, "current_location")} id={errId("current_location")} />
           </div>
         </div>
 
         <div className="form-field">
-          <label htmlFor="profession">পেশা / শিক্ষা{mark("profession")}</label>
+          <label htmlFor="profession">{en ? "Profession / Education" : "পেশা / শিক্ষা"}{mark("profession")}</label>
           <input
             id="profession"
             name="profession"
@@ -229,7 +238,7 @@ export default function VolunteerApplicationForm({
         </div>
 
         <div className="form-field">
-          <label htmlFor="photo">প্রোফাইল ছবি{mark("photo")}</label>
+          <label htmlFor="photo">{en ? "Profile Photo" : "প্রোফাইল ছবি"}{mark("photo")}</label>
           <input
             id="photo"
             name="photo"
@@ -238,16 +247,18 @@ export default function VolunteerApplicationForm({
             required={isRequired("photo")}
             aria-invalid={invalid("photo") || undefined}
           />
-          <p className="form-field-help">JPG, PNG বা WEBP — সর্বোচ্চ ৫ মেগাবাইট। ছবি প্রকাশ করা হয় না; শুধু যাচাইয়ের জন্য সংরক্ষিত থাকে।</p>
+          <p className="form-field-help">
+            {en ? "JPG, PNG or WEBP — up to 5 MB. Your photo is not published; it's kept only for verification." : "JPG, PNG বা WEBP — সর্বোচ্চ ৫ মেগাবাইট। ছবি প্রকাশ করা হয় না; শুধু যাচাইয়ের জন্য সংরক্ষিত থাকে।"}
+          </p>
           <FieldError message={errorFor(errors, "photo")} id={errId("photo")} />
         </div>
       </fieldset>
 
       <fieldset className="form-section">
-        <legend>অভিজ্ঞতা ও দক্ষতা</legend>
+        <legend>{en ? "Experience & Skills" : "অভিজ্ঞতা ও দক্ষতা"}</legend>
 
         <div className="form-field">
-          <label htmlFor="experience">কাজের অভিজ্ঞতা{mark("experience")}</label>
+          <label htmlFor="experience">{en ? "Work Experience" : "কাজের অভিজ্ঞতা"}{mark("experience")}</label>
           <CountedTextarea
             id="experience"
             name="experience"
@@ -258,13 +269,13 @@ export default function VolunteerApplicationForm({
             invalid={invalid("experience")}
             describedBy={described("experience")}
           />
-          <p className="form-field-help">আগে কোথায়, কী ধরনের কাজ করেছেন — সংক্ষেপে লিখলেই হবে।</p>
+          <p className="form-field-help">{en ? "A brief note on where and what kind of work you've done before." : "আগে কোথায়, কী ধরনের কাজ করেছেন — সংক্ষেপে লিখলেই হবে।"}</p>
           <FieldError message={errorFor(errors, "experience")} id={errId("experience")} />
         </div>
 
         <div className="form-field">
           <span className="form-field-legend" id="skills-label">
-            কোন কোন কাজে আগ্রহী / দক্ষ{mark("skills")}
+            {en ? "Areas of interest / skill" : "কোন কোন কাজে আগ্রহী / দক্ষ"}{mark("skills")}
           </span>
           {/* §5: each card is a <label> wrapping its own input, so a click
               anywhere on the card toggles exactly once, and the label stays
@@ -281,7 +292,7 @@ export default function VolunteerApplicationForm({
         </div>
 
         <div className="form-field">
-          <label htmlFor="other_skills">অন্যান্য দক্ষতা / অভিজ্ঞতা (ঐচ্ছিক)</label>
+          <label htmlFor="other_skills">{en ? "Other skills / experience (optional)" : "অন্যান্য দক্ষতা / অভিজ্ঞতা (ঐচ্ছিক)"}</label>
           <CountedTextarea
             id="other_skills"
             name="other_skills"
@@ -296,7 +307,7 @@ export default function VolunteerApplicationForm({
         </div>
 
         <div className="form-field">
-          <label htmlFor="contribution">প্রভাতফেরীতে কীভাবে অবদান রাখতে চান{mark("contribution")}</label>
+          <label htmlFor="contribution">{en ? "How would you like to contribute to Provatferi" : "প্রভাতফেরীতে কীভাবে অবদান রাখতে চান"}{mark("contribution")}</label>
           <CountedTextarea
             id="contribution"
             name="contribution"
@@ -312,14 +323,14 @@ export default function VolunteerApplicationForm({
 
         <div className="form-grid">
           <div className="form-field">
-            <label htmlFor="availability">সপ্তাহে কত সময় দিতে পারবেন{mark("availability")}</label>
+            <label htmlFor="availability">{en ? "How much time can you give per week" : "সপ্তাহে কত সময় দিতে পারবেন"}{mark("availability")}</label>
             <input
               id="availability"
               name="availability"
               type="text"
               required={isRequired("availability")}
               maxLength={150}
-              placeholder="যেমন: সপ্তাহে ৫–৮ ঘণ্টা"
+              placeholder={en ? "e.g. 5–8 hours per week" : "যেমন: সপ্তাহে ৫–৮ ঘণ্টা"}
               defaultValue={values.availability ?? ""}
               aria-invalid={invalid("availability") || undefined}
               aria-describedby={described("availability")}
@@ -328,7 +339,7 @@ export default function VolunteerApplicationForm({
           </div>
 
           <div className="form-field">
-            <label htmlFor="preferred_contact">পছন্দের যোগাযোগ মাধ্যম{mark("preferred_contact")}</label>
+            <label htmlFor="preferred_contact">{en ? "Preferred contact method" : "পছন্দের যোগাযোগ মাধ্যম"}{mark("preferred_contact")}</label>
             <select
               id="preferred_contact"
               name="preferred_contact"
@@ -343,10 +354,10 @@ export default function VolunteerApplicationForm({
                   a native `required` correctly reject it as unanswered; the
                   form's own noValidate means Laravel's server-side check is
                   what actually enforces this either way. */}
-              <option value="" disabled>— নির্বাচন করুন —</option>
-              <option value="phone">ফোন কল</option>
+              <option value="" disabled>{en ? "— Select —" : "— নির্বাচন করুন —"}</option>
+              <option value="phone">{en ? "Phone call" : "ফোন কল"}</option>
               <option value="whatsapp">WhatsApp</option>
-              <option value="email">ই-মেইল</option>
+              <option value="email">{en ? "Email" : "ই-মেইল"}</option>
             </select>
             <FieldError message={errorFor(errors, "preferred_contact")} id={errId("preferred_contact")} />
           </div>
@@ -354,7 +365,7 @@ export default function VolunteerApplicationForm({
       </fieldset>
 
       <fieldset className="form-section">
-        <legend>লিংক ও সংযুক্তি (ঐচ্ছিক)</legend>
+        <legend>{en ? "Links & Attachments (optional)" : "লিংক ও সংযুক্তি (ঐচ্ছিক)"}</legend>
 
         <div className="form-grid">
           <div className="form-field">
@@ -403,7 +414,7 @@ export default function VolunteerApplicationForm({
           </div>
 
           <div className="form-field">
-            <label htmlFor="cv">সিভি / রেজিউমে{mark("cv")}</label>
+            <label htmlFor="cv">{en ? "CV / Resume" : "সিভি / রেজিউমে"}{mark("cv")}</label>
             <input
               id="cv"
               name="cv"
@@ -412,14 +423,14 @@ export default function VolunteerApplicationForm({
               required={isRequired("cv")}
               aria-invalid={invalid("cv") || undefined}
             />
-            <p className="form-field-help">শুধু PDF — সর্বোচ্চ ৫ মেগাবাইট।</p>
+            <p className="form-field-help">{en ? "PDF only — up to 5 MB." : "শুধু PDF — সর্বোচ্চ ৫ মেগাবাইট।"}</p>
             <FieldError message={errorFor(errors, "cv")} id={errId("cv")} />
           </div>
         </div>
       </fieldset>
 
       <fieldset className="form-section">
-        <legend>ঘোষণা ও সম্মতি</legend>
+        <legend>{en ? "Declarations & Consent" : "ঘোষণা ও সম্মতি"}</legend>
 
         <div className="form-checkbox-field">
           <input
@@ -431,7 +442,7 @@ export default function VolunteerApplicationForm({
             defaultChecked={checkedConsents.includes("accuracy_declaration")}
             aria-invalid={invalid("accuracy_declaration") || undefined}
           />
-          <label htmlFor="accuracy_declaration">আমি ঘোষণা করছি যে উপরের তথ্যগুলো সঠিক।</label>
+          <label htmlFor="accuracy_declaration">{en ? "I declare that the information above is accurate." : "আমি ঘোষণা করছি যে উপরের তথ্যগুলো সঠিক।"}</label>
         </div>
         <FieldError message={errorFor(errors, "accuracy_declaration")} id={errId("accuracy_declaration")} />
 
@@ -446,7 +457,9 @@ export default function VolunteerApplicationForm({
             aria-invalid={invalid("privacy_consent") || undefined}
           />
           <label htmlFor="privacy_consent">
-            আমি জানি যে আমার দেওয়া তথ্য শুধু প্রভাতফেরীর অভ্যন্তরীণ পর্যালোচনার জন্য ব্যবহৃত হবে এবং প্রকাশ করা হবে না।
+            {en
+              ? "I understand that the information I provide will be used only for Provatferi's internal review and will not be published."
+              : "আমি জানি যে আমার দেওয়া তথ্য শুধু প্রভাতফেরীর অভ্যন্তরীণ পর্যালোচনার জন্য ব্যবহৃত হবে এবং প্রকাশ করা হবে না।"}
           </label>
         </div>
         <FieldError message={errorFor(errors, "privacy_consent")} id={errId("privacy_consent")} />
@@ -461,7 +474,7 @@ export default function VolunteerApplicationForm({
             defaultChecked={checkedConsents.includes("contact_consent")}
             aria-invalid={invalid("contact_consent") || undefined}
           />
-          <label htmlFor="contact_consent">প্রভাতফেরী প্রয়োজনে আমার সঙ্গে যোগাযোগ করতে পারবে।</label>
+          <label htmlFor="contact_consent">{en ? "Provatferi may contact me if needed." : "প্রভাতফেরী প্রয়োজনে আমার সঙ্গে যোগাযোগ করতে পারবে।"}</label>
         </div>
         <FieldError message={errorFor(errors, "contact_consent")} id={errId("contact_consent")} />
       </fieldset>
@@ -474,7 +487,7 @@ export default function VolunteerApplicationForm({
       {/* §7: disabled while in flight, so a second click cannot produce a
           second row, and the label says what is happening. */}
       <button type="submit" className="button button-primary" disabled={isPending} aria-busy={isPending || undefined}>
-        {isPending ? "আবেদন জমা হচ্ছে…" : "আবেদন জমা দিন"}
+        {isPending ? (en ? "Submitting application…" : "আবেদন জমা হচ্ছে…") : (en ? "Submit Application" : "আবেদন জমা দিন")}
       </button>
     </form>
   );

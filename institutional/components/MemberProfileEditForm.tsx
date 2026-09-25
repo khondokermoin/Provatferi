@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { saveMemberProfile, type MemberProfileFormState } from "@/app/(site)/member/dashboard/profile/actions";
+import { saveMemberProfile, type MemberProfileFormState } from "@/app/[locale]/(site)/member/dashboard/profile/actions";
 import type { MemberProfileState } from "@/lib/api/types";
 
 const initialState: MemberProfileFormState = { status: "idle" };

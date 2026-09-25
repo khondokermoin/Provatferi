@@ -9,7 +9,9 @@
     "start": "next start",
     "lint": "eslint",
     "test:api": "node --conditions=react-server --import ./scripts/register-test-loader.mjs --test lib/api/__tests__/*.test.mts",
-    "test:config": "node --conditions=react-server --import ./scripts/register-test-loader.mjs --test __tests__/*.test.mts"
+    "test:i18n": "node --conditions=react-server --import ./scripts/register-test-loader.mjs --test lib/i18n/__tests__/*.test.mts",
+    "test:config": "node --conditions=react-server --import ./scripts/register-test-loader.mjs --test __tests__/*.test.mts",
+    "test": "npm run test:api && npm run test:i18n && npm run test:config"
   },
   "dependencies": {
     "next": "16.3.4",
