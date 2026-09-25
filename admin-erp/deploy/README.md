@@ -57,8 +57,13 @@ needs a deliberate, separate step — see "index.php" below.
 1. Get a Hostinger upload session for `admin.provatferi.org`
    (`hosting_generateUploadURLV1`), export `HOSTINGER_UPLOAD_URL`,
    `HOSTINGER_AUTH_KEY`, `HOSTINGER_AUTH_REST`.
-2. Upload three files via TUS to `public_html/admin/`:
+2. Upload four files via TUS to `public_html/admin/`:
    - `deploy/remote/release-manager.php` → `release-manager.php`
+   - `deploy/remote/lib/uploads-persistence.php` → `lib/uploads-persistence.php`
+     (added 2026-09-25 — `release-manager.php` `require_once`s this
+     unconditionally, on every action including `install` itself, so it
+     must exist here before `install` ever runs or the script fatals
+     before the switch statement is reached)
    - `deploy/config-contract.php` → `_bootstrap_config_contract.php`
    - a real `composer.phar` (download from getcomposer.org) → `_bootstrap_composer.phar`
 3. Run once via cron (absolute paths, the proven pattern):
@@ -66,8 +71,19 @@ needs a deliberate, separate step — see "index.php" below.
    /usr/bin/php /home/u951246149/domains/provatferi.org/public_html/admin/release-manager.php install
    ```
 4. Delete the cron job immediately after (one-shot). Verify
-   `laravel-admin-releases/_tooling/release-manager.php` and
+   `laravel-admin-releases/_tooling/release-manager.php`,
+   `laravel-admin-releases/_tooling/lib/uploads-persistence.php`, and
    `composer.phar` exist and the public copies are gone.
+
+### Updating an already-installed release-manager.php
+
+The same two-file upload (`release-manager.php` + `lib/uploads-persistence.php`,
+both to `public_html/admin/` in the same relative layout as above) followed by
+the same `install` action works for updating an existing installation too —
+`install` relocates both into `_tooling/` (and `_tooling/lib/`) whether or not
+they already exist there. Always re-run `install` after editing either file
+in git; the server only ever runs whatever was last relocated into
+`_tooling/`, never the git copy directly.
 
 ## Deploying a commit
 

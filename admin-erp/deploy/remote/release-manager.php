@@ -142,19 +142,10 @@ function extractTar(string $tarPath, string $destDir): void
 
 /** Recursive copy — used only for the public docroot sync, which cannot be
  *  an atomic rename because public_html/admin/ is a fixed vhost path. */
-function copyRecursive(string $src, string $dst): void
-{
-    if (!is_dir($dst)) mkdir($dst, 0755, true);
-    $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($src, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::SELF_FIRST);
-    foreach ($it as $item) {
-        $target = $dst.DIRECTORY_SEPARATOR.$it->getSubPathName();
-        if ($item->isDir()) {
-            if (!is_dir($target)) mkdir($target, 0755, true);
-        } else {
-            copy($item->getPathname(), $target);
-        }
-    }
-}
+// copyRecursive(), countFilesRecursive(), syncUploadsAndVerify() — extracted
+// 2026-09-25 into lib/uploads-persistence.php so the uploads-persistence
+// contract is directly unit-testable (see that file's own docblock).
+require_once __DIR__.'/lib/uploads-persistence.php';
 
 function bootApp(string $appBase): \Illuminate\Foundation\Application
 {
@@ -194,6 +185,25 @@ case 'install':
         copy($contractSrc, $TOOLING_DIR.'/config-contract.php');
         @unlink($contractSrc);
         $result['relocated_config_contract'] = true;
+    }
+
+    // lib/uploads-persistence.php (added 2026-09-25) — required, unconditionally,
+    // at the top of this very file (see the require_once above), so it must
+    // already exist wherever THIS copy of release-manager.php is running
+    // from, or the script fatals before this switch statement is ever
+    // reached, on every action, not just install. Uploaded alongside
+    // release-manager.php itself (as public_html/admin/lib/uploads-persistence.php)
+    // in the same staging batch; relocated into _tooling/lib/ here, same
+    // pattern as config-contract.php above.
+    $libSrc = $PUBLIC_DOCROOT.'/lib/uploads-persistence.php';
+    if (!$SELF_IN_TOOLING && is_file($libSrc)) {
+        if (!is_dir($TOOLING_DIR.'/lib')) mkdir($TOOLING_DIR.'/lib', 0755, true);
+        copy($libSrc, $TOOLING_DIR.'/lib/uploads-persistence.php');
+        @unlink($libSrc);
+        @rmdir($PUBLIC_DOCROOT.'/lib'); // only removes it if now empty — never fails loudly if not
+        $result['relocated_uploads_persistence_lib'] = is_file($TOOLING_DIR.'/lib/uploads-persistence.php');
+    } else {
+        $result['relocated_uploads_persistence_lib'] = is_file($TOOLING_DIR.'/lib/uploads-persistence.php') ? 'already present' : 'MISSING — upload lib/uploads-persistence.php alongside release-manager.php and rerun install';
     }
 
     $composerSrc = $PUBLIC_DOCROOT.'/_bootstrap_composer.phar';
@@ -292,10 +302,25 @@ case 'stage':
     // photo defect back to its actual root cause. Copied the same way
     // .env is, immediately above — from the currently-live app, server-side
     // only — before this release ever goes live.
+    // storage/app/private/uploads (the uploads_private disk — every
+    // recruitment applicant's photo and CV) is anonymous-visitor runtime
+    // data: never in git, never in the artifact. Every switch() atomically
+    // pointed laravel-admin at a BRAND NEW directory whose uploads tree
+    // started empty until 2026-09-24, silently orphaning every previously-
+    // uploaded file in the old, now-unreachable release directory: the DB
+    // row and photo_path/cv_path stayed correct, but the file itself 404'd —
+    // a broken image in Admin, a broken image in the PDF, for every
+    // application older than the most recent deploy at the time.
+    //
+    // syncUploadsAndVerify() (lib/uploads-persistence.php) both fixes that
+    // AND proves it worked: hardened 2026-09-25 so a future regression here
+    // (a permissions problem, copyRecursive breaking, this call being
+    // removed) fails the stage step instead of silently reopening the same
+    // incident with ok:true. `switch` already refuses to proceed past a
+    // failed stage (see $requiredStages there).
     $liveUploads = $LIVE_APP.'/storage/app/private/uploads';
-    if (is_dir($liveUploads)) {
-        copyRecursive($liveUploads, $releaseDir.'/app/storage/app/private/uploads');
-    }
+    $uploadsDest = $releaseDir.'/app/storage/app/private/uploads';
+    $uploadsResult = syncUploadsAndVerify($liveUploads, $uploadsDest);
 
     // staging tars served their purpose — remove from the public docroot
     @unlink($stagingDir.'/private.tar');
@@ -303,14 +328,17 @@ case 'stage':
 
     copy($manifestPath, $releaseDir.'/manifest.json');
 
-    $uploadsDest = $releaseDir.'/app/storage/app/private/uploads';
     $result = [
-        'ok' => true, 'release_dir' => $releaseDir, 'checksum_checks' => $checks,
+        'ok' => $uploadsResult['ok'], 'release_dir' => $releaseDir, 'checksum_checks' => $checks,
         'env_copied' => is_file($releaseDir.'/app/.env'),
-        'uploads_persisted' => ['source_existed' => is_dir($liveUploads), 'dest_file_count' => is_dir($uploadsDest) ? iterator_count(new RecursiveIteratorIterator(new RecursiveDirectoryIterator($uploadsDest, FilesystemIterator::SKIP_DOTS))) : 0],
+        'uploads_persisted' => $uploadsResult,
     ];
+    if (!$uploadsResult['ok']) {
+        $result['error'] = "uploads regression: {$uploadsResult['source_file_count']} file(s) existed on the live disk before staging, only {$uploadsResult['dest_file_count']} survived the copy into the new release — refusing to let switch proceed. Investigate copyRecursive/permissions before retrying; do not re-run switch against this releaseId until this passes.";
+    }
     mergeStatus($releaseDir, 'stage', $result);
     jout($result);
+    if (!$result['ok']) exit(1);
     break;
 
 case 'build':
@@ -449,6 +477,56 @@ case 'smoke-test-isolated':
 
         $result['checks']['app_debug'] = config('app.debug') ? 'TRUE_PROBLEM' : 'false';
         if (config('app.debug')) $result['ok'] = false;
+
+        // Contract-check hardening added 2026-09-25 (see stage's own
+        // matching check): stage() proves a file count survived the copy,
+        // but a file existing on disk is not the same as the app's own
+        // uploads_private disk config actually resolving to it — a wrong
+        // disk root, permissions the webserver user can't read, or a stale
+        // cached config could all make a byte-identical file unreadable to
+        // the app while stage's count-based check still passes. This reads
+        // ONE real, pre-existing upload back through Storage::disk exactly
+        // as JobApplicationController does, in the NEW release, before it
+        // ever goes live — so a regression here blocks switch instead of
+        // surfacing as a broken photo/CV download after the fact.
+        try {
+            $uploadsRoot = $appDir.'/storage/app/private/uploads';
+            $sampleRelativePath = null;
+            if (is_dir($uploadsRoot)) {
+                $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($uploadsRoot, FilesystemIterator::SKIP_DOTS));
+                foreach ($it as $file) {
+                    if ($file->isFile()) {
+                        $sampleRelativePath = ltrim(str_replace($uploadsRoot, '', $file->getPathname()), '/\\');
+                        break;
+                    }
+                }
+            }
+
+            if ($sampleRelativePath === null) {
+                $result['checks']['uploads_readable'] = 'no_uploads_to_test_with';
+            } else {
+                $disk = \Illuminate\Support\Facades\Storage::disk('uploads_private');
+                $existsViaDisk = $disk->exists($sampleRelativePath);
+                $bytes = $existsViaDisk ? $disk->get($sampleRelativePath) : null;
+                $rawBytes = filesize($uploadsRoot.'/'.$sampleRelativePath);
+                $readableAndMatchesSize = $existsViaDisk && $bytes !== null && strlen($bytes) === $rawBytes && $rawBytes > 0;
+
+                $result['checks']['uploads_readable'] = $readableAndMatchesSize;
+                $result['checks']['uploads_readable_sample'] = $sampleRelativePath;
+                if (!$readableAndMatchesSize) {
+                    $result['checks']['uploads_readable_detail'] = [
+                        'exists_via_disk' => $existsViaDisk,
+                        'bytes_via_disk' => $bytes === null ? null : strlen($bytes),
+                        'bytes_on_raw_filesystem' => $rawBytes,
+                    ];
+                    $result['ok'] = false;
+                }
+            }
+        } catch (\Throwable $e) {
+            $result['checks']['uploads_readable'] = false;
+            $result['checks']['uploads_readable_error'] = $e->getMessage();
+            $result['ok'] = false;
+        }
     } catch (\Throwable $e) {
         $result = ['ok' => false, 'error' => 'app failed to boot: '.get_class($e).': '.$e->getMessage()];
     }
