@@ -56,11 +56,13 @@ class CommitteeController extends Controller
             'id' => $model->id,
             'slug' => $model->slug,
             'name' => $model->name,
+            'name_en' => $model->name_en,
             'committee_type' => $model->committee_type,
             'term_start' => $model->term_start,
             'term_end' => $model->term_end,
             'status' => $model->status,
             'description' => $model->description,
+            'description_en' => $model->description_en,
             'members' => $model->publishedMembers->map(fn (CommitteeMember $member) => $this->publicMemberPayload($member, $photos))->values(),
         ]]);
     }
@@ -68,7 +70,7 @@ class CommitteeController extends Controller
     /** @return array<int, string> */
     private function publicColumns(): array
     {
-        return ['id', 'slug', 'name', 'committee_type', 'term_start', 'term_end', 'status', 'description', 'organization_unit_id'];
+        return ['id', 'slug', 'name', 'name_en', 'committee_type', 'term_start', 'term_end', 'status', 'description', 'description_en', 'organization_unit_id'];
     }
 
     /** @return array<string, mixed> */
@@ -78,7 +80,9 @@ class CommitteeController extends Controller
 
         return [
             'name' => $member->displayName(),
+            'name_en' => $member->displayNameEn(),
             'position' => $member->positionTitle(),
+            'position_en' => $member->positionTitleEn(),
             'serial_no' => $member->serial_no,
             'photo_url' => $submission ? $photos->publicUrl($submission->photo_approved_path) : null,
             'bio' => $submission?->bio,

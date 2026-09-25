@@ -87,15 +87,21 @@ class NoticeController extends Controller
         $notice = Notice::query()
             ->publiclyVisible()
             ->where('slug', $slug)
-            ->with(['organizationUnit:id,name', 'jobPosting'])
+            ->with(['organizationUnit:id,name,name_en', 'jobPosting'])
             ->firstOrFail();
 
         return response()->json(['data' => [
             ...$this->summary($notice),
             'body' => $notice->body,
+            'body_en' => $notice->body_en,
             'organization_unit' => $notice->organizationUnit?->name,
+            'organization_unit_en' => $notice->organizationUnit?->name_en,
             'action' => filled($notice->action_url)
-                ? ['url' => $notice->action_url, 'label' => $notice->action_label ?: 'বিস্তারিত দেখুন']
+                ? [
+                    'url' => $notice->action_url,
+                    'label' => $notice->action_label ?: 'বিস্তারিত দেখুন',
+                    'label_en' => $notice->action_label_en,
+                ]
                 : null,
             'cover_image_url' => $notice->cover_image_path ? route('api.public.notices.cover', $notice->slug) : null,
             // §12/§13: the DEDICATED Open Graph image, when the admin uploaded
@@ -153,9 +159,11 @@ class NoticeController extends Controller
         return [
             'slug' => $notice->slug,
             'title' => $notice->title,
+            'title_en' => $notice->title_en,
             'notice_type' => $notice->notice_type,
             'notice_type_label' => $notice->typeLabel(),
             'summary' => $notice->summary,
+            'summary_en' => $notice->summary_en,
             'published_at' => $notice->published_at?->toIso8601String(),
             'expires_at' => $notice->expires_at?->toIso8601String(),
             'is_pinned' => $notice->isActivelyPinned(),
@@ -181,6 +189,7 @@ class NoticeController extends Controller
         return [
             'slug' => $job->status === 'open' ? $job->slug : null,
             'title' => $job->title,
+            'title_en' => $job->title_en,
             'employment_type_label' => $job->employmentTypeLabel(),
             'is_volunteer' => $job->isVolunteer(),
             'volunteer_note' => $job->isVolunteer() ? JobPosting::VOLUNTEER_NOTE : null,

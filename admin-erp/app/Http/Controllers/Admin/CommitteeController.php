@@ -183,11 +183,13 @@ class CommitteeController extends Controller
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'name_en' => ['nullable', 'string', 'max:255'],
             'organization_unit_id' => ['required', Rule::exists('organizational_units', 'id')],
             'committee_type' => ['nullable', Rule::in(array_keys(self::TYPES))],
             'term_start' => ['nullable', 'date'],
             'term_end' => ['nullable', 'date', 'after_or_equal:term_start'],
             'description' => ['nullable', 'string', 'max:5000'],
+            'description_en' => ['nullable', 'string', 'max:5000'],
         ];
     }
 

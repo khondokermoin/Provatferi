@@ -80,6 +80,7 @@ class ActivityTypeController extends Controller
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'name_en' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
             'icon' => ['nullable', 'string', 'max:60'],
             'status' => ['required', Rule::in(array_keys(self::STATUSES))],

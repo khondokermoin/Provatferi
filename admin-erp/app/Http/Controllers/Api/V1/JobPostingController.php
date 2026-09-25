@@ -29,7 +29,7 @@ class JobPostingController extends Controller
     {
         $jobs = JobPosting::query()
             ->where('status', 'open')
-            ->with(['notice', 'organizationUnit:id,name'])
+            ->with(['notice', 'organizationUnit:id,name,name_en'])
             ->orderByDesc('published_at')
             ->get();
 
@@ -50,7 +50,7 @@ class JobPostingController extends Controller
         $model = JobPosting::query()
             ->where('status', 'open')
             ->where(fn ($q) => $q->where('id', $jobPosting)->orWhere('slug', $jobPosting))
-            ->with(['notice', 'organizationUnit:id,name'])
+            ->with(['notice', 'organizationUnit:id,name,name_en'])
             ->first();
 
         // §3: the requested value may be a slug this posting used to have.
@@ -64,7 +64,7 @@ class JobPostingController extends Controller
                 $model = JobPosting::query()
                     ->where('status', 'open')
                     ->where('id', $historical->job_posting_id)
-                    ->with(['notice', 'organizationUnit:id,name'])
+                    ->with(['notice', 'organizationUnit:id,name,name_en'])
                     ->first();
             }
         }
@@ -80,12 +80,17 @@ class JobPostingController extends Controller
         return [
             'id' => $job->id,
             'title' => $job->title,
+            'title_en' => $job->title_en,
             'slug' => $job->slug,
             'summary' => $job->summary,
+            'summary_en' => $job->summary_en,
             'department' => $job->department,
             'description' => $job->description,
+            'description_en' => $job->description_en,
             'requirements' => $job->requirements,
+            'requirements_en' => $job->requirements_en,
             'organization_unit' => $job->organizationUnit?->name,
+            'organization_unit_en' => $job->organizationUnit?->name_en,
             'employment_type' => $job->employment_type,
             'employment_type_label' => $job->employmentTypeLabel(),
             'is_volunteer' => $job->isVolunteer(),
@@ -104,7 +109,11 @@ class JobPostingController extends Controller
             'accepts_applications' => $job->acceptsApplications(),
             'apply_path' => $job->applyPath(),
             'notice_action' => $job->notice !== null && $job->notice->isPubliclyVisible() && filled($job->notice->action_url)
-                ? ['url' => $job->notice->action_url, 'label' => $job->notice->action_label ?: 'কমিউনিটি গ্রুপ']
+                ? [
+                    'url' => $job->notice->action_url,
+                    'label' => $job->notice->action_label ?: 'কমিউনিটি গ্রুপ',
+                    'label_en' => $job->notice->action_label_en,
+                ]
                 : null,
             // The skill catalogue only matters where the form is rendered.
             'skill_options' => $detailed && $job->acceptsApplications() ? $this->skillOptions() : null,

@@ -1,4 +1,4 @@
-import { apiGet, isRecord, isStringOrNull } from "./client";
+import { apiGet, isOptionalString, isRecord, isStringOrNull } from "./client";
 import type {
   ApiResult,
   NoticeRecruitmentInfo,
@@ -40,9 +40,11 @@ export function isNoticeSummary(v: unknown): v is PublicNoticeSummary {
     isRecord(v) &&
     typeof v.slug === "string" &&
     typeof v.title === "string" &&
+    isOptionalString(v.title_en) &&
     typeof v.notice_type === "string" &&
     typeof v.notice_type_label === "string" &&
     isStringOrNull(v.summary) &&
+    isOptionalString(v.summary_en) &&
     typeof v.published_at === "string" &&
     isStringOrNull(v.expires_at) &&
     isBoolean(v.is_pinned) &&
@@ -78,6 +80,7 @@ function isRecruitmentInfo(v: unknown): v is NoticeRecruitmentInfo {
     isRecord(v) &&
     isStringOrNull(v.slug) &&
     typeof v.title === "string" &&
+    isOptionalString(v.title_en) &&
     isStringOrNull(v.employment_type_label) &&
     isBoolean(v.is_volunteer) &&
     isStringOrNull(v.volunteer_note) &&
@@ -101,7 +104,9 @@ export function isNoticeDetail(v: unknown): v is PublicNoticeDetail {
   const { action, attachment, recruitment } = record;
   return (
     typeof record.body === "string" &&
+    isOptionalString(record.body_en) &&
     isStringOrNull(record.organization_unit) &&
+    isOptionalString(record.organization_unit_en) &&
     isStringOrNull(record.cover_image_url) &&
     // §12: optional-or-null, not just nullable — the ERP and this site deploy
     // through separate pipelines, so a build can run against a not-yet-
@@ -109,7 +114,8 @@ export function isNoticeDetail(v: unknown): v is PublicNoticeDetail {
     // here would 404 every notice the moment this code ships first.
     (record.share_image_url === undefined || isStringOrNull(record.share_image_url)) &&
     isStringOrNull(record.updated_at) &&
-    (action === null || (isRecord(action) && typeof action.url === "string" && typeof action.label === "string")) &&
+    (action === null ||
+      (isRecord(action) && typeof action.url === "string" && typeof action.label === "string" && isOptionalString(action.label_en))) &&
     (attachment === null ||
       (isRecord(attachment) &&
         typeof attachment.url === "string" &&

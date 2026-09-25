@@ -1,12 +1,12 @@
-import { apiGet, isRecord, isStringOrNull } from "./client";
+import { apiGet, isOptionalString, isRecord, isStringOrNull } from "./client";
 import type { ApiResult, JobPosting, SkillOption } from "./types";
 
 function isSkillOption(v: unknown): v is SkillOption {
   return isRecord(v) && typeof v.key === "string" && typeof v.label === "string";
 }
 
-function isNoticeAction(v: unknown): v is { url: string; label: string } | null {
-  return v === null || (isRecord(v) && typeof v.url === "string" && typeof v.label === "string");
+function isNoticeAction(v: unknown): v is { url: string; label: string; label_en: string | null } | null {
+  return v === null || (isRecord(v) && typeof v.url === "string" && typeof v.label === "string" && isOptionalString(v.label_en));
 }
 
 function isFieldRequirements(v: unknown): v is Record<string, "required" | "optional"> | null {
@@ -21,12 +21,17 @@ export function isJobPosting(v: unknown): v is JobPosting {
     isRecord(v) &&
     typeof v.id === "number" &&
     typeof v.title === "string" &&
+    isOptionalString(v.title_en) &&
     typeof v.slug === "string" &&
     isStringOrNull(v.summary) &&
+    isOptionalString(v.summary_en) &&
     isStringOrNull(v.department) &&
     isStringOrNull(v.description) &&
+    isOptionalString(v.description_en) &&
     isStringOrNull(v.requirements) &&
+    isOptionalString(v.requirements_en) &&
     isStringOrNull(v.organization_unit) &&
+    isOptionalString(v.organization_unit_en) &&
     isStringOrNull(v.employment_type) &&
     isStringOrNull(v.employment_type_label) &&
     typeof v.is_volunteer === "boolean" &&

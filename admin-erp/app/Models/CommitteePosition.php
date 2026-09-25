@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /** A committee's own position list — independent of any other committee's (§21). */
 class CommitteePosition extends Model
 {
-    protected $fillable = ['committee_id', 'name', 'slug', 'display_order', 'allow_duplicates', 'status'];
+    protected $fillable = ['committee_id', 'name', 'name_en', 'slug', 'display_order', 'allow_duplicates', 'status'];
 
     protected function casts(): array
     {

@@ -51,8 +51,24 @@ class CommitteeMember extends Model
         return $this->submission?->full_name ?? $this->user?->name ?? '';
     }
 
+    /**
+     * Phase 2 bilingual groundwork: the submission's own name_en (already an
+     * existing field, predating this phase) if this seat came from a public
+     * submission; an ERP staff user's name has no English variant to offer,
+     * so null — never fabricated from the Bangla name.
+     */
+    public function displayNameEn(): ?string
+    {
+        return $this->submission?->name_en;
+    }
+
     public function positionTitle(): string
     {
         return $this->committeePosition?->name ?? $this->position?->name ?? '';
+    }
+
+    public function positionTitleEn(): ?string
+    {
+        return $this->committeePosition?->name_en ?? $this->position?->name_en;
     }
 }

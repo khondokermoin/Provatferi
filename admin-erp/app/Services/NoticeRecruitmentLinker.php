@@ -69,8 +69,11 @@ class NoticeRecruitmentLinker
     public function copyFrom(Notice $notice, JobPosting $job): void
     {
         $notice->title = $job->title;
+        $notice->title_en = $job->title_en;
         $notice->summary = $job->summary;
+        $notice->summary_en = $job->summary_en;
         $notice->body = Notice::bodyFromJobPosting($job);
+        $notice->body_en = Notice::bodyEnFromJobPosting($job);
         $notice->organization_unit_id = $job->organization_unit_id;
     }
 }

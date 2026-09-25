@@ -1,4 +1,4 @@
-import { apiGet, isRecord, isStringOrNull } from "./client";
+import { apiGet, isOptionalString, isRecord, isStringOrNull } from "./client";
 import type { AboutResponse, AboutSection, ApiResult, ContentBlock, Objective } from "./types";
 
 const REVALIDATE_SECONDS = 300;
@@ -7,16 +7,21 @@ function isAboutSection(v: unknown): v is AboutSection {
   return (
     isRecord(v) &&
     isStringOrNull(v.introduction) &&
+    isOptionalString(v.introduction_en) &&
     isStringOrNull(v.description) &&
+    isOptionalString(v.description_en) &&
     isStringOrNull(v.history) &&
+    isOptionalString(v.history_en) &&
     isStringOrNull(v.why_exists) &&
+    isOptionalString(v.why_exists_en) &&
     isStringOrNull(v.identity_explanation) &&
+    isOptionalString(v.identity_explanation_en) &&
     isStringOrNull(v.registration_status)
   );
 }
 
 function isContentBlock(v: unknown): v is ContentBlock {
-  return isRecord(v) && typeof v.body === "string" && isStringOrNull(v.updated_at);
+  return isRecord(v) && typeof v.body === "string" && isOptionalString(v.body_en) && isStringOrNull(v.updated_at);
 }
 
 function isObjective(v: unknown): v is Objective {
@@ -24,7 +29,9 @@ function isObjective(v: unknown): v is Objective {
     isRecord(v) &&
     typeof v.id === "number" &&
     isStringOrNull(v.title) &&
+    isOptionalString(v.title_en) &&
     typeof v.body === "string" &&
+    isOptionalString(v.body_en) &&
     typeof v.sort_order === "number"
   );
 }

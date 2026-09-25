@@ -21,7 +21,7 @@ class ActivityController extends Controller
     {
         $activities = Activity::query()
             ->where('status', 'published')
-            ->with(['type:id,name,slug', 'organizationUnit:id,name,slug'])
+            ->with(['type:id,name,name_en,slug', 'organizationUnit:id,name,name_en,slug'])
             ->orderByDesc('start_datetime')
             ->paginate(20, $this->publicColumns());
 
@@ -34,7 +34,7 @@ class ActivityController extends Controller
             ->select($this->publicColumns())
             ->where('status', 'published')
             ->where(fn ($q) => $q->where('id', $activity)->orWhere('slug', $activity))
-            ->with(['type:id,name,slug', 'organizationUnit:id,name,slug'])
+            ->with(['type:id,name,name_en,slug', 'organizationUnit:id,name,name_en,slug'])
             ->firstOrFail();
 
         return response()->json(['data' => $model]);
@@ -44,8 +44,10 @@ class ActivityController extends Controller
     private function publicColumns(): array
     {
         return [
-            'id', 'activity_type_id', 'organization_unit_id', 'title', 'slug', 'summary', 'description',
-            'objective', 'venue', 'address', 'hero_image_path', 'what_happened', 'outcomes', 'gallery',
+            'id', 'activity_type_id', 'organization_unit_id', 'title', 'title_en', 'slug',
+            'summary', 'summary_en', 'description', 'description_en',
+            'objective', 'objective_en', 'venue', 'address', 'hero_image_path',
+            'what_happened', 'what_happened_en', 'outcomes', 'outcomes_en', 'gallery',
             'related_links', 'facebook_post_url', 'start_datetime', 'end_datetime', 'featured',
             'participant_count', 'published_at',
         ];

@@ -23,7 +23,10 @@ class VisionController extends Controller
 
     public function update(Request $request): RedirectResponse
     {
-        $data = $request->validate(['body' => ['required', 'string', 'max:5000']]);
+        $data = $request->validate([
+            'body' => ['required', 'string', 'max:5000'],
+            'body_en' => ['nullable', 'string', 'max:5000'],
+        ]);
         $data['is_public'] = $request->boolean('is_public');
         $data['updated_by'] = $request->user()->id;
 

@@ -8,7 +8,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class MembershipType extends Model
 {
     protected $fillable = [
-        'name', 'slug', 'description', 'duration_months', 'fee', 'is_student', 'is_public_self_apply', 'status', 'sort_order',
+        'name', 'name_en', 'slug', 'description', 'description_en', 'duration_months', 'fee',
+        'is_student', 'is_public_self_apply', 'status', 'sort_order',
     ];
 
     protected function casts(): array

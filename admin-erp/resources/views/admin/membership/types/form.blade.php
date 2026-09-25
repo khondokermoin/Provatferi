@@ -11,8 +11,10 @@
             <div class="col-lg-8">
                 <x-admin.card title="বিবরণ">
                     <x-admin.form-input name="name" label="নাম" :value="$type->name" required />
+                    <x-admin.form-input name="name_en" label="নাম (English, ঐচ্ছিক)" :value="$type->name_en" />
                     <x-admin.form-textarea name="description" label="বিবরণ / যোগ্যতা" :value="$type->description" :rows="4"
                         help="সদস্যপদের যোগ্যতা বা শর্ত থাকলে এখানে লিখুন।" />
+                    <x-admin.form-textarea name="description_en" label="বিবরণ / যোগ্যতা (English, ঐচ্ছিক)" :value="$type->description_en" :rows="4" />
                     <x-admin.form-input name="duration_months" label="মেয়াদ (মাস)" type="number" :value="$type->duration_months"
                         min="1" help="আজীবন সদস্যপদের ক্ষেত্রে খালি রাখুন।" />
                 </x-admin.card>

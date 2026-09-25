@@ -13,7 +13,7 @@ class OrganizationUnitController extends Controller
         $units = OrganizationalUnit::query()
             ->where('status', 'active')
             ->orderBy('name')
-            ->get(['id', 'parent_id', 'name', 'slug', 'unit_type', 'address', 'phone', 'email']);
+            ->get(['id', 'parent_id', 'name', 'name_en', 'slug', 'unit_type', 'address', 'phone', 'email']);
 
         return response()->json(['data' => $units]);
     }

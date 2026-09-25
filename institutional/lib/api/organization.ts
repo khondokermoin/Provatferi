@@ -1,4 +1,4 @@
-import { apiGet, isRecord, isNumberOrNull, isStringOrNull } from "./client";
+import { apiGet, isOptionalString, isRecord, isNumberOrNull, isStringOrNull } from "./client";
 import type { ApiResult, OrganizationUnit } from "./types";
 
 /**
@@ -16,6 +16,7 @@ function isOrganizationUnit(v: unknown): v is OrganizationUnit {
     typeof v.id === "number" &&
     isNumberOrNull(v.parent_id) &&
     typeof v.name === "string" &&
+    isOptionalString(v.name_en) &&
     typeof v.slug === "string" &&
     typeof v.unit_type === "string" &&
     isStringOrNull(v.address) &&

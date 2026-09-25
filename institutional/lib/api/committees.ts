@@ -1,4 +1,4 @@
-import { apiGet, isRecord, isNumberOrNull, isStringOrNull } from "./client";
+import { apiGet, isOptionalString, isRecord, isNumberOrNull, isStringOrNull } from "./client";
 import type { ApiResult, PublicCommitteeDetail, PublicCommitteeMember, PublicCommitteeSummary, PublicCommitteesIndexResponse } from "./types";
 
 const REVALIDATE_SECONDS = 300;
@@ -9,11 +9,13 @@ function isCommitteeSummary(v: unknown): v is PublicCommitteeSummary {
     typeof v.id === "number" &&
     typeof v.slug === "string" &&
     typeof v.name === "string" &&
+    isOptionalString(v.name_en) &&
     isStringOrNull(v.committee_type) &&
     isStringOrNull(v.term_start) &&
     isStringOrNull(v.term_end) &&
     typeof v.status === "string" &&
-    isStringOrNull(v.description)
+    isStringOrNull(v.description) &&
+    isOptionalString(v.description_en)
   );
 }
 
@@ -42,7 +44,9 @@ function isCommitteeMember(v: unknown): v is PublicCommitteeMember {
   return (
     isRecord(v) &&
     typeof v.name === "string" &&
+    isOptionalString(v.name_en) &&
     typeof v.position === "string" &&
+    isOptionalString(v.position_en) &&
     isNumberOrNull(v.serial_no) &&
     isStringOrNull(v.photo_url) &&
     isStringOrNull(v.bio) &&

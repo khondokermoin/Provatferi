@@ -10,6 +10,8 @@
                 <x-admin.card title="Vision" subtitle="দীর্ঘ-ফরম্যাট কনটেন্ট — সর্বশেষ হালনাগাদ: {{ $block->updated_at ? bn_datetime($block->updated_at) : '—' }}">
                     <x-admin.form-textarea name="body" label="বিবরণ" :value="$block->body" :rows="8" required
                         :disabled="! auth()->user()->can('settings.update')" />
+                    <x-admin.form-textarea name="body_en" label="বিবরণ (English, ঐচ্ছিক)" :value="$block->body_en" :rows="8"
+                        :disabled="! auth()->user()->can('settings.update')" />
 
                     <div class="form-check">
                         <input type="checkbox" class="form-check-input" id="is_public" name="is_public" value="1"

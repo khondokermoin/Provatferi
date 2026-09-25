@@ -59,22 +59,30 @@ export interface SettingsResponse {
 
 export interface AboutSection {
   introduction: string | null;
+  introduction_en: string | null;
   description: string | null;
+  description_en: string | null;
   history: string | null;
+  history_en: string | null;
   why_exists: string | null;
+  why_exists_en: string | null;
   identity_explanation: string | null;
+  identity_explanation_en: string | null;
   registration_status: string | null;
 }
 
 export interface ContentBlock {
   body: string;
+  body_en: string | null;
   updated_at: string | null;
 }
 
 export interface Objective {
   id: number;
   title: string | null;
+  title_en: string | null;
   body: string;
+  body_en: string | null;
   sort_order: number;
 }
 
@@ -93,6 +101,7 @@ export interface OrganizationUnit {
   id: number;
   parent_id: number | null;
   name: string;
+  name_en: string | null;
   slug: string;
   unit_type: string;
   address: string | null;
@@ -107,8 +116,10 @@ export interface OrganizationUnit {
 export interface MembershipType {
   id: number;
   name: string;
+  name_en: string | null;
   slug: string;
   description: string | null;
+  description_en: string | null;
   duration_months: number | null;
   /** Decimal from Laravel, serialized as a string, e.g. "0.00". */
   fee: string;
@@ -146,11 +157,13 @@ export interface PublicCommitteeSummary {
   id: number;
   slug: string;
   name: string;
+  name_en: string | null;
   committee_type: string | null;
   term_start: string | null;
   term_end: string | null;
   status: string;
   description: string | null;
+  description_en: string | null;
 }
 
 export interface PublicCommitteesIndexResponse {
@@ -161,7 +174,9 @@ export interface PublicCommitteesIndexResponse {
 
 export interface PublicCommitteeMember {
   name: string;
+  name_en: string | null;
   position: string;
+  position_en: string | null;
   serial_no: number | null;
   photo_url: string | null;
   bio: string | null;
@@ -224,12 +239,17 @@ export interface SkillOption {
 export interface JobPosting {
   id: number;
   title: string;
+  title_en: string | null;
   slug: string;
   summary: string | null;
+  summary_en: string | null;
   department: string | null;
   description: string | null;
+  description_en: string | null;
   requirements: string | null;
+  requirements_en: string | null;
   organization_unit: string | null;
+  organization_unit_en: string | null;
   employment_type: string | null;
   employment_type_label: string | null;
   is_volunteer: boolean;
@@ -246,7 +266,7 @@ export interface JobPosting {
   /** Derived from the posting's own slug in the ERP — never composed here. */
   apply_path: string | null;
   /** The linked notice's own CTA (the WhatsApp community group): a SECONDARY channel, never the way to apply. */
-  notice_action: { url: string; label: string } | null;
+  notice_action: { url: string; label: string; label_en: string | null } | null;
   /** Only present on the detail contract, and only while the form is open. */
   skill_options: SkillOption[] | null;
   /**
@@ -268,10 +288,12 @@ export interface JobPosting {
 export interface PublicNoticeSummary {
   slug: string;
   title: string;
+  title_en: string | null;
   /** Internal key — used only for filter URLs and styling, never shown. */
   notice_type: string;
   notice_type_label: string;
   summary: string | null;
+  summary_en: string | null;
   published_at: string;
   expires_at: string | null;
   is_pinned: boolean;
@@ -296,6 +318,7 @@ export interface NoticeRecruitmentInfo {
   /** Only set while the posting is open — the recruitment page resolves open postings only. */
   slug: string | null;
   title: string;
+  title_en: string | null;
   employment_type_label: string | null;
   is_volunteer: boolean;
   volunteer_note: string | null;
@@ -313,8 +336,10 @@ export interface NoticeRecruitmentInfo {
 
 export interface PublicNoticeDetail extends PublicNoticeSummary {
   body: string;
+  body_en: string | null;
   organization_unit: string | null;
-  action: { url: string; label: string } | null;
+  organization_unit_en: string | null;
+  action: { url: string; label: string; label_en: string | null } | null;
   cover_image_url: string | null;
   /** §12: the dedicated Open Graph image, when one was uploaded — never the same as cover_image_url. */
   share_image_url: string | null;
@@ -340,15 +365,21 @@ export interface Activity {
   activity_type_id: number | null;
   organization_unit_id: number | null;
   title: string;
+  title_en: string | null;
   slug: string;
   summary: string | null;
+  summary_en: string | null;
   description: string | null;
+  description_en: string | null;
   objective: string | null;
+  objective_en: string | null;
   venue: string | null;
   address: string | null;
   hero_image_path: string | null;
   what_happened: string | null;
+  what_happened_en: string | null;
   outcomes: string | null;
+  outcomes_en: string | null;
   gallery: string[];
   related_links: string[];
   facebook_post_url: string | null;
@@ -357,13 +388,13 @@ export interface Activity {
   featured: boolean;
   participant_count: number | null;
   published_at: string | null;
-  type: { id: number; name: string; slug: string } | null;
+  type: { id: number; name: string; name_en: string | null; slug: string } | null;
   // Snake_case on the wire, not organizationUnit — Eloquent's default
   // relationsToArray() runs Str::snake() on the relation name regardless of
   // the camelCase method name used in the controller's with(...). Confirmed
   // against the live response, not assumed; a first draft of this type had
   // this wrong, which would have made isActivity() reject every real row.
-  organization_unit: { id: number; name: string; slug: string } | null;
+  organization_unit: { id: number; name: string; name_en: string | null; slug: string } | null;
 }
 
 export interface ActivityListResponse {

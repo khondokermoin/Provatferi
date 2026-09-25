@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class OrganizationalPosition extends Model
 {
     protected $fillable = [
-        'organization_unit_id', 'name', 'slug', 'description', 'level', 'is_public', 'status',
+        'organization_unit_id', 'name', 'name_en', 'slug', 'description', 'level', 'is_public', 'status',
     ];
 
     public function organizationUnit(): \Illuminate\Database\Eloquent\Relations\BelongsTo
