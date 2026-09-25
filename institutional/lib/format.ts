@@ -44,6 +44,24 @@ export function formatBnDate(value: string | null | undefined): string | null {
   return `${toBnDigits(parts.day)} ${BN_MONTHS[parts.month - 1]} ${toBnDigits(parts.year)}`;
 }
 
+const EN_MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/** "15 September 2026", same Bangladesh-time parsing as formatBnDate — for the English site. */
+export function formatEnDate(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const parts = dhakaParts(value);
+  if (!parts || parts.month < 1 || parts.month > 12) return null;
+  return `${parts.day} ${EN_MONTHS[parts.month - 1]} ${parts.year}`;
+}
+
+/** Locale-dispatching counterpart, so a call site holding a Locale doesn't need its own if/else. */
+export function formatDate(value: string | null | undefined, locale: "bn" | "en"): string | null {
+  return locale === "en" ? formatEnDate(value) : formatBnDate(value);
+}
+
 /** "2026-09-15" in Bangladesh time — for <time dateTime>. */
 export function dhakaIsoDate(value: string | null | undefined): string | null {
   if (!value) return null;

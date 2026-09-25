@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { loginMember, type MemberLoginState } from "@/app/(site)/member/login/actions";
+import { loginMember, type MemberLoginState } from "@/app/[locale]/(site)/member/login/actions";
 
 const initialState: MemberLoginState = { status: "idle" };
 

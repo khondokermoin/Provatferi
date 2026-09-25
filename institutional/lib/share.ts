@@ -9,6 +9,9 @@
  * WhatsApp cover the same audience.
  */
 
+import type { Locale } from "./i18n/index";
+import { localizeHref } from "./i18n/paths";
+
 export interface ShareTarget {
   id: string;
   label: string;
@@ -16,7 +19,7 @@ export interface ShareTarget {
 }
 
 /** Always share the canonical URL — never the current location, which may carry filters or tracking. */
-export function shareTargets(url: string, title: string): ShareTarget[] {
+export function shareTargets(url: string, title: string, locale: Locale = "bn"): ShareTarget[] {
   const u = encodeURIComponent(url);
   const t = encodeURIComponent(title);
   const both = encodeURIComponent(`${title} ${url}`);
@@ -26,11 +29,11 @@ export function shareTargets(url: string, title: string): ShareTarget[] {
     { id: "whatsapp", label: "WhatsApp", href: `https://wa.me/?text=${both}` },
     { id: "linkedin", label: "LinkedIn", href: `https://www.linkedin.com/sharing/share-offsite/?url=${u}` },
     { id: "x", label: "X (Twitter)", href: `https://twitter.com/intent/tweet?url=${u}&text=${t}` },
-    { id: "email", label: "ই-মেইল", href: `mailto:?subject=${t}&body=${both}` },
+    { id: "email", label: locale === "en" ? "Email" : "ই-মেইল", href: `mailto:?subject=${t}&body=${both}` },
   ];
 }
 
-/** Absolute, canonical, no query string — what every share target and the copy button use. */
-export function canonicalNoticeUrl(origin: string, slug: string): string {
-  return `${origin.replace(/\/+$/, "")}/notices/${slug}`;
+/** Absolute, canonical, locale-correct, no query string — what every share target and the copy button use. */
+export function canonicalNoticeUrl(origin: string, slug: string, locale: Locale = "bn"): string {
+  return `${origin.replace(/\/+$/, "")}${localizeHref(`/notices/${slug}`, locale)}`;
 }

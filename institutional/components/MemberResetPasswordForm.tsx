@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { resetMemberPassword, type ResetPasswordState } from "@/app/(site)/member/reset-password/actions";
+import { resetMemberPassword, type ResetPasswordState } from "@/app/[locale]/(site)/member/reset-password/actions";
 
 const initialState: ResetPasswordState = { status: "idle" };
 

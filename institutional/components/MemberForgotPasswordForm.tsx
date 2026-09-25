@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { requestMemberPasswordReset, type ForgotPasswordState } from "@/app/(site)/member/forgot-password/actions";
+import { requestMemberPasswordReset, type ForgotPasswordState } from "@/app/[locale]/(site)/member/forgot-password/actions";
 
 const initialState: ForgotPasswordState = { status: "idle" };
 
