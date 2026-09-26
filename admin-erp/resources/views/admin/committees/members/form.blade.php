@@ -11,14 +11,14 @@
 
         <div class="row">
             <div class="col-lg-8">
-                <x-admin.card :title="$committee->name" subtitle="কমিটির সদস্য নিয়োগ">
-                    <x-admin.form-select name="user_id" label="ব্যক্তি" :options="$users"
+                <x-admin.card :title="$committee->name" subtitle="{{ __('admin.fields.assign_committee_member') }}">
+                    <x-admin.form-select name="user_id" label="{{ __('admin.fields.person') }}" :options="$users"
                         :value="$member->user_id" required
-                        help="একজন ব্যক্তি একই কমিটিতে একবারই থাকতে পারবেন।" />
+                        help="{{ __('admin.fields.one_seat_per_person_help') }}" />
 
-                    <x-admin.form-select name="position_id" label="পদ / পদবি" :options="$positions"
+                    <x-admin.form-select name="position_id" label="{{ __('admin.fields.position_title') }}" :options="$positions"
                         :value="$member->position_id" required
-                        help="সক্রিয় পদগুলোই এখানে দেখানো হয়।" />
+                        help="{{ __('admin.fields.active_positions_only_help') }}" />
 
                     <div class="row">
                         <div class="col-md-6">
@@ -26,8 +26,8 @@
                                 :value="$member->start_date?->format('Y-m-d')" />
                         </div>
                         <div class="col-md-6">
-                            <x-admin.form-input name="end_date" label="শেষ তারিখ" type="date"
-                                :value="$member->end_date?->format('Y-m-d')" help="খালি রাখলে চলমান।" />
+                            <x-admin.form-input name="end_date" label="{{ __('admin.fields.end_date') }}" type="date"
+                                :value="$member->end_date?->format('Y-m-d')" help="{{ __('admin.fields.leave_empty_ongoing_short') }}" />
                         </div>
                     </div>
                 </x-admin.card>
@@ -36,7 +36,7 @@
             <div class="col-lg-4">
                 <x-admin.card title="{{ __('admin.fields.display') }}">
                     <x-admin.form-input name="serial_no" label="{{ __('admin.common.order') }}" type="number"
-                        :value="$member->serial_no" min="0" help="তালিকায় ছোট সংখ্যা আগে দেখাবে।" />
+                        :value="$member->serial_no" min="0" help="{{ __('admin.fields.list_sort_help') }}" />
                     <x-admin.form-select name="status" label="{{ __('admin.common.status') }}" :options="$statuses"
                         :value="$member->status" :placeholder="null" required />
                 </x-admin.card>

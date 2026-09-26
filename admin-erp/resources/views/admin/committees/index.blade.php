@@ -3,7 +3,7 @@
 @section('page-actions')
     @can('organization.create')
         <a href="{{ route('admin.committees.create') }}" class="btn btn-primary">
-            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন কমিটি
+            <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.fields.new_committee') }}
         </a>
     @endcan
 @endsection
@@ -11,7 +11,7 @@
 @section('content')
     @php $isFiltered = collect($filters)->filter(fn ($v) => $v !== '')->isNotEmpty(); @endphp
 
-    <x-admin.table :paginator="$committees" caption="কমিটির তালিকা"
+    <x-admin.table :paginator="$committees" caption="{{ __('admin.fields.committees_list') }}"
         :headers="[__('admin.nav.committees'), __('admin.fields.unit_short'), __('admin.fields.term'), __('admin.fields.member'), __('admin.common.status'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
 
         <x-slot:toolbar>
@@ -19,7 +19,7 @@
                 <div class="col-12 col-md-4">
                     <label for="f-search" class="form-label fs-13 mb-1">{{ __('admin.actions.search') }}</label>
                     <input type="search" id="f-search" name="search" value="{{ $filters['search'] }}"
-                           class="form-control" placeholder="কমিটির নাম">
+                           class="form-control" placeholder="{{ __('admin.fields.committee_name') }}">
                 </div>
                 <div class="col-6 col-md-3">
                     <label for="f-unit" class="form-label fs-13 mb-1">{{ __('admin.fields.unit_short') }}</label>
@@ -69,12 +69,12 @@
                 <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
-                                aria-label="{{ $committee->name }} — অ্যাকশন মেনু">
+                                aria-label="{{ $committee->name }} — {{ __('admin.fields.action_menu') }}">
                             <i class="ti ti-dots-vertical" aria-hidden="true"></i>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end">
                             <a href="{{ route('admin.committees.show', $committee) }}" class="dropdown-item">
-                                <i class="ti ti-eye me-1" aria-hidden="true"></i>দেখুন ও সদস্যরা
+                                <i class="ti ti-eye me-1" aria-hidden="true"></i>{{ __('admin.fields.view_and_members') }}
                             </a>
                             @can('organization.update')
                                 <a href="{{ route('admin.committees.edit', $committee) }}" class="dropdown-item">
@@ -87,12 +87,12 @@
             </tr>
         @empty
             <x-admin.empty-state colspan="6" icon="{{ $isFiltered ? 'ti-search-off' : 'ti-users-group' }}"
-                :title="$isFiltered ? __('admin.filters.no_results') : 'এখনো কোনো কমিটি নেই'"
-                message="প্রকৃত কমিটি গঠিত হলে এখানে যোগ করুন।">
+                :title="$isFiltered ? __('admin.filters.no_results') : __('admin.fields.no_committees_yet')"
+                message="{{ __('admin.fields.committees_empty_hint') }}">
                 @can('organization.create')
                     @unless ($isFiltered)
                         <a href="{{ route('admin.committees.create') }}" class="btn btn-primary btn-sm">
-                            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন কমিটি
+                            <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.fields.new_committee') }}
                         </a>
                     @endunless
                 @endcan
