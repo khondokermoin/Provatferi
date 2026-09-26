@@ -3,7 +3,7 @@
 @section('page-actions')
     @can('recruitment.create')
         <a href="{{ route('admin.recruitment.create') }}" class="btn btn-primary">
-            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন চাকরির বিজ্ঞপ্তি
+            <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.fields.new_job_posting') }}
         </a>
     @endcan
 @endsection
@@ -11,8 +11,8 @@
 @section('content')
     @php $isFiltered = collect($filters)->filter(fn ($v) => $v !== '')->isNotEmpty(); @endphp
 
-    <x-admin.table :paginator="$jobPostings" caption="নিয়োগ বিজ্ঞপ্তির তালিকা"
-        :headers="[__('admin.common.title'), __('admin.common.status'), 'শেষ তারিখ', __('admin.fields.applications'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
+    <x-admin.table :paginator="$jobPostings" caption="{{ __('admin.fields.job_postings_list') }}"
+        :headers="[__('admin.common.title'), __('admin.common.status'), __('admin.fields.deadline'), __('admin.fields.applications'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
 
         <x-slot:toolbar>
             <form method="GET" action="{{ route('admin.recruitment.index') }}" class="row g-2 align-items-end">
@@ -48,12 +48,12 @@
                     <a href="{{ route('admin.recruitment.show', $job) }}" class="fw-semibold">{{ $job->title }}</a>
                 </td>
                 <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$job->status" /></td>
-                <td data-label="শেষ তারিখ">{{ $job->isRolling() ? __('admin.fields.ongoing') : ($job->application_deadline ? bn_date($job->application_deadline) : '—') }}</td>
+                <td data-label="{{ __('admin.fields.deadline') }}">{{ $job->isRolling() ? __('admin.fields.ongoing') : ($job->application_deadline ? bn_date($job->application_deadline) : '—') }}</td>
                 <td data-label="{{ __('admin.fields.applications') }}">{{ $job->applications_count }}</td>
                 <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
-                                aria-label="{{ $job->title }} — অ্যাকশন মেনু">
+                                aria-label="{{ $job->title }} — {{ __('admin.fields.action_menu') }}">
                             <i class="ti ti-dots-vertical" aria-hidden="true"></i>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end">
@@ -78,12 +78,12 @@
             </tr>
         @empty
             <x-admin.empty-state colspan="5" icon="{{ $isFiltered ? 'ti-search-off' : 'ti-briefcase-off' }}"
-                :title="$isFiltered ? __('admin.filters.no_results') : 'এখনো কোনো নিয়োগ বিজ্ঞপ্তি নেই'"
-                message="বিজ্ঞপ্তি প্রকাশ করা হলে এখানে দেখা যাবে।">
+                :title="$isFiltered ? __('admin.filters.no_results') : __('admin.fields.no_job_postings_yet')"
+                message="{{ __('admin.fields.postings_empty_hint') }}">
                 @can('recruitment.create')
                     @unless ($isFiltered)
                         <a href="{{ route('admin.recruitment.create') }}" class="btn btn-primary btn-sm">
-                            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন চাকরির বিজ্ঞপ্তি
+                            <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.fields.new_job_posting') }}
                         </a>
                     @endunless
                 @endcan
@@ -93,13 +93,13 @@
 
     @can('recruitment.delete')
         @foreach ($jobPostings as $job)
-            <x-admin.modal :id="'delete-job-'.$job->id" title="বিজ্ঞপ্তি মুছে ফেলবেন?">
+            <x-admin.modal :id="'delete-job-'.$job->id" title="{{ __('admin.fields.delete_posting_title') }}">
                 <p class="mb-0">
-                    <strong>{{ $job->title }}</strong> মুছে ফেলা হবে।
+                    <strong>{{ $job->title }}</strong> {{ __('admin.fields.will_be_deleted') }}
                     @if ($job->applications_count > 0)
                         <span class="d-block text-danger mt-2">
                             <i class="ti ti-alert-triangle" aria-hidden="true"></i>
-                            এই বিজ্ঞপ্তিতে আবেদন জমা পড়েছে — মুছে ফেলা যাবে না।
+                            {{ __('admin.fields.posting_has_applications_cannot_delete') }}
                         </span>
                     @endif
                 </p>
