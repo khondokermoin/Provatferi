@@ -3,7 +3,7 @@
 @section('page-actions')
     @can('users.create')
         <a href="{{ route('admin.users.create') }}" class="btn btn-primary">
-            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন ব্যবহারকারী
+            <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.fields.new_user') }}
         </a>
     @endcan
 @endsection
@@ -11,7 +11,7 @@
 @section('content')
     @php $isFiltered = collect($filters)->filter(fn ($v) => $v !== '')->isNotEmpty(); @endphp
 
-    <x-admin.table :paginator="$users" caption="ব্যবহারকারীর তালিকা"
+    <x-admin.table :paginator="$users" caption="{{ __('admin.fields.users_list') }}"
         :headers="[__('admin.common.name'), __('admin.fields.contact'), __('admin.fields.role'), __('admin.common.status'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
 
         <x-slot:toolbar>
@@ -19,7 +19,7 @@
                 <div class="col-12 col-md-4">
                     <label for="f-search" class="form-label fs-13 mb-1">{{ __('admin.actions.search') }}</label>
                     <input type="search" id="f-search" name="search" value="{{ $filters['search'] }}"
-                           class="form-control" placeholder="নাম, ই-মেইল বা ফোন">
+                           class="form-control" placeholder="{{ __('admin.fields.search_user_placeholder') }}">
                 </div>
                 <div class="col-6 col-md-3">
                     <label for="f-status" class="form-label fs-13 mb-1">{{ __('admin.common.status') }}</label>
@@ -33,7 +33,7 @@
                 <div class="col-6 col-md-3">
                     <label for="f-role" class="form-label fs-13 mb-1">{{ __('admin.fields.role') }}</label>
                     <select id="f-role" name="role" class="form-select">
-                        <option value="">সব ভূমিকা</option>
+                        <option value="">{{ __('admin.fields.all_roles') }}</option>
                         @foreach ($roles as $slug => $name)
                             <option value="{{ $slug }}" @selected($filters['role'] === $slug)>{{ $name }}</option>
                         @endforeach
@@ -72,7 +72,7 @@
                 <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
-                                aria-label="{{ $u->name }} — অ্যাকশন মেনু">
+                                aria-label="{{ $u->name }} — {{ __('admin.fields.action_menu') }}">
                             <i class="ti ti-dots-vertical" aria-hidden="true"></i>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end">
@@ -97,8 +97,8 @@
             </tr>
         @empty
             <x-admin.empty-state colspan="5" icon="{{ $isFiltered ? 'ti-search-off' : 'ti-users' }}"
-                :title="$isFiltered ? __('admin.filters.no_results') : 'এখনো কোনো ব্যবহারকারী নেই'"
-                message="ব্যবহারকারী যোগ করলে এখানে তালিকা দেখা যাবে।">
+                :title="$isFiltered ? __('admin.filters.no_results') : __('admin.fields.no_users_yet')"
+                message="{{ __('admin.fields.users_empty_hint') }}">
                 @if ($isFiltered)
                     <a href="{{ route('admin.users.index') }}" class="btn btn-light btn-sm">{{ __('admin.actions.clear_filters') }}</a>
                 @endif

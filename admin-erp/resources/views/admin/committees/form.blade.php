@@ -9,8 +9,8 @@
 
         <div class="row">
             <div class="col-lg-8">
-                <x-admin.card title="কমিটির তথ্য">
-                    <x-admin.form-input name="name" label="কমিটির নাম" :value="$committee->name" required />
+                <x-admin.card title="{{ __('admin.fields.committee_info') }}">
+                    <x-admin.form-input name="name" label="{{ __('admin.fields.committee_name') }}" :value="$committee->name" required />
                     <x-admin.form-input name="name_en" label="{{ __('admin.fields.committee_name') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$committee->name_en" />
 
                     <div class="row">
@@ -32,18 +32,18 @@
             </div>
 
             <div class="col-lg-4">
-                <x-admin.card title="মেয়াদ ও স্ট্যাটাস">
-                    <x-admin.form-input name="term_start" label="মেয়াদ শুরু" type="date"
+                <x-admin.card title="{{ __('admin.fields.term_status') }}">
+                    <x-admin.form-input name="term_start" label="{{ __('admin.fields.term_starts') }}" type="date"
                         :value="$committee->term_start?->format('Y-m-d')" />
                     <x-admin.form-input name="term_end" label="{{ __('admin.fields.term_end') }}" type="date"
                         :value="$committee->term_end?->format('Y-m-d')"
-                        help="খালি রাখলে চলমান ধরা হবে।" />
+                        help="{{ __('admin.fields.leave_empty_ongoing_help') }}" />
 
                     @if ($isEdit)
                         <div class="mb-3">
-                            <label class="form-label fs-13">বর্তমান স্ট্যাটাস</label>
+                            <label class="form-label fs-13">{{ __('admin.fields.current_status') }}</label>
                             <div><x-admin.status-badge :status="$committee->status" /></div>
-                            <p class="fs-12 text-muted mb-0 mt-1">স্ট্যাটাস পরিবর্তন করতে কমিটির পাতায় যান।</p>
+                            <p class="fs-12 text-muted mb-0 mt-1">{{ __('admin.fields.change_status_visit_committee_page') }}</p>
                         </div>
                     @endif
                 </x-admin.card>
