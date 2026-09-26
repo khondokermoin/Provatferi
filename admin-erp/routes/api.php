@@ -18,8 +18,20 @@ use App\Http\Controllers\Api\V1\Public\MembershipApplicationController;
 use App\Http\Controllers\Api\V1\Public\MembershipCampaignController;
 use App\Http\Controllers\Api\V1\Public\NoticeController as PublicNoticeController;
 use App\Http\Controllers\Api\V1\Public\VolunteerApplicationController;
+use App\Http\Controllers\Api\HostingerMailWebhookController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use Illuminate\Support\Facades\Route;
+
+// External webhooks — deliberately outside the /v1 contract: these are
+// inbound callbacks from a third party (Hostinger), not part of the API
+// this app publishes to its own frontends. Auth is the bearer-secret check
+// inside the controller itself, not Sanctum — Hostinger has no session here.
+// Throttled generously (real traffic is "a handful of mailboxes get mail
+// sometimes", not a public endpoint) purely as a backstop against a
+// misbehaving or replaying sender.
+Route::post('/webhooks/hostinger-mail', [HostingerMailWebhookController::class, 'handle'])
+    ->middleware('throttle:120,1')
+    ->name('api.webhooks.hostinger-mail');
 
 Route::prefix('v1')->group(function () {
     // Public — consumed by provatferi.org and sahittopata.provatferi.org.

@@ -22,6 +22,7 @@ class User extends Authenticatable
         'password',
         'status',
         'ui_locale',
+        'notification_sound_enabled',
     ];
 
     protected $hidden = [
