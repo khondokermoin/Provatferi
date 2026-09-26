@@ -3,7 +3,7 @@
 @section('page-actions')
     @can('organization.create')
         <a href="{{ route('admin.positions.create') }}" class="btn btn-primary">
-            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন পদ
+            <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.fields.new_position') }}
         </a>
     @endcan
 @endsection
@@ -11,8 +11,8 @@
 @section('content')
     @php $isFiltered = collect($filters)->filter(fn ($v) => $v !== '')->isNotEmpty(); @endphp
 
-    <x-admin.table :paginator="$positions" caption="পদের তালিকা"
-        :headers="[__('admin.fields.position'), __('admin.fields.unit'), __('admin.fields.level'), 'কমিটিতে', __('admin.common.status'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
+    <x-admin.table :paginator="$positions" caption="{{ __('admin.fields.positions_list') }}"
+        :headers="[__('admin.fields.position'), __('admin.fields.unit'), __('admin.fields.level'), __('admin.fields.in_committees'), __('admin.common.status'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
 
         <x-slot:toolbar>
             <form method="GET" action="{{ route('admin.positions.index') }}" class="row g-2 align-items-end">
@@ -57,12 +57,12 @@
                 <td data-label="{{ __('admin.fields.position') }}" class="fw-semibold">{{ $position->name }}</td>
                 <td data-label="{{ __('admin.fields.unit') }}">{{ $position->organizationUnit?->name ?? '—' }}</td>
                 <td data-label="{{ __('admin.fields.level') }}">{{ $position->level }}</td>
-                <td data-label="কমিটিতে">{{ $position->committee_members_count }}</td>
+                <td data-label="{{ __('admin.fields.in_committees') }}">{{ $position->committee_members_count }}</td>
                 <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$position->status" /></td>
                 <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
-                                aria-label="{{ $position->name }} — অ্যাকশন মেনু">
+                                aria-label="{{ $position->name }} — {{ __('admin.fields.action_menu') }}">
                             <i class="ti ti-dots-vertical" aria-hidden="true"></i>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end">
@@ -84,12 +84,12 @@
             </tr>
         @empty
             <x-admin.empty-state colspan="6" icon="{{ $isFiltered ? 'ti-search-off' : 'ti-badge' }}"
-                :title="$isFiltered ? __('admin.filters.no_results') : 'এখনো কোনো পদ নেই'"
-                message="সাংগঠনিক পদ যোগ করলে এখানে তালিকা দেখা যাবে।">
+                :title="$isFiltered ? __('admin.filters.no_results') : __('admin.fields.no_positions_yet')"
+                message="{{ __('admin.fields.positions_empty_hint') }}">
                 @can('organization.create')
                     @unless ($isFiltered)
                         <a href="{{ route('admin.positions.create') }}" class="btn btn-primary btn-sm">
-                            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন পদ
+                            <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.fields.new_position') }}
                         </a>
                     @endunless
                 @endcan
@@ -99,13 +99,13 @@
 
     @can('organization.delete')
         @foreach ($positions as $position)
-            <x-admin.modal :id="'delete-position-'.$position->id" title="পদ মুছে ফেলবেন?">
+            <x-admin.modal :id="'delete-position-'.$position->id" title="{{ __('admin.fields.delete_position_title') }}">
                 <p class="mb-0">
-                    <strong>{{ $position->name }}</strong> মুছে ফেলা হবে।
+                    <strong>{{ $position->name }}</strong> {{ __('admin.fields.will_be_deleted') }}
                     @if ($position->committee_members_count > 0)
                         <span class="d-block text-danger mt-2">
                             <i class="ti ti-alert-triangle" aria-hidden="true"></i>
-                            এই পদটি {{ $position->committee_members_count }}টি কমিটি-সদস্য রেকর্ডে ব্যবহৃত — আগে সেগুলো সরাতে হবে।
+                            {{ __('admin.fields.position_in_use_by_members', ['count' => $position->committee_members_count]) }}
                         </span>
                     @endif
                 </p>

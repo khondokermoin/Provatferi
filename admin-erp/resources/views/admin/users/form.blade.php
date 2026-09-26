@@ -9,8 +9,8 @@
 
         <div class="row">
             <div class="col-lg-8">
-                <x-admin.card title="অ্যাকাউন্ট তথ্য">
-                    <x-admin.form-input name="name" label="পুরো নাম" :value="$user->name" required />
+                <x-admin.card title="{{ __('admin.fields.account_info') }}">
+                    <x-admin.form-input name="name" label="{{ __('admin.fields.full_name') }}" :value="$user->name" required />
                     <div class="row">
                         <div class="col-md-6">
                             <x-admin.form-input name="email" label="{{ __('admin.common.email') }}" type="email" :value="$user->email" required />
@@ -25,11 +25,11 @@
                              can change it, via a reset link. --}}
                         <div class="row">
                             <div class="col-md-6">
-                                <x-admin.form-input name="password" label="পাসওয়ার্ড" type="password" required
-                                    help="অন্তত ৮ অক্ষর।" autocomplete="new-password" />
+                                <x-admin.form-input name="password" label="{{ __('admin.auth.password') }}" type="password" required
+                                    help="{{ __('admin.fields.min_8_chars_help') }}" autocomplete="new-password" />
                             </div>
                             <div class="col-md-6">
-                                <x-admin.form-input name="password_confirmation" label="পাসওয়ার্ড নিশ্চিত করুন"
+                                <x-admin.form-input name="password_confirmation" label="{{ __('admin.auth.confirm_password') }}"
                                     type="password" required autocomplete="new-password" />
                             </div>
                         </div>
@@ -37,8 +37,7 @@
                         <div class="alert alert-secondary d-flex align-items-start gap-2 mb-0" role="alert">
                             <i class="ti ti-lock fs-18 mt-1" aria-hidden="true"></i>
                             <div class="fs-13">
-                                পাসওয়ার্ড এখান থেকে দেখা বা পরিবর্তন করা যায় না। ব্যবহারকারীর বিস্তারিত পাতা থেকে
-                                রিসেট লিঙ্ক পাঠান।
+                                {{ __('admin.fields.password_view_change_notice') }}
                             </div>
                         </div>
                     @endunless
@@ -46,16 +45,16 @@
             </div>
 
             <div class="col-lg-4">
-                <x-admin.card title="স্ট্যাটাস ও ভূমিকা">
+                <x-admin.card title="{{ __('admin.fields.status_and_roles') }}">
                     <x-admin.form-select name="status" label="{{ __('admin.common.status') }}" :options="$statuses"
                         :value="$user->status" :placeholder="null" required />
 
                     <fieldset class="mb-3">
-                        <legend class="form-label fs-14">ভূমিকা (Roles)</legend>
+                        <legend class="form-label fs-14">{{ __('admin.fields.roles_legend') }}</legend>
                         @if (($isLastSuperAdmin ?? false))
                             <div class="alert alert-warning d-flex align-items-start gap-2 fs-13" role="alert">
                                 <i class="ti ti-shield-lock fs-18 mt-1" aria-hidden="true"></i>
-                                <div>এটিই শেষ সক্রিয় Super Admin। Super Admin ভূমিকা সরানো বা নিষ্ক্রিয় করা যাবে না।</div>
+                                <div>{{ __('admin.fields.last_super_admin_role_warning') }}</div>
                             </div>
                         @endif
                         @foreach ($roles as $role)

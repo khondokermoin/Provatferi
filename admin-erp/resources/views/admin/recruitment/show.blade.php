@@ -32,19 +32,19 @@
             <x-admin.card title="{{ __('admin.common.status') }}">
                 <x-admin.status-badge :status="$jobPosting->status" class="mb-3" />
                 @if ($jobPosting->published_at)
-                    <p class="fs-12 text-muted mb-0">প্রকাশিত: {{ bn_datetime($jobPosting->published_at) }}</p>
+                    <p class="fs-12 text-muted mb-0">{{ __('admin.fields.published_label') }}: {{ bn_datetime($jobPosting->published_at) }}</p>
                 @endif
             </x-admin.card>
 
-            <x-admin.card title="তথ্য">
+            <x-admin.card title="{{ __('admin.fields.info') }}">
                 <dl class="mb-0">
                     <dt class="fs-13 text-muted">{{ __('admin.fields.unit') }}</dt>
                     <dd>{{ $jobPosting->organizationUnit?->name ?? '—' }}</dd>
                     <dt class="fs-13 text-muted">{{ __('admin.fields.department') }}</dt>
                     <dd>{{ $jobPosting->department ?: '—' }}</dd>
-                    <dt class="fs-13 text-muted">নিয়োগের ধরন</dt>
+                    <dt class="fs-13 text-muted">{{ __('admin.fields.employment_type') }}</dt>
                     <dd>{{ $jobPosting->employmentTypeLabel() ?? '—' }}</dd>
-                    <dt class="fs-13 text-muted">পারিশ্রমিক</dt>
+                    <dt class="fs-13 text-muted">{{ __('admin.fields.compensation') }}</dt>
                     <dd>
                         @if ($jobPosting->isVolunteer())
                             <span class="fs-13">{{ \App\Models\JobPosting::VOLUNTEER_NOTE }}</span>
@@ -52,12 +52,12 @@
                             {{ $jobPosting->salary_range ?: '—' }}
                         @endif
                     </dd>
-                    <dt class="fs-13 text-muted">আবেদন শুরু</dt>
+                    <dt class="fs-13 text-muted">{{ __('admin.fields.application_opens') }}</dt>
                     <dd>{{ $jobPosting->opening_date ? bn_date($jobPosting->opening_date) : '—' }}</dd>
-                    <dt class="fs-13 text-muted">আবেদনের সময়সীমা</dt>
+                    <dt class="fs-13 text-muted">{{ __('admin.fields.application_deadline_label') }}</dt>
                     <dd class="mb-0">
                         @if ($jobPosting->isRolling())
-                            আবেদন চলমান
+                            {{ __('admin.fields.applications_rolling') }}
                         @else
                             {{ $jobPosting->application_deadline ? bn_date($jobPosting->application_deadline) : '—' }}
                         @endif
@@ -77,11 +77,11 @@
                     </p>
                     <p class="fs-12 text-muted mb-0">
                         {{ $jobPosting->notice->syncs_from_job_posting
-                            ? 'এই বিজ্ঞপ্তি হালনাগাদ হলে নোটিশের শিরোনাম ও বিবরণও হালনাগাদ হবে।'
-                            : 'নোটিশের লেখা আলাদাভাবে সম্পাদিত — এই বিজ্ঞপ্তি থেকে স্বয়ংক্রিয় হালনাগাদ বন্ধ।' }}
+                            ? __('admin.fields.notice_syncs_help')
+                            : __('admin.fields.notice_sync_off_help') }}
                     </p>
                 @else
-                    <p class="fs-13 text-muted mb-0">নোটিশ বোর্ডে যুক্ত নয়। সম্পাদনা পাতায় “নোটিশ বোর্ডেও প্রকাশ করুন” নির্বাচন করে যুক্ত করা যায়।</p>
+                    <p class="fs-13 text-muted mb-0">{{ __('admin.fields.not_on_notice_board_hint') }}</p>
                 @endif
             </x-admin.card>
         </div>
