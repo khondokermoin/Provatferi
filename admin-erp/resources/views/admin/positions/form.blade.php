@@ -9,21 +9,21 @@
 
         <div class="row">
             <div class="col-lg-8">
-                <x-admin.card title="পদের তথ্য">
+                <x-admin.card title="{{ __('admin.fields.position_info') }}">
                     <x-admin.form-input name="name" label="{{ __('admin.fields.position_name') }}" :value="$position->name" required
-                        help="যেমন: সভাপতি, সাধারণ সম্পাদক" />
+                        help="{{ __('admin.fields.position_examples_help') }}" />
                     <x-admin.form-input name="name_en" label="{{ __('admin.fields.position_name') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$position->name_en" />
 
                     <div class="row">
                         <div class="col-md-6">
                             <x-admin.form-select name="organization_unit_id" label="{{ __('admin.fields.unit') }}"
                                 :options="$units" :value="$position->organization_unit_id"
-                                placeholder="— নির্দিষ্ট কোনো ইউনিট নয় —" />
+                                placeholder="{{ __('admin.fields.no_specific_unit') }}" />
                         </div>
                         <div class="col-md-6">
-                            <x-admin.form-input name="level" label="স্তর/ক্রম" type="number"
+                            <x-admin.form-input name="level" label="{{ __('admin.fields.level_order') }}" type="number"
                                 :value="$position->level ?? 0" required min="0"
-                                help="ছোট সংখ্যা আগে দেখাবে (০ = সর্বোচ্চ)।" />
+                                help="{{ __('admin.fields.level_order_help') }}" />
                         </div>
                     </div>
 
@@ -39,7 +39,7 @@
                     <div class="form-check">
                         <input type="checkbox" class="form-check-input" id="is_public" name="is_public" value="1"
                                @checked(old('is_public', $position->is_public ?? true))>
-                        <label class="form-check-label" for="is_public">পাবলিক সাইটে দেখানো যাবে</label>
+                        <label class="form-check-label" for="is_public">{{ __('admin.fields.visible_on_public_site') }}</label>
                     </div>
                 </x-admin.card>
 

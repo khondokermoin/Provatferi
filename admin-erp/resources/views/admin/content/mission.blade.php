@@ -7,7 +7,7 @@
 
         <div class="row">
             <div class="col-lg-7">
-                <x-admin.card title="Mission" subtitle="দীর্ঘ-ফরম্যাট কনটেন্ট — সর্বশেষ হালনাগাদ: {{ $block->updated_at ? bn_datetime($block->updated_at) : '—' }}">
+                <x-admin.card title="Mission" subtitle="{{ __('admin.fields.long_form_content') }} — {{ __('admin.fields.last_updated') }}: {{ $block->updated_at ? bn_datetime($block->updated_at) : '—' }}">
                     <x-admin.form-textarea name="body" label="{{ __('admin.common.description') }}" :value="$block->body" :rows="8" required
                         :disabled="! auth()->user()->can('settings.update')" />
                     <x-admin.form-textarea name="body_en" label="{{ __('admin.common.description') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$block->body_en" :rows="8"
@@ -16,7 +16,7 @@
                     <div class="form-check">
                         <input type="checkbox" class="form-check-input" id="is_public" name="is_public" value="1"
                                @checked(old('is_public', $block->is_public)) @disabled(! auth()->user()->can('settings.update'))>
-                        <label class="form-check-label" for="is_public">সাইটে প্রকাশযোগ্য</label>
+                        <label class="form-check-label" for="is_public">{{ __('admin.fields.publishable_on_site') }}</label>
                     </div>
                 </x-admin.card>
 
@@ -30,12 +30,12 @@
             </div>
 
             <div class="col-lg-5">
-                <x-admin.card title="{{ __('admin.fields.preview') }}" subtitle="পাবলিক সাইটে ধারণাগতভাবে যেভাবে দেখাবে।">
+                <x-admin.card title="{{ __('admin.fields.preview') }}" subtitle="{{ __('admin.fields.preview_hint') }}">
                     <span class="badge bg-success-subtle text-success-emphasis mb-2">Mission</span>
                     <p class="mb-0">{{ $block->body ?: '—' }}</p>
                     @unless ($block->is_public)
                         <div class="alert alert-warning fs-13 mb-0 mt-3">
-                            <i class="ti ti-eye-off me-1" aria-hidden="true"></i>বর্তমানে অপ্রকাশিত হিসেবে চিহ্নিত।
+                            <i class="ti ti-eye-off me-1" aria-hidden="true"></i>{{ __('admin.fields.currently_marked_unpublished') }}
                         </div>
                     @endunless
                 </x-admin.card>

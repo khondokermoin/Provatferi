@@ -7,7 +7,7 @@
 @endsection
 
 @section('content')
-    <x-admin.table :paginator="$submissions" caption="আবেদনের তালিকা"
+    <x-admin.table :paginator="$submissions" caption="{{ __('admin.fields.submissions_list') }}"
         :headers="[__('admin.common.name'), __('admin.fields.position'), __('admin.fields.submitted_at'), __('admin.common.status')]">
 
         <x-slot:toolbar>
@@ -42,8 +42,8 @@
             </tr>
         @empty
             <x-admin.empty-state colspan="4" icon="ti-clipboard-off"
-                title="{{ $currentStatus !== '' ? __('admin.filters.no_results') : 'এখনো কোনো আবেদন নেই' }}"
-                message="নিবন্ধন লিংকের মাধ্যমে আবেদন জমা পড়লে এখানে দেখা যাবে।" />
+                title="{{ $currentStatus !== '' ? __('admin.filters.no_results') : __('admin.fields.no_submissions_yet') }}"
+                message="{{ __('admin.fields.submissions_empty_hint') }}" />
         @endforelse
     </x-admin.table>
 @endsection

@@ -13,14 +13,14 @@
         @if ($isSuperAdmin)
             <div class="alert alert-warning d-flex align-items-start gap-2" role="alert">
                 <i class="ti ti-shield-lock fs-18 mt-1" aria-hidden="true"></i>
-                <div>Super Admin সর্বদা সব অনুমতি ধরে রাখে। এখানে অনুমতি পরিবর্তন সংরক্ষিত হবে না।</div>
+                <div>{{ __('admin.fields.super_admin_permissions_note') }}</div>
             </div>
         @endif
 
         <div class="row">
             <div class="col-lg-4">
-                <x-admin.card title="ভূমিকার তথ্য">
-                    <x-admin.form-input name="name" label="ভূমিকার নাম" :value="$role->name" required
+                <x-admin.card title="{{ __('admin.fields.role_info') }}">
+                    <x-admin.form-input name="name" label="{{ __('admin.fields.role_name') }}" :value="$role->name" required
                         :readonly="$role->is_system_role" />
                     <x-admin.form-textarea name="description" label="{{ __('admin.common.description') }}" :value="$role->description" :rows="3" />
                 </x-admin.card>
@@ -34,8 +34,8 @@
             </div>
 
             <div class="col-lg-8">
-                <x-admin.card title="অনুমতি (Permissions)"
-                    subtitle="মডিউল অনুযায়ী সাজানো। অনুমতির কী সিস্টেম-নিয়ন্ত্রিত — এখানে শুধু বরাদ্দ করা যায়।">
+                <x-admin.card title="{{ __('admin.fields.permissions_title') }}"
+                    subtitle="{{ __('admin.fields.permissions_subtitle') }}">
                     @foreach ($grouped as $module => $permissions)
                         <fieldset class="mb-3 pb-2 border-bottom">
                             <legend class="fs-14 fw-semibold text-capitalize mb-2">{{ $module }}</legend>

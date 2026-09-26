@@ -13,8 +13,8 @@
                     <x-admin.form-input name="name" label="{{ __('admin.common.name') }}" :value="$type->name" required />
                     <x-admin.form-input name="name_en" label="{{ __('admin.common.name') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$type->name_en" />
                     <x-admin.form-textarea name="description" label="{{ __('admin.common.description') }}" :value="$type->description" :rows="3" />
-                    <x-admin.form-input name="icon" label="আইকন (ঐচ্ছিক)" :value="$type->icon"
-                        help="Tabler icon নাম, যেমন: ti-book" />
+                    <x-admin.form-input name="icon" label="{{ __('admin.fields.icon') }} ({{ __('admin.common.optional') }})" :value="$type->icon"
+                        help="{{ __('admin.fields.icon_help') }}" />
                 </x-admin.card>
             </div>
 
