@@ -3,14 +3,14 @@
 @section('content')
     @php $isFiltered = collect($filters)->filter(fn ($v) => $v !== '')->isNotEmpty(); @endphp
 
-    <x-admin.table :paginator="$applications" caption="সদস্য আবেদনের তালিকা"
-        :headers="['আবেদন নং', __('admin.fields.applicant'), __('admin.common.type'), __('admin.common.status'), __('admin.fields.submitted_at')]">
+    <x-admin.table :paginator="$applications" caption="{{ __('admin.fields.membership_applications_list') }}"
+        :headers="[__('admin.fields.application_no'), __('admin.fields.applicant'), __('admin.common.type'), __('admin.common.status'), __('admin.fields.submitted_at')]">
 
         <x-slot:toolbar>
             <form method="GET" action="{{ route('admin.membership.index') }}" class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
                     <label for="f-search" class="form-label fs-13 mb-1">{{ __('admin.actions.search') }}</label>
-                    <input type="search" id="f-search" name="search" value="{{ $filters['search'] }}" class="form-control" placeholder="আবেদন নং, নাম বা ই-মেইল">
+                    <input type="search" id="f-search" name="search" value="{{ $filters['search'] }}" class="form-control" placeholder="{{ __('admin.fields.search_application_placeholder') }}">
                 </div>
                 <div class="col-6 col-md-2">
                     <label for="f-status" class="form-label fs-13 mb-1">{{ __('admin.common.status') }}</label>
@@ -31,7 +31,7 @@
                     </select>
                 </div>
                 <div class="col-6 col-md-2">
-                    <label for="f-date" class="form-label fs-13 mb-1">তারিখ</label>
+                    <label for="f-date" class="form-label fs-13 mb-1">{{ __('admin.common.date') }}</label>
                     <input type="date" id="f-date" name="date" value="{{ $filters['date'] }}" class="form-control">
                 </div>
                 <div class="col-12 col-md-2 d-flex gap-2">
@@ -49,7 +49,7 @@
 
         @forelse ($applications as $application)
             <tr>
-                <td data-label="আবেদন নং">
+                <td data-label="{{ __('admin.fields.application_no') }}">
                     <a href="{{ route('admin.membership.show', $application) }}" class="fw-semibold">{{ $application->application_no }}</a>
                 </td>
                 <td data-label="{{ __('admin.fields.applicant') }}">
@@ -62,8 +62,8 @@
             </tr>
         @empty
             <x-admin.empty-state colspan="5" icon="{{ $isFiltered ? 'ti-search-off' : 'ti-file-off' }}"
-                :title="$isFiltered ? __('admin.filters.no_results') : 'এখনো কোনো সদস্য আবেদন নেই'"
-                message="আবেদন জমা হলে এখানে তালিকা দেখা যাবে।">
+                :title="$isFiltered ? __('admin.filters.no_results') : __('admin.fields.no_membership_applications_yet')"
+                message="{{ __('admin.fields.applications_empty_hint') }}">
                 @if ($isFiltered)
                     <a href="{{ route('admin.membership.index') }}" class="btn btn-light btn-sm">{{ __('admin.actions.clear_filters') }}</a>
                 @endif

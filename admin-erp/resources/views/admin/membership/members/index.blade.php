@@ -3,14 +3,14 @@
 @section('content')
     @php $isFiltered = collect($filters)->filter(fn ($v) => $v !== '')->isNotEmpty(); @endphp
 
-    <x-admin.table :paginator="$members" caption="সদস্যদের তালিকা"
-        :headers="['সদস্য নং', __('admin.common.name'), __('admin.common.type'), 'থেকে', __('admin.common.status')]">
+    <x-admin.table :paginator="$members" caption="{{ __('admin.fields.members_list') }}"
+        :headers="[__('admin.fields.member_no'), __('admin.common.name'), __('admin.common.type'), __('admin.fields.since'), __('admin.common.status')]">
 
         <x-slot:toolbar>
             <form method="GET" action="{{ route('admin.membership.members.index') }}" class="row g-2 align-items-end">
                 <div class="col-12 col-md-5">
                     <label for="f-search" class="form-label fs-13 mb-1">{{ __('admin.actions.search') }}</label>
-                    <input type="search" id="f-search" name="search" value="{{ $filters['search'] }}" class="form-control" placeholder="মেম্বার নং, নাম বা ই-মেইল">
+                    <input type="search" id="f-search" name="search" value="{{ $filters['search'] }}" class="form-control" placeholder="{{ __('admin.fields.search_member_placeholder') }}">
                 </div>
                 <div class="col-6 col-md-3">
                     <label for="f-status" class="form-label fs-13 mb-1">{{ __('admin.common.status') }}</label>
@@ -45,18 +45,18 @@
 
         @forelse ($members as $member)
             <tr>
-                <td data-label="সদস্য নং">
+                <td data-label="{{ __('admin.fields.member_no') }}">
                     <a href="{{ route('admin.membership.members.show', $member) }}" class="fw-semibold">{{ $member->member_code }}</a>
                 </td>
                 <td data-label="{{ __('admin.common.name') }}">{{ $member->holderName() ?: '—' }}</td>
                 <td data-label="{{ __('admin.common.type') }}">{{ $member->membershipType->name ?? '—' }}</td>
-                <td data-label="থেকে">{{ $member->start_date ? bn_date($member->start_date) : '—' }}</td>
+                <td data-label="{{ __('admin.fields.since') }}">{{ $member->start_date ? bn_date($member->start_date) : '—' }}</td>
                 <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$member->status" /></td>
             </tr>
         @empty
             <x-admin.empty-state colspan="5" icon="{{ $isFiltered ? 'ti-search-off' : 'ti-users' }}"
-                :title="$isFiltered ? __('admin.filters.no_results') : 'এখনো কোনো সদস্য নেই'"
-                message="আবেদন অনুমোদিত হলে সদস্য এখানে তালিকাভুক্ত হবে।">
+                :title="$isFiltered ? __('admin.filters.no_results') : __('admin.fields.no_members_yet')"
+                message="{{ __('admin.fields.members_empty_hint') }}">
                 @if ($isFiltered)
                     <a href="{{ route('admin.membership.members.index') }}" class="btn btn-light btn-sm">{{ __('admin.actions.clear_filters') }}</a>
                 @endif
