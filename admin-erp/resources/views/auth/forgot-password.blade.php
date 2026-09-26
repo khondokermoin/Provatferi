@@ -1,5 +1,5 @@
-<x-layouts.auth title="Reset password" heading="পাসওয়ার্ড রিসেট"
-                subheading="আপনার ই-মেইল দিন — রিসেট লিঙ্ক পাঠানো হবে।">
+<x-layouts.auth title="Reset password" heading="{{ __('admin.auth.reset_title') }}"
+                subheading="{{ __('admin.auth.reset_intro') }}">
     @if (session('status'))
         <div class="alert alert-success d-flex align-items-start gap-2" role="alert">
             <i class="ti ti-circle-check fs-18 mt-1 flex-shrink-0" aria-hidden="true"></i>
@@ -12,7 +12,7 @@
 
         <div class="mb-3">
             <label class="form-label" for="email">
-                ই-মেইল <span class="pf-required" aria-hidden="true">*</span><span class="visually-hidden">(আবশ্যক)</span>
+                {{ __('admin.auth.email') }} <span class="pf-required" aria-hidden="true">*</span><span class="visually-hidden">{{ __('admin.forms.required_marker') }}</span>
             </label>
             <input type="email" id="email" name="email" value="{{ old('email') }}"
                    class="form-control @error('email') is-invalid @enderror"
@@ -26,8 +26,8 @@
         </div>
 
         <div class="d-grid gap-2">
-            <button class="btn btn-primary" type="submit">রিসেট লিঙ্ক পাঠান</button>
-            <a href="{{ route('login') }}" class="btn btn-light">লগইনে ফিরুন</a>
+            <button class="btn btn-primary" type="submit">{{ __('admin.auth.send_reset_link') }}</button>
+            <a href="{{ route('login') }}" class="btn btn-light">{{ __('admin.auth.back_to_login') }}</a>
         </div>
     </form>
 </x-layouts.auth>

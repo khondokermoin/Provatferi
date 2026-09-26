@@ -17,25 +17,25 @@
 
         <div class="row">
             <div class="col-lg-8">
-                <x-admin.card title="বিবরণ">
-                    <x-admin.form-input name="title" label="শিরোনাম" :value="$jobPosting->title" required />
+                <x-admin.card title="{{ __('admin.common.description') }}">
+                    <x-admin.form-input name="title" label="{{ __('admin.common.title') }}" :value="$jobPosting->title" required />
                     <x-admin.form-input name="title_en" label="শিরোনাম (English, ঐচ্ছিক)" :value="$jobPosting->title_en" />
-                    <x-admin.form-input name="slug" label="ইউআরএল স্লাগ" :value="$jobPosting->slug"
+                    <x-admin.form-input name="slug" label="{{ __('admin.common.slug') }}" :value="$jobPosting->slug"
                         help="{{ $isEdit ? 'পরিবর্তন করলে পুরনো লিংকটি চিরস্থায়ীভাবে নতুন লিংকে রিডাইরেক্ট হবে — আগের ভিজিটর/শেয়ার করা লিংক নষ্ট হবে না।' : 'খালি রাখলে শিরোনাম থেকে স্বয়ংক্রিয়ভাবে তৈরি হবে। শুধু ছোট হাতের ইংরেজি অক্ষর, সংখ্যা ও হাইফেন।' }}" />
-                    <x-admin.form-textarea name="summary" label="সংক্ষিপ্ত বিবরণ" :value="$jobPosting->summary" :rows="2" />
+                    <x-admin.form-textarea name="summary" label="{{ __('admin.common.summary') }}" :value="$jobPosting->summary" :rows="2" />
                     <x-admin.form-textarea name="summary_en" label="সংক্ষিপ্ত বিবরণ (English, ঐচ্ছিক)" :value="$jobPosting->summary_en" :rows="2" />
-                    <x-admin.form-textarea name="description" label="পূর্ণ বিবরণ" :value="$jobPosting->description" :rows="6" required />
+                    <x-admin.form-textarea name="description" label="{{ __('admin.fields.full_body') }}" :value="$jobPosting->description" :rows="6" required />
                     <x-admin.form-textarea name="description_en" label="পূর্ণ বিবরণ (English, ঐচ্ছিক)" :value="$jobPosting->description_en" :rows="6" />
-                    <x-admin.form-textarea name="requirements" label="যোগ্যতা" :value="$jobPosting->requirements" :rows="4" />
+                    <x-admin.form-textarea name="requirements" label="{{ __('admin.fields.requirements') }}" :value="$jobPosting->requirements" :rows="4" />
                     <x-admin.form-textarea name="requirements_en" label="যোগ্যতা (English, ঐচ্ছিক)" :value="$jobPosting->requirements_en" :rows="4" />
 
                     <div class="row">
                         <div class="col-md-6">
-                            <x-admin.form-select name="organization_unit_id" label="সাংগঠনিক ইউনিট" :options="$units"
-                                :value="$jobPosting->organization_unit_id" placeholder="— নির্দিষ্ট নয় —" />
+                            <x-admin.form-select name="organization_unit_id" label="{{ __('admin.fields.unit') }}" :options="$units"
+                                :value="$jobPosting->organization_unit_id" placeholder="{{ __('admin.filters.none_specific') }}" />
                         </div>
                         <div class="col-md-6">
-                            <x-admin.form-input name="department" label="বিভাগ" :value="$jobPosting->department" />
+                            <x-admin.form-input name="department" label="{{ __('admin.fields.department') }}" :value="$jobPosting->department" />
                         </div>
                     </div>
                 </x-admin.card>
@@ -44,7 +44,7 @@
             <div class="col-lg-4">
                 <x-admin.card title="শর্তাবলী">
                     <x-admin.form-select name="employment_type" label="নিয়োগের ধরন" :options="$employmentTypes"
-                        :value="$jobPosting->employment_type" placeholder="— নির্দিষ্ট নয় —" />
+                        :value="$jobPosting->employment_type" placeholder="{{ __('admin.filters.none_specific') }}" />
                     <x-admin.form-input name="salary_range" label="বেতন সীমা" :value="$jobPosting->salary_range"
                         help="নির্ধারিত না হলে খালি রাখুন। স্বেচ্ছাসেবী সুযোগে বেতন সংরক্ষিত বা প্রদর্শিত হয় না।" />
                     <x-admin.form-input name="opening_date" label="আবেদন শুরুর তারিখ" type="date"
@@ -102,14 +102,14 @@
                             <input type="checkbox" class="form-check-input" id="remove_share_image" name="remove_share_image" value="1">
                             <label class="form-check-label" for="remove_share_image">
                                 বর্তমান শেয়ার ছবি সরিয়ে দিন
-                                (<a href="{{ route('admin.recruitment.files.share', $jobPosting) }}" target="_blank" rel="noopener noreferrer">দেখুন</a>)
+                                (<a href="{{ route('admin.recruitment.files.share', $jobPosting) }}" target="_blank" rel="noopener noreferrer">{{ __('admin.actions.view') }}</a>)
                             </label>
                         </div>
                     @endif
                 </x-admin.card>
 
-                <x-admin.card title="প্রকাশনা">
-                    <x-admin.form-select name="status" label="স্ট্যাটাস" :options="$statuses"
+                <x-admin.card title="{{ __('admin.common.publication') }}">
+                    <x-admin.form-select name="status" label="{{ __('admin.common.status') }}" :options="$statuses"
                         :value="$jobPosting->status" :placeholder="null" required />
                     @if ($jobPosting->published_at)
                         <p class="fs-12 text-muted mb-0">প্রথম প্রকাশ: {{ bn_datetime($jobPosting->published_at) }}</p>
@@ -138,10 +138,10 @@
 
                 <div class="d-flex flex-wrap gap-2 mb-4">
                     <button type="submit" class="btn btn-primary">
-                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ $isEdit ? 'হালনাগাদ করুন' : 'তৈরি করুন' }}
+                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ $isEdit ? __('admin.actions.update') : __('admin.actions.create') }}
                     </button>
                     <a href="{{ $isEdit ? route('admin.recruitment.show', $jobPosting) : route('admin.recruitment.index') }}"
-                       class="btn btn-light">বাতিল</a>
+                       class="btn btn-light">{{ __('admin.actions.cancel') }}</a>
                 </div>
             </div>
         </div>

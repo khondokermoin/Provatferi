@@ -22,14 +22,14 @@
                 <x-admin.card title="ভূমিকার তথ্য">
                     <x-admin.form-input name="name" label="ভূমিকার নাম" :value="$role->name" required
                         :readonly="$role->is_system_role" />
-                    <x-admin.form-textarea name="description" label="বিবরণ" :value="$role->description" :rows="3" />
+                    <x-admin.form-textarea name="description" label="{{ __('admin.common.description') }}" :value="$role->description" :rows="3" />
                 </x-admin.card>
 
                 <div class="d-flex flex-wrap gap-2 mb-4">
                     <button type="submit" class="btn btn-primary">
-                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ $isEdit ? 'হালনাগাদ করুন' : 'তৈরি করুন' }}
+                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ $isEdit ? __('admin.actions.update') : __('admin.actions.create') }}
                     </button>
-                    <a href="{{ route('admin.roles.index') }}" class="btn btn-light">বাতিল</a>
+                    <a href="{{ route('admin.roles.index') }}" class="btn btn-light">{{ __('admin.actions.cancel') }}</a>
                 </div>
             </div>
 

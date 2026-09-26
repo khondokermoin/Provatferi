@@ -1,5 +1,5 @@
 @props([
-    'title' => 'কোনো তথ্য নেই',
+    'title' => __('admin.forms.no_data'),
     'message' => null,
     'icon' => 'ti-inbox',
     'colspan' => null,

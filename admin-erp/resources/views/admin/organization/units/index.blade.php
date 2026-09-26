@@ -15,35 +15,35 @@
         :paginator="$units"
         caption="সাংগঠনিক ইউনিটের তালিকা"
         :headers="[
-            'নাম',
-            'ধরন',
+            __('admin.common.name'),
+            __('admin.common.type'),
             'মূল ইউনিট',
             'উপ-ইউনিট',
-            'ক্রম',
-            'স্ট্যাটাস',
-            ['label' => 'অ্যাকশন', 'align' => 'end'],
+            __('admin.common.order'),
+            __('admin.common.status'),
+            ['label' => __('admin.actions.actions'), 'align' => 'end'],
         ]">
 
         <x-slot:toolbar>
             <form method="GET" action="{{ route('admin.organization.units.index') }}" class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
-                    <label for="filter-search" class="form-label fs-13 mb-1">খুঁজুন</label>
+                    <label for="filter-search" class="form-label fs-13 mb-1">{{ __('admin.actions.search') }}</label>
                     <input type="search" id="filter-search" name="search" value="{{ $filters['search'] }}"
                            class="form-control" placeholder="নাম, কোড বা ই-মেইল">
                 </div>
                 <div class="col-6 col-md-3">
                     <label for="filter-type" class="form-label fs-13 mb-1">ইউনিটের ধরন</label>
                     <select id="filter-type" name="unit_type" class="form-select">
-                        <option value="">সব ধরন</option>
+                        <option value="">{{ __('admin.filters.all_types') }}</option>
                         @foreach ($unitTypes as $value => $label)
                             <option value="{{ $value }}" @selected($filters['unit_type'] === $value)>{{ $label }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div class="col-6 col-md-3">
-                    <label for="filter-status" class="form-label fs-13 mb-1">স্ট্যাটাস</label>
+                    <label for="filter-status" class="form-label fs-13 mb-1">{{ __('admin.common.status') }}</label>
                     <select id="filter-status" name="status" class="form-select">
-                        <option value="">সব স্ট্যাটাস</option>
+                        <option value="">{{ __('admin.filters.all_statuses') }}</option>
                         @foreach ($statuses as $value => $label)
                             <option value="{{ $value }}" @selected($filters['status'] === $value)>{{ $label }}</option>
                         @endforeach
@@ -51,10 +51,10 @@
                 </div>
                 <div class="col-12 col-md-2 d-flex gap-2">
                     <button type="submit" class="btn btn-light border w-100">
-                        <i class="ti ti-filter me-1" aria-hidden="true"></i>ফিল্টার
+                        <i class="ti ti-filter me-1" aria-hidden="true"></i>{{ __('admin.actions.filter') }}
                     </button>
                     @if ($isFiltered)
-                        <a href="{{ route('admin.organization.units.index') }}" class="btn btn-light" aria-label="ফিল্টার সরান">
+                        <a href="{{ route('admin.organization.units.index') }}" class="btn btn-light" aria-label="{{ __('admin.actions.clear_filters') }}">
                             <i class="ti ti-x" aria-hidden="true"></i>
                         </a>
                     @endif
@@ -64,18 +64,18 @@
 
         @forelse ($units as $unit)
             <tr>
-                <td data-label="নাম">
+                <td data-label="{{ __('admin.common.name') }}">
                     <a href="{{ route('admin.organization.units.show', $unit) }}" class="fw-semibold">{{ $unit->name }}</a>
                     @if ($unit->code)
                         <span class="text-muted fs-12 d-block">{{ $unit->code }}</span>
                     @endif
                 </td>
-                <td data-label="ধরন">{{ $unitTypes[$unit->unit_type] ?? $unit->unit_type }}</td>
+                <td data-label="{{ __('admin.common.type') }}">{{ $unitTypes[$unit->unit_type] ?? $unit->unit_type }}</td>
                 <td data-label="মূল ইউনিট">{{ $unit->parent?->name ?? '—' }}</td>
                 <td data-label="উপ-ইউনিট">{{ $unit->children_count }}</td>
-                <td data-label="ক্রম">{{ $unit->sort_order }}</td>
-                <td data-label="স্ট্যাটাস"><x-admin.status-badge :status="$unit->status" /></td>
-                <td data-label="অ্যাকশন" class="text-end">
+                <td data-label="{{ __('admin.common.order') }}">{{ $unit->sort_order }}</td>
+                <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$unit->status" /></td>
+                <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
                                 aria-label="{{ $unit->name }} — অ্যাকশন মেনু">
@@ -83,18 +83,18 @@
                         </button>
                         <div class="dropdown-menu dropdown-menu-end">
                             <a href="{{ route('admin.organization.units.show', $unit) }}" class="dropdown-item">
-                                <i class="ti ti-eye me-1" aria-hidden="true"></i>দেখুন
+                                <i class="ti ti-eye me-1" aria-hidden="true"></i>{{ __('admin.actions.view') }}
                             </a>
                             @can('organization.update')
                                 <a href="{{ route('admin.organization.units.edit', $unit) }}" class="dropdown-item">
-                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
+                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>{{ __('admin.actions.edit') }}
                                 </a>
                             @endcan
                             @can('organization.delete')
                                 <div class="dropdown-divider"></div>
                                 <button type="button" class="dropdown-item text-danger"
                                         data-bs-toggle="modal" data-bs-target="#delete-unit-{{ $unit->id }}">
-                                    <i class="ti ti-trash me-1" aria-hidden="true"></i>মুছে ফেলুন
+                                    <i class="ti ti-trash me-1" aria-hidden="true"></i>{{ __('admin.actions.delete') }}
                                 </button>
                             @endcan
                         </div>
@@ -106,9 +106,9 @@
                 <x-admin.empty-state
                     colspan="7"
                     icon="ti-search-off"
-                    title="এই ফিল্টারে কিছু পাওয়া যায়নি"
+                    title="{{ __('admin.filters.no_results') }}"
                     message="ফিল্টার পরিবর্তন করে আবার চেষ্টা করুন।">
-                    <a href="{{ route('admin.organization.units.index') }}" class="btn btn-light btn-sm">ফিল্টার সরান</a>
+                    <a href="{{ route('admin.organization.units.index') }}" class="btn btn-light btn-sm">{{ __('admin.actions.clear_filters') }}</a>
                 </x-admin.empty-state>
             @else
                 <x-admin.empty-state
@@ -143,7 +143,7 @@
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="btn btn-danger">
-                            <i class="ti ti-trash me-1" aria-hidden="true"></i>মুছে ফেলুন
+                            <i class="ti ti-trash me-1" aria-hidden="true"></i>{{ __('admin.actions.delete') }}
                         </button>
                     </form>
                 </x-slot:confirm>

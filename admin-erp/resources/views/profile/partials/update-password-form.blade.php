@@ -1,11 +1,11 @@
-<x-admin.card title="পাসওয়ার্ড পরিবর্তন" subtitle="নিরাপত্তার জন্য নিয়মিত একটি দীর্ঘ, অনন্য পাসওয়ার্ড ব্যবহার করুন।" class="mb-3">
+<x-admin.card title="{{ __('admin.profile.password_heading') }}" subtitle="{{ __('admin.profile.password_intro') }}" class="mb-3">
     <form method="post" action="{{ route('password.update') }}" class="pf-form-measure">
         @csrf
         @method('put')
 
         <div class="mb-3">
             <label class="form-label" for="update_password_current_password">
-                বর্তমান পাসওয়ার্ড <span class="pf-required" aria-hidden="true">*</span><span class="visually-hidden">(আবশ্যক)</span>
+                {{ __('admin.profile.current_password') }} <span class="pf-required" aria-hidden="true">*</span><span class="visually-hidden">{{ __('admin.forms.required_marker') }}</span>
             </label>
             <div class="pf-password-field">
                 <input type="password" id="update_password_current_password" name="current_password"
@@ -23,7 +23,7 @@
 
         <div class="mb-3">
             <label class="form-label" for="update_password_password">
-                নতুন পাসওয়ার্ড <span class="pf-required" aria-hidden="true">*</span><span class="visually-hidden">(আবশ্যক)</span>
+                {{ __('admin.auth.new_password') }} <span class="pf-required" aria-hidden="true">*</span><span class="visually-hidden">{{ __('admin.forms.required_marker') }}</span>
             </label>
             <div class="pf-password-field">
                 <input type="password" id="update_password_password" name="password"
@@ -32,7 +32,7 @@
                        @error('password', 'updatePassword') aria-invalid="true" @enderror>
                 <x-password-toggle-button/>
             </div>
-            <div class="form-text" id="update-password-help">অন্তত ৮ অক্ষরের শক্তিশালী পাসওয়ার্ড দিন।</div>
+            <div class="form-text" id="update-password-help">{{ __('admin.auth.password_hint') }}</div>
             @error('password', 'updatePassword')
                 <div class="invalid-feedback d-block">
                     <i class="ti ti-alert-circle" aria-hidden="true"></i> {{ $message }}
@@ -42,7 +42,7 @@
 
         <div class="mb-3">
             <label class="form-label" for="update_password_password_confirmation">
-                নতুন পাসওয়ার্ড নিশ্চিত করুন <span class="pf-required" aria-hidden="true">*</span><span class="visually-hidden">(আবশ্যক)</span>
+                {{ __('admin.profile.confirm_new_password') }} <span class="pf-required" aria-hidden="true">*</span><span class="visually-hidden">{{ __('admin.forms.required_marker') }}</span>
             </label>
             <div class="pf-password-field">
                 <input type="password" id="update_password_password_confirmation" name="password_confirmation"
@@ -58,7 +58,7 @@
         </div>
 
         <button type="submit" class="btn btn-primary">
-            <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>পাসওয়ার্ড সংরক্ষণ করুন
+            <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ __('admin.auth.save_password') }}
         </button>
     </form>
 </x-admin.card>

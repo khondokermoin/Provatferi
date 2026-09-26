@@ -3,56 +3,56 @@
 @section('page-actions')
     @can('organization.update')
         <a href="{{ route('admin.organization.units.edit', $unit) }}" class="btn btn-primary">
-            <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
+            <i class="ti ti-pencil me-1" aria-hidden="true"></i>{{ __('admin.actions.edit') }}
         </a>
     @endcan
     @can('organization.delete')
         <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#delete-unit">
-            <i class="ti ti-trash me-1" aria-hidden="true"></i>মুছে ফেলুন
+            <i class="ti ti-trash me-1" aria-hidden="true"></i>{{ __('admin.actions.delete') }}
         </button>
     @endcan
     <a href="{{ route('admin.organization.units.index') }}" class="btn btn-light">
-        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>ফিরে যান
+        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>{{ __('admin.actions.back') }}
     </a>
 @endsection
 
 @section('content')
     <div class="row">
         <div class="col-lg-8">
-            <x-admin.card title="বিবরণ">
+            <x-admin.card title="{{ __('admin.common.description') }}">
                 <dl class="row mb-0">
-                    <dt class="col-sm-4 fs-13 text-muted">নাম</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.name') }}</dt>
                     <dd class="col-sm-8">{{ $unit->name }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">ধরন</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.type') }}</dt>
                     <dd class="col-sm-8">{{ $unitTypes[$unit->unit_type] ?? $unit->unit_type }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">স্ট্যাটাস</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.status') }}</dt>
                     <dd class="col-sm-8"><x-admin.status-badge :status="$unit->status" /></dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">কোড</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.code') }}</dt>
                     <dd class="col-sm-8">{{ $unit->code ?: '—' }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">ক্রম</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.order') }}</dt>
                     <dd class="col-sm-8">{{ $unit->sort_order }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">প্রতিষ্ঠার তারিখ</dt>
                     <dd class="col-sm-8">{{ $unit->established_date ? bn_date($unit->established_date) : '—' }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">বিবরণ</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.description') }}</dt>
                     <dd class="col-sm-8 mb-0">{{ $unit->description ?: '—' }}</dd>
                 </dl>
             </x-admin.card>
 
-            <x-admin.card title="যোগাযোগ">
+            <x-admin.card title="{{ __('admin.fields.contact') }}">
                 <dl class="row mb-0">
-                    <dt class="col-sm-4 fs-13 text-muted">ঠিকানা</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.address') }}</dt>
                     <dd class="col-sm-8">{{ $unit->address ?: '—' }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">ফোন</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.phone_short') }}</dt>
                     <dd class="col-sm-8">{{ $unit->phone ?: '—' }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">ই-মেইল</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.email') }}</dt>
                     <dd class="col-sm-8 mb-0">
                         @if ($unit->email)
                             <a href="mailto:{{ $unit->email }}">{{ $unit->email }}</a>
@@ -108,7 +108,7 @@
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="btn btn-danger">
-                        <i class="ti ti-trash me-1" aria-hidden="true"></i>মুছে ফেলুন
+                        <i class="ti ti-trash me-1" aria-hidden="true"></i>{{ __('admin.actions.delete') }}
                     </button>
                 </form>
             </x-slot:confirm>

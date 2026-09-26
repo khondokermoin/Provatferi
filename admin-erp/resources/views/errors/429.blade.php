@@ -1,9 +1,9 @@
 @extends('errors.layout')
 
-@section('title', 'অনুরোধ বেশি হয়ে গেছে')
-@section('code', '৪২৯')
-@section('heading', 'অল্প সময়ে অনেকবার চেষ্টা হয়েছে')
-@section('message', 'নিরাপত্তার জন্য একটি সীমা রয়েছে। কিছুক্ষণ অপেক্ষা করে আবার চেষ্টা করুন।')
+@section('title', __('admin.errors.429.title'))
+@section('code', __('admin.errors.429.code'))
+@section('heading', __('admin.errors.429.heading'))
+@section('message', __('admin.errors.429.body'))
 @section('actions')
-    <a href="{{ url('/') }}" class="primary">হোমে ফিরে যান</a>
+    <a href="{{ url('/') }}" class="primary">{{ __('admin.errors.back_home') }}</a>
 @endsection

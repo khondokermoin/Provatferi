@@ -10,22 +10,22 @@
 
 @section('content')
     <x-admin.table :paginator="$types" caption="সদস্যপদের ধরনের তালিকা"
-        :headers="['ক্রম', 'নাম', 'ফি', 'আবেদনসমূহ', 'সদস্য', 'স্ট্যাটাস', ['label' => 'অ্যাকশন', 'align' => 'end']]">
+        :headers="[__('admin.common.order'), __('admin.common.name'), __('admin.fields.fee'), __('admin.fields.applications'), __('admin.fields.member'), __('admin.common.status'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
 
         @forelse ($types as $type)
             <tr>
-                <td data-label="ক্রম">{{ $type->sort_order }}</td>
-                <td data-label="নাম">
+                <td data-label="{{ __('admin.common.order') }}">{{ $type->sort_order }}</td>
+                <td data-label="{{ __('admin.common.name') }}">
                     <span class="fw-semibold">{{ $type->name }}</span>
                     @if ($type->is_student)
                         <span class="badge bg-secondary-subtle text-secondary-emphasis fs-11 ms-1">Student</span>
                     @endif
                 </td>
-                <td data-label="ফি">{{ $type->fee > 0 ? number_format((float) $type->fee, 2) : 'নির্ধারিত হয়নি' }}</td>
-                <td data-label="আবেদনসমূহ">{{ $type->applications_count }}</td>
-                <td data-label="সদস্য">{{ $type->memberships_count }}</td>
-                <td data-label="স্ট্যাটাস"><x-admin.status-badge :status="$type->status" /></td>
-                <td data-label="অ্যাকশন" class="text-end">
+                <td data-label="{{ __('admin.fields.fee') }}">{{ $type->fee > 0 ? number_format((float) $type->fee, 2) : 'নির্ধারিত হয়নি' }}</td>
+                <td data-label="{{ __('admin.fields.applications') }}">{{ $type->applications_count }}</td>
+                <td data-label="{{ __('admin.fields.member') }}">{{ $type->memberships_count }}</td>
+                <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$type->status" /></td>
+                <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
                                 aria-label="{{ $type->name }} — অ্যাকশন মেনু">
@@ -34,14 +34,14 @@
                         <div class="dropdown-menu dropdown-menu-end">
                             @can('membership.update')
                                 <a href="{{ route('admin.membership.types.edit', $type) }}" class="dropdown-item">
-                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
+                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>{{ __('admin.actions.edit') }}
                                 </a>
                             @endcan
                             @can('membership.delete')
                                 <div class="dropdown-divider"></div>
                                 <button type="button" class="dropdown-item text-danger"
                                         data-bs-toggle="modal" data-bs-target="#delete-type-{{ $type->id }}">
-                                    <i class="ti ti-trash me-1" aria-hidden="true"></i>মুছে ফেলুন
+                                    <i class="ti ti-trash me-1" aria-hidden="true"></i>{{ __('admin.actions.delete') }}
                                 </button>
                             @endcan
                         </div>
@@ -68,7 +68,7 @@
                 <x-slot:confirm>
                     <form method="POST" action="{{ route('admin.membership.types.destroy', $type) }}">
                         @csrf @method('DELETE')
-                        <button type="submit" class="btn btn-danger">মুছে ফেলুন</button>
+                        <button type="submit" class="btn btn-danger">{{ __('admin.actions.delete') }}</button>
                     </form>
                 </x-slot:confirm>
             </x-admin.modal>

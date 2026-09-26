@@ -16,107 +16,107 @@
      */
     $groups = [
         [
-            'title' => 'সারসংক্ষেপ',
+            'title' => __('admin.nav.groups.overview'),
             'items' => [
-                ['label' => 'ড্যাশবোর্ড', 'icon' => 'ti-layout-dashboard', 'route' => 'admin.dashboard'],
+                ['label' => __('admin.nav.dashboard'), 'icon' => 'ti-layout-dashboard', 'route' => 'admin.dashboard'],
             ],
         ],
         [
-            'title' => 'সংগঠন',
+            'title' => __('admin.nav.groups.organization'),
             'permission' => 'organization.view',
             'items' => [
                 [
                     // Deliberately not repeating the group title above it — a
                     // section header and its only item reading the same word
                     // looks like a duplicated menu entry.
-                    'label' => 'কাঠামো ও কমিটি', 'icon' => 'ti-sitemap', 'id' => 'nav-organization',
+                    'label' => __('admin.nav.structure_committees'), 'icon' => 'ti-sitemap', 'id' => 'nav-organization',
                     'children' => [
-                        ['label' => 'সাংগঠনিক ইউনিট', 'route' => 'admin.organization.units.index'],
-                        ['label' => 'পদসমূহ', 'route' => 'admin.positions.index'],
+                        ['label' => __('admin.nav.units'), 'route' => 'admin.organization.units.index'],
+                        ['label' => __('admin.nav.positions'), 'route' => 'admin.positions.index'],
                         // Committee members are managed inside a committee, so
                         // they intentionally have no separate top-level entry.
-                        ['label' => 'কমিটি', 'route' => 'admin.committees.index'],
+                        ['label' => __('admin.nav.committees'), 'route' => 'admin.committees.index'],
                     ],
                 ],
             ],
         ],
         [
-            'title' => 'কর্মসূচি',
+            'title' => __('admin.nav.groups.programmes'),
             'items' => [
                 [
-                    'label' => 'কার্যক্রম', 'icon' => 'ti-calendar-event', 'id' => 'nav-activities',
+                    'label' => __('admin.nav.activities'), 'icon' => 'ti-calendar-event', 'id' => 'nav-activities',
                     'permission' => 'activities.view',
                     'children' => [
-                        ['label' => 'কার্যক্রমের ধরন', 'route' => 'admin.activities.types.index'],
-                        ['label' => 'সব কার্যক্রম', 'route' => 'admin.activities.index'],
+                        ['label' => __('admin.nav.activity_types'), 'route' => 'admin.activities.types.index'],
+                        ['label' => __('admin.nav.all_activities'), 'route' => 'admin.activities.index'],
                     ],
                 ],
                 [
-                    'label' => 'সদস্যপদ', 'icon' => 'ti-users-group', 'id' => 'nav-membership',
+                    'label' => __('admin.nav.membership'), 'icon' => 'ti-users-group', 'id' => 'nav-membership',
                     'permission' => 'membership.view',
                     'children' => [
-                        ['label' => 'নিবন্ধন সিজন', 'route' => 'admin.membership.seasons.index'],
-                        ['label' => 'সদস্যপদের ধরন', 'route' => 'admin.membership.types.index'],
-                        ['label' => 'সদস্যপদ আবেদন', 'route' => 'admin.membership.index'],
-                        ['label' => 'সদস্যবৃন্দ', 'route' => 'admin.membership.members.index'],
+                        ['label' => __('admin.nav.seasons'), 'route' => 'admin.membership.seasons.index'],
+                        ['label' => __('admin.nav.membership_types'), 'route' => 'admin.membership.types.index'],
+                        ['label' => __('admin.nav.membership_applications'), 'route' => 'admin.membership.index'],
+                        ['label' => __('admin.nav.members'), 'route' => 'admin.membership.members.index'],
                     ],
                 ],
                 [
-                    'label' => 'নোটিশ বোর্ড', 'icon' => 'ti-speakerphone', 'id' => 'nav-notices',
+                    'label' => __('admin.nav.notices'), 'icon' => 'ti-speakerphone', 'id' => 'nav-notices',
                     'permission' => 'notices.view',
                     'children' => [
-                        ['label' => 'সকল নোটিশ', 'route' => 'admin.notices.index', 'match' => ['status' => '']],
-                        ['label' => 'নতুন নোটিশ', 'route' => 'admin.notices.create', 'permission' => 'notices.create'],
-                        ['label' => 'প্রকাশিত', 'route' => 'admin.notices.index', 'params' => ['status' => 'published']],
-                        ['label' => 'খসড়া', 'route' => 'admin.notices.index', 'params' => ['status' => 'draft']],
-                        ['label' => 'নির্ধারিত', 'route' => 'admin.notices.index', 'params' => ['status' => 'scheduled']],
-                        ['label' => 'আর্কাইভ', 'route' => 'admin.notices.index', 'params' => ['status' => 'archived']],
+                        ['label' => __('admin.nav.all_notices'), 'route' => 'admin.notices.index', 'match' => ['status' => '']],
+                        ['label' => __('admin.nav.new_notice'), 'route' => 'admin.notices.create', 'permission' => 'notices.create'],
+                        ['label' => __('admin.nav.published'), 'route' => 'admin.notices.index', 'params' => ['status' => 'published']],
+                        ['label' => __('admin.nav.draft'), 'route' => 'admin.notices.index', 'params' => ['status' => 'draft']],
+                        ['label' => __('admin.nav.scheduled'), 'route' => 'admin.notices.index', 'params' => ['status' => 'scheduled']],
+                        ['label' => __('admin.nav.archived'), 'route' => 'admin.notices.index', 'params' => ['status' => 'archived']],
                     ],
                 ],
                 [
-                    'label' => 'নিয়োগ', 'icon' => 'ti-briefcase', 'id' => 'nav-recruitment',
+                    'label' => __('admin.nav.recruitment'), 'icon' => 'ti-briefcase', 'id' => 'nav-recruitment',
                     'permission' => 'recruitment.view',
                     'children' => [
-                        ['label' => 'চাকরির বিজ্ঞপ্তি', 'route' => 'admin.recruitment.index'],
-                        ['label' => 'নিয়োগ আবেদন', 'route' => 'admin.recruitment.applications.index'],
+                        ['label' => __('admin.nav.job_postings'), 'route' => 'admin.recruitment.index'],
+                        ['label' => __('admin.nav.job_applications'), 'route' => 'admin.recruitment.applications.index'],
                     ],
                 ],
             ],
         ],
         [
-            'title' => 'বিষয়বস্তু',
+            'title' => __('admin.nav.groups.content'),
             'permission' => 'settings.view',
             'items' => [
                 [
-                    'label' => 'পেজ ও সেটিংস', 'icon' => 'ti-file-text', 'id' => 'nav-content',
+                    'label' => __('admin.nav.content_pages'), 'icon' => 'ti-file-text', 'id' => 'nav-content',
                     'children' => [
-                        ['label' => 'আমাদের সম্পর্কে', 'route' => 'admin.content.about.edit'],
-                        ['label' => 'লক্ষ্য', 'route' => 'admin.content.mission.edit'],
-                        ['label' => 'দৃষ্টিভঙ্গি', 'route' => 'admin.content.vision.edit'],
-                        ['label' => 'উদ্দেশ্যসমূহ', 'route' => 'admin.content.objectives.index'],
-                        ['label' => 'সাইট সেটিংস', 'route' => 'admin.settings.index'],
+                        ['label' => __('admin.nav.about'), 'route' => 'admin.content.about.edit'],
+                        ['label' => __('admin.nav.mission'), 'route' => 'admin.content.mission.edit'],
+                        ['label' => __('admin.nav.vision'), 'route' => 'admin.content.vision.edit'],
+                        ['label' => __('admin.nav.objectives'), 'route' => 'admin.content.objectives.index'],
+                        ['label' => __('admin.nav.site_settings'), 'route' => 'admin.settings.index'],
                     ],
                 ],
             ],
         ],
         [
-            'title' => 'সিস্টেম',
+            'title' => __('admin.nav.groups.system'),
             'permission' => 'users.view',
             'items' => [
                 [
-                    'label' => 'ব্যবহারকারী ও অনুমতি', 'icon' => 'ti-shield-lock', 'id' => 'nav-system',
+                    'label' => __('admin.nav.users_permissions'), 'icon' => 'ti-shield-lock', 'id' => 'nav-system',
                     'children' => [
-                        ['label' => 'ব্যবহারকারী', 'route' => 'admin.users.index'],
-                        ['label' => 'ভূমিকা', 'route' => 'admin.roles.index'],
-                        ['label' => 'অনুমতি', 'route' => 'admin.permissions.index'],
+                        ['label' => __('admin.nav.users'), 'route' => 'admin.users.index'],
+                        ['label' => __('admin.nav.roles'), 'route' => 'admin.roles.index'],
+                        ['label' => __('admin.nav.permissions'), 'route' => 'admin.permissions.index'],
                     ],
                 ],
             ],
         ],
         [
-            'title' => 'অ্যাকাউন্ট',
+            'title' => __('admin.nav.groups.account'),
             'items' => [
-                ['label' => 'প্রোফাইল', 'icon' => 'ti-user-circle', 'route' => 'profile.edit'],
+                ['label' => __('admin.nav.profile'), 'icon' => 'ti-user-circle', 'route' => 'profile.edit'],
             ],
         ],
     ];
@@ -145,27 +145,27 @@
 @endphp
 
 <div class="sidenav-menu">
-    <a href="{{ route('admin.dashboard') }}" class="logo pf-logo" aria-label="প্রভাতফেরী — ড্যাশবোর্ড">
+    <a href="{{ route('admin.dashboard') }}" class="logo pf-logo" aria-label="{{ __('admin.a11y.dashboard_home') }}">
         <span class="pf-logo-full">
-            <span class="pf-logo-for-light"><img src="{{ asset('brand/provatferi-logo-light.png') }}" alt="প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র"></span>
-            <span class="pf-logo-for-dark"><img src="{{ asset('brand/provatferi-logo-dark.png') }}" alt="প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র"></span>
+            <span class="pf-logo-for-light"><img src="{{ asset('brand/provatferi-logo-light.png') }}" alt="{{ __('admin.brand.org_full') }}"></span>
+            <span class="pf-logo-for-dark"><img src="{{ asset('brand/provatferi-logo-dark.png') }}" alt="{{ __('admin.brand.org_full') }}"></span>
         </span>
         <span class="pf-logo-icon">
-            <span class="pf-logo-for-light"><img src="{{ asset('brand/provatferi-icon-light.png') }}" alt="প্রভাতফেরী"></span>
-            <span class="pf-logo-for-dark"><img src="{{ asset('brand/provatferi-icon-dark.png') }}" alt="প্রভাতফেরী"></span>
+            <span class="pf-logo-for-light"><img src="{{ asset('brand/provatferi-icon-light.png') }}" alt="{{ __('admin.brand.org') }}"></span>
+            <span class="pf-logo-for-dark"><img src="{{ asset('brand/provatferi-icon-dark.png') }}" alt="{{ __('admin.brand.org') }}"></span>
         </span>
     </a>
 
-    <button class="button-sm-hover" type="button" aria-label="সাইডবার সঙ্কুচিত/প্রসারিত করুন">
+    <button class="button-sm-hover" type="button" aria-label="{{ __('admin.a11y.toggle_sidebar') }}">
         <i class="ti ti-circle align-middle" aria-hidden="true"></i>
     </button>
 
-    <button class="button-close-fullsidebar" type="button" aria-label="মেনু বন্ধ করুন">
+    <button class="button-close-fullsidebar" type="button" aria-label="{{ __('admin.a11y.close_menu') }}">
         <i class="ti ti-x align-middle" aria-hidden="true"></i>
     </button>
 
     <div data-simplebar>
-        <nav aria-label="প্রধান নেভিগেশন">
+        <nav aria-label="{{ __('admin.a11y.main_nav') }}">
             <ul class="side-nav">
                 @foreach ($groups as $group)
                     @continue(isset($group['permission']) && ! auth()->user()->can($group['permission']))
@@ -229,7 +229,7 @@
                         @csrf
                         <button type="submit" class="side-nav-link btn btn-link text-start w-100 shadow-none">
                             <span class="menu-icon"><i class="ti ti-logout" aria-hidden="true"></i></span>
-                            <span class="menu-text">লগ আউট</span>
+                            <span class="menu-text">{{ __('admin.nav.logout') }}</span>
                         </button>
                     </form>
                 </li>

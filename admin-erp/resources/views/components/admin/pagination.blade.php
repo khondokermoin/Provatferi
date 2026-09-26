@@ -8,5 +8,5 @@
         {{ $paginator->onEachSide(1)->links() }}
     </div>
 @elseif ($paginator->total() > 0)
-    <p class="text-muted fs-13 mb-0 mt-3">মোট {{ $paginator->total() }}টি</p>
+    <p class="text-muted fs-13 mb-0 mt-3">{{ __('admin.pagination.total_only', ['total' => bn_number($paginator->total())]) }}</p>
 @endif

@@ -9,7 +9,7 @@
             <i class="ti ti-printer me-1" aria-hidden="true"></i>প্রিন্ট করুন
         </a>
         <a href="{{ route('admin.recruitment.applications.index') }}" class="btn btn-light">
-            <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>ফিরে যান
+            <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>{{ __('admin.actions.back') }}
         </a>
     </div>
 @endsection
@@ -43,10 +43,10 @@
                         </div>
                     @endif
                     <dl class="row mb-0 flex-grow-1">
-                        <dt class="col-sm-4 fs-13 text-muted">নাম</dt>
+                        <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.name') }}</dt>
                         <dd class="col-sm-8">{{ $application->applicant_name }}</dd>
 
-                        <dt class="col-sm-4 fs-13 text-muted">বিজ্ঞপ্তি</dt>
+                        <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.notice') }}</dt>
                         <dd class="col-sm-8">
                             @if ($application->jobPosting)
                                 <a href="{{ route('admin.recruitment.show', $application->jobPosting) }}">{{ $application->jobPosting->title }}</a>
@@ -55,7 +55,7 @@
                             @endif
                         </dd>
 
-                        <dt class="col-sm-4 fs-13 text-muted">আবেদনের তারিখ</dt>
+                        <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.applied_at') }}</dt>
                         <dd class="col-sm-8 mb-0">{{ bn_datetime($application->submitted_at ?? $application->created_at) }}</dd>
                     </dl>
                 </div>
@@ -64,10 +64,10 @@
             {{-- যোগাযোগের তথ্য --}}
             <x-admin.card title="যোগাযোগের তথ্য">
                 <dl class="row mb-0">
-                    <dt class="col-sm-4 fs-13 text-muted">মোবাইল</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.mobile') }}</dt>
                     <dd class="col-sm-8"><a href="tel:{{ $application->applicant_phone }}">{{ $application->applicant_phone ?: '—' }}</a></dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">ই-মেইল</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.email') }}</dt>
                     <dd class="col-sm-8"><a href="mailto:{{ $application->applicant_email }}">{{ $application->applicant_email }}</a></dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">পছন্দের যোগাযোগ</dt>
@@ -78,7 +78,7 @@
             {{-- আবেদনের বিবরণ --}}
             <x-admin.card title="আবেদনের বিবরণ">
                 <dl class="row mb-0">
-                    <dt class="col-sm-4 fs-13 text-muted">জেলা</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.district') }}</dt>
                     <dd class="col-sm-8">{{ $application->district ?: '—' }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">বর্তমান অবস্থান</dt>
@@ -131,7 +131,7 @@
         </div>
 
         <div class="col-lg-5">
-            <x-admin.card title="স্ট্যাটাস">
+            <x-admin.card title="{{ __('admin.common.status') }}">
                 <x-admin.status-badge :status="$application->status" class="mb-2" />
                 @if ($application->reviewer)
                     <p class="text-muted fs-12 mb-0">সর্বশেষ হালনাগাদ: {{ $application->reviewer->name }}</p>
@@ -139,13 +139,13 @@
             </x-admin.card>
 
             {{-- সংযুক্তি --}}
-            <x-admin.card title="সংযুক্তি">
+            <x-admin.card title="{{ __('admin.fields.attachment') }}">
                 <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
                     <li class="d-flex align-items-center justify-content-between">
                         <span class="fs-13"><i class="ti ti-photo me-1 text-muted" aria-hidden="true"></i>প্রোফাইল ছবি</span>
                         @if ($photoExists)
                             <a href="{{ route('admin.recruitment.applications.file', [$application, 'photo']) }}" class="btn btn-light border btn-sm" target="_blank" rel="noopener noreferrer">
-                                <i class="ti ti-eye me-1" aria-hidden="true"></i>দেখুন
+                                <i class="ti ti-eye me-1" aria-hidden="true"></i>{{ __('admin.actions.view') }}
                             </a>
                         @elseif ($application->photo_path)
                             {{-- Recorded but the file itself is gone — a genuinely different,
@@ -194,24 +194,24 @@
             </x-admin.card>
 
             @if ($application->internal_note)
-                <x-admin.card title="অভ্যন্তরীণ নোট" subtitle="পাবলিকভাবে প্রকাশিত হয় না — PDF/প্রিন্টেও অন্তর্ভুক্ত হয় না।">
+                <x-admin.card title="{{ __('admin.fields.internal_note') }}" subtitle="পাবলিকভাবে প্রকাশিত হয় না — PDF/প্রিন্টেও অন্তর্ভুক্ত হয় না।">
                     <p class="mb-0" style="white-space: pre-line;">{{ $application->internal_note }}</p>
                 </x-admin.card>
             @endif
 
             @can('recruitment.approve')
-                <x-admin.card title="স্ট্যাটাস পরিবর্তন করুন">
+                <x-admin.card title="{{ __('admin.actions2.change_status') }}">
                     <form method="POST" action="{{ route('admin.recruitment.applications.status', $application) }}">
                         @csrf @method('PATCH')
 
-                        <x-admin.form-select name="status" label="নতুন স্ট্যাটাস" :options="$statuses"
+                        <x-admin.form-select name="status" label="{{ __('admin.actions2.new_status') }}" :options="$statuses"
                             :value="$application->status" :placeholder="null" required />
 
                         <x-admin.form-textarea name="internal_note" label="অভ্যন্তরীণ নোট (ঐচ্ছিক)" :rows="3"
                             :value="$application->internal_note" />
 
                         <button type="submit" class="btn btn-primary w-100">
-                            <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>হালনাগাদ করুন
+                            <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ __('admin.actions.update') }}
                         </button>
                     </form>
                 </x-admin.card>

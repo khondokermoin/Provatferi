@@ -7,31 +7,31 @@
     once as body copy) — the subtitle now carries the one consequence
     statement and the body gives only the practical next step.
 --}}
-<x-admin.card title="অ্যাকাউন্ট মুছে ফেলুন" subtitle="একবার মুছে ফেললে এই অ্যাকাউন্ট ও এর সাথে সম্পর্কিত সব তথ্য স্থায়ীভাবে মুছে যাবে — এই কাজটি পূর্বাবস্থায় ফেরানো যায় না।" class="mb-3 pf-danger-zone">
+<x-admin.card title="{{ __('admin.profile.delete_heading') }}" subtitle="{{ __('admin.profile.delete_intro') }}" class="mb-3 pf-danger-zone">
     <p class="text-muted fs-13">
-        <i class="ti ti-alert-triangle me-1" aria-hidden="true"></i>মুছে ফেলার আগে প্রয়োজনীয় কোনো তথ্য থাকলে তা সংরক্ষণ করে নিন।
+        <i class="ti ti-alert-triangle me-1" aria-hidden="true"></i>{{ __('admin.profile.delete_confirm_note') }}
     </p>
 
     <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirm-user-deletion">
-        <i class="ti ti-trash me-1" aria-hidden="true"></i>অ্যাকাউন্ট মুছে ফেলুন
+        <i class="ti ti-trash me-1" aria-hidden="true"></i>{{ __('admin.profile.delete_heading') }}
     </button>
 </x-admin.card>
 
-<x-admin.modal id="confirm-user-deletion" title="আপনি কি নিশ্চিত?" variant="danger">
+<x-admin.modal id="confirm-user-deletion" title="{{ __('admin.profile.delete_confirm_heading') }}" variant="danger">
     <form method="post" action="{{ route('profile.destroy') }}" id="delete-account-form">
         @csrf
         @method('delete')
 
         <p class="text-muted fs-13">
-            একবার মুছে ফেললে এই অ্যাকাউন্ট ও এর সাথে সম্পর্কিত সব তথ্য স্থায়ীভাবে মুছে যাবে। নিশ্চিত করতে আপনার পাসওয়ার্ড দিন।
+            {{ __('admin.profile.delete_confirm_body') }}
         </p>
 
         <div class="mb-0">
-            <label class="form-label visually-hidden" for="delete_password">পাসওয়ার্ড</label>
+            <label class="form-label visually-hidden" for="delete_password">{{ __('admin.auth.password') }}</label>
             <div class="pf-password-field">
                 <input type="password" id="delete_password" name="password"
                        class="form-control pf-password-input @error('password', 'userDeletion') is-invalid @enderror"
-                       placeholder="পাসওয়ার্ড" autocomplete="current-password"
+                       placeholder="{{ __('admin.auth.password') }}" autocomplete="current-password"
                        @error('password', 'userDeletion') aria-invalid="true" aria-describedby="delete-password-error" @enderror>
                 <x-password-toggle-button/>
             </div>
@@ -45,7 +45,7 @@
 
     <x-slot name="confirm">
         <button type="submit" form="delete-account-form" class="btn btn-danger">
-            <i class="ti ti-trash me-1" aria-hidden="true"></i>অ্যাকাউন্ট মুছে ফেলুন
+            <i class="ti ti-trash me-1" aria-hidden="true"></i>{{ __('admin.profile.delete_heading') }}
         </button>
     </x-slot>
 </x-admin.modal>

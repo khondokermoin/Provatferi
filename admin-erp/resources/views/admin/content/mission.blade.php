@@ -8,7 +8,7 @@
         <div class="row">
             <div class="col-lg-7">
                 <x-admin.card title="Mission" subtitle="দীর্ঘ-ফরম্যাট কনটেন্ট — সর্বশেষ হালনাগাদ: {{ $block->updated_at ? bn_datetime($block->updated_at) : '—' }}">
-                    <x-admin.form-textarea name="body" label="বিবরণ" :value="$block->body" :rows="8" required
+                    <x-admin.form-textarea name="body" label="{{ __('admin.common.description') }}" :value="$block->body" :rows="8" required
                         :disabled="! auth()->user()->can('settings.update')" />
                     <x-admin.form-textarea name="body_en" label="বিবরণ (English, ঐচ্ছিক)" :value="$block->body_en" :rows="8"
                         :disabled="! auth()->user()->can('settings.update')" />
@@ -23,14 +23,14 @@
                 @can('settings.update')
                     <div class="d-flex flex-wrap gap-2 mb-4">
                         <button type="submit" class="btn btn-primary">
-                            <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>সংরক্ষণ করুন
+                            <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ __('admin.actions.save') }}
                         </button>
                     </div>
                 @endcan
             </div>
 
             <div class="col-lg-5">
-                <x-admin.card title="প্রিভিউ" subtitle="পাবলিক সাইটে ধারণাগতভাবে যেভাবে দেখাবে।">
+                <x-admin.card title="{{ __('admin.fields.preview') }}" subtitle="পাবলিক সাইটে ধারণাগতভাবে যেভাবে দেখাবে।">
                     <span class="badge bg-success-subtle text-success-emphasis mb-2">Mission</span>
                     <p class="mb-0">{{ $block->body ?: '—' }}</p>
                     @unless ($block->is_public)

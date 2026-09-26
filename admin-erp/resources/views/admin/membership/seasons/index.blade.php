@@ -10,28 +10,28 @@
 
 @section('content')
     <x-admin.table :paginator="$seasons" caption="নিবন্ধন সিজনের তালিকা"
-        :headers="['ক্রম', 'নাম', 'ধরন', 'মেয়াদ', 'আবেদন', 'স্ট্যাটাস', ['label' => 'অ্যাকশন', 'align' => 'end']]">
+        :headers="[__('admin.common.order'), __('admin.common.name'), __('admin.common.type'), __('admin.fields.term'), __('admin.fields.application'), __('admin.common.status'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
 
         @forelse ($seasons as $season)
             @php $suggested = $season->suggestedStatusFromDates(); @endphp
             <tr>
-                <td data-label="ক্রম">{{ $season->display_order }}</td>
-                <td data-label="নাম">
+                <td data-label="{{ __('admin.common.order') }}">{{ $season->display_order }}</td>
+                <td data-label="{{ __('admin.common.name') }}">
                     <span class="fw-semibold">{{ $season->name }}</span>
                     @if ($season->name_en)
                         <span class="d-block text-muted fs-12">{{ $season->name_en }}</span>
                     @endif
                 </td>
-                <td data-label="ধরন">{{ \App\Models\MembershipSeason::CAMPAIGN_TYPES[$season->campaign_type] ?? $season->campaign_type }}</td>
-                <td data-label="মেয়াদ">
+                <td data-label="{{ __('admin.common.type') }}">{{ \App\Models\MembershipSeason::CAMPAIGN_TYPES[$season->campaign_type] ?? $season->campaign_type }}</td>
+                <td data-label="{{ __('admin.fields.term') }}">
                     @if ($season->opens_at || $season->closes_at)
                         {{ $season->opens_at?->format('d M Y') ?? '—' }} – {{ $season->closes_at?->format('d M Y') ?? '—' }}
                     @else
-                        <span class="text-muted">নির্ধারিত নয়</span>
+                        <span class="text-muted">{{ __('admin.fields.not_scheduled') }}</span>
                     @endif
                 </td>
-                <td data-label="আবেদন">{{ $season->applications_count }}</td>
-                <td data-label="স্ট্যাটাস">
+                <td data-label="{{ __('admin.fields.application') }}">{{ $season->applications_count }}</td>
+                <td data-label="{{ __('admin.common.status') }}">
                     <x-admin.status-badge :status="$season->status" />
                     @if ($suggested)
                         <span class="d-block text-warning fs-11 mt-1">
@@ -40,7 +40,7 @@
                         </span>
                     @endif
                 </td>
-                <td data-label="অ্যাকশন" class="text-end">
+                <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
                                 aria-label="{{ $season->name }} — অ্যাকশন মেনু">
@@ -49,7 +49,7 @@
                         <div class="dropdown-menu dropdown-menu-end">
                             @can('membership.update')
                                 <a href="{{ route('admin.membership.seasons.edit', $season) }}" class="dropdown-item">
-                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
+                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>{{ __('admin.actions.edit') }}
                                 </a>
                                 <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#status-{{ $season->id }}">
                                     <i class="ti ti-refresh me-1" aria-hidden="true"></i>স্ট্যাটাস পরিবর্তন
@@ -59,7 +59,7 @@
                                 <div class="dropdown-divider"></div>
                                 <button type="button" class="dropdown-item text-danger"
                                         data-bs-toggle="modal" data-bs-target="#delete-{{ $season->id }}">
-                                    <i class="ti ti-trash me-1" aria-hidden="true"></i>মুছে ফেলুন
+                                    <i class="ti ti-trash me-1" aria-hidden="true"></i>{{ __('admin.actions.delete') }}
                                 </button>
                             @endcan
                         </div>
@@ -76,11 +76,11 @@
             <x-admin.modal :id="'status-'.$season->id" title="স্ট্যাটাস পরিবর্তন — {{ $season->name }}">
                 <form method="POST" action="{{ route('admin.membership.seasons.status', $season) }}" id="status-form-{{ $season->id }}">
                     @csrf @method('PATCH')
-                    <x-admin.form-select name="status" label="নতুন স্ট্যাটাস"
+                    <x-admin.form-select name="status" label="{{ __('admin.actions2.new_status') }}"
                         :options="\App\Models\MembershipSeason::STATUSES" :value="$season->status" :placeholder="null" required />
                 </form>
                 <x-slot:confirm>
-                    <button type="submit" form="status-form-{{ $season->id }}" class="btn btn-primary">হালনাগাদ করুন</button>
+                    <button type="submit" form="status-form-{{ $season->id }}" class="btn btn-primary">{{ __('admin.actions.update') }}</button>
                 </x-slot:confirm>
             </x-admin.modal>
         @endforeach
@@ -101,7 +101,7 @@
                 <x-slot:confirm>
                     <form method="POST" action="{{ route('admin.membership.seasons.destroy', $season) }}">
                         @csrf @method('DELETE')
-                        <button type="submit" class="btn btn-danger">মুছে ফেলুন</button>
+                        <button type="submit" class="btn btn-danger">{{ __('admin.actions.delete') }}</button>
                     </form>
                 </x-slot:confirm>
             </x-admin.modal>

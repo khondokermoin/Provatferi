@@ -2,7 +2,7 @@
 
 @section('page-actions')
     <a href="{{ route('admin.membership.index') }}" class="btn btn-light">
-        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>ফিরে যান
+        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>{{ __('admin.actions.back') }}
     </a>
 @endsection
 
@@ -11,7 +11,7 @@
         <div class="col-lg-7">
             <x-admin.card title="আবেদনকারীর তথ্য">
                 <dl class="row mb-0">
-                    <dt class="col-sm-4 fs-13 text-muted">আবেদনকারী</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.applicant') }}</dt>
                     <dd class="col-sm-8">
                         {{ $application->applicantDisplayName() ?: '—' }}
                         @if ($application->isPublicApplicant())
@@ -19,21 +19,21 @@
                         @endif
                     </dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">ই-মেইল</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.email') }}</dt>
                     <dd class="col-sm-8">{{ $application->applicantDisplayEmail() ?: '—' }}</dd>
 
                     @if ($application->applicant_phone)
-                        <dt class="col-sm-4 fs-13 text-muted">মোবাইল</dt>
+                        <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.mobile') }}</dt>
                         <dd class="col-sm-8">{{ $application->applicant_phone }}</dd>
                     @endif
 
-                    <dt class="col-sm-4 fs-13 text-muted">সদস্যপদের ধরন</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.nav.membership_types') }}</dt>
                     <dd class="col-sm-8">{{ $application->membershipType->name ?? '—' }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">নিবন্ধন সিজন</dt>
                     <dd class="col-sm-8">{{ $application->season?->name ?? '—' }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">সাংগঠনিক ইউনিট</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.unit') }}</dt>
                     <dd class="col-sm-8">{{ $application->organizationUnit?->name ?? '—' }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">জমা দেওয়ার তারিখ</dt>
@@ -114,12 +114,12 @@
             @endif
 
             @if ($application->history->isNotEmpty())
-                <x-admin.card title="ইতিহাস" subtitle="শুধুমাত্র প্রশাসনিক ব্যবহারের জন্য।">
+                <x-admin.card title="{{ __('admin.fields.history') }}" subtitle="শুধুমাত্র প্রশাসনিক ব্যবহারের জন্য।">
                     <ul class="list-unstyled mb-0 fs-13">
                         @foreach ($application->history->sortByDesc('created_at') as $entry)
                             <li class="border-bottom pb-2 mb-2">
                                 <span class="fw-semibold">{{ $statuses[$entry->action] ?? $entry->action }}</span>
-                                — {{ $entry->actor?->name ?? 'সিস্টেম' }}
+                                — {{ $entry->actor?->name ?? __('admin.nav.groups.system') }}
                                 <span class="text-muted d-block fs-12">{{ bn_datetime($entry->created_at) }}</span>
                                 @if ($entry->note)
                                     <span class="d-block">{{ $entry->note }}</span>
@@ -131,14 +131,14 @@
             @endif
 
             @if ($application->rejection_reason)
-                <x-admin.card title="প্রত্যাখ্যানের কারণ">
+                <x-admin.card title="{{ __('admin.actions2.reject_reason') }}">
                     <p class="mb-0">{{ $application->rejection_reason }}</p>
                 </x-admin.card>
             @endif
         </div>
 
         <div class="col-lg-5">
-            <x-admin.card title="স্ট্যাটাস">
+            <x-admin.card title="{{ __('admin.common.status') }}">
                 <x-admin.status-badge :status="$application->status" class="mb-3" />
                 @if ($application->reviewer)
                     <p class="fs-13 text-muted mb-0">
@@ -149,7 +149,7 @@
 
             {{-- Internal only — review_notes is never exposed via the public API. --}}
             @if ($application->review_notes)
-                <x-admin.card title="অভ্যন্তরীণ নোট" subtitle="শুধুমাত্র প্রশাসনিক ব্যবহারের জন্য — পাবলিকভাবে প্রকাশিত হয় না।">
+                <x-admin.card title="{{ __('admin.fields.internal_note') }}" subtitle="শুধুমাত্র প্রশাসনিক ব্যবহারের জন্য — পাবলিকভাবে প্রকাশিত হয় না।">
                     <p class="mb-0">{{ $application->review_notes }}</p>
                 </x-admin.card>
             @endif
@@ -162,11 +162,11 @@
                             পরিশোধ যাচাই না হওয়া পর্যন্ত অনুমোদন করা যাবে না — বাঁয়ে পরিশোধ রেকর্ড করুন অথবা মওকুফ করুন।
                         </div>
                     @endif
-                    <x-admin.card title="স্ট্যাটাস পরিবর্তন করুন">
+                    <x-admin.card title="{{ __('admin.actions2.change_status') }}">
                         <form method="POST" action="{{ route('admin.membership.status', $application) }}">
                             @csrf @method('PATCH')
 
-                            <x-admin.form-select name="status" label="নতুন স্ট্যাটাস"
+                            <x-admin.form-select name="status" label="{{ __('admin.actions2.new_status') }}"
                                 :options="collect($allowedTransitions)
                                     ->reject(fn ($s) => $s === 'approved' && ! $paymentSatisfied)
                                     ->mapWithKeys(fn ($s) => [$s => $statuses[$s]])->all()"
@@ -175,7 +175,7 @@
                             <x-admin.form-textarea name="review_notes" label="অভ্যন্তরীণ নোট (ঐচ্ছিক)" :rows="3"
                                 help="আবেদনকারীকে দেখানো হবে না।" />
 
-                            <x-admin.form-textarea name="rejection_reason" label="প্রত্যাখ্যানের কারণ"
+                            <x-admin.form-textarea name="rejection_reason" label="{{ __('admin.actions2.reject_reason') }}"
                                 help="শুধু প্রত্যাখ্যান করলে আবশ্যক।" :rows="2" />
 
                             <button type="submit" class="btn btn-primary w-100">

@@ -16,10 +16,10 @@
 
         <div class="row">
             <div class="col-lg-8">
-                <x-admin.card title="মূল তথ্য">
-                    <x-admin.form-input name="title" label="শিরোনাম" :value="$activity->title" required />
+                <x-admin.card title="{{ __('admin.fields.main_info') }}">
+                    <x-admin.form-input name="title" label="{{ __('admin.common.title') }}" :value="$activity->title" required />
                     <x-admin.form-input name="title_en" label="শিরোনাম (English, ঐচ্ছিক)" :value="$activity->title_en" />
-                    <x-admin.form-textarea name="summary" label="সংক্ষিপ্ত বিবরণ" :value="$activity->summary" :rows="2"
+                    <x-admin.form-textarea name="summary" label="{{ __('admin.common.summary') }}" :value="$activity->summary" :rows="2"
                         help="তালিকা ও কার্ডে দেখানো হবে।" />
                     <x-admin.form-textarea name="summary_en" label="সংক্ষিপ্ত বিবরণ (English, ঐচ্ছিক)" :value="$activity->summary_en" :rows="2" />
                     <x-admin.form-textarea name="description" label="বিস্তারিত বিবরণ" :value="$activity->description" :rows="4" />
@@ -27,12 +27,12 @@
 
                     <div class="row">
                         <div class="col-md-6">
-                            <x-admin.form-select name="activity_type_id" label="ধরন" :options="$types"
+                            <x-admin.form-select name="activity_type_id" label="{{ __('admin.common.type') }}" :options="$types"
                                 :value="$activity->activity_type_id" required />
                         </div>
                         <div class="col-md-6">
-                            <x-admin.form-select name="organization_unit_id" label="সাংগঠনিক ইউনিট" :options="$units"
-                                :value="$activity->organization_unit_id" placeholder="— নির্দিষ্ট নয় —" />
+                            <x-admin.form-select name="organization_unit_id" label="{{ __('admin.fields.unit') }}" :options="$units"
+                                :value="$activity->organization_unit_id" placeholder="{{ __('admin.filters.none_specific') }}" />
                         </div>
                     </div>
                 </x-admin.card>
@@ -50,7 +50,7 @@
                     </div>
                     <div class="row">
                         <div class="col-md-6">
-                            <x-admin.form-input name="venue" label="ভেন্যু" :value="$activity->venue" />
+                            <x-admin.form-input name="venue" label="{{ __('admin.fields.venue') }}" :value="$activity->venue" />
                         </div>
                         <div class="col-md-6">
                             <x-admin.form-input name="participant_count" label="অংশগ্রহণকারীর সংখ্যা" type="number"
@@ -58,11 +58,11 @@
                                 help="প্রকৃত সংখ্যা — অনুমান বা কাল্পনিক সংখ্যা নয়।" />
                         </div>
                     </div>
-                    <x-admin.form-textarea name="address" label="ঠিকানা" :value="$activity->address" :rows="2" />
+                    <x-admin.form-textarea name="address" label="{{ __('admin.common.address') }}" :value="$activity->address" :rows="2" />
                 </x-admin.card>
 
                 <x-admin.card title="বিবরণ ও ফলাফল" subtitle="বাস্তব তথ্য না থাকলে খালি রাখুন।">
-                    <x-admin.form-textarea name="objective" label="উদ্দেশ্য" :value="$activity->objective" :rows="2" />
+                    <x-admin.form-textarea name="objective" label="{{ __('admin.fields.objective') }}" :value="$activity->objective" :rows="2" />
                     <x-admin.form-textarea name="objective_en" label="উদ্দেশ্য (English, ঐচ্ছিক)" :value="$activity->objective_en" :rows="2" />
                     <x-admin.form-textarea name="what_happened" label="কী ঘটেছে" :value="$activity->what_happened" :rows="4" />
                     <x-admin.form-textarea name="what_happened_en" label="কী ঘটেছে (English, ঐচ্ছিক)" :value="$activity->what_happened_en" :rows="4" />
@@ -73,8 +73,8 @@
             </div>
 
             <div class="col-lg-4">
-                <x-admin.card title="প্রকাশনা">
-                    <x-admin.form-select name="status" label="স্ট্যাটাস" :options="$statuses"
+                <x-admin.card title="{{ __('admin.common.publication') }}">
+                    <x-admin.form-select name="status" label="{{ __('admin.common.status') }}" :options="$statuses"
                         :value="$activity->status" :placeholder="null" required
                         help="Published করতে ধরন, সংক্ষিপ্ত বিবরণ ও শুরুর তারিখ লাগবে।" />
 
@@ -91,10 +91,10 @@
 
                 <div class="d-flex flex-wrap gap-2 mb-4">
                     <button type="submit" class="btn btn-primary">
-                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ $isEdit ? 'হালনাগাদ করুন' : 'তৈরি করুন' }}
+                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ $isEdit ? __('admin.actions.update') : __('admin.actions.create') }}
                     </button>
                     <a href="{{ $isEdit ? route('admin.activities.show', $activity) : route('admin.activities.index') }}"
-                       class="btn btn-light">বাতিল</a>
+                       class="btn btn-light">{{ __('admin.actions.cancel') }}</a>
                 </div>
             </div>
         </div>

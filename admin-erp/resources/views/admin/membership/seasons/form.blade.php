@@ -9,11 +9,11 @@
 
         <div class="row">
             <div class="col-lg-8">
-                <x-admin.card title="বিবরণ">
+                <x-admin.card title="{{ __('admin.common.description') }}">
                     <x-admin.form-input name="name" label="নাম (বাংলা)" :value="$season->name" required
                         help="যেমন: ২০২৬ প্রথম সিজন, ২০২৬–২৭ সদস্য নিবন্ধন" />
                     <x-admin.form-input name="name_en" label="নাম (English, ঐচ্ছিক)" :value="$season->name_en" />
-                    <x-admin.form-textarea name="description" label="বিবরণ" :value="$season->description" :rows="3" />
+                    <x-admin.form-textarea name="description" label="{{ __('admin.common.description') }}" :value="$season->description" :rows="3" />
                     <x-admin.form-textarea name="cash_payment_instructions" label="নগদ পরিশোধের নির্দেশনা"
                         :value="$season->cash_payment_instructions" :rows="3"
                         help="আবেদনকারীকে দেখানো হবে — কোথায়/কীভাবে ফি জমা দিতে হবে।" />
@@ -49,24 +49,24 @@
             </div>
 
             <div class="col-lg-4">
-                <x-admin.card title="প্রকাশনা">
+                <x-admin.card title="{{ __('admin.common.publication') }}">
                     <x-admin.form-select name="campaign_type" label="সিজনের ধরন" :options="$campaignTypes"
                         :value="$season->campaign_type" :placeholder="null" required />
-                    <x-admin.form-select name="status" label="স্ট্যাটাস" :options="$statuses"
+                    <x-admin.form-select name="status" label="{{ __('admin.common.status') }}" :options="$statuses"
                         :value="$season->status" :placeholder="null" required />
                     <div class="form-check mb-3">
                         <input type="checkbox" class="form-check-input" id="public_profile_opt_in" name="public_profile_opt_in" value="1"
                                @checked(old('public_profile_opt_in', $season->public_profile_opt_in ?? true))>
                         <label class="form-check-label" for="public_profile_opt_in">পাবলিক প্রোফাইল অপশন চালু</label>
                     </div>
-                    <x-admin.form-input name="display_order" label="ক্রম" type="number" :value="$season->display_order ?? 0" required min="0" />
+                    <x-admin.form-input name="display_order" label="{{ __('admin.common.order') }}" type="number" :value="$season->display_order ?? 0" required min="0" />
                 </x-admin.card>
 
                 <div class="d-flex flex-wrap gap-2 mb-4">
                     <button type="submit" class="btn btn-primary">
-                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ $isEdit ? 'হালনাগাদ করুন' : 'তৈরি করুন' }}
+                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ $isEdit ? __('admin.actions.update') : __('admin.actions.create') }}
                     </button>
-                    <a href="{{ route('admin.membership.seasons.index') }}" class="btn btn-light">বাতিল</a>
+                    <a href="{{ route('admin.membership.seasons.index') }}" class="btn btn-light">{{ __('admin.actions.cancel') }}</a>
                 </div>
             </div>
         </div>

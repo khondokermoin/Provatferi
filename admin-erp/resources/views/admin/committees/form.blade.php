@@ -15,16 +15,16 @@
 
                     <div class="row">
                         <div class="col-md-6">
-                            <x-admin.form-select name="organization_unit_id" label="সাংগঠনিক ইউনিট"
+                            <x-admin.form-select name="organization_unit_id" label="{{ __('admin.fields.unit') }}"
                                 :options="$units" :value="$committee->organization_unit_id" required />
                         </div>
                         <div class="col-md-6">
-                            <x-admin.form-select name="committee_type" label="ধরন"
+                            <x-admin.form-select name="committee_type" label="{{ __('admin.common.type') }}"
                                 :options="$types" :value="$committee->committee_type" />
                         </div>
                     </div>
 
-                    <x-admin.form-textarea name="description" label="নোট / বিবরণ"
+                    <x-admin.form-textarea name="description" label="{{ __('admin.fields.notes_desc') }}"
                         :value="$committee->description" :rows="4" />
                     <x-admin.form-textarea name="description_en" label="নোট / বিবরণ (English, ঐচ্ছিক)"
                         :value="$committee->description_en" :rows="4" />
@@ -35,7 +35,7 @@
                 <x-admin.card title="মেয়াদ ও স্ট্যাটাস">
                     <x-admin.form-input name="term_start" label="মেয়াদ শুরু" type="date"
                         :value="$committee->term_start?->format('Y-m-d')" />
-                    <x-admin.form-input name="term_end" label="মেয়াদ শেষ" type="date"
+                    <x-admin.form-input name="term_end" label="{{ __('admin.fields.term_end') }}" type="date"
                         :value="$committee->term_end?->format('Y-m-d')"
                         help="খালি রাখলে চলমান ধরা হবে।" />
 
@@ -50,10 +50,10 @@
 
                 <div class="d-flex flex-wrap gap-2 mb-4">
                     <button type="submit" class="btn btn-primary">
-                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ $isEdit ? 'হালনাগাদ করুন' : 'তৈরি করুন' }}
+                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ $isEdit ? __('admin.actions.update') : __('admin.actions.create') }}
                     </button>
                     <a href="{{ $isEdit ? route('admin.committees.show', $committee) : route('admin.committees.index') }}"
-                       class="btn btn-light">বাতিল</a>
+                       class="btn btn-light">{{ __('admin.actions.cancel') }}</a>
                 </div>
             </div>
         </div>

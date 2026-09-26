@@ -10,13 +10,13 @@
         <div class="row">
             <div class="col-lg-8">
                 <x-admin.card title="পদের তথ্য">
-                    <x-admin.form-input name="name" label="পদের নাম" :value="$position->name" required
+                    <x-admin.form-input name="name" label="{{ __('admin.fields.position_name') }}" :value="$position->name" required
                         help="যেমন: সভাপতি, সাধারণ সম্পাদক" />
                     <x-admin.form-input name="name_en" label="পদের নাম (English, ঐচ্ছিক)" :value="$position->name_en" />
 
                     <div class="row">
                         <div class="col-md-6">
-                            <x-admin.form-select name="organization_unit_id" label="সাংগঠনিক ইউনিট"
+                            <x-admin.form-select name="organization_unit_id" label="{{ __('admin.fields.unit') }}"
                                 :options="$units" :value="$position->organization_unit_id"
                                 placeholder="— নির্দিষ্ট কোনো ইউনিট নয় —" />
                         </div>
@@ -27,13 +27,13 @@
                         </div>
                     </div>
 
-                    <x-admin.form-textarea name="description" label="বিবরণ" :value="$position->description" :rows="3" />
+                    <x-admin.form-textarea name="description" label="{{ __('admin.common.description') }}" :value="$position->description" :rows="3" />
                 </x-admin.card>
             </div>
 
             <div class="col-lg-4">
-                <x-admin.card title="প্রকাশনা">
-                    <x-admin.form-select name="status" label="স্ট্যাটাস" :options="$statuses"
+                <x-admin.card title="{{ __('admin.common.publication') }}">
+                    <x-admin.form-select name="status" label="{{ __('admin.common.status') }}" :options="$statuses"
                         :value="$position->status" :placeholder="null" required />
 
                     <div class="form-check">
@@ -45,9 +45,9 @@
 
                 <div class="d-flex flex-wrap gap-2 mb-4">
                     <button type="submit" class="btn btn-primary">
-                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ $isEdit ? 'হালনাগাদ করুন' : 'তৈরি করুন' }}
+                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ $isEdit ? __('admin.actions.update') : __('admin.actions.create') }}
                     </button>
-                    <a href="{{ route('admin.positions.index') }}" class="btn btn-light">বাতিল</a>
+                    <a href="{{ route('admin.positions.index') }}" class="btn btn-light">{{ __('admin.actions.cancel') }}</a>
                 </div>
             </div>
         </div>

@@ -3,7 +3,7 @@
 @section('page-actions')
     @can('notices.update')
         <a href="{{ route('admin.notices.edit', $notice) }}" class="btn btn-primary">
-            <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
+            <i class="ti ti-pencil me-1" aria-hidden="true"></i>{{ __('admin.actions.edit') }}
         </a>
     @endcan
     @if ($notice->isPubliclyVisible())
@@ -12,7 +12,7 @@
         </a>
     @endif
     <a href="{{ route('admin.notices.index') }}" class="btn btn-light">
-        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>ফিরে যান
+        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>{{ __('admin.actions.back') }}
     </a>
 @endsection
 
@@ -56,19 +56,19 @@
         </div>
 
         <div class="col-lg-4">
-            <x-admin.card title="প্রকাশনা">
+            <x-admin.card title="{{ __('admin.common.publication') }}">
                 <x-admin.status-badge :status="$notice->effectiveStatus()" class="mb-3" />
                 <dl class="mb-0">
-                    <dt class="fs-13 text-muted">প্রকাশের তারিখ</dt>
+                    <dt class="fs-13 text-muted">{{ __('admin.fields.published_at') }}</dt>
                     <dd>{{ $notice->published_at ? bn_datetime($notice->localPublishedAt()) : '—' }}</dd>
-                    <dt class="fs-13 text-muted">মেয়াদ শেষ</dt>
+                    <dt class="fs-13 text-muted">{{ __('admin.fields.term_end') }}</dt>
                     <dd>
-                        {{ $notice->expires_at ? bn_datetime($notice->localExpiresAt()) : 'নির্ধারিত নয়' }}
+                        {{ $notice->expires_at ? bn_datetime($notice->localExpiresAt()) : __('admin.fields.not_scheduled') }}
                         @if ($notice->isExpired())
-                            <span class="badge bg-danger-subtle text-danger-emphasis ms-1">মেয়াদোত্তীর্ণ</span>
+                            <span class="badge bg-danger-subtle text-danger-emphasis ms-1">{{ __('admin.fields.expired') }}</span>
                         @endif
                     </dd>
-                    <dt class="fs-13 text-muted">সাংগঠনিক ইউনিট</dt>
+                    <dt class="fs-13 text-muted">{{ __('admin.fields.unit') }}</dt>
                     <dd>{{ $notice->organizationUnit?->name ?? '—' }}</dd>
                     <dt class="fs-13 text-muted">পাবলিক URL</dt>
                     <dd class="text-break fs-13">{{ $notice->publicUrl() }}</dd>
@@ -88,14 +88,14 @@
             </x-admin.card>
 
             @canany(['notices.publish', 'notices.archive', 'notices.delete'])
-                <x-admin.card title="অ্যাকশন">
+                <x-admin.card title="{{ __('admin.actions.actions') }}">
                     <div class="d-grid gap-2">
                         @can('notices.publish')
                             @if ($notice->effectiveStatus() !== 'published')
                                 <form method="POST" action="{{ route('admin.notices.publish', $notice) }}" class="d-grid">
                                     @csrf @method('PATCH')
                                     <button type="submit" class="btn btn-success">
-                                        <i class="ti ti-world me-1" aria-hidden="true"></i>এখনই প্রকাশ করুন
+                                        <i class="ti ti-world me-1" aria-hidden="true"></i>{{ __('admin.actions2.publish_now') }}
                                     </button>
                                 </form>
                             @endif
@@ -105,7 +105,7 @@
                                 <form method="POST" action="{{ route('admin.notices.archive', $notice) }}" class="d-grid">
                                     @csrf @method('PATCH')
                                     <button type="submit" class="btn btn-light border">
-                                        <i class="ti ti-archive me-1" aria-hidden="true"></i>আর্কাইভ করুন
+                                        <i class="ti ti-archive me-1" aria-hidden="true"></i>{{ __('admin.actions.archive') }}
                                     </button>
                                 </form>
                             @endif
@@ -113,7 +113,7 @@
                         @can('notices.delete')
                             @if (! $notice->wasEverPublic())
                                 <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#delete-notice">
-                                    <i class="ti ti-trash me-1" aria-hidden="true"></i>মুছে ফেলুন
+                                    <i class="ti ti-trash me-1" aria-hidden="true"></i>{{ __('admin.actions.delete') }}
                                 </button>
                             @else
                                 <p class="fs-12 text-muted mb-0">একবার প্রকাশিত নোটিশ মুছে ফেলা যায় না — প্রাতিষ্ঠানিক ইতিহাস রক্ষায় আর্কাইভ করুন।</p>
@@ -149,7 +149,7 @@
                 <x-slot:confirm>
                     <form method="POST" action="{{ route('admin.notices.destroy', $notice) }}">
                         @csrf @method('DELETE')
-                        <button type="submit" class="btn btn-danger">মুছে ফেলুন</button>
+                        <button type="submit" class="btn btn-danger">{{ __('admin.actions.delete') }}</button>
                     </form>
                 </x-slot:confirm>
             </x-admin.modal>

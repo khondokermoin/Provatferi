@@ -1,9 +1,9 @@
 @extends('errors.layout')
 
-@section('title', 'রক্ষণাবেক্ষণ চলছে')
-@section('code', '৫০৩')
-@section('heading', 'সাময়িকভাবে বন্ধ আছে')
-@section('message', 'সিস্টেমে প্রয়োজনীয় রক্ষণাবেক্ষণ কাজ চলছে। শীঘ্রই আবার চালু হবে — একটু পর আবার চেষ্টা করুন।')
+@section('title', __('admin.errors.503.title'))
+@section('code', __('admin.errors.503.code'))
+@section('heading', __('admin.errors.503.heading'))
+@section('message', __('admin.errors.503.body'))
 @section('actions')
-    <a href="{{ url('/') }}" class="primary">আবার চেষ্টা করুন</a>
+    <a href="{{ url('/') }}" class="primary">{{ __('admin.errors.retry') }}</a>
 @endsection

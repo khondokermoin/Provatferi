@@ -1,10 +1,10 @@
 @php
     // Icon + text accompany the colour so status is never colour-only.
     $flashes = [
-        'success' => ['class' => 'alert-success', 'icon' => 'ti-circle-check', 'label' => 'সফল'],
-        'error' => ['class' => 'alert-danger', 'icon' => 'ti-alert-circle', 'label' => 'ত্রুটি'],
-        'warning' => ['class' => 'alert-warning', 'icon' => 'ti-alert-triangle', 'label' => 'সতর্কতা'],
-        'status' => ['class' => 'alert-info', 'icon' => 'ti-info-circle', 'label' => 'নোটিশ'],
+        'success' => ['class' => 'alert-success', 'icon' => 'ti-circle-check', 'label' => __('admin.flash.success')],
+        'error' => ['class' => 'alert-danger', 'icon' => 'ti-alert-circle', 'label' => __('admin.flash.error')],
+        'warning' => ['class' => 'alert-warning', 'icon' => 'ti-alert-triangle', 'label' => __('admin.flash.warning')],
+        'status' => ['class' => 'alert-info', 'icon' => 'ti-info-circle', 'label' => __('admin.flash.info')],
     ];
 @endphp
 
@@ -16,7 +16,7 @@
                 <span class="visually-hidden">{{ $meta['label'] }}:</span>
                 {{ session($key) }}
             </div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="বন্ধ করুন"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ __('admin.actions.close') }}"></button>
         </div>
     @endif
 @endforeach
@@ -25,8 +25,8 @@
     <div class="alert alert-danger d-flex align-items-start gap-2" role="alert">
         <i class="ti ti-alert-circle fs-18 mt-1 flex-shrink-0" aria-hidden="true"></i>
         <div>
-            <strong>ফর্মে {{ $errors->count() }}টি সমস্যা পাওয়া গেছে।</strong>
-            <span class="visually-hidden">চিহ্নিত ঘরগুলো সংশোধন করুন।</span>
+            <strong>{{ trans_choice('admin.forms.error_count', $errors->count(), ['count' => bn_number($errors->count())]) }}</strong>
+            <span class="visually-hidden">{{ __('admin.forms.fix_errors') }}</span>
             <ul class="mb-0 mt-1 ps-3">
                 @foreach ($errors->all() as $message)
                     <li>{{ $message }}</li>

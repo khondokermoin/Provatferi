@@ -1,11 +1,11 @@
-<x-layouts.auth title="Confirm password" heading="পাসওয়ার্ড নিশ্চিত করুন"
-                subheading="নিরাপত্তার জন্য আবার পাসওয়ার্ড দিন।">
+<x-layouts.auth title="Confirm password" heading="{{ __('admin.auth.confirm_password') }}"
+                subheading="{{ __('admin.auth.confirm_intro') }}">
     <form method="POST" action="{{ route('password.confirm') }}">
         @csrf
 
         <div class="mb-3">
             <label class="form-label" for="password">
-                পাসওয়ার্ড <span class="pf-required" aria-hidden="true">*</span><span class="visually-hidden">(আবশ্যক)</span>
+                {{ __('admin.auth.password') }} <span class="pf-required" aria-hidden="true">*</span><span class="visually-hidden">{{ __('admin.forms.required_marker') }}</span>
             </label>
             <div class="pf-password-field">
                 <input type="password" id="password" name="password"
@@ -19,7 +19,7 @@
         </div>
 
         <div class="d-grid">
-            <button class="btn btn-primary" type="submit">নিশ্চিত করুন</button>
+            <button class="btn btn-primary" type="submit">{{ __('admin.actions.confirm') }}</button>
         </div>
     </form>
 </x-layouts.auth>

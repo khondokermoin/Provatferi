@@ -21,7 +21,7 @@
         {{ $label }}
         @if ($required)
             <span class="pf-required" aria-hidden="true">*</span>
-            <span class="visually-hidden">(আবশ্যক)</span>
+            <span class="visually-hidden">{{ __('admin.forms.required_marker') }}</span>
         @endif
     </label>
 

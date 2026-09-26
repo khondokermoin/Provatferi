@@ -7,7 +7,7 @@
 
         <div class="row">
             <div class="col-lg-7">
-                <x-admin.card title="মূল তথ্য">
+                <x-admin.card title="{{ __('admin.fields.main_info') }}">
                     <x-admin.form-textarea name="introduction" label="সংক্ষিপ্ত ভূমিকা" :value="$about->introduction" :rows="2"
                         help="পাতার একদম শুরুতে দেখানো এক-দুই লাইনের পরিচিতি।" />
                     <x-admin.form-textarea name="introduction_en" label="সংক্ষিপ্ত ভূমিকা (English, ঐচ্ছিক)" :value="$about->introduction_en" :rows="2" />
@@ -26,7 +26,7 @@
                     <x-admin.form-textarea name="identity_explanation_en" label="নাম/পরিচয়ের ব্যাখ্যা (English, ঐচ্ছিক)" :value="$about->identity_explanation_en" :rows="3" />
                 </x-admin.card>
 
-                <x-admin.card title="প্রকাশনা">
+                <x-admin.card title="{{ __('admin.common.publication') }}">
                     <div class="form-check">
                         <input type="checkbox" class="form-check-input" id="is_published" name="is_published" value="1"
                                @checked(old('is_published', $about->is_published)) @disabled(! auth()->user()->can('settings.update'))>
@@ -37,7 +37,7 @@
                 @can('settings.update')
                     <div class="d-flex flex-wrap gap-2 mb-4">
                         <button type="submit" class="btn btn-primary">
-                            <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>সংরক্ষণ করুন
+                            <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ __('admin.actions.save') }}
                         </button>
                     </div>
                 @endcan
@@ -46,14 +46,14 @@
             <div class="col-lg-5">
                 {{-- Admin-side aid only — approximates the public About page's
                      reading order; never iframes or touches the live site. --}}
-                <x-admin.card title="প্রিভিউ" subtitle="পাবলিক সাইটে ধারণাগতভাবে যেভাবে দেখাবে।">
+                <x-admin.card title="{{ __('admin.fields.preview') }}" subtitle="পাবলিক সাইটে ধারণাগতভাবে যেভাবে দেখাবে।">
                     <p class="text-muted fs-13 mb-2">{{ $about->introduction ?: 'সংক্ষিপ্ত ভূমিকা এখনো যোগ করা হয়নি।' }}</p>
                     <p class="mb-3">{{ $about->description ?: '—' }}</p>
                     @if ($about->registration_status)
                         <p class="fs-13 text-muted mb-3"><i class="ti ti-file-certificate me-1" aria-hidden="true"></i>{{ $about->registration_status }}</p>
                     @endif
                     @if ($about->history)
-                        <h3 class="fs-14 fw-semibold mt-3">ইতিহাস</h3>
+                        <h3 class="fs-14 fw-semibold mt-3">{{ __('admin.fields.history') }}</h3>
                         <p class="fs-14">{{ $about->history }}</p>
                     @endif
                     @if ($about->why_exists)

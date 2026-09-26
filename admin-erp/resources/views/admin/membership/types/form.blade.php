@@ -9,8 +9,8 @@
 
         <div class="row">
             <div class="col-lg-8">
-                <x-admin.card title="বিবরণ">
-                    <x-admin.form-input name="name" label="নাম" :value="$type->name" required />
+                <x-admin.card title="{{ __('admin.common.description') }}">
+                    <x-admin.form-input name="name" label="{{ __('admin.common.name') }}" :value="$type->name" required />
                     <x-admin.form-input name="name_en" label="নাম (English, ঐচ্ছিক)" :value="$type->name_en" />
                     <x-admin.form-textarea name="description" label="বিবরণ / যোগ্যতা" :value="$type->description" :rows="4"
                         help="সদস্যপদের যোগ্যতা বা শর্ত থাকলে এখানে লিখুন।" />
@@ -21,8 +21,8 @@
             </div>
 
             <div class="col-lg-4">
-                <x-admin.card title="প্রকাশনা">
-                    <x-admin.form-input name="fee" label="ফি" type="number" :value="$type->fee ?? 0" required min="0" step="0.01"
+                <x-admin.card title="{{ __('admin.common.publication') }}">
+                    <x-admin.form-input name="fee" label="{{ __('admin.fields.fee') }}" type="number" :value="$type->fee ?? 0" required min="0" step="0.01"
                         help="ফি এখনো নির্ধারিত না হলে ০ রাখুন — অনুমান করে বসাবেন না।" />
                     <div class="form-check mb-3">
                         <input type="checkbox" class="form-check-input" id="is_student" name="is_student" value="1"
@@ -37,16 +37,16 @@
                             বন্ধ রাখলে (যেমন: সাম্মানিক সদস্যপদ) এই ধরনটি পাবলিক আবেদন ফর্মে দেখানো হবে না।
                         </p>
                     </div>
-                    <x-admin.form-select name="status" label="স্ট্যাটাস" :options="$statuses"
+                    <x-admin.form-select name="status" label="{{ __('admin.common.status') }}" :options="$statuses"
                         :value="$type->status" :placeholder="null" required />
-                    <x-admin.form-input name="sort_order" label="ক্রম" type="number" :value="$type->sort_order ?? 0" required min="0" />
+                    <x-admin.form-input name="sort_order" label="{{ __('admin.common.order') }}" type="number" :value="$type->sort_order ?? 0" required min="0" />
                 </x-admin.card>
 
                 <div class="d-flex flex-wrap gap-2 mb-4">
                     <button type="submit" class="btn btn-primary">
-                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ $isEdit ? 'হালনাগাদ করুন' : 'তৈরি করুন' }}
+                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ $isEdit ? __('admin.actions.update') : __('admin.actions.create') }}
                     </button>
-                    <a href="{{ route('admin.membership.types.index') }}" class="btn btn-light">বাতিল</a>
+                    <a href="{{ route('admin.membership.types.index') }}" class="btn btn-light">{{ __('admin.actions.cancel') }}</a>
                 </div>
             </div>
         </div>

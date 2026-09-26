@@ -10,15 +10,15 @@
 
 @section('content')
     <x-admin.table :paginator="$types" caption="কার্যক্রমের ধরনের তালিকা"
-        :headers="['ক্রম', 'নাম', 'কার্যক্রম', 'স্ট্যাটাস', ['label' => 'অ্যাকশন', 'align' => 'end']]">
+        :headers="[__('admin.common.order'), __('admin.common.name'), __('admin.nav.activities'), __('admin.common.status'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
 
         @forelse ($types as $type)
             <tr>
-                <td data-label="ক্রম">{{ $type->sort_order }}</td>
-                <td data-label="নাম" class="fw-semibold">{{ $type->name }}</td>
-                <td data-label="কার্যক্রম">{{ $type->activities_count }}</td>
-                <td data-label="স্ট্যাটাস"><x-admin.status-badge :status="$type->status" /></td>
-                <td data-label="অ্যাকশন" class="text-end">
+                <td data-label="{{ __('admin.common.order') }}">{{ $type->sort_order }}</td>
+                <td data-label="{{ __('admin.common.name') }}" class="fw-semibold">{{ $type->name }}</td>
+                <td data-label="{{ __('admin.nav.activities') }}">{{ $type->activities_count }}</td>
+                <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$type->status" /></td>
+                <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
                                 aria-label="{{ $type->name }} — অ্যাকশন মেনু">
@@ -27,14 +27,14 @@
                         <div class="dropdown-menu dropdown-menu-end">
                             @can('activities.update')
                                 <a href="{{ route('admin.activities.types.edit', $type) }}" class="dropdown-item">
-                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
+                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>{{ __('admin.actions.edit') }}
                                 </a>
                             @endcan
                             @can('activities.delete')
                                 <div class="dropdown-divider"></div>
                                 <button type="button" class="dropdown-item text-danger"
                                         data-bs-toggle="modal" data-bs-target="#delete-type-{{ $type->id }}">
-                                    <i class="ti ti-trash me-1" aria-hidden="true"></i>মুছে ফেলুন
+                                    <i class="ti ti-trash me-1" aria-hidden="true"></i>{{ __('admin.actions.delete') }}
                                 </button>
                             @endcan
                         </div>
@@ -68,7 +68,7 @@
                 <x-slot:confirm>
                     <form method="POST" action="{{ route('admin.activities.types.destroy', $type) }}">
                         @csrf @method('DELETE')
-                        <button type="submit" class="btn btn-danger">মুছে ফেলুন</button>
+                        <button type="submit" class="btn btn-danger">{{ __('admin.actions.delete') }}</button>
                     </form>
                 </x-slot:confirm>
             </x-admin.modal>

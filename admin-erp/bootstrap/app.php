@@ -23,6 +23,16 @@ $app = Application::configure(basePath: dirname(__DIR__))
                 | \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO,
         );
 
+        // Phase 3: resolves the admin panel's UI language (user preference >
+        // session > cookie > bn) for every web request, including the
+        // pre-login pages. Appended to the web group rather than aliased,
+        // because it must run after the session is started and after the
+        // authenticated user is resolved. It only calls App::setLocale() —
+        // it never touches routing, so the admin URLs stay identical.
+        $middleware->web(append: [
+            \App\Http\Middleware\SetAdminLocale::class,
+        ]);
+
         $middleware->alias([
             'permission' => \App\Http\Middleware\EnsurePermission::class,
             'member.auth' => \App\Http\Middleware\EnsureMemberAuthenticated::class,

@@ -1,0 +1,33 @@
+<?php
+
+/** Phase 3 — English counterpart of the ADM-002 status-label map. Same keys, same slugs. */
+return [
+    'active' => 'Active',
+    'inactive' => 'Inactive',
+    'draft' => 'Draft',
+    'published' => 'Published',
+    'archived' => 'Archived',
+    'open' => 'Open',
+    'closed' => 'Closed',
+    'suspended' => 'Suspended',
+    'expired' => 'Expired',
+    'pending' => 'Awaiting review',
+    'under_review' => 'Under review',
+    'need_information' => 'Information needed',
+    'approved' => 'Approved',
+    'rejected' => 'Rejected',
+    'cancelled' => 'Cancelled',
+    'submitted' => 'Submitted',
+    'shortlisted' => 'Shortlisted',
+    'selected' => 'Selected',
+    'contacted' => 'Contacted',
+    'accepted' => 'Accepted',
+    'not_selected' => 'Not selected',
+    'withdrawn' => 'Withdrawn',
+    'scheduled' => 'Scheduled',
+    'upcoming' => 'Upcoming',
+    'completed' => 'Completed',
+    'correction_requested' => 'Correction requested',
+    'unpublished' => 'Unpublished',
+    'paid' => 'Paid',
+];
