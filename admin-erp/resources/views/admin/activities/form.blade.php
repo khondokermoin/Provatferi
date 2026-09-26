@@ -18,12 +18,12 @@
             <div class="col-lg-8">
                 <x-admin.card title="{{ __('admin.fields.main_info') }}">
                     <x-admin.form-input name="title" label="{{ __('admin.common.title') }}" :value="$activity->title" required />
-                    <x-admin.form-input name="title_en" label="শিরোনাম (English, ঐচ্ছিক)" :value="$activity->title_en" />
+                    <x-admin.form-input name="title_en" label="{{ __('admin.fields.title') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$activity->title_en" />
                     <x-admin.form-textarea name="summary" label="{{ __('admin.common.summary') }}" :value="$activity->summary" :rows="2"
                         help="তালিকা ও কার্ডে দেখানো হবে।" />
-                    <x-admin.form-textarea name="summary_en" label="সংক্ষিপ্ত বিবরণ (English, ঐচ্ছিক)" :value="$activity->summary_en" :rows="2" />
+                    <x-admin.form-textarea name="summary_en" label="{{ __('admin.fields.summary') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$activity->summary_en" :rows="2" />
                     <x-admin.form-textarea name="description" label="বিস্তারিত বিবরণ" :value="$activity->description" :rows="4" />
-                    <x-admin.form-textarea name="description_en" label="বিস্তারিত বিবরণ (English, ঐচ্ছিক)" :value="$activity->description_en" :rows="4" />
+                    <x-admin.form-textarea name="description_en" label="{{ __('admin.fields.detailed_description') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$activity->description_en" :rows="4" />
 
                     <div class="row">
                         <div class="col-md-6">
@@ -63,11 +63,11 @@
 
                 <x-admin.card title="বিবরণ ও ফলাফল" subtitle="বাস্তব তথ্য না থাকলে খালি রাখুন।">
                     <x-admin.form-textarea name="objective" label="{{ __('admin.fields.objective') }}" :value="$activity->objective" :rows="2" />
-                    <x-admin.form-textarea name="objective_en" label="উদ্দেশ্য (English, ঐচ্ছিক)" :value="$activity->objective_en" :rows="2" />
+                    <x-admin.form-textarea name="objective_en" label="{{ __('admin.fields.objective') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$activity->objective_en" :rows="2" />
                     <x-admin.form-textarea name="what_happened" label="কী ঘটেছে" :value="$activity->what_happened" :rows="4" />
-                    <x-admin.form-textarea name="what_happened_en" label="কী ঘটেছে (English, ঐচ্ছিক)" :value="$activity->what_happened_en" :rows="4" />
+                    <x-admin.form-textarea name="what_happened_en" label="{{ __('admin.fields.what_happened') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$activity->what_happened_en" :rows="4" />
                     <x-admin.form-textarea name="outcomes" label="ফলাফল ও প্রভাব" :value="$activity->outcomes" :rows="3" />
-                    <x-admin.form-textarea name="outcomes_en" label="ফলাফল ও প্রভাব (English, ঐচ্ছিক)" :value="$activity->outcomes_en" :rows="3" />
+                    <x-admin.form-textarea name="outcomes_en" label="{{ __('admin.fields.outcomes_impact') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$activity->outcomes_en" :rows="3" />
                     <x-admin.form-input name="facebook_post_url" label="ফেসবুক পোস্ট লিঙ্ক" type="url" :value="$activity->facebook_post_url" />
                 </x-admin.card>
             </div>

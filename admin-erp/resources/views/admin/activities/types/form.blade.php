@@ -11,7 +11,7 @@
             <div class="col-lg-8">
                 <x-admin.card title="{{ __('admin.common.description') }}">
                     <x-admin.form-input name="name" label="{{ __('admin.common.name') }}" :value="$type->name" required />
-                    <x-admin.form-input name="name_en" label="নাম (English, ঐচ্ছিক)" :value="$type->name_en" />
+                    <x-admin.form-input name="name_en" label="{{ __('admin.common.name') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$type->name_en" />
                     <x-admin.form-textarea name="description" label="{{ __('admin.common.description') }}" :value="$type->description" :rows="3" />
                     <x-admin.form-input name="icon" label="আইকন (ঐচ্ছিক)" :value="$type->icon"
                         help="Tabler icon নাম, যেমন: ti-book" />

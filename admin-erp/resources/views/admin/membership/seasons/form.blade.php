@@ -12,7 +12,7 @@
                 <x-admin.card title="{{ __('admin.common.description') }}">
                     <x-admin.form-input name="name" label="নাম (বাংলা)" :value="$season->name" required
                         help="যেমন: ২০২৬ প্রথম সিজন, ২০২৬–২৭ সদস্য নিবন্ধন" />
-                    <x-admin.form-input name="name_en" label="নাম (English, ঐচ্ছিক)" :value="$season->name_en" />
+                    <x-admin.form-input name="name_en" label="{{ __('admin.common.name') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$season->name_en" />
                     <x-admin.form-textarea name="description" label="{{ __('admin.common.description') }}" :value="$season->description" :rows="3" />
                     <x-admin.form-textarea name="cash_payment_instructions" label="নগদ পরিশোধের নির্দেশনা"
                         :value="$season->cash_payment_instructions" :rows="3"

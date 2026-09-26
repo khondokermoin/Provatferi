@@ -22,7 +22,7 @@
 
                     <x-admin.form-input
                         name="name_en"
-                        label="ইউনিটের নাম (English, ঐচ্ছিক)"
+                        label="{{ __('admin.fields.unit_name') }} {{ __('admin.bilingual.en_label_suffix') }}"
                         :value="$unit->name_en" />
 
                     {{-- Two columns only where the fields are genuinely short;

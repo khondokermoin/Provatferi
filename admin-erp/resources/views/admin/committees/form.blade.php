@@ -11,7 +11,7 @@
             <div class="col-lg-8">
                 <x-admin.card title="কমিটির তথ্য">
                     <x-admin.form-input name="name" label="কমিটির নাম" :value="$committee->name" required />
-                    <x-admin.form-input name="name_en" label="কমিটির নাম (English, ঐচ্ছিক)" :value="$committee->name_en" />
+                    <x-admin.form-input name="name_en" label="{{ __('admin.fields.committee_name') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$committee->name_en" />
 
                     <div class="row">
                         <div class="col-md-6">
@@ -26,7 +26,7 @@
 
                     <x-admin.form-textarea name="description" label="{{ __('admin.fields.notes_desc') }}"
                         :value="$committee->description" :rows="4" />
-                    <x-admin.form-textarea name="description_en" label="নোট / বিবরণ (English, ঐচ্ছিক)"
+                    <x-admin.form-textarea name="description_en" label="{{ __('admin.fields.notes_desc') }} {{ __('admin.bilingual.en_label_suffix') }}"
                         :value="$committee->description_en" :rows="4" />
                 </x-admin.card>
             </div>

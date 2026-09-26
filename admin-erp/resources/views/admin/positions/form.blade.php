@@ -12,7 +12,7 @@
                 <x-admin.card title="পদের তথ্য">
                     <x-admin.form-input name="name" label="{{ __('admin.fields.position_name') }}" :value="$position->name" required
                         help="যেমন: সভাপতি, সাধারণ সম্পাদক" />
-                    <x-admin.form-input name="name_en" label="পদের নাম (English, ঐচ্ছিক)" :value="$position->name_en" />
+                    <x-admin.form-input name="name_en" label="{{ __('admin.fields.position_name') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$position->name_en" />
 
                     <div class="row">
                         <div class="col-md-6">
