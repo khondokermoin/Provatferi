@@ -3,13 +3,13 @@
 @section('page-actions')
     @can('activities.create')
         <a href="{{ route('admin.activities.types.create') }}" class="btn btn-primary">
-            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন কার্যক্রমের ধরন
+            <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.fields.new_activity_type') }}
         </a>
     @endcan
 @endsection
 
 @section('content')
-    <x-admin.table :paginator="$types" caption="কার্যক্রমের ধরনের তালিকা"
+    <x-admin.table :paginator="$types" caption="{{ __('admin.fields.activity_types_list') }}"
         :headers="[__('admin.common.order'), __('admin.common.name'), __('admin.nav.activities'), __('admin.common.status'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
 
         @forelse ($types as $type)
@@ -21,7 +21,7 @@
                 <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
-                                aria-label="{{ $type->name }} — অ্যাকশন মেনু">
+                                aria-label="{{ $type->name }} — {{ __('admin.fields.action_menu') }}">
                             <i class="ti ti-dots-vertical" aria-hidden="true"></i>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end">
@@ -42,11 +42,11 @@
                 </td>
             </tr>
         @empty
-            <x-admin.empty-state colspan="5" icon="ti-tag" title="এখনো কোনো কার্যক্রমের ধরন নেই"
-                message="কার্যক্রম যোগ করার আগে অন্তত একটি ধরন তৈরি করুন।">
+            <x-admin.empty-state colspan="5" icon="ti-tag" title="{{ __('admin.fields.no_activity_types_yet') }}"
+                message="{{ __('admin.fields.create_type_before_activity_hint') }}">
                 @can('activities.create')
                     <a href="{{ route('admin.activities.types.create') }}" class="btn btn-primary btn-sm">
-                        <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন কার্যক্রমের ধরন
+                        <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.fields.new_activity_type') }}
                     </a>
                 @endcan
             </x-admin.empty-state>
@@ -55,13 +55,13 @@
 
     @can('activities.delete')
         @foreach ($types as $type)
-            <x-admin.modal :id="'delete-type-'.$type->id" title="ধরন মুছে ফেলবেন?">
+            <x-admin.modal :id="'delete-type-'.$type->id" title="{{ __('admin.fields.delete_type_title') }}">
                 <p class="mb-0">
-                    <strong>{{ $type->name }}</strong> মুছে ফেলা হবে।
+                    <strong>{{ $type->name }}</strong> {{ __('admin.fields.will_be_deleted') }}
                     @if ($type->activities_count > 0)
                         <span class="d-block text-danger mt-2">
                             <i class="ti ti-alert-triangle" aria-hidden="true"></i>
-                            এই ধরনটি {{ $type->activities_count }}টি কার্যক্রমে ব্যবহৃত — আগে সেগুলোর ধরন পরিবর্তন করতে হবে।
+                            {{ __('admin.fields.type_in_use_by_activities', ['count' => $type->activities_count]) }}
                         </span>
                     @endif
                 </p>
