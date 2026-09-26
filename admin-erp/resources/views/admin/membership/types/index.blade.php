@@ -3,13 +3,13 @@
 @section('page-actions')
     @can('membership.create')
         <a href="{{ route('admin.membership.types.create') }}" class="btn btn-primary">
-            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন সদস্যপদের ধরন
+            <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.fields.new_membership_type') }}
         </a>
     @endcan
 @endsection
 
 @section('content')
-    <x-admin.table :paginator="$types" caption="সদস্যপদের ধরনের তালিকা"
+    <x-admin.table :paginator="$types" caption="{{ __('admin.fields.membership_types_list') }}"
         :headers="[__('admin.common.order'), __('admin.common.name'), __('admin.fields.fee'), __('admin.fields.applications'), __('admin.fields.member'), __('admin.common.status'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
 
         @forelse ($types as $type)
@@ -21,14 +21,14 @@
                         <span class="badge bg-secondary-subtle text-secondary-emphasis fs-11 ms-1">Student</span>
                     @endif
                 </td>
-                <td data-label="{{ __('admin.fields.fee') }}">{{ $type->fee > 0 ? number_format((float) $type->fee, 2) : 'নির্ধারিত হয়নি' }}</td>
+                <td data-label="{{ __('admin.fields.fee') }}">{{ $type->fee > 0 ? number_format((float) $type->fee, 2) : __('admin.fields.not_set') }}</td>
                 <td data-label="{{ __('admin.fields.applications') }}">{{ $type->applications_count }}</td>
                 <td data-label="{{ __('admin.fields.member') }}">{{ $type->memberships_count }}</td>
                 <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$type->status" /></td>
                 <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
-                                aria-label="{{ $type->name }} — অ্যাকশন মেনু">
+                                aria-label="{{ $type->name }} — {{ __('admin.fields.action_menu') }}">
                             <i class="ti ti-dots-vertical" aria-hidden="true"></i>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end">
@@ -49,19 +49,19 @@
                 </td>
             </tr>
         @empty
-            <x-admin.empty-state colspan="7" icon="ti-id-badge-2" title="এখনো কোনো সদস্যপদের ধরন নেই" />
+            <x-admin.empty-state colspan="7" icon="ti-id-badge-2" title="{{ __('admin.fields.no_membership_types_yet') }}" />
         @endforelse
     </x-admin.table>
 
     @can('membership.delete')
         @foreach ($types as $type)
-            <x-admin.modal :id="'delete-type-'.$type->id" title="সদস্যপদের ধরন মুছে ফেলবেন?">
+            <x-admin.modal :id="'delete-type-'.$type->id" title="{{ __('admin.fields.delete_membership_type_title') }}">
                 <p class="mb-0">
-                    <strong>{{ $type->name }}</strong> মুছে ফেলা হবে।
+                    <strong>{{ $type->name }}</strong> {{ __('admin.fields.will_be_deleted') }}
                     @if ($type->applications_count > 0 || $type->memberships_count > 0)
                         <span class="d-block text-danger mt-2">
                             <i class="ti ti-alert-triangle" aria-hidden="true"></i>
-                            এই ধরনটি আবেদন বা সদস্যপদের সঙ্গে যুক্ত — মুছে ফেলা যাবে না।
+                            {{ __('admin.fields.type_in_use_cannot_delete') }}
                         </span>
                     @endif
                 </p>

@@ -3,13 +3,13 @@
 @section('page-actions')
     @can('users.create')
         <a href="{{ route('admin.roles.create') }}" class="btn btn-primary">
-            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন ভূমিকা
+            <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.fields.new_role') }}
         </a>
     @endcan
 @endsection
 
 @section('content')
-    <x-admin.table :paginator="$roles" caption="ভূমিকার তালিকা"
+    <x-admin.table :paginator="$roles" caption="{{ __('admin.fields.roles_list') }}"
         :headers="[__('admin.fields.role'), __('admin.nav.users'), __('admin.nav.permissions'), __('admin.common.type'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
 
         @forelse ($roles as $role)
@@ -34,13 +34,13 @@
                 <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
-                                aria-label="{{ $role->name }} — অ্যাকশন মেনু">
+                                aria-label="{{ $role->name }} — {{ __('admin.fields.action_menu') }}">
                             <i class="ti ti-dots-vertical" aria-hidden="true"></i>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end">
                             @can('users.update')
                                 <a href="{{ route('admin.roles.edit', $role) }}" class="dropdown-item">
-                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা ও অনুমতি
+                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>{{ __('admin.fields.edit_and_permissions') }}
                                 </a>
                             @endcan
                             @can('users.delete')
@@ -57,20 +57,20 @@
                 </td>
             </tr>
         @empty
-            <x-admin.empty-state colspan="5" icon="ti-shield" title="কোনো ভূমিকা নেই" />
+            <x-admin.empty-state colspan="5" icon="ti-shield" title="{{ __('admin.fields.no_roles') }}" />
         @endforelse
     </x-admin.table>
 
     @can('users.delete')
         @foreach ($roles as $role)
             @unless ($role->is_system_role)
-                <x-admin.modal :id="'delete-role-'.$role->id" title="ভূমিকা মুছে ফেলবেন?">
+                <x-admin.modal :id="'delete-role-'.$role->id" title="{{ __('admin.fields.delete_role_title') }}">
                     <p class="mb-0">
-                        <strong>{{ $role->name }}</strong> মুছে ফেলা হবে।
+                        <strong>{{ $role->name }}</strong> {{ __('admin.fields.will_be_deleted') }}
                         @if ($role->users_count > 0)
                             <span class="d-block text-danger mt-2">
                                 <i class="ti ti-alert-triangle" aria-hidden="true"></i>
-                                এই ভূমিকা {{ $role->users_count }} জন ব্যবহারকারীর সঙ্গে যুক্ত — আগে তাদের সরাতে হবে।
+                                {{ __('admin.fields.role_in_use_cannot_delete', ['count' => $role->users_count]) }}
                             </span>
                         @endif
                     </p>

@@ -3,7 +3,7 @@
 @section('page-actions')
     @can('activities.create')
         <a href="{{ route('admin.activities.create') }}" class="btn btn-primary">
-            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন কার্যক্রম
+            <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.fields.new_activity') }}
         </a>
     @endcan
 @endsection
@@ -11,7 +11,7 @@
 @section('content')
     @php $isFiltered = collect($filters)->filter(fn ($v) => $v !== '')->isNotEmpty(); @endphp
 
-    <x-admin.table :paginator="$activities" caption="কার্যক্রমের তালিকা"
+    <x-admin.table :paginator="$activities" caption="{{ __('admin.fields.activities_list') }}"
         :headers="[__('admin.common.title'), __('admin.common.type'), __('admin.fields.start'), __('admin.common.status'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
 
         <x-slot:toolbar>
@@ -65,7 +65,7 @@
                 <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
-                                aria-label="{{ $activity->title }} — অ্যাকশন মেনু">
+                                aria-label="{{ $activity->title }} — {{ __('admin.fields.action_menu') }}">
                             <i class="ti ti-dots-vertical" aria-hidden="true"></i>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end">
@@ -90,12 +90,12 @@
             </tr>
         @empty
             <x-admin.empty-state colspan="5" icon="{{ $isFiltered ? 'ti-search-off' : 'ti-calendar-off' }}"
-                :title="$isFiltered ? __('admin.filters.no_results') : 'এখনো কোনো কার্যক্রম নেই'"
-                message="কার্যক্রম যোগ করলে এখানে তালিকা দেখা যাবে।">
+                :title="$isFiltered ? __('admin.filters.no_results') : __('admin.fields.no_activities_yet')"
+                message="{{ __('admin.fields.activities_empty_hint') }}">
                 @can('activities.create')
                     @unless ($isFiltered)
                         <a href="{{ route('admin.activities.create') }}" class="btn btn-primary btn-sm">
-                            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন কার্যক্রম
+                            <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.fields.new_activity') }}
                         </a>
                     @endunless
                 @endcan
@@ -105,8 +105,8 @@
 
     @can('activities.delete')
         @foreach ($activities as $activity)
-            <x-admin.modal :id="'delete-activity-'.$activity->id" title="কার্যক্রম মুছে ফেলবেন?">
-                <p class="mb-0"><strong>{{ $activity->title }}</strong> মুছে ফেলা হবে।</p>
+            <x-admin.modal :id="'delete-activity-'.$activity->id" title="{{ __('admin.fields.delete_activity_title') }}">
+                <p class="mb-0"><strong>{{ $activity->title }}</strong> {{ __('admin.fields.will_be_deleted') }}</p>
                 <x-slot:confirm>
                     <form method="POST" action="{{ route('admin.activities.destroy', $activity) }}">
                         @csrf @method('DELETE')
