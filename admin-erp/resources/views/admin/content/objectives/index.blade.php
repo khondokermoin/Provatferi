@@ -3,13 +3,13 @@
 @section('page-actions')
     @can('settings.create')
         <a href="{{ route('admin.content.objectives.create') }}" class="btn btn-primary">
-            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন উদ্দেশ্য
+            <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.fields.new_objective') }}
         </a>
     @endcan
 @endsection
 
 @section('content')
-    <x-admin.table :paginator="null" caption="উদ্দেশ্যের তালিকা"
+    <x-admin.table :paginator="null" caption="{{ __('admin.fields.objectives_list') }}"
         :headers="[['label' => __('admin.common.order'), 'align' => 'start'], __('admin.fields.objective'), __('admin.common.status'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
 
         @forelse ($objectives as $index => $objective)
@@ -31,14 +31,14 @@
                             <form method="POST" action="{{ route('admin.content.objectives.move-up', $objective) }}">
                                 @csrf
                                 <button type="submit" class="btn btn-sm btn-light w-100 pf-reorder-btn"
-                                        @disabled($loop->first) aria-label="তালিকায় উপরে সরান" title="উপরে সরান">
+                                        @disabled($loop->first) aria-label="{{ __('admin.fields.move_up_in_list') }}" title="{{ __('admin.fields.move_up') }}">
                                     <i class="ti ti-chevron-up" aria-hidden="true"></i>
                                 </button>
                             </form>
                             <form method="POST" action="{{ route('admin.content.objectives.move-down', $objective) }}">
                                 @csrf
                                 <button type="submit" class="btn btn-sm btn-light w-100 pf-reorder-btn"
-                                        @disabled($loop->last) aria-label="তালিকায় নিচে সরান" title="নিচে সরান">
+                                        @disabled($loop->last) aria-label="{{ __('admin.fields.move_down_in_list') }}" title="{{ __('admin.fields.move_down') }}">
                                     <i class="ti ti-chevron-down" aria-hidden="true"></i>
                                 </button>
                             </form>
@@ -59,7 +59,7 @@
                 <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
-                                aria-label="উদ্দেশ্য #{{ $index + 1 }} — অ্যাকশন মেনু">
+                                aria-label="{{ __('admin.fields.objective') }} #{{ $index + 1 }} — {{ __('admin.fields.action_menu') }}">
                             <i class="ti ti-dots-vertical" aria-hidden="true"></i>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end">
@@ -88,11 +88,11 @@
             </tr>
         @empty
             <x-admin.empty-state colspan="4" icon="ti-list-numbers"
-                title="এখনো কোনো উদ্দেশ্য নেই"
-                message="প্রতিষ্ঠানের মূল উদ্দেশ্য যোগ করলে এখানে ক্রমানুসারে দেখা যাবে।">
+                title="{{ __('admin.fields.no_objectives_yet') }}"
+                message="{{ __('admin.fields.objectives_empty_hint') }}">
                 @can('settings.create')
                     <a href="{{ route('admin.content.objectives.create') }}" class="btn btn-primary btn-sm">
-                        <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন উদ্দেশ্য
+                        <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.fields.new_objective') }}
                     </a>
                 @endcan
             </x-admin.empty-state>
@@ -101,8 +101,8 @@
 
     @can('settings.delete')
         @foreach ($objectives as $objective)
-            <x-admin.modal :id="'delete-objective-'.$objective->id" title="উদ্দেশ্য মুছে ফেলবেন?">
-                <p class="mb-0">"{{ \Illuminate\Support\Str::limit($objective->body, 80) }}" মুছে ফেলা হবে।</p>
+            <x-admin.modal :id="'delete-objective-'.$objective->id" title="{{ __('admin.fields.delete_objective_title') }}">
+                <p class="mb-0">"{{ \Illuminate\Support\Str::limit($objective->body, 80) }}" {{ __('admin.fields.will_be_deleted') }}</p>
                 <x-slot:confirm>
                     <form method="POST" action="{{ route('admin.content.objectives.destroy', $objective) }}">
                         @csrf @method('DELETE')

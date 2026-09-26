@@ -36,7 +36,7 @@
                     <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.order') }}</dt>
                     <dd class="col-sm-8">{{ $unit->sort_order }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">প্রতিষ্ঠার তারিখ</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.founding_date') }}</dt>
                     <dd class="col-sm-8">{{ $unit->established_date ? bn_date($unit->established_date) : '—' }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.description') }}</dt>
@@ -65,19 +65,19 @@
         </div>
 
         <div class="col-lg-4">
-            <x-admin.card title="কাঠামোগত অবস্থান">
-                <p class="fs-13 text-muted mb-1">প্যারেন্ট ইউনিট</p>
+            <x-admin.card title="{{ __('admin.fields.structural_position') }}">
+                <p class="fs-13 text-muted mb-1">{{ __('admin.fields.parent_unit') }}</p>
                 @if ($unit->parent)
                     <p class="mb-3">
                         <a href="{{ route('admin.organization.units.show', $unit->parent) }}">{{ $unit->parent->name }}</a>
                     </p>
                 @else
-                    <p class="mb-3">শীর্ষ পর্যায় (কোনো প্যারেন্ট নেই)</p>
+                    <p class="mb-3">{{ __('admin.fields.top_level_no_parent') }}</p>
                 @endif
 
-                <p class="fs-13 text-muted mb-1">সাব-ইউনিট ({{ $unit->children->count() }})</p>
+                <p class="fs-13 text-muted mb-1">{{ __('admin.fields.sub_units_count', ['count' => $unit->children->count()]) }}</p>
                 @if ($unit->children->isEmpty())
-                    <p class="mb-0 text-muted">কোনো সাব-ইউনিট নেই।</p>
+                    <p class="mb-0 text-muted">{{ __('admin.fields.no_sub_units') }}</p>
                 @else
                     <ul class="list-unstyled mb-0">
                         @foreach ($unit->children as $child)
@@ -93,13 +93,13 @@
     </div>
 
     @can('organization.delete')
-        <x-admin.modal id="delete-unit" title="ইউনিট মুছে ফেলবেন?">
+        <x-admin.modal id="delete-unit" title="{{ __('admin.fields.delete_unit_title') }}">
             <p class="mb-0">
-                <strong>{{ $unit->name }}</strong> মুছে ফেলা হবে।
+                <strong>{{ $unit->name }}</strong> {{ __('admin.fields.will_be_deleted') }}
                 @if ($unit->children->isNotEmpty())
                     <span class="d-block text-danger mt-2">
                         <i class="ti ti-alert-triangle" aria-hidden="true"></i>
-                        এই ইউনিটের অধীনে {{ $unit->children->count() }}টি সাব-ইউনিট আছে — আগে সেগুলো সরাতে হবে।
+                        {{ __('admin.fields.unit_has_sub_units_cannot_delete', ['count' => $unit->children->count()]) }}
                     </span>
                 @endif
             </p>

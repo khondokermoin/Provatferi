@@ -34,23 +34,23 @@
                     <dt class="col-sm-3 fs-13 text-muted">{{ __('admin.common.address') }}</dt>
                     <dd class="col-sm-9">{{ $activity->address ?: '—' }}</dd>
 
-                    <dt class="col-sm-3 fs-13 text-muted">অংশগ্রহণকারী</dt>
+                    <dt class="col-sm-3 fs-13 text-muted">{{ __('admin.fields.participants') }}</dt>
                     <dd class="col-sm-9 mb-0">{{ $activity->participant_count }}</dd>
                 </dl>
             </x-admin.card>
 
-            <x-admin.card title="বিস্তারিত ও ফলাফল">
+            <x-admin.card title="{{ __('admin.fields.details_and_outcomes') }}">
                 <h3 class="fs-14 fw-semibold">{{ __('admin.fields.objective') }}</h3>
                 <p>{{ $activity->objective ?: '—' }}</p>
-                <h3 class="fs-14 fw-semibold">কী ঘটেছে</h3>
+                <h3 class="fs-14 fw-semibold">{{ __('admin.fields.what_happened') }}</h3>
                 <p>{{ $activity->what_happened ?: '—' }}</p>
-                <h3 class="fs-14 fw-semibold">ফলাফল ও প্রভাব</h3>
+                <h3 class="fs-14 fw-semibold">{{ __('admin.fields.outcomes_impact') }}</h3>
                 <p class="mb-0">{{ $activity->outcomes ?: '—' }}</p>
             </x-admin.card>
 
-            <x-admin.card title="গ্যালারি">
+            <x-admin.card title="{{ __('admin.fields.gallery') }}">
                 @if (empty($activity->gallery))
-                    <p class="text-muted mb-0">এখনো কোনো ছবি যুক্ত করা হয়নি।</p>
+                    <p class="text-muted mb-0">{{ __('admin.fields.no_photos_yet') }}</p>
                 @else
                     <div class="d-flex flex-wrap gap-2">
                         @foreach ($activity->gallery as $path)
@@ -65,17 +65,17 @@
             <x-admin.card title="{{ __('admin.common.status') }}">
                 <x-admin.status-badge :status="$activity->status" class="mb-3" />
                 @if ($activity->featured)
-                    <p class="fs-13 mb-2"><i class="ti ti-star me-1 text-warning" aria-hidden="true"></i>ফিচার্ড</p>
+                    <p class="fs-13 mb-2"><i class="ti ti-star me-1 text-warning" aria-hidden="true"></i>{{ __('admin.fields.featured') }}</p>
                 @endif
                 @if ($activity->published_at)
-                    <p class="fs-12 text-muted mb-0">প্রকাশিত: {{ bn_datetime($activity->published_at) }}</p>
+                    <p class="fs-12 text-muted mb-0">{{ __('admin.fields.published_label') }}: {{ bn_datetime($activity->published_at) }}</p>
                 @endif
             </x-admin.card>
 
             @if ($activity->facebook_post_url)
-                <x-admin.card title="সংযুক্ত লিঙ্ক">
+                <x-admin.card title="{{ __('admin.fields.attached_links') }}">
                     <a href="{{ $activity->facebook_post_url }}" target="_blank" rel="noreferrer">
-                        ফেসবুক পোস্ট <i class="ti ti-external-link" aria-hidden="true"></i>
+                        {{ __('admin.fields.facebook_post') }} <i class="ti ti-external-link" aria-hidden="true"></i>
                     </a>
                 </x-admin.card>
             @endif

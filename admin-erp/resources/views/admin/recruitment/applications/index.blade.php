@@ -3,14 +3,14 @@
 @section('content')
     @php $isFiltered = collect($filters)->filter(fn ($v) => $v !== '')->isNotEmpty(); @endphp
 
-    <x-admin.table :paginator="$applications" caption="আবেদনের তালিকা"
-        :headers="[__('admin.fields.applicant'), __('admin.fields.notice'), __('admin.fields.district'), 'আগ্রহের ক্ষেত্র', __('admin.fields.attachment'), __('admin.common.status'), __('admin.fields.applied_at')]">
+    <x-admin.table :paginator="$applications" caption="{{ __('admin.fields.submissions_list') }}"
+        :headers="[__('admin.fields.applicant'), __('admin.fields.notice'), __('admin.fields.district'), __('admin.fields.area_of_interest'), __('admin.fields.attachment'), __('admin.common.status'), __('admin.fields.applied_at')]">
 
         <x-slot:toolbar>
             <form method="GET" action="{{ route('admin.recruitment.applications.index') }}" class="row g-2 align-items-end">
                 <div class="col-12 col-md-3">
                     <label for="f-search" class="form-label fs-13 mb-1">{{ __('admin.actions.search') }}</label>
-                    <input type="search" id="f-search" name="search" value="{{ $filters['search'] }}" class="form-control" placeholder="নাম, ই-মেইল, ফোন বা আবেদন নম্বর">
+                    <input type="search" id="f-search" name="search" value="{{ $filters['search'] }}" class="form-control" placeholder="{{ __('admin.fields.search_applicant_placeholder') }}">
                 </div>
                 <div class="col-6 col-md-2">
                     <label for="f-status" class="form-label fs-13 mb-1">{{ __('admin.common.status') }}</label>
@@ -22,7 +22,7 @@
                     </select>
                 </div>
                 <div class="col-6 col-md-2">
-                    <label for="f-skill" class="form-label fs-13 mb-1">দক্ষতা</label>
+                    <label for="f-skill" class="form-label fs-13 mb-1">{{ __('admin.fields.skill') }}</label>
                     <select id="f-skill" name="skill" class="form-select">
                         <option value="">{{ __('admin.common.all') }}</option>
                         @foreach ($skills as $v => $l)
@@ -49,11 +49,11 @@
                     </select>
                 </div>
                 <div class="col-6 col-md-2">
-                    <label for="f-from" class="form-label fs-13 mb-1">তারিখ (থেকে)</label>
+                    <label for="f-from" class="form-label fs-13 mb-1">{{ __('admin.fields.date_from') }}</label>
                     <input type="date" id="f-from" name="from" value="{{ $filters['from'] }}" class="form-control">
                 </div>
                 <div class="col-6 col-md-2">
-                    <label for="f-to" class="form-label fs-13 mb-1">তারিখ (পর্যন্ত)</label>
+                    <label for="f-to" class="form-label fs-13 mb-1">{{ __('admin.fields.date_to') }}</label>
                     <input type="date" id="f-to" name="to" value="{{ $filters['to'] }}" class="form-control">
                 </div>
                 <div class="col-12 col-md-3 d-flex gap-2">
@@ -77,7 +77,7 @@
                 </td>
                 <td data-label="{{ __('admin.fields.notice') }}">{{ $application->jobPosting?->title ?? '—' }}</td>
                 <td data-label="{{ __('admin.fields.district') }}">{{ $application->district ?: '—' }}</td>
-                <td data-label="আগ্রহের ক্ষেত্র">
+                <td data-label="{{ __('admin.fields.area_of_interest') }}">
                     @php $labels = $application->skillLabels(); @endphp
                     @if ($labels === [])
                         —
@@ -105,7 +105,7 @@
             </tr>
         @empty
             <x-admin.empty-state colspan="7" icon="{{ $isFiltered ? 'ti-search-off' : 'ti-user-off' }}"
-                :title="$isFiltered ? __('admin.filters.no_results') : 'এখনো কোনো আবেদন নেই'" />
+                :title="$isFiltered ? __('admin.filters.no_results') : __('admin.fields.no_submissions_yet')" />
         @endforelse
     </x-admin.table>
 @endsection
