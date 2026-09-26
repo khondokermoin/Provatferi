@@ -3,7 +3,7 @@
 @section('page-actions')
     @can('notices.create')
         <a href="{{ route('admin.notices.create') }}" class="btn btn-primary">
-            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন নোটিশ
+            <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.fields.new_notice') }}
         </a>
     @endcan
 @endsection
@@ -11,10 +11,10 @@
 @section('content')
     @php
         $isFiltered = $filters['search'] !== '' || $filters['type'] !== '';
-        $tabs = ['' => 'সকল', 'published' => 'প্রকাশিত', 'draft' => 'খসড়া', 'scheduled' => 'নির্ধারিত', 'archived' => 'আর্কাইভ'];
+        $tabs = ['' => __('admin.common.all'), 'published' => status_label('published'), 'draft' => status_label('draft'), 'scheduled' => status_label('scheduled'), 'archived' => status_label('archived')];
     @endphp
 
-    <nav aria-label="স্ট্যাটাস অনুযায়ী নোটিশ" class="mb-3">
+    <nav aria-label="{{ __('admin.fields.notices_by_status_nav') }}" class="mb-3">
         <ul class="nav nav-pills flex-wrap gap-1">
             @foreach ($tabs as $key => $label)
                 @php $active = $filters['status'] === (string) $key; @endphp
@@ -26,7 +26,7 @@
         </ul>
     </nav>
 
-    <x-admin.table :paginator="$notices" caption="নোটিশের তালিকা"
+    <x-admin.table :paginator="$notices" caption="{{ __('admin.fields.notices_list') }}"
         :headers="[__('admin.fields.subject'), __('admin.common.status'), __('admin.fields.published_at'), __('admin.fields.term'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
 
         <x-slot:toolbar>
@@ -36,7 +36,7 @@
                 @endif
                 <div class="col-12 col-md-5">
                     <label for="f-search" class="form-label fs-13 mb-1">{{ __('admin.actions.search') }}</label>
-                    <input type="search" id="f-search" name="search" value="{{ $filters['search'] }}" class="form-control" placeholder="নোটিশের বিষয়">
+                    <input type="search" id="f-search" name="search" value="{{ $filters['search'] }}" class="form-control" placeholder="{{ __('admin.fields.notice_subject_placeholder') }}">
                 </div>
                 <div class="col-12 col-md-4">
                     <label for="f-type" class="form-label fs-13 mb-1">{{ __('admin.common.type') }}</label>
@@ -68,14 +68,14 @@
                             <span class="badge bg-light text-body border fw-medium">{{ $notice->typeLabel() }}</span>
                             @if ($notice->isActivelyPinned())
                                 <span class="badge bg-warning-subtle text-warning-emphasis d-inline-flex align-items-center gap-1">
-                                    <i class="ti ti-pin" aria-hidden="true"></i>গুরুত্বপূর্ণ
+                                    <i class="ti ti-pin" aria-hidden="true"></i>{{ __('admin.fields.pinned') }}
                                 </span>
                             @endif
                         </span>
                         <a href="{{ route('admin.notices.show', $notice) }}" class="fw-semibold">{{ $notice->title }}</a>
                         @if ($notice->jobPosting)
                             <span class="fs-12 text-muted">
-                                <i class="ti ti-link" aria-hidden="true"></i> নিয়োগ বিজ্ঞপ্তি: {{ $notice->jobPosting->title }}
+                                <i class="ti ti-link" aria-hidden="true"></i> {{ __('admin.fields.job_posting_label') }}: {{ $notice->jobPosting->title }}
                             </span>
                         @endif
                     </div>
@@ -89,13 +89,13 @@
                             <span class="badge bg-danger-subtle text-danger-emphasis ms-1">{{ __('admin.fields.expired') }}</span>
                         @endif
                     @else
-                        <span class="text-muted">নেই</span>
+                        <span class="text-muted">{{ __('admin.fields.no_expiry') }}</span>
                     @endif
                 </td>
                 <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
-                                aria-label="{{ $notice->title }} — অ্যাকশন মেনু">
+                                aria-label="{{ $notice->title }} — {{ __('admin.fields.action_menu') }}">
                             <i class="ti ti-dots-vertical" aria-hidden="true"></i>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end">
@@ -133,12 +133,12 @@
             </tr>
         @empty
             <x-admin.empty-state colspan="5" icon="{{ $isFiltered ? 'ti-search-off' : 'ti-speakerphone' }}"
-                :title="$isFiltered ? 'এই ফিল্টারে কোনো নোটিশ পাওয়া যায়নি' : 'এখানে কোনো নোটিশ নেই'"
-                message="প্রকাশিত, খসড়া, নির্ধারিত ও আর্কাইভ করা নোটিশ এখানে দেখা যাবে।">
+                :title="$isFiltered ? __('admin.fields.no_notices_filtered') : __('admin.fields.no_notices_here')"
+                message="{{ __('admin.fields.notices_empty_hint') }}">
                 @can('notices.create')
                     @unless ($isFiltered)
                         <a href="{{ route('admin.notices.create') }}" class="btn btn-primary btn-sm">
-                            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন নোটিশ
+                            <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.fields.new_notice') }}
                         </a>
                     @endunless
                 @endcan
