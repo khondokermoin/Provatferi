@@ -41,12 +41,23 @@ class HostingerMailService
     ) {
     }
 
+    /**
+     * Deliberately does NOT throw when the token is unconfigured. This is
+     * bound as a container singleton (AppServiceProvider), so any code that
+     * merely type-hints HostingerMailService — including just to call
+     * isConfigured() before deciding whether to do anything — forces this
+     * factory to run. Throwing here previously meant isConfigured() itself
+     * was unreachable in any environment without the token (a fresh CI
+     * checkout, this app's own test suite, a pre-deploy build's isolated
+     * tree): the very check meant to detect "unconfigured" crashed first
+     * instead of returning false. An unconfigured instance's Api clients
+     * simply carry an empty access token; a real call against them fails
+     * naturally (Hostinger rejects it) rather than this class failing at
+     * construction/injection time regardless of whether it's ever used.
+     */
     public static function make(): self
     {
-        $token = config('services.hostinger_mail.token');
-        if (blank($token)) {
-            throw new RuntimeException('services.hostinger_mail.token is not configured.');
-        }
+        $token = (string) (config('services.hostinger_mail.token') ?? '');
         $config = Configuration::getDefaultConfiguration()->setAccessToken($token);
 
         return new self(
