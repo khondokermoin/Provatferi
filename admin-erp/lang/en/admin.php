@@ -305,6 +305,20 @@ return [
         'has_photo' => 'Photo attached',
         'no_cv' => 'No CV',
         'has_cv' => 'CV attached',
+        'title' => 'Title',
+        'summary' => 'Summary',
+        'detailed_description' => 'Detailed description',
+        'what_happened' => 'What happened',
+        'outcomes_impact' => 'Outcomes & impact',
+        'committee_name' => 'Committee name',
+        'brief_intro' => 'Brief introduction',
+        'org_description' => 'Organization description',
+        'history_background' => 'History / background',
+        'why_provatferi' => 'Why Provatferi',
+        'identity_explanation' => 'Explanation of name/identity',
+        'description_requirements' => 'Description / requirements',
+        'button_text' => 'Button text',
+        'unit_name' => 'Unit name',
     ],
 
     'filters' => [
@@ -378,6 +392,7 @@ return [
     ],
 
     'bilingual' => [
+        'en_label_suffix' => '(English, optional)',
         'bn_tab' => 'বাংলা',
         'en_tab' => 'English',
         'en_missing' => 'No English translation',

@@ -312,6 +312,20 @@ return [
         'has_photo' => 'ছবি আছে',
         'no_cv' => 'সিভি নেই',
         'has_cv' => 'সিভি আছে',
+        'title' => 'শিরোনাম',
+        'summary' => 'সংক্ষিপ্ত বিবরণ',
+        'detailed_description' => 'বিস্তারিত বিবরণ',
+        'what_happened' => 'কী ঘটেছে',
+        'outcomes_impact' => 'ফলাফল ও প্রভাব',
+        'committee_name' => 'কমিটির নাম',
+        'brief_intro' => 'সংক্ষিপ্ত ভূমিকা',
+        'org_description' => 'প্রতিষ্ঠানের বিবরণ',
+        'history_background' => 'ইতিহাস / প্রেক্ষাপট',
+        'why_provatferi' => 'কেন প্রভাতফেরী',
+        'identity_explanation' => 'নাম/পরিচয়ের ব্যাখ্যা',
+        'description_requirements' => 'বিবরণ / যোগ্যতা',
+        'button_text' => 'বাটনের লেখা',
+        'unit_name' => 'ইউনিটের নাম',
     ],
 
     'filters' => [
@@ -385,6 +399,7 @@ return [
     ],
 
     'bilingual' => [
+        'en_label_suffix' => '(English, ঐচ্ছিক)',
         'bn_tab' => 'বাংলা',
         'en_tab' => 'English',
         'en_missing' => 'ইংরেজি অনুবাদ নেই',

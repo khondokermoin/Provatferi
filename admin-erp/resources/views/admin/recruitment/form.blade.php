@@ -19,15 +19,15 @@
             <div class="col-lg-8">
                 <x-admin.card title="{{ __('admin.common.description') }}">
                     <x-admin.form-input name="title" label="{{ __('admin.common.title') }}" :value="$jobPosting->title" required />
-                    <x-admin.form-input name="title_en" label="শিরোনাম (English, ঐচ্ছিক)" :value="$jobPosting->title_en" />
+                    <x-admin.form-input name="title_en" label="{{ __('admin.fields.title') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$jobPosting->title_en" />
                     <x-admin.form-input name="slug" label="{{ __('admin.common.slug') }}" :value="$jobPosting->slug"
                         help="{{ $isEdit ? 'পরিবর্তন করলে পুরনো লিংকটি চিরস্থায়ীভাবে নতুন লিংকে রিডাইরেক্ট হবে — আগের ভিজিটর/শেয়ার করা লিংক নষ্ট হবে না।' : 'খালি রাখলে শিরোনাম থেকে স্বয়ংক্রিয়ভাবে তৈরি হবে। শুধু ছোট হাতের ইংরেজি অক্ষর, সংখ্যা ও হাইফেন।' }}" />
                     <x-admin.form-textarea name="summary" label="{{ __('admin.common.summary') }}" :value="$jobPosting->summary" :rows="2" />
-                    <x-admin.form-textarea name="summary_en" label="সংক্ষিপ্ত বিবরণ (English, ঐচ্ছিক)" :value="$jobPosting->summary_en" :rows="2" />
+                    <x-admin.form-textarea name="summary_en" label="{{ __('admin.fields.summary') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$jobPosting->summary_en" :rows="2" />
                     <x-admin.form-textarea name="description" label="{{ __('admin.fields.full_body') }}" :value="$jobPosting->description" :rows="6" required />
-                    <x-admin.form-textarea name="description_en" label="পূর্ণ বিবরণ (English, ঐচ্ছিক)" :value="$jobPosting->description_en" :rows="6" />
+                    <x-admin.form-textarea name="description_en" label="{{ __('admin.fields.full_body') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$jobPosting->description_en" :rows="6" />
                     <x-admin.form-textarea name="requirements" label="{{ __('admin.fields.requirements') }}" :value="$jobPosting->requirements" :rows="4" />
-                    <x-admin.form-textarea name="requirements_en" label="যোগ্যতা (English, ঐচ্ছিক)" :value="$jobPosting->requirements_en" :rows="4" />
+                    <x-admin.form-textarea name="requirements_en" label="{{ __('admin.fields.requirements') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$jobPosting->requirements_en" :rows="4" />
 
                     <div class="row">
                         <div class="col-md-6">

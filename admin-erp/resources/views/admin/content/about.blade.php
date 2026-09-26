@@ -10,20 +10,20 @@
                 <x-admin.card title="{{ __('admin.fields.main_info') }}">
                     <x-admin.form-textarea name="introduction" label="সংক্ষিপ্ত ভূমিকা" :value="$about->introduction" :rows="2"
                         help="পাতার একদম শুরুতে দেখানো এক-দুই লাইনের পরিচিতি।" />
-                    <x-admin.form-textarea name="introduction_en" label="সংক্ষিপ্ত ভূমিকা (English, ঐচ্ছিক)" :value="$about->introduction_en" :rows="2" />
+                    <x-admin.form-textarea name="introduction_en" label="{{ __('admin.fields.brief_intro') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$about->introduction_en" :rows="2" />
                     <x-admin.form-textarea name="description" label="প্রতিষ্ঠানের বিবরণ" :value="$about->description" :rows="4" />
-                    <x-admin.form-textarea name="description_en" label="প্রতিষ্ঠানের বিবরণ (English, ঐচ্ছিক)" :value="$about->description_en" :rows="4" />
+                    <x-admin.form-textarea name="description_en" label="{{ __('admin.fields.org_description') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$about->description_en" :rows="4" />
                     <x-admin.form-textarea name="registration_status" label="নিবন্ধন অবস্থা" :value="$about->registration_status" :rows="1"
                         help="যেমন: প্রতিষ্ঠাকাল ও নিবন্ধন প্রক্রিয়ার বর্তমান অবস্থা।" />
                 </x-admin.card>
 
                 <x-admin.card title="পটভূমি" subtitle="বাস্তব ও অনুমোদিত তথ্য না থাকলে খালি রাখুন — কিছু আরোপিত করবেন না।">
                     <x-admin.form-textarea name="history" label="ইতিহাস / প্রেক্ষাপট" :value="$about->history" :rows="5" />
-                    <x-admin.form-textarea name="history_en" label="ইতিহাস / প্রেক্ষাপট (English, ঐচ্ছিক)" :value="$about->history_en" :rows="5" />
+                    <x-admin.form-textarea name="history_en" label="{{ __('admin.fields.history_background') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$about->history_en" :rows="5" />
                     <x-admin.form-textarea name="why_exists" label="কেন প্রভাতফেরী" :value="$about->why_exists" :rows="4" />
-                    <x-admin.form-textarea name="why_exists_en" label="কেন প্রভাতফেরী (English, ঐচ্ছিক)" :value="$about->why_exists_en" :rows="4" />
+                    <x-admin.form-textarea name="why_exists_en" label="{{ __('admin.fields.why_provatferi') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$about->why_exists_en" :rows="4" />
                     <x-admin.form-textarea name="identity_explanation" label="নাম/পরিচয়ের ব্যাখ্যা" :value="$about->identity_explanation" :rows="3" />
-                    <x-admin.form-textarea name="identity_explanation_en" label="নাম/পরিচয়ের ব্যাখ্যা (English, ঐচ্ছিক)" :value="$about->identity_explanation_en" :rows="3" />
+                    <x-admin.form-textarea name="identity_explanation_en" label="{{ __('admin.fields.identity_explanation') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$about->identity_explanation_en" :rows="3" />
                 </x-admin.card>
 
                 <x-admin.card title="{{ __('admin.common.publication') }}">

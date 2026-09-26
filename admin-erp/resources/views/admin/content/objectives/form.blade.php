@@ -12,9 +12,9 @@
                 <x-admin.card title="{{ __('admin.fields.objective') }}">
                     <x-admin.form-input name="title" label="শিরোনাম (ঐচ্ছিক)" :value="$objective->title"
                         help="সাধারণত উদ্দেশ্যের কোনো আলাদা শিরোনাম দরকার হয় না — শুধু বিবরণই যথেষ্ট।" />
-                    <x-admin.form-input name="title_en" label="শিরোনাম (English, ঐচ্ছিক)" :value="$objective->title_en" />
+                    <x-admin.form-input name="title_en" label="{{ __('admin.fields.title') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$objective->title_en" />
                     <x-admin.form-textarea name="body" label="{{ __('admin.common.description') }}" :value="$objective->body" :rows="3" required />
-                    <x-admin.form-textarea name="body_en" label="বিবরণ (English, ঐচ্ছিক)" :value="$objective->body_en" :rows="3" />
+                    <x-admin.form-textarea name="body_en" label="{{ __('admin.common.description') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$objective->body_en" :rows="3" />
                 </x-admin.card>
             </div>
 

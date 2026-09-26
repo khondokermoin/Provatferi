@@ -15,7 +15,7 @@
             <div class="col-lg-8">
                 <x-admin.card title="নোটিশের বিষয়বস্তু">
                     <x-admin.form-input name="title" label="{{ __('admin.fields.subject') }}" :value="$notice->title" required maxlength="255" />
-                    <x-admin.form-input name="title_en" label="বিষয় (English, ঐচ্ছিক)" :value="$notice->title_en" maxlength="255" />
+                    <x-admin.form-input name="title_en" label="{{ __('admin.fields.subject') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$notice->title_en" maxlength="255" />
 
                     <div class="row">
                         <div class="col-md-6">
@@ -36,10 +36,10 @@
 
                     <x-admin.form-textarea name="summary" label="{{ __('admin.common.summary') }}" :value="$notice->summary" :rows="3" maxlength="500"
                         help="নোটিশ বোর্ডের তালিকায় ও লিংক শেয়ারের প্রিভিউতে দেখায়। সর্বোচ্চ ৫০০ অক্ষর।" />
-                    <x-admin.form-textarea name="summary_en" label="সংক্ষিপ্ত বিবরণ (English, ঐচ্ছিক)" :value="$notice->summary_en" :rows="3" maxlength="500" />
+                    <x-admin.form-textarea name="summary_en" label="{{ __('admin.fields.summary') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$notice->summary_en" :rows="3" maxlength="500" />
                     <x-admin.form-textarea name="body" label="{{ __('admin.fields.full_body') }}" :value="$notice->body" :rows="18" required
                         help="সাধারণ লেখা হিসেবে সংরক্ষিত হয়। খালি লাইন দিয়ে অনুচ্ছেদ আলাদা করুন; “• ” দিয়ে শুরু হওয়া লাইন সাইটে তালিকা হিসেবে দেখাবে। লিংক নিজে থেকেই ক্লিকযোগ্য হবে।" />
-                    <x-admin.form-textarea name="body_en" label="পূর্ণ বিবরণ (English, ঐচ্ছিক)" :value="$notice->body_en" :rows="18" />
+                    <x-admin.form-textarea name="body_en" label="{{ __('admin.fields.full_body') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$notice->body_en" :rows="18" />
                 </x-admin.card>
 
                 <x-admin.card title="ছবি ও সংযুক্তি">
@@ -105,7 +105,7 @@
                         <div class="col-md-4">
                             <x-admin.form-input name="action_label" label="বাটনের লেখা" :value="$notice->action_label" maxlength="100"
                                 placeholder="যেমন: আবেদন করুন" />
-                            <x-admin.form-input name="action_label_en" label="বাটনের লেখা (English, ঐচ্ছিক)" :value="$notice->action_label_en" maxlength="100" />
+                            <x-admin.form-input name="action_label_en" label="{{ __('admin.fields.button_text') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$notice->action_label_en" maxlength="100" />
                         </div>
                     </div>
                 </x-admin.card>
