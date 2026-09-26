@@ -8,7 +8,7 @@
     @endcan
     @if ($notice->isPubliclyVisible())
         <a href="{{ $notice->publicUrl() }}" class="btn btn-light" target="_blank" rel="noopener noreferrer">
-            <i class="ti ti-external-link me-1" aria-hidden="true"></i>সাইটে দেখুন
+            <i class="ti ti-external-link me-1" aria-hidden="true"></i>{{ __('admin.fields.view_on_site') }}
         </a>
     @endif
     <a href="{{ route('admin.notices.index') }}" class="btn btn-light">
@@ -19,12 +19,12 @@
 @section('content')
     <div class="row">
         <div class="col-lg-8">
-            <x-admin.card title="নোটিশের বিষয়বস্তু">
+            <x-admin.card title="{{ __('admin.fields.notice_content') }}">
                 <div class="d-flex flex-wrap gap-2 mb-3">
                     <span class="badge bg-light text-body border fw-medium">{{ $notice->typeLabel() }}</span>
                     @if ($notice->isActivelyPinned())
                         <span class="badge bg-warning-subtle text-warning-emphasis d-inline-flex align-items-center gap-1">
-                            <i class="ti ti-pin" aria-hidden="true"></i>গুরুত্বপূর্ণ
+                            <i class="ti ti-pin" aria-hidden="true"></i>{{ __('admin.fields.pinned') }}
                         </span>
                     @endif
                 </div>
@@ -36,15 +36,15 @@
             </x-admin.card>
 
             @if ($notice->cover_image_path || $notice->attachment_path)
-                <x-admin.card title="ছবি ও সংযুক্তি">
+                <x-admin.card title="{{ __('admin.fields.images_and_attachments') }}">
                     @if ($notice->cover_image_path)
-                        <img src="{{ route('admin.notices.file', [$notice, 'cover']) }}" alt="{{ $notice->title }} — ছবি"
+                        <img src="{{ route('admin.notices.file', [$notice, 'cover']) }}" alt="{{ $notice->title }} — {{ __('admin.fields.image_suffix') }}"
                              class="img-fluid rounded border mb-3" style="max-height: 320px">
                     @endif
                     @if ($notice->attachment_path)
                         <div>
                             <a href="{{ route('admin.notices.file', [$notice, 'attachment']) }}" class="btn btn-light border">
-                                <i class="ti ti-file-type-pdf me-1" aria-hidden="true"></i>সংযুক্তি ডাউনলোড
+                                <i class="ti ti-file-type-pdf me-1" aria-hidden="true"></i>{{ __('admin.fields.download_attachment') }}
                                 @if ($notice->attachment_size)
                                     ({{ bn_digits(number_format($notice->attachment_size / 1048576, 1)) }} MB)
                                 @endif
@@ -70,16 +70,16 @@
                     </dd>
                     <dt class="fs-13 text-muted">{{ __('admin.fields.unit') }}</dt>
                     <dd>{{ $notice->organizationUnit?->name ?? '—' }}</dd>
-                    <dt class="fs-13 text-muted">পাবলিক URL</dt>
+                    <dt class="fs-13 text-muted">{{ __('admin.fields.public_url') }}</dt>
                     <dd class="text-break fs-13">{{ $notice->publicUrl() }}</dd>
                     @if ($notice->action_url)
-                        <dt class="fs-13 text-muted">অ্যাকশন বাটন</dt>
+                        <dt class="fs-13 text-muted">{{ __('admin.fields.action_button') }}</dt>
                         <dd class="text-break fs-13">
                             {{ $notice->action_label }} —
                             <a href="{{ $notice->action_url }}" target="_blank" rel="noopener noreferrer">{{ \Illuminate\Support\Str::limit($notice->action_url, 48) }}</a>
                         </dd>
                     @endif
-                    <dt class="fs-13 text-muted">তৈরি করেছেন / সর্বশেষ হালনাগাদ</dt>
+                    <dt class="fs-13 text-muted">{{ __('admin.fields.created_by_last_updated') }}</dt>
                     <dd class="mb-0 fs-13">
                         {{ $notice->creator?->name ?? '—' }} / {{ $notice->updater?->name ?? '—' }}
                         <span class="d-block text-muted">{{ bn_datetime($notice->updated_at?->copy()->timezone(\App\Models\Notice::DISPLAY_TIMEZONE)) }}</span>
@@ -116,7 +116,7 @@
                                     <i class="ti ti-trash me-1" aria-hidden="true"></i>{{ __('admin.actions.delete') }}
                                 </button>
                             @else
-                                <p class="fs-12 text-muted mb-0">একবার প্রকাশিত নোটিশ মুছে ফেলা যায় না — প্রাতিষ্ঠানিক ইতিহাস রক্ষায় আর্কাইভ করুন।</p>
+                                <p class="fs-12 text-muted mb-0">{{ __('admin.fields.published_notice_cannot_delete_help') }}</p>
                             @endif
                         @endcan
                     </div>
@@ -124,7 +124,7 @@
             @endcanany
 
             @if ($notice->jobPosting)
-                <x-admin.card title="যুক্ত নিয়োগ বিজ্ঞপ্তি">
+                <x-admin.card title="{{ __('admin.fields.linked_job_posting') }}">
                     <p class="mb-2">
                         @can('recruitment.view')
                             <a href="{{ route('admin.recruitment.show', $notice->jobPosting) }}" class="fw-semibold">{{ $notice->jobPosting->title }}</a>
@@ -134,8 +134,8 @@
                     </p>
                     <p class="fs-12 text-muted mb-0">
                         {{ $notice->syncs_from_job_posting
-                            ? 'নিয়োগ বিজ্ঞপ্তি হালনাগাদ হলে এই নোটিশের শিরোনাম ও বিবরণও হালনাগাদ হবে।'
-                            : 'এই নোটিশের লেখা আলাদাভাবে সম্পাদিত — স্বয়ংক্রিয় হালনাগাদ বন্ধ।' }}
+                            ? __('admin.fields.posting_syncs_to_notice_help')
+                            : __('admin.fields.notice_own_sync_off_help') }}
                     </p>
                 </x-admin.card>
             @endif
@@ -144,8 +144,8 @@
 
     @can('notices.delete')
         @if (! $notice->wasEverPublic())
-            <x-admin.modal id="delete-notice" title="নোটিশ মুছে ফেলবেন?">
-                <p class="mb-0"><strong>{{ $notice->title }}</strong> মুছে ফেলা হবে। এটি কখনো প্রকাশিত হয়নি, তাই কোনো পাবলিক লিংক ভাঙবে না।</p>
+            <x-admin.modal id="delete-notice" title="{{ __('admin.fields.delete_notice_title') }}">
+                <p class="mb-0"><strong>{{ $notice->title }}</strong> {{ __('admin.fields.will_be_deleted') }} {{ __('admin.fields.never_published_no_broken_links') }}</p>
                 <x-slot:confirm>
                     <form method="POST" action="{{ route('admin.notices.destroy', $notice) }}">
                         @csrf @method('DELETE')
