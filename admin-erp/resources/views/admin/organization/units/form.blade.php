@@ -12,13 +12,13 @@
 
         <div class="row">
             <div class="col-lg-8">
-                <x-admin.card title="{{ __('admin.fields.main_info') }}" subtitle="ইউনিটের পরিচয় ও কাঠামোগত অবস্থান।">
+                <x-admin.card title="{{ __('admin.fields.main_info') }}" subtitle="{{ __('admin.fields.unit_identity_subtitle') }}">
                     <x-admin.form-input
                         name="name"
-                        label="ইউনিটের নাম"
+                        label="{{ __('admin.fields.unit_name') }}"
                         :value="$unit->name"
                         required
-                        help="যেমন: চান্দিনা উপজেলা শাখা" />
+                        help="{{ __('admin.fields.unit_name_example_help') }}" />
 
                     <x-admin.form-input
                         name="name_en"
@@ -31,7 +31,7 @@
                         <div class="col-md-6">
                             <x-admin.form-select
                                 name="unit_type"
-                                label="ইউনিটের ধরন"
+                                label="{{ __('admin.fields.unit_type') }}"
                                 :options="$unitTypes"
                                 :value="$unit->unit_type"
                                 required />
@@ -39,11 +39,11 @@
                         <div class="col-md-6">
                             <x-admin.form-select
                                 name="parent_id"
-                                label="প্যারেন্ট ইউনিট"
+                                label="{{ __('admin.fields.parent_unit') }}"
                                 :options="$parentOptions"
                                 :value="$unit->parent_id"
-                                placeholder="— শীর্ষ পর্যায় (কোনো প্যারেন্ট নেই) —"
-                                help="নিজের অধীনস্থ ইউনিট প্যারেন্ট হিসেবে বাছা যাবে না।" />
+                                placeholder="— {{ __('admin.fields.top_level_no_parent') }} —"
+                                help="{{ __('admin.fields.no_self_descendant_parent_help') }}" />
                         </div>
                     </div>
 
@@ -54,7 +54,7 @@
                         :rows="3" />
                 </x-admin.card>
 
-                <x-admin.card title="{{ __('admin.fields.contact') }}" subtitle="ঐচ্ছিক — জানা থাকলে পূরণ করুন।">
+                <x-admin.card title="{{ __('admin.fields.contact') }}" subtitle="{{ __('admin.fields.optional_fill_if_known') }}">
                     <x-admin.form-textarea name="address" label="{{ __('admin.common.address') }}" :value="$unit->address" :rows="2" />
                     <div class="row">
                         <div class="col-md-6">
@@ -84,11 +84,11 @@
                         :value="$unit->sort_order ?? 0"
                         required
                         min="0"
-                        help="ছোট সংখ্যা আগে দেখাবে।" />
+                        help="{{ __('admin.fields.lower_shows_first_help') }}" />
 
                     <x-admin.form-input
                         name="established_date"
-                        label="প্রতিষ্ঠার তারিখ"
+                        label="{{ __('admin.fields.founding_date') }}"
                         type="date"
                         :value="$unit->established_date?->format('Y-m-d') ?? $unit->established_date" />
 
@@ -96,7 +96,7 @@
                         name="code"
                         label="{{ __('admin.fields.code') }}"
                         :value="$unit->code"
-                        help="অভ্যন্তরীণ শনাক্তকরণ কোড (ঐচ্ছিক)।" />
+                        help="{{ __('admin.fields.internal_code_help') }}" />
                 </x-admin.card>
 
                 {{-- Primary action first, cancel as a low-emphasis link. --}}
