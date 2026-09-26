@@ -17,7 +17,7 @@ class Permission extends Model
      * own "don't invent one per page" note. Seeder and Gate registration both
      * read definitions(), so the two can never drift apart.
      */
-    public const MODULES = ['organization', 'activities', 'membership', 'recruitment', 'settings', 'users', 'payments', 'notices'];
+    public const MODULES = ['organization', 'activities', 'membership', 'recruitment', 'settings', 'users', 'payments', 'notices', 'mail'];
 
     /**
      * The slug names the authorized operation, not the UI page — routes may
@@ -36,6 +36,12 @@ class Permission extends Model
      */
     public const MODULE_ACTIONS = [
         'notices' => ['view', 'create', 'update', 'delete', 'publish', 'archive'],
+        // The Mail Center reads/writes a live external mailbox, not a local
+        // CRUD resource — 'read' (open a message body) is kept separate from
+        // 'view' (see the mailbox/message list) because a role might list
+        // subjects/senders for triage without being trusted to open bodies
+        // that may contain sensitive applicant/member correspondence.
+        'mail' => ['view', 'read', 'send', 'manage', 'delete'],
     ];
 
     protected $fillable = ['name', 'slug', 'module', 'action', 'description'];

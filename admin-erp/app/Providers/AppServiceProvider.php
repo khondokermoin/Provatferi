@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Permission;
 use App\Models\User;
+use App\Services\HostingerMailService;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Gate;
@@ -14,7 +15,10 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // Singleton: the SDK client and this token are the same for the
+        // whole request; HostingerMailService::mailboxes() also memoizes its
+        // one /me call, which a fresh instance per resolution would defeat.
+        $this->app->singleton(HostingerMailService::class, fn () => HostingerMailService::make());
     }
 
     public function boot(): void

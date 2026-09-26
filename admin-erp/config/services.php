@@ -43,4 +43,16 @@ return [
         'url' => env('PUBLIC_SITE_URL', 'https://provatferi.org'),
     ],
 
+    // Mail Center (Hostinger official Mail API). The token is scoped in
+    // hPanel to a specific set of mailboxes (info@/support@/security@ —
+    // never admin@ or no-reply@, see docs/MAIL_ROLES.md) and is never
+    // logged, echoed, or exposed to the frontend. `webhook_secret` is the
+    // one-time secret Hostinger returns when the message.received webhook
+    // is created — HostingerMailWebhookController compares it against the
+    // inbound request's own Authorization header on every delivery.
+    'hostinger_mail' => [
+        'token' => env('HOSTINGER_MAIL_API_TOKEN'),
+        'webhook_secret' => env('HOSTINGER_MAIL_WEBHOOK_SECRET'),
+    ],
+
 ];
