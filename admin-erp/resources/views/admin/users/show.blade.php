@@ -21,7 +21,7 @@
     @if ($isLastSuperAdmin)
         <div class="alert alert-warning d-flex align-items-start gap-2" role="alert">
             <i class="ti ti-shield-lock fs-18 mt-1" aria-hidden="true"></i>
-            <div>এটিই শেষ সক্রিয় Super Admin। সিস্টেম থেকে লকআউট এড়াতে একে নিষ্ক্রিয়, মুছে ফেলা বা ভূমিকা সরানো যাবে না।</div>
+            <div>{{ __('admin.fields.last_super_admin_warning') }}</div>
         </div>
     @endif
 
@@ -41,17 +41,17 @@
                     <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.status') }}</dt>
                     <dd class="col-sm-8"><x-admin.status-badge :status="$user->status" /></dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">সর্বশেষ লগইন</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.last_login') }}</dt>
                     <dd class="col-sm-8">{{ $user->last_login_at ? bn_datetime($user->last_login_at) : '—' }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">তৈরি</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.created_at_label') }}</dt>
                     <dd class="col-sm-8 mb-0">{{ $user->created_at ? bn_date($user->created_at) : '—' }}</dd>
                 </dl>
             </x-admin.card>
         </div>
 
         <div class="col-lg-5">
-            <x-admin.card title="ভূমিকা ও কার্যকর অনুমতি">
+            <x-admin.card title="{{ __('admin.fields.roles_effective_permissions') }}">
                 @forelse ($user->roles as $role)
                     <div class="mb-3">
                         <p class="fw-semibold mb-1">{{ $role->name }}</p>
@@ -62,7 +62,7 @@
                         </div>
                     </div>
                 @empty
-                    <p class="text-muted mb-0">কোনো ভূমিকা বরাদ্দ করা হয়নি — এই ব্যবহারকারী কিছুই দেখতে পাবেন না।</p>
+                    <p class="text-muted mb-0">{{ __('admin.fields.no_role_assigned') }}</p>
                 @endforelse
             </x-admin.card>
         </div>
