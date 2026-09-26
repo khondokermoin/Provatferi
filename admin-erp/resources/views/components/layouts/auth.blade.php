@@ -65,7 +65,7 @@
                     </span>
                 </div>
 
-                <h1 class="fw-semibold mb-2 text-center">{{ $heading ?? 'প্রশাসনিক লগইন' }}</h1>
+                <h1 class="fw-semibold mb-2 text-center">{{ $heading ?? __('admin.auth.panel_login') }}</h1>
                 @isset($subheading)
                     <p class="text-muted text-center mb-4 fs-14">{{ $subheading }}</p>
                 @endisset
@@ -79,8 +79,27 @@
          card+footer were centred as one block, biasing the card ~38px above
          true vertical centre) — anchored to the viewport bottom instead, so
          .auth-bg's centring applies to the card alone. --}}
+    {{-- Phase 3: the language choice must be reachable BEFORE signing in —
+         an admin who reads English should not have to log in through a
+         Bangla-only screen first. Plain inline links here rather than the
+         topbar dropdown component: this layout has no topbar. The POST +
+         CSRF and the session/cookie persistence are identical. --}}
+    <div class="position-absolute start-0 end-0 text-center" style="bottom: 44px;">
+        <div class="d-inline-flex gap-1" role="group" aria-label="{{ __('admin.locale.choose') }}">
+            @foreach (\App\Support\AdminLocale::SUPPORTED as $code => $label)
+                <form method="POST" action="{{ route('locale.update') }}" class="d-inline">
+                    @csrf
+                    <input type="hidden" name="locale" value="{{ $code }}">
+                    <button type="submit" lang="{{ $code }}"
+                            class="btn btn-sm {{ $code === app()->getLocale() ? 'btn-secondary' : 'btn-light' }}"
+                            @if ($code === app()->getLocale()) aria-current="true" @endif>{{ $label }}</button>
+                </form>
+            @endforeach
+        </div>
+    </div>
+
     <p class="text-center text-muted fs-12 pf-footer-note">
-        &copy; {{ date('Y') }} প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র
+        &copy; {{ bn_number(date('Y')) }} {{ __('admin.brand.org_full') }}
     </p>
 </div>
 

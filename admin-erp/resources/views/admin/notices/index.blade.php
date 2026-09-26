@@ -27,7 +27,7 @@
     </nav>
 
     <x-admin.table :paginator="$notices" caption="নোটিশের তালিকা"
-        :headers="['বিষয়', 'স্ট্যাটাস', 'প্রকাশের তারিখ', 'মেয়াদ', ['label' => 'অ্যাকশন', 'align' => 'end']]">
+        :headers="[__('admin.fields.subject'), __('admin.common.status'), __('admin.fields.published_at'), __('admin.fields.term'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
 
         <x-slot:toolbar>
             <form method="GET" action="{{ route('admin.notices.index') }}" class="row g-2 align-items-end">
@@ -35,13 +35,13 @@
                     <input type="hidden" name="status" value="{{ $filters['status'] }}">
                 @endif
                 <div class="col-12 col-md-5">
-                    <label for="f-search" class="form-label fs-13 mb-1">খুঁজুন</label>
+                    <label for="f-search" class="form-label fs-13 mb-1">{{ __('admin.actions.search') }}</label>
                     <input type="search" id="f-search" name="search" value="{{ $filters['search'] }}" class="form-control" placeholder="নোটিশের বিষয়">
                 </div>
                 <div class="col-12 col-md-4">
-                    <label for="f-type" class="form-label fs-13 mb-1">ধরন</label>
+                    <label for="f-type" class="form-label fs-13 mb-1">{{ __('admin.common.type') }}</label>
                     <select id="f-type" name="type" class="form-select">
-                        <option value="">সব ধরন</option>
+                        <option value="">{{ __('admin.filters.all_types') }}</option>
                         @foreach ($types as $value => $label)
                             <option value="{{ $value }}" @selected($filters['type'] === $value)>{{ $label }}</option>
                         @endforeach
@@ -49,10 +49,10 @@
                 </div>
                 <div class="col-12 col-md-3 d-flex gap-2">
                     <button type="submit" class="btn btn-light border w-100">
-                        <i class="ti ti-filter me-1" aria-hidden="true"></i>ফিল্টার
+                        <i class="ti ti-filter me-1" aria-hidden="true"></i>{{ __('admin.actions.filter') }}
                     </button>
                     @if ($isFiltered)
-                        <a href="{{ route('admin.notices.index', array_filter(['status' => $filters['status']])) }}" class="btn btn-light" aria-label="ফিল্টার সরান">
+                        <a href="{{ route('admin.notices.index', array_filter(['status' => $filters['status']])) }}" class="btn btn-light" aria-label="{{ __('admin.actions.clear_filters') }}">
                             <i class="ti ti-x" aria-hidden="true"></i>
                         </a>
                     @endif
@@ -62,7 +62,7 @@
 
         @forelse ($notices as $notice)
             <tr>
-                <td data-label="বিষয়">
+                <td data-label="{{ __('admin.fields.subject') }}">
                     <div class="d-flex flex-column gap-1">
                         <span class="d-flex flex-wrap align-items-center gap-2">
                             <span class="badge bg-light text-body border fw-medium">{{ $notice->typeLabel() }}</span>
@@ -80,19 +80,19 @@
                         @endif
                     </div>
                 </td>
-                <td data-label="স্ট্যাটাস"><x-admin.status-badge :status="$notice->effectiveStatus()" /></td>
-                <td data-label="প্রকাশের তারিখ">{{ $notice->published_at ? bn_datetime($notice->localPublishedAt()) : '—' }}</td>
-                <td data-label="মেয়াদ">
+                <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$notice->effectiveStatus()" /></td>
+                <td data-label="{{ __('admin.fields.published_at') }}">{{ $notice->published_at ? bn_datetime($notice->localPublishedAt()) : '—' }}</td>
+                <td data-label="{{ __('admin.fields.term') }}">
                     @if ($notice->expires_at)
                         {{ bn_date($notice->localExpiresAt()) }}
                         @if ($notice->isExpired())
-                            <span class="badge bg-danger-subtle text-danger-emphasis ms-1">মেয়াদোত্তীর্ণ</span>
+                            <span class="badge bg-danger-subtle text-danger-emphasis ms-1">{{ __('admin.fields.expired') }}</span>
                         @endif
                     @else
                         <span class="text-muted">নেই</span>
                     @endif
                 </td>
-                <td data-label="অ্যাকশন" class="text-end">
+                <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
                                 aria-label="{{ $notice->title }} — অ্যাকশন মেনু">
@@ -100,11 +100,11 @@
                         </button>
                         <div class="dropdown-menu dropdown-menu-end">
                             <a href="{{ route('admin.notices.show', $notice) }}" class="dropdown-item">
-                                <i class="ti ti-eye me-1" aria-hidden="true"></i>দেখুন
+                                <i class="ti ti-eye me-1" aria-hidden="true"></i>{{ __('admin.actions.view') }}
                             </a>
                             @can('notices.update')
                                 <a href="{{ route('admin.notices.edit', $notice) }}" class="dropdown-item">
-                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
+                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>{{ __('admin.actions.edit') }}
                                 </a>
                             @endcan
                             @can('notices.publish')
@@ -112,7 +112,7 @@
                                     <form method="POST" action="{{ route('admin.notices.publish', $notice) }}">
                                         @csrf @method('PATCH')
                                         <button type="submit" class="dropdown-item">
-                                            <i class="ti ti-world me-1" aria-hidden="true"></i>এখনই প্রকাশ করুন
+                                            <i class="ti ti-world me-1" aria-hidden="true"></i>{{ __('admin.actions2.publish_now') }}
                                         </button>
                                     </form>
                                 @endif
@@ -122,7 +122,7 @@
                                     <form method="POST" action="{{ route('admin.notices.archive', $notice) }}">
                                         @csrf @method('PATCH')
                                         <button type="submit" class="dropdown-item">
-                                            <i class="ti ti-archive me-1" aria-hidden="true"></i>আর্কাইভ করুন
+                                            <i class="ti ti-archive me-1" aria-hidden="true"></i>{{ __('admin.actions.archive') }}
                                         </button>
                                     </form>
                                 @endif

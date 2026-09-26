@@ -10,19 +10,19 @@
 
 @section('content')
     <x-admin.table :paginator="$roles" caption="ভূমিকার তালিকা"
-        :headers="['ভূমিকা', 'ব্যবহারকারী', 'অনুমতি', 'ধরন', ['label' => 'অ্যাকশন', 'align' => 'end']]">
+        :headers="[__('admin.fields.role'), __('admin.nav.users'), __('admin.nav.permissions'), __('admin.common.type'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
 
         @forelse ($roles as $role)
             <tr>
-                <td data-label="ভূমিকা">
+                <td data-label="{{ __('admin.fields.role') }}">
                     <span class="fw-semibold">{{ $role->name }}</span>
                     @if ($role->description)
                         <span class="d-block text-muted fs-12">{{ $role->description }}</span>
                     @endif
                 </td>
-                <td data-label="ব্যবহারকারী">{{ $role->users_count }}</td>
-                <td data-label="অনুমতি">{{ $role->permissions_count }}</td>
-                <td data-label="ধরন">
+                <td data-label="{{ __('admin.nav.users') }}">{{ $role->users_count }}</td>
+                <td data-label="{{ __('admin.nav.permissions') }}">{{ $role->permissions_count }}</td>
+                <td data-label="{{ __('admin.common.type') }}">
                     @if ($role->is_system_role)
                         <span class="badge bg-primary-subtle text-primary-emphasis d-inline-flex align-items-center gap-1">
                             <i class="ti ti-lock" aria-hidden="true"></i>System
@@ -31,7 +31,7 @@
                         <span class="badge bg-secondary-subtle text-secondary-emphasis">Custom</span>
                     @endif
                 </td>
-                <td data-label="অ্যাকশন" class="text-end">
+                <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
                                 aria-label="{{ $role->name }} — অ্যাকশন মেনু">
@@ -48,7 +48,7 @@
                                     <div class="dropdown-divider"></div>
                                     <button type="button" class="dropdown-item text-danger"
                                             data-bs-toggle="modal" data-bs-target="#delete-role-{{ $role->id }}">
-                                        <i class="ti ti-trash me-1" aria-hidden="true"></i>মুছে ফেলুন
+                                        <i class="ti ti-trash me-1" aria-hidden="true"></i>{{ __('admin.actions.delete') }}
                                     </button>
                                 @endunless
                             @endcan
@@ -77,7 +77,7 @@
                     <x-slot:confirm>
                         <form method="POST" action="{{ route('admin.roles.destroy', $role) }}">
                             @csrf @method('DELETE')
-                            <button type="submit" class="btn btn-danger">মুছে ফেলুন</button>
+                            <button type="submit" class="btn btn-danger">{{ __('admin.actions.delete') }}</button>
                         </form>
                     </x-slot:confirm>
                 </x-admin.modal>

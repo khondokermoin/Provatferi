@@ -80,7 +80,7 @@
     <tr>
         <td class="meta-label">আবেদন নম্বর</td>
         <td><strong>{{ $application->application_no }}</strong></td>
-        <td class="meta-label" style="width: 110px;">বিজ্ঞপ্তি</td>
+        <td class="meta-label" style="width: 110px;">{{ __('admin.fields.notice') }}</td>
         <td>{{ $application->jobPosting?->title ?? '—' }}</td>
     </tr>
     <tr>
@@ -95,7 +95,7 @@
             @if ($photoSrc)
                 <img src="{{ $photoSrc }}" alt="">
             @else
-                <div class="photo-placeholder">ছবি নেই</div>
+                <div class="photo-placeholder">{{ __('admin.fields.no_photo') }}</div>
             @endif
         </td>
         <td class="name-cell">
@@ -105,10 +105,10 @@
 </table>
 
 <table class="fields">
-    <tr><th>মোবাইল</th><td>{{ $application->applicant_phone ?: '—' }}</td></tr>
-    <tr><th>ই-মেইল</th><td>{{ $application->applicant_email }}</td></tr>
+    <tr><th>{{ __('admin.fields.mobile') }}</th><td>{{ $application->applicant_phone ?: '—' }}</td></tr>
+    <tr><th>{{ __('admin.common.email') }}</th><td>{{ $application->applicant_email }}</td></tr>
     <tr><th>পছন্দের যোগাযোগ মাধ্যম</th><td>{{ $contactLabels[$application->preferred_contact] ?? '—' }}</td></tr>
-    <tr><th>জেলা</th><td>{{ $application->district ?: '—' }}</td></tr>
+    <tr><th>{{ __('admin.fields.district') }}</th><td>{{ $application->district ?: '—' }}</td></tr>
     <tr><th>বর্তমান অবস্থান</th><td>{{ $application->current_location ?: '—' }}</td></tr>
     <tr><th>পেশা / শিক্ষা</th><td>{{ $application->profession ?: '—' }}</td></tr>
     <tr><th>সপ্তাহে সময় দিতে পারবেন</th><td>{{ $application->availability ?: '—' }}</td></tr>
@@ -139,7 +139,7 @@
     <p class="long-text">{{ $application->contribution }}</p>
 @endif
 
-<div class="section-title">সংযুক্তি</div>
+<div class="section-title">{{ __('admin.fields.attachment') }}</div>
 <table class="fields">
     <tr><th>সিভি / রেজিউমে</th><td>{{ $application->cv_path ? 'সংযুক্ত আছে' : 'প্রদান করা হয়নি' }}</td></tr>
 </table>

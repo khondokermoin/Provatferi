@@ -16,11 +16,11 @@
     @endcan
     @can('organization.update')
         <a href="{{ route('admin.committees.edit', $committee) }}" class="btn btn-light">
-            <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
+            <i class="ti ti-pencil me-1" aria-hidden="true"></i>{{ __('admin.actions.edit') }}
         </a>
     @endcan
     <a href="{{ route('admin.committees.index') }}" class="btn btn-light">
-        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>ফিরে যান
+        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>{{ __('admin.actions.back') }}
     </a>
 @endsection
 
@@ -29,52 +29,52 @@
         <div class="col-lg-4">
             <x-admin.card title="কমিটির তথ্য">
                 <dl class="row mb-0">
-                    <dt class="col-5 fs-13 text-muted">ইউনিট</dt>
+                    <dt class="col-5 fs-13 text-muted">{{ __('admin.fields.unit_short') }}</dt>
                     <dd class="col-7">{{ $committee->organizationUnit?->name ?? '—' }}</dd>
 
-                    <dt class="col-5 fs-13 text-muted">ধরন</dt>
+                    <dt class="col-5 fs-13 text-muted">{{ __('admin.common.type') }}</dt>
                     <dd class="col-7">{{ $types[$committee->committee_type] ?? '—' }}</dd>
 
-                    <dt class="col-5 fs-13 text-muted">মেয়াদ</dt>
+                    <dt class="col-5 fs-13 text-muted">{{ __('admin.fields.term') }}</dt>
                     <dd class="col-7">
                         {{ $committee->term_start ? bn_date($committee->term_start) : '—' }}<br>
-                        {{ $committee->term_end ? bn_date($committee->term_end) : 'চলমান' }}
+                        {{ $committee->term_end ? bn_date($committee->term_end) : __('admin.fields.ongoing') }}
                     </dd>
 
-                    <dt class="col-5 fs-13 text-muted">স্ট্যাটাস</dt>
+                    <dt class="col-5 fs-13 text-muted">{{ __('admin.common.status') }}</dt>
                     <dd class="col-7"><x-admin.status-badge :status="$committee->status" /></dd>
 
-                    <dt class="col-5 fs-13 text-muted">নোট</dt>
+                    <dt class="col-5 fs-13 text-muted">{{ __('admin.common.notes') }}</dt>
                     <dd class="col-7 mb-0">{{ $committee->description ?: '—' }}</dd>
                 </dl>
             </x-admin.card>
 
             @can('organization.approve')
                 @if (! empty($allowedTransitions))
-                    <x-admin.card title="স্ট্যাটাস পরিবর্তন করুন">
+                    <x-admin.card title="{{ __('admin.actions2.change_status') }}">
                         <form method="POST" action="{{ route('admin.committees.status', $committee) }}">
                             @csrf @method('PATCH')
-                            <x-admin.form-select name="status" label="নতুন স্ট্যাটাস"
+                            <x-admin.form-select name="status" label="{{ __('admin.actions2.new_status') }}"
                                 :options="collect($allowedTransitions)->mapWithKeys(fn ($s) => [$s => $statuses[$s]])->all()"
                                 :placeholder="null" required />
                             @if (in_array('active', $allowedTransitions, true))
                                 <p class="fs-12 text-muted">সক্রিয় করলে আগের সক্রিয় কমিটি স্বয়ংক্রিয়ভাবে সমাপ্ত হবে।</p>
                             @endif
                             <button type="submit" class="btn btn-primary w-100">
-                                <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>হালনাগাদ করুন
+                                <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ __('admin.actions.update') }}
                             </button>
                         </form>
                     </x-admin.card>
                 @endif
             @endcan
 
-            <x-admin.card title="পদসমূহ">
+            <x-admin.card title="{{ __('admin.nav.positions') }}">
                 @forelse ($committee->positions as $position)
                     <div class="d-flex justify-content-between align-items-center border-bottom py-2">
                         <div>
                             <span class="fw-semibold">{{ $position->name }}</span>
                             @if ($position->status !== 'active')
-                                <span class="badge bg-secondary-subtle text-secondary-emphasis fs-11 ms-1">নিষ্ক্রিয়</span>
+                                <span class="badge bg-secondary-subtle text-secondary-emphasis fs-11 ms-1">{{ __('admin.common.inactive') }}</span>
                             @endif
                             @if ($position->allow_duplicates)
                                 <span class="d-block text-muted fs-12">একাধিক সদস্য অনুমোদিত</span>
@@ -99,15 +99,15 @@
                         <summary class="fs-13 text-primary" style="cursor:pointer">+ নতুন পদ যোগ করুন</summary>
                         <form method="POST" action="{{ route('admin.committees.positions.store', $committee) }}" class="mt-2">
                             @csrf
-                            <x-admin.form-input name="name" label="পদের নাম" required />
+                            <x-admin.form-input name="name" label="{{ __('admin.fields.position_name') }}" required />
                             <x-admin.form-input name="name_en" label="পদের নাম (English, ঐচ্ছিক)" />
-                            <x-admin.form-input name="display_order" label="ক্রম" type="number" min="0" :value="0" required />
+                            <x-admin.form-input name="display_order" label="{{ __('admin.common.order') }}" type="number" min="0" :value="0" required />
                             <div class="form-check mb-3">
                                 <input type="checkbox" class="form-check-input" id="allow_duplicates" name="allow_duplicates" value="1">
                                 <label class="form-check-label" for="allow_duplicates">একাধিক সদস্য অনুমোদিত</label>
                             </div>
                             <input type="hidden" name="status" value="active">
-                            <button type="submit" class="btn btn-sm btn-primary">যোগ করুন</button>
+                            <button type="submit" class="btn btn-sm btn-primary">{{ __('admin.actions.add') }}</button>
                         </form>
                     </details>
                 @endcan
@@ -126,11 +126,11 @@
                         <div>
                             <span class="fs-13">{{ bn_datetime($link->created_at) }}</span>
                             @if ($link->revoked_at)
-                                <span class="badge bg-secondary-subtle text-secondary-emphasis fs-11 ms-1">বাতিল</span>
+                                <span class="badge bg-secondary-subtle text-secondary-emphasis fs-11 ms-1">{{ __('admin.actions.cancel') }}</span>
                             @elseif ($link->expires_at && $link->expires_at->isPast())
-                                <span class="badge bg-danger-subtle text-danger-emphasis fs-11 ms-1">মেয়াদোত্তীর্ণ</span>
+                                <span class="badge bg-danger-subtle text-danger-emphasis fs-11 ms-1">{{ __('admin.fields.expired') }}</span>
                             @else
-                                <span class="badge bg-success-subtle text-success-emphasis fs-11 ms-1">সক্রিয়</span>
+                                <span class="badge bg-success-subtle text-success-emphasis fs-11 ms-1">{{ __('admin.common.active') }}</span>
                             @endif
                             @if ($link->expires_at)
                                 <span class="d-block text-muted fs-12">মেয়াদ শেষ: {{ bn_datetime($link->expires_at) }}</span>
@@ -156,7 +156,7 @@
                         <form method="POST" action="{{ route('admin.committees.registration-links.store', $committee) }}" class="mt-2">
                             @csrf
                             <x-admin.form-input name="expires_at" label="মেয়াদ শেষ (ঐচ্ছিক)" type="datetime-local" />
-                            <button type="submit" class="btn btn-sm btn-primary">তৈরি করুন</button>
+                            <button type="submit" class="btn btn-sm btn-primary">{{ __('admin.actions.create') }}</button>
                         </form>
                     </details>
                 @endcan
@@ -165,24 +165,24 @@
 
         <div class="col-lg-8">
             <x-admin.table caption="কমিটির সদস্য তালিকা"
-                :headers="['#', 'সদস্য', 'পদ', 'মেয়াদ', 'স্ট্যাটাস', ['label' => 'অ্যাকশন', 'align' => 'end']]">
+                :headers="['#', __('admin.fields.member'), __('admin.fields.position'), __('admin.fields.term'), __('admin.common.status'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
 
                 @forelse ($committee->members as $member)
                     <tr>
                         <td data-label="#">{{ $member->serial_no ?? '—' }}</td>
-                        <td data-label="সদস্য">
+                        <td data-label="{{ __('admin.fields.member') }}">
                             <span class="fw-semibold">{{ $member->displayName() ?: '—' }}</span>
                             <span class="d-block text-muted fs-12">{{ $member->user?->email ?? $member->submission?->email }}</span>
                             @if ($member->submission)
                                 <span class="badge bg-info-subtle text-info-emphasis fs-11">পাবলিক আবেদন</span>
                             @endif
                         </td>
-                        <td data-label="পদ">{{ $member->positionTitle() ?: '—' }}</td>
-                        <td data-label="মেয়াদ">
-                            {{ $member->start_date ? bn_month_year($member->start_date) : '—' }} – {{ $member->end_date ? bn_month_year($member->end_date) : 'চলমান' }}
+                        <td data-label="{{ __('admin.fields.position') }}">{{ $member->positionTitle() ?: '—' }}</td>
+                        <td data-label="{{ __('admin.fields.term') }}">
+                            {{ $member->start_date ? bn_month_year($member->start_date) : '—' }} – {{ $member->end_date ? bn_month_year($member->end_date) : __('admin.fields.ongoing') }}
                         </td>
-                        <td data-label="স্ট্যাটাস"><x-admin.status-badge :status="$member->status" /></td>
-                        <td data-label="অ্যাকশন" class="text-end">
+                        <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$member->status" /></td>
+                        <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
                                         aria-label="{{ $member->displayName() }} — অ্যাকশন মেনু">
@@ -198,7 +198,7 @@
                                     @else
                                         @can('organization.update')
                                             <a href="{{ route('admin.committees.members.edit', [$committee, $member]) }}" class="dropdown-item">
-                                                <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
+                                                <i class="ti ti-pencil me-1" aria-hidden="true"></i>{{ __('admin.actions.edit') }}
                                             </a>
                                         @endcan
                                     @endif
@@ -235,7 +235,7 @@
                 <x-slot:confirm>
                     <form method="POST" action="{{ route('admin.committees.members.destroy', [$committee, $member]) }}">
                         @csrf @method('DELETE')
-                        <button type="submit" class="btn btn-danger">সরান</button>
+                        <button type="submit" class="btn btn-danger">{{ __('admin.actions2.remove') }}</button>
                     </form>
                 </x-slot:confirm>
             </x-admin.modal>

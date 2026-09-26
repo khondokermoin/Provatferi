@@ -3,11 +3,11 @@
 @section('page-actions')
     @can('membership.update')
         <a href="{{ route('admin.membership.members.edit', $member) }}" class="btn btn-primary">
-            <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
+            <i class="ti ti-pencil me-1" aria-hidden="true"></i>{{ __('admin.actions.edit') }}
         </a>
     @endcan
     <a href="{{ route('admin.membership.members.index') }}" class="btn btn-light">
-        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>ফিরে যান
+        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>{{ __('admin.actions.back') }}
     </a>
 @endsection
 
@@ -16,20 +16,20 @@
         <div class="col-lg-7">
             <x-admin.card title="সদস্যের তথ্য">
                 <dl class="row mb-0">
-                    <dt class="col-sm-4 fs-13 text-muted">নাম</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.name') }}</dt>
                     <dd class="col-sm-8">{{ $member->holderName() ?: '—' }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">ই-মেইল</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.email') }}</dt>
                     <dd class="col-sm-8">{{ $member->holderEmail() ?: '—' }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">সদস্যপদের ধরন</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.nav.membership_types') }}</dt>
                     <dd class="col-sm-8">{{ $member->membershipType->name ?? '—' }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">শুরুর তারিখ</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.term_start') }}</dt>
                     <dd class="col-sm-8">{{ $member->start_date ? bn_date($member->start_date) : '—' }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">মেয়াদ শেষ</dt>
-                    <dd class="col-sm-8">{{ $member->expiry_date ? bn_date($member->expiry_date) : 'নির্ধারিত নয়' }}</dd>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.term_end') }}</dt>
+                    <dd class="col-sm-8">{{ $member->expiry_date ? bn_date($member->expiry_date) : __('admin.fields.not_scheduled') }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">অনুমোদিত হয়েছে</dt>
                     <dd class="col-sm-8 mb-0">{{ $member->approved_at ? bn_datetime($member->approved_at) : '—' }}</dd>
@@ -37,14 +37,14 @@
             </x-admin.card>
 
             @if ($member->notes)
-                <x-admin.card title="নোট">
+                <x-admin.card title="{{ __('admin.common.notes') }}">
                     <p class="mb-0">{{ $member->notes }}</p>
                 </x-admin.card>
             @endif
         </div>
 
         <div class="col-lg-5">
-            <x-admin.card title="স্ট্যাটাস">
+            <x-admin.card title="{{ __('admin.common.status') }}">
                 <x-admin.status-badge :status="$member->status" />
             </x-admin.card>
 
@@ -101,10 +101,10 @@
                                 <div class="d-flex gap-2">
                                     <form method="POST" action="{{ route('admin.membership.members.profile.approve', [$member, $pendingProfileVersion]) }}">
                                         @csrf @method('PATCH')
-                                        <button type="submit" class="btn btn-sm btn-success">অনুমোদন করুন</button>
+                                        <button type="submit" class="btn btn-sm btn-success">{{ __('admin.actions.approve') }}</button>
                                     </form>
                                     <details>
-                                        <summary class="btn btn-sm btn-outline-danger" style="cursor:pointer">প্রত্যাখ্যান করুন</summary>
+                                        <summary class="btn btn-sm btn-outline-danger" style="cursor:pointer">{{ __('admin.actions2.reject2') }}</summary>
                                         <form method="POST" action="{{ route('admin.membership.members.profile.reject', [$member, $pendingProfileVersion]) }}" class="mt-2">
                                             @csrf @method('PATCH')
                                             <x-admin.form-textarea name="note" label="কারণ" :rows="2" required />

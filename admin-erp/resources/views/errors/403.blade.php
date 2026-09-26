@@ -1,10 +1,10 @@
 @extends('errors.layout')
 
-@section('title', 'অনুমতি নেই')
-@section('code', '৪০৩')
-@section('heading', 'এই পাতায় প্রবেশের অনুমতি নেই')
-@section('message', 'আপনার অ্যাকাউন্টে এই পাতা দেখার প্রয়োজনীয় অনুমতি নেই। প্রয়োজনে প্রশাসকের সঙ্গে যোগাযোগ করুন।')
+@section('title', __('admin.errors.403.title'))
+@section('code', __('admin.errors.403.code'))
+@section('heading', __('admin.errors.403.heading'))
+@section('message', __('admin.errors.403.body'))
 @section('actions')
-    <a href="{{ url('/dashboard') }}" class="primary">ড্যাশবোর্ডে ফিরে যান</a>
-    <button type="button" onclick="history.back()">আগের পাতায় যান</button>
+    <a href="{{ url('/dashboard') }}" class="primary">{{ __('admin.errors.back_dashboard') }}</a>
+    <button type="button" onclick="history.back()">{{ __('admin.errors.back_previous') }}</button>
 @endsection

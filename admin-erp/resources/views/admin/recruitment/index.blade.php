@@ -12,18 +12,18 @@
     @php $isFiltered = collect($filters)->filter(fn ($v) => $v !== '')->isNotEmpty(); @endphp
 
     <x-admin.table :paginator="$jobPostings" caption="নিয়োগ বিজ্ঞপ্তির তালিকা"
-        :headers="['শিরোনাম', 'স্ট্যাটাস', 'শেষ তারিখ', 'আবেদনসমূহ', ['label' => 'অ্যাকশন', 'align' => 'end']]">
+        :headers="[__('admin.common.title'), __('admin.common.status'), 'শেষ তারিখ', __('admin.fields.applications'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
 
         <x-slot:toolbar>
             <form method="GET" action="{{ route('admin.recruitment.index') }}" class="row g-2 align-items-end">
                 <div class="col-12 col-md-6">
-                    <label for="f-search" class="form-label fs-13 mb-1">খুঁজুন</label>
-                    <input type="search" id="f-search" name="search" value="{{ $filters['search'] }}" class="form-control" placeholder="শিরোনাম">
+                    <label for="f-search" class="form-label fs-13 mb-1">{{ __('admin.actions.search') }}</label>
+                    <input type="search" id="f-search" name="search" value="{{ $filters['search'] }}" class="form-control" placeholder="{{ __('admin.common.title') }}">
                 </div>
                 <div class="col-6 col-md-3">
-                    <label for="f-status" class="form-label fs-13 mb-1">স্ট্যাটাস</label>
+                    <label for="f-status" class="form-label fs-13 mb-1">{{ __('admin.common.status') }}</label>
                     <select id="f-status" name="status" class="form-select">
-                        <option value="">সব</option>
+                        <option value="">{{ __('admin.common.all') }}</option>
                         @foreach ($statuses as $v => $l)
                             <option value="{{ $v }}" @selected($filters['status'] === $v)>{{ $l }}</option>
                         @endforeach
@@ -31,10 +31,10 @@
                 </div>
                 <div class="col-12 col-md-3 d-flex gap-2">
                     <button type="submit" class="btn btn-light border w-100">
-                        <i class="ti ti-filter me-1" aria-hidden="true"></i>ফিল্টার
+                        <i class="ti ti-filter me-1" aria-hidden="true"></i>{{ __('admin.actions.filter') }}
                     </button>
                     @if ($isFiltered)
-                        <a href="{{ route('admin.recruitment.index') }}" class="btn btn-light" aria-label="ফিল্টার সরান">
+                        <a href="{{ route('admin.recruitment.index') }}" class="btn btn-light" aria-label="{{ __('admin.actions.clear_filters') }}">
                             <i class="ti ti-x" aria-hidden="true"></i>
                         </a>
                     @endif
@@ -44,13 +44,13 @@
 
         @forelse ($jobPostings as $job)
             <tr>
-                <td data-label="শিরোনাম">
+                <td data-label="{{ __('admin.common.title') }}">
                     <a href="{{ route('admin.recruitment.show', $job) }}" class="fw-semibold">{{ $job->title }}</a>
                 </td>
-                <td data-label="স্ট্যাটাস"><x-admin.status-badge :status="$job->status" /></td>
-                <td data-label="শেষ তারিখ">{{ $job->isRolling() ? 'চলমান' : ($job->application_deadline ? bn_date($job->application_deadline) : '—') }}</td>
-                <td data-label="আবেদনসমূহ">{{ $job->applications_count }}</td>
-                <td data-label="অ্যাকশন" class="text-end">
+                <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$job->status" /></td>
+                <td data-label="শেষ তারিখ">{{ $job->isRolling() ? __('admin.fields.ongoing') : ($job->application_deadline ? bn_date($job->application_deadline) : '—') }}</td>
+                <td data-label="{{ __('admin.fields.applications') }}">{{ $job->applications_count }}</td>
+                <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
                                 aria-label="{{ $job->title }} — অ্যাকশন মেনু">
@@ -58,18 +58,18 @@
                         </button>
                         <div class="dropdown-menu dropdown-menu-end">
                             <a href="{{ route('admin.recruitment.show', $job) }}" class="dropdown-item">
-                                <i class="ti ti-eye me-1" aria-hidden="true"></i>দেখুন
+                                <i class="ti ti-eye me-1" aria-hidden="true"></i>{{ __('admin.actions.view') }}
                             </a>
                             @can('recruitment.update')
                                 <a href="{{ route('admin.recruitment.edit', $job) }}" class="dropdown-item">
-                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
+                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>{{ __('admin.actions.edit') }}
                                 </a>
                             @endcan
                             @can('recruitment.delete')
                                 <div class="dropdown-divider"></div>
                                 <button type="button" class="dropdown-item text-danger"
                                         data-bs-toggle="modal" data-bs-target="#delete-job-{{ $job->id }}">
-                                    <i class="ti ti-trash me-1" aria-hidden="true"></i>মুছে ফেলুন
+                                    <i class="ti ti-trash me-1" aria-hidden="true"></i>{{ __('admin.actions.delete') }}
                                 </button>
                             @endcan
                         </div>
@@ -78,7 +78,7 @@
             </tr>
         @empty
             <x-admin.empty-state colspan="5" icon="{{ $isFiltered ? 'ti-search-off' : 'ti-briefcase-off' }}"
-                :title="$isFiltered ? 'এই ফিল্টারে কিছু পাওয়া যায়নি' : 'এখনো কোনো নিয়োগ বিজ্ঞপ্তি নেই'"
+                :title="$isFiltered ? __('admin.filters.no_results') : 'এখনো কোনো নিয়োগ বিজ্ঞপ্তি নেই'"
                 message="বিজ্ঞপ্তি প্রকাশ করা হলে এখানে দেখা যাবে।">
                 @can('recruitment.create')
                     @unless ($isFiltered)
@@ -106,7 +106,7 @@
                 <x-slot:confirm>
                     <form method="POST" action="{{ route('admin.recruitment.destroy', $job) }}">
                         @csrf @method('DELETE')
-                        <button type="submit" class="btn btn-danger">মুছে ফেলুন</button>
+                        <button type="submit" class="btn btn-danger">{{ __('admin.actions.delete') }}</button>
                     </form>
                 </x-slot:confirm>
             </x-admin.modal>

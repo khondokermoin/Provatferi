@@ -3,7 +3,7 @@
 @section('page-actions')
     @can('users.update')
         <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-primary">
-            <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
+            <i class="ti ti-pencil me-1" aria-hidden="true"></i>{{ __('admin.actions.edit') }}
         </a>
         <form method="POST" action="{{ route('admin.users.password-reset', $user) }}">
             @csrf
@@ -13,7 +13,7 @@
         </form>
     @endcan
     <a href="{{ route('admin.users.index') }}" class="btn btn-light">
-        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>ফিরে যান
+        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>{{ __('admin.actions.back') }}
     </a>
 @endsection
 
@@ -27,18 +27,18 @@
 
     <div class="row">
         <div class="col-lg-7">
-            <x-admin.card title="বিবরণ">
+            <x-admin.card title="{{ __('admin.common.description') }}">
                 <dl class="row mb-0">
-                    <dt class="col-sm-4 fs-13 text-muted">নাম</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.name') }}</dt>
                     <dd class="col-sm-8">{{ $user->name }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">ই-মেইল</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.email') }}</dt>
                     <dd class="col-sm-8"><a href="mailto:{{ $user->email }}">{{ $user->email }}</a></dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">ফোন</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.phone_short') }}</dt>
                     <dd class="col-sm-8">{{ $user->phone ?: '—' }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">স্ট্যাটাস</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.status') }}</dt>
                     <dd class="col-sm-8"><x-admin.status-badge :status="$user->status" /></dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">সর্বশেষ লগইন</dt>

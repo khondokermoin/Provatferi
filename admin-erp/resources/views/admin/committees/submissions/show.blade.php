@@ -2,7 +2,7 @@
 
 @section('page-actions')
     <a href="{{ route('admin.committees.submissions.index', $committee) }}" class="btn btn-light">
-        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>ফিরে যান
+        <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>{{ __('admin.actions.back') }}
     </a>
 @endsection
 
@@ -35,10 +35,10 @@
                     <dt class="col-sm-4 fs-13 text-muted">পদ (আবেদনকারীর পছন্দ)</dt>
                     <dd class="col-sm-8">{{ $submission->position?->name ?? '—' }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">ই-মেইল</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.email') }}</dt>
                     <dd class="col-sm-8">{{ $submission->email }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">মোবাইল</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.mobile') }}</dt>
                     <dd class="col-sm-8">{{ $submission->phone ?: '—' }}</dd>
 
                     @if ($submission->facebook_url)
@@ -54,7 +54,7 @@
                         <dd class="col-sm-8"><a href="{{ $submission->website_url }}" target="_blank" rel="noopener">{{ $submission->website_url }}</a></dd>
                     @endif
 
-                    <dt class="col-sm-4 fs-13 text-muted">জমার তারিখ</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.submitted_at') }}</dt>
                     <dd class="col-sm-8 mb-0">{{ $submission->submitted_at ? bn_datetime($submission->submitted_at) : '—' }}</dd>
                 </dl>
             </x-admin.card>
@@ -83,12 +83,12 @@
             </x-admin.card>
 
             @if ($submission->history->isNotEmpty())
-                <x-admin.card title="ইতিহাস" subtitle="শুধুমাত্র প্রশাসনিক ব্যবহারের জন্য।">
+                <x-admin.card title="{{ __('admin.fields.history') }}" subtitle="শুধুমাত্র প্রশাসনিক ব্যবহারের জন্য।">
                     <ul class="list-unstyled mb-0 fs-13">
                         @foreach ($submission->history->sortByDesc('created_at') as $entry)
                             <li class="border-bottom pb-2 mb-2">
                                 <span class="fw-semibold">{{ $statuses[$entry->action] ?? $entry->action }}</span>
-                                — {{ $entry->actor?->name ?? 'সিস্টেম' }}
+                                — {{ $entry->actor?->name ?? __('admin.nav.groups.system') }}
                                 <span class="text-muted d-block fs-12">{{ bn_datetime($entry->created_at) }}</span>
                                 @if ($entry->note)
                                     <span class="d-block">{{ $entry->note }}</span>
@@ -101,7 +101,7 @@
         </div>
 
         <div class="col-lg-5">
-            <x-admin.card title="স্ট্যাটাস">
+            <x-admin.card title="{{ __('admin.common.status') }}">
                 <x-admin.status-badge :status="$submission->status" class="mb-2" />
                 @if ($submission->reviewer)
                     <p class="fs-13 text-muted mb-0">
@@ -127,11 +127,11 @@
 
             @can('organization.approve')
                 @if (in_array('approved', $nextStatuses, true))
-                    <x-admin.card title="অনুমোদন করুন">
+                    <x-admin.card title="{{ __('admin.actions.approve') }}">
                         <form method="POST" action="{{ route('admin.committees.submissions.approve', [$committee, $submission]) }}">
                             @csrf @method('PATCH')
                             <button type="submit" class="btn btn-success w-100">
-                                <i class="ti ti-circle-check me-1" aria-hidden="true"></i>অনুমোদন করুন
+                                <i class="ti ti-circle-check me-1" aria-hidden="true"></i>{{ __('admin.actions.approve') }}
                             </button>
                         </form>
                     </x-admin.card>
@@ -150,12 +150,12 @@
                 @endif
 
                 @if (in_array('rejected', $nextStatuses, true))
-                    <x-admin.card title="প্রত্যাখ্যান করুন">
+                    <x-admin.card title="{{ __('admin.actions2.reject2') }}">
                         <form method="POST" action="{{ route('admin.committees.submissions.reject', [$committee, $submission]) }}">
                             @csrf @method('PATCH')
-                            <x-admin.form-textarea name="admin_note" label="প্রত্যাখ্যানের কারণ" :rows="3" required />
+                            <x-admin.form-textarea name="admin_note" label="{{ __('admin.actions2.reject_reason') }}" :rows="3" required />
                             <button type="submit" class="btn btn-outline-danger w-100">
-                                <i class="ti ti-circle-x me-1" aria-hidden="true"></i>প্রত্যাখ্যান করুন
+                                <i class="ti ti-circle-x me-1" aria-hidden="true"></i>{{ __('admin.actions2.reject2') }}
                             </button>
                         </form>
                     </x-admin.card>

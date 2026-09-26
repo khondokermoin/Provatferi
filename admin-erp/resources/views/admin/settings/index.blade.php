@@ -28,18 +28,18 @@
                     :disabled="! auth()->user()->can('settings.update')" />
             </x-admin.card>
 
-            <x-admin.card title="যোগাযোগ" subtitle="সরকারি যোগাযোগের তথ্য — শুধু অনুমোদিত পাবলিক তথ্য এখানে রাখুন।">
+            <x-admin.card title="{{ __('admin.fields.contact') }}" subtitle="সরকারি যোগাযোগের তথ্য — শুধু অনুমোদিত পাবলিক তথ্য এখানে রাখুন।">
                 <div class="row">
                     <div class="col-md-6">
-                        <x-admin.form-input name="site.email" label="ই-মেইল" type="email" :value="$settings['site.email'] ?? ''" required
+                        <x-admin.form-input name="site.email" label="{{ __('admin.common.email') }}" type="email" :value="$settings['site.email'] ?? ''" required
                             :disabled="! auth()->user()->can('settings.update')" />
                     </div>
                     <div class="col-md-6">
-                        <x-admin.form-input name="site.phone" label="ফোন" :value="$settings['site.phone'] ?? ''"
+                        <x-admin.form-input name="site.phone" label="{{ __('admin.fields.phone_short') }}" :value="$settings['site.phone'] ?? ''"
                             :disabled="! auth()->user()->can('settings.update')" />
                     </div>
                 </div>
-                <x-admin.form-textarea name="site.address" label="ঠিকানা" :value="$settings['site.address'] ?? ''" :rows="2"
+                <x-admin.form-textarea name="site.address" label="{{ __('admin.common.address') }}" :value="$settings['site.address'] ?? ''" :rows="2"
                     :disabled="! auth()->user()->can('settings.update')" />
                 <x-admin.form-input name="site.facebook_url" label="ফেসবুক লিঙ্ক" type="url" :value="$settings['site.facebook_url'] ?? ''"
                     :disabled="! auth()->user()->can('settings.update')" />
@@ -76,7 +76,7 @@
             @can('settings.update')
                 <div class="d-flex flex-wrap gap-2 mb-4">
                     <button type="submit" class="btn btn-primary">
-                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>সংরক্ষণ করুন
+                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ __('admin.actions.save') }}
                     </button>
                 </div>
             @endcan

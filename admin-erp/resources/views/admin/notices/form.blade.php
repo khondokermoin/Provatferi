@@ -14,7 +14,7 @@
         <div class="row">
             <div class="col-lg-8">
                 <x-admin.card title="নোটিশের বিষয়বস্তু">
-                    <x-admin.form-input name="title" label="বিষয়" :value="$notice->title" required maxlength="255" />
+                    <x-admin.form-input name="title" label="{{ __('admin.fields.subject') }}" :value="$notice->title" required maxlength="255" />
                     <x-admin.form-input name="title_en" label="বিষয় (English, ঐচ্ছিক)" :value="$notice->title_en" maxlength="255" />
 
                     <div class="row">
@@ -34,10 +34,10 @@
                         </div>
                     </div>
 
-                    <x-admin.form-textarea name="summary" label="সংক্ষিপ্ত বিবরণ" :value="$notice->summary" :rows="3" maxlength="500"
+                    <x-admin.form-textarea name="summary" label="{{ __('admin.common.summary') }}" :value="$notice->summary" :rows="3" maxlength="500"
                         help="নোটিশ বোর্ডের তালিকায় ও লিংক শেয়ারের প্রিভিউতে দেখায়। সর্বোচ্চ ৫০০ অক্ষর।" />
                     <x-admin.form-textarea name="summary_en" label="সংক্ষিপ্ত বিবরণ (English, ঐচ্ছিক)" :value="$notice->summary_en" :rows="3" maxlength="500" />
-                    <x-admin.form-textarea name="body" label="পূর্ণ বিবরণ" :value="$notice->body" :rows="18" required
+                    <x-admin.form-textarea name="body" label="{{ __('admin.fields.full_body') }}" :value="$notice->body" :rows="18" required
                         help="সাধারণ লেখা হিসেবে সংরক্ষিত হয়। খালি লাইন দিয়ে অনুচ্ছেদ আলাদা করুন; “• ” দিয়ে শুরু হওয়া লাইন সাইটে তালিকা হিসেবে দেখাবে। লিংক নিজে থেকেই ক্লিকযোগ্য হবে।" />
                     <x-admin.form-textarea name="body_en" label="পূর্ণ বিবরণ (English, ঐচ্ছিক)" :value="$notice->body_en" :rows="18" />
                 </x-admin.card>
@@ -52,7 +52,7 @@
                                     <input type="checkbox" class="form-check-input" id="remove_cover_image" name="remove_cover_image" value="1">
                                     <label class="form-check-label" for="remove_cover_image">
                                         বর্তমান ছবি সরিয়ে দিন
-                                        (<a href="{{ route('admin.notices.file', [$notice, 'cover']) }}" target="_blank" rel="noopener noreferrer">দেখুন</a>)
+                                        (<a href="{{ route('admin.notices.file', [$notice, 'cover']) }}" target="_blank" rel="noopener noreferrer">{{ __('admin.actions.view') }}</a>)
                                     </label>
                                 </div>
                             @endif
@@ -88,7 +88,7 @@
                                     <input type="checkbox" class="form-check-input" id="remove_share_image" name="remove_share_image" value="1">
                                     <label class="form-check-label" for="remove_share_image">
                                         বর্তমান শেয়ার ছবি সরিয়ে দিন
-                                        (<a href="{{ route('admin.notices.file', [$notice, 'share']) }}" target="_blank" rel="noopener noreferrer">দেখুন</a>)
+                                        (<a href="{{ route('admin.notices.file', [$notice, 'share']) }}" target="_blank" rel="noopener noreferrer">{{ __('admin.actions.view') }}</a>)
                                     </label>
                                 </div>
                             @endif
@@ -112,8 +112,8 @@
             </div>
 
             <div class="col-lg-4">
-                <x-admin.card title="প্রকাশনা">
-                    <x-admin.form-select name="status" label="স্ট্যাটাস" :options="$statuses"
+                <x-admin.card title="{{ __('admin.common.publication') }}">
+                    <x-admin.form-select name="status" label="{{ __('admin.common.status') }}" :options="$statuses"
                         :value="$isEdit ? $notice->effectiveStatus() : $notice->status" :placeholder="null" required
                         help="“প্রকাশিত” ও “নির্ধারিত” করতে প্রকাশের অনুমতি এবং “সংরক্ষিত” (আর্কাইভ) করতে আর্কাইভের অনুমতি প্রয়োজন।" />
                     <x-admin.form-input name="published_at" label="প্রকাশের তারিখ ও সময়" type="datetime-local"
@@ -130,8 +130,8 @@
                 </x-admin.card>
 
                 <x-admin.card title="সাংগঠনিক তথ্য">
-                    <x-admin.form-select name="organization_unit_id" label="সাংগঠনিক ইউনিট" :options="$units"
-                        :value="$notice->organization_unit_id" placeholder="— নির্দিষ্ট নয় —" />
+                    <x-admin.form-select name="organization_unit_id" label="{{ __('admin.fields.unit') }}" :options="$units"
+                        :value="$notice->organization_unit_id" placeholder="{{ __('admin.filters.none_specific') }}" />
                 </x-admin.card>
 
                 @if ($isEdit && $notice->jobPosting)
@@ -153,9 +153,9 @@
 
                 <div class="d-flex flex-wrap gap-2 mb-4">
                     <button type="submit" class="btn btn-primary">
-                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ $isEdit ? 'হালনাগাদ করুন' : 'সংরক্ষণ করুন' }}
+                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ $isEdit ? __('admin.actions.update') : __('admin.actions.save') }}
                     </button>
-                    <a href="{{ $isEdit ? route('admin.notices.show', $notice) : route('admin.notices.index') }}" class="btn btn-light">বাতিল</a>
+                    <a href="{{ $isEdit ? route('admin.notices.show', $notice) : route('admin.notices.index') }}" class="btn btn-light">{{ __('admin.actions.cancel') }}</a>
                 </div>
             </div>
         </div>

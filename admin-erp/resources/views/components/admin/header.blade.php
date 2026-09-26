@@ -4,17 +4,21 @@
     <div class="page-container topbar-menu">
         <div class="d-flex align-items-center gap-2">
             {{-- Shown when the sidebar is hidden (mobile / condensed). --}}
-            <a href="{{ route('admin.dashboard') }}" class="logo pf-logo d-xl-none" aria-label="প্রভাতফেরী — ড্যাশবোর্ড">
-                <span class="pf-logo-for-light"><img src="{{ asset('brand/provatferi-icon-light.png') }}" alt="প্রভাতফেরী"></span>
-                <span class="pf-logo-for-dark"><img src="{{ asset('brand/provatferi-icon-dark.png') }}" alt="প্রভাতফেরী"></span>
+            <a href="{{ route('admin.dashboard') }}" class="logo pf-logo d-xl-none" aria-label="{{ __('admin.a11y.dashboard_home') }}">
+                <span class="pf-logo-for-light"><img src="{{ asset('brand/provatferi-icon-light.png') }}" alt="{{ __('admin.brand.org') }}"></span>
+                <span class="pf-logo-for-dark"><img src="{{ asset('brand/provatferi-icon-dark.png') }}" alt="{{ __('admin.brand.org') }}"></span>
             </a>
 
-            <button class="sidenav-toggle-button btn-icon rounded-circle btn btn-light" type="button" aria-label="মেনু খুলুন/বন্ধ করুন">
+            <button class="sidenav-toggle-button btn-icon rounded-circle btn btn-light" type="button" aria-label="{{ __('admin.a11y.toggle_menu') }}">
                 <i class="ti ti-menu-2 fs-22" aria-hidden="true"></i>
             </button>
         </div>
 
         <div class="d-flex align-items-center gap-2">
+            {{-- Phase 3: UI language. Sits beside the theme control because both
+                 are personal display preferences, not data operations. --}}
+            <x-admin.language-switcher />
+
             {{--
                 Deliberately NOT id="light-dark-mode": that id is what Zircos
                 binds its own sessionStorage toggle to. Ours is a three-way
@@ -23,21 +27,21 @@
             <div class="topbar-item">
                 <div class="dropdown">
                     <button class="topbar-link dropdown-toggle drop-arrow-none" type="button"
-                            data-bs-toggle="dropdown" aria-expanded="false" aria-label="থিম নির্বাচন করুন">
+                            data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ __('admin.theme.choose') }}">
                         <i class="ti ti-sun fs-22" data-theme-current-icon aria-hidden="true"></i>
                     </button>
-                    <div class="dropdown-menu dropdown-menu-end" role="radiogroup" aria-label="থিম">
+                    <div class="dropdown-menu dropdown-menu-end" role="radiogroup" aria-label="{{ __('admin.theme.label') }}">
                         <button type="button" class="dropdown-item" data-theme-choice="light" role="radio" aria-checked="false">
                             <i class="ti ti-sun me-1 fs-17 align-middle" aria-hidden="true"></i>
-                            <span class="align-middle">লাইট</span>
+                            <span class="align-middle">{{ __('admin.theme.light') }}</span>
                         </button>
                         <button type="button" class="dropdown-item" data-theme-choice="dark" role="radio" aria-checked="false">
                             <i class="ti ti-moon me-1 fs-17 align-middle" aria-hidden="true"></i>
-                            <span class="align-middle">ডার্ক</span>
+                            <span class="align-middle">{{ __('admin.theme.dark') }}</span>
                         </button>
                         <button type="button" class="dropdown-item" data-theme-choice="system" role="radio" aria-checked="false">
                             <i class="ti ti-device-desktop me-1 fs-17 align-middle" aria-hidden="true"></i>
-                            <span class="align-middle">সিস্টেম</span>
+                            <span class="align-middle">{{ __('admin.theme.system') }}</span>
                         </button>
                     </div>
                 </div>
@@ -57,10 +61,10 @@
                                 translator. A custom role an admin creates
                                 later (e.g. "Regional Coordinator") renders
                                 as-is; only the known "Super Admin" label is
-                                shown in Bengali. Stored role name/RBAC keys
-                                are untouched.
+                                localized. Stored role name/RBAC keys are
+                                untouched.
                             --}}
-                            <span class="fs-11 text-muted">{{ $user->roles->pluck('name')->map(fn ($name) => $name === 'Super Admin' ? 'সুপার অ্যাডমিন' : $name)->join(', ') ?: 'কোনো ভূমিকা নেই' }}</span>
+                            <span class="fs-11 text-muted">{{ $user->roles->pluck('name')->map(fn ($name) => $name === 'Super Admin' ? __('admin.user_menu.super_admin') : $name)->join(', ') ?: __('admin.user_menu.no_role') }}</span>
                         </span>
                         <i class="ti ti-chevron-down align-middle ms-2" aria-hidden="true"></i>
                     </button>
@@ -70,14 +74,14 @@
                         </div>
                         <a href="{{ route('profile.edit') }}" class="dropdown-item">
                             <i class="ti ti-user-hexagon me-1 fs-17 align-middle" aria-hidden="true"></i>
-                            <span class="align-middle">প্রোফাইল</span>
+                            <span class="align-middle">{{ __('admin.nav.profile') }}</span>
                         </a>
                         <div class="dropdown-divider"></div>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf
                             <button type="submit" class="dropdown-item text-danger fw-semibold">
                                 <i class="ti ti-logout me-1 fs-17 align-middle" aria-hidden="true"></i>
-                                <span class="align-middle">লগ আউট</span>
+                                <span class="align-middle">{{ __('admin.nav.logout') }}</span>
                             </button>
                         </form>
                     </div>

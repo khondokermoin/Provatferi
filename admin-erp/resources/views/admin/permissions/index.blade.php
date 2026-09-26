@@ -10,12 +10,12 @@
      */
     $moduleLabels = [
         'organization' => 'সংগঠন',
-        'activities' => 'কার্যক্রম',
+        'activities' => __('admin.nav.activities'),
         'membership' => 'সদস্যপদ',
         'recruitment' => 'নিয়োগ',
         'settings' => 'সেটিংস',
         'users' => 'ব্যবহারকারী ও ভূমিকা',
-        'notices' => 'নোটিশ বোর্ড',
+        'notices' => __('admin.nav.notices'),
     ];
     $actionLabels = [
         'view' => 'দেখা',
@@ -34,7 +34,7 @@
         <div class="fs-13">
             অনুমতিগুলো সিস্টেম-নিয়ন্ত্রিত। অ্যাপ্লিকেশন এই নির্দিষ্ট কী-গুলোর ভিত্তিতে অ্যাক্সেস যাচাই করে, তাই
             এখান থেকে নতুন অনুমতি তৈরি বা নাম পরিবর্তন করা যায় না। ভূমিকায় বরাদ্দ করতে
-            <a href="{{ route('admin.roles.index') }}">ভূমিকা</a> ব্যবহার করুন।
+            <a href="{{ route('admin.roles.index') }}">{{ __('admin.fields.role') }}</a> ব্যবহার করুন।
         </div>
     </div>
 

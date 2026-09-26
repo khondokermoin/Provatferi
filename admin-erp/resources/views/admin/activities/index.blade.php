@@ -12,27 +12,27 @@
     @php $isFiltered = collect($filters)->filter(fn ($v) => $v !== '')->isNotEmpty(); @endphp
 
     <x-admin.table :paginator="$activities" caption="কার্যক্রমের তালিকা"
-        :headers="['শিরোনাম', 'ধরন', 'শুরু', 'স্ট্যাটাস', ['label' => 'অ্যাকশন', 'align' => 'end']]">
+        :headers="[__('admin.common.title'), __('admin.common.type'), __('admin.fields.start'), __('admin.common.status'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
 
         <x-slot:toolbar>
             <form method="GET" action="{{ route('admin.activities.index') }}" class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
-                    <label for="f-search" class="form-label fs-13 mb-1">খুঁজুন</label>
-                    <input type="search" id="f-search" name="search" value="{{ $filters['search'] }}" class="form-control" placeholder="শিরোনাম">
+                    <label for="f-search" class="form-label fs-13 mb-1">{{ __('admin.actions.search') }}</label>
+                    <input type="search" id="f-search" name="search" value="{{ $filters['search'] }}" class="form-control" placeholder="{{ __('admin.common.title') }}">
                 </div>
                 <div class="col-6 col-md-3">
-                    <label for="f-type" class="form-label fs-13 mb-1">ধরন</label>
+                    <label for="f-type" class="form-label fs-13 mb-1">{{ __('admin.common.type') }}</label>
                     <select id="f-type" name="type" class="form-select">
-                        <option value="">সব ধরন</option>
+                        <option value="">{{ __('admin.filters.all_types') }}</option>
                         @foreach ($types as $id => $name)
                             <option value="{{ $id }}" @selected($filters['type'] == $id)>{{ $name }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div class="col-6 col-md-3">
-                    <label for="f-status" class="form-label fs-13 mb-1">স্ট্যাটাস</label>
+                    <label for="f-status" class="form-label fs-13 mb-1">{{ __('admin.common.status') }}</label>
                     <select id="f-status" name="status" class="form-select">
-                        <option value="">সব স্ট্যাটাস</option>
+                        <option value="">{{ __('admin.filters.all_statuses') }}</option>
                         @foreach ($statuses as $v => $l)
                             <option value="{{ $v }}" @selected($filters['status'] === $v)>{{ $l }}</option>
                         @endforeach
@@ -40,10 +40,10 @@
                 </div>
                 <div class="col-12 col-md-2 d-flex gap-2">
                     <button type="submit" class="btn btn-light border w-100">
-                        <i class="ti ti-filter me-1" aria-hidden="true"></i>ফিল্টার
+                        <i class="ti ti-filter me-1" aria-hidden="true"></i>{{ __('admin.actions.filter') }}
                     </button>
                     @if ($isFiltered)
-                        <a href="{{ route('admin.activities.index') }}" class="btn btn-light" aria-label="ফিল্টার সরান">
+                        <a href="{{ route('admin.activities.index') }}" class="btn btn-light" aria-label="{{ __('admin.actions.clear_filters') }}">
                             <i class="ti ti-x" aria-hidden="true"></i>
                         </a>
                     @endif
@@ -53,16 +53,16 @@
 
         @forelse ($activities as $activity)
             <tr>
-                <td data-label="শিরোনাম">
+                <td data-label="{{ __('admin.common.title') }}">
                     <a href="{{ route('admin.activities.show', $activity) }}" class="fw-semibold">{{ $activity->title }}</a>
                     @if ($activity->featured)
                         <span class="badge bg-primary-subtle text-primary-emphasis fs-11 ms-1">Featured</span>
                     @endif
                 </td>
-                <td data-label="ধরন">{{ $activity->type?->name ?? '—' }}</td>
-                <td data-label="শুরু">{{ $activity->start_datetime ? bn_date($activity->start_datetime) : '—' }}</td>
-                <td data-label="স্ট্যাটাস"><x-admin.status-badge :status="$activity->status" /></td>
-                <td data-label="অ্যাকশন" class="text-end">
+                <td data-label="{{ __('admin.common.type') }}">{{ $activity->type?->name ?? '—' }}</td>
+                <td data-label="{{ __('admin.fields.start') }}">{{ $activity->start_datetime ? bn_date($activity->start_datetime) : '—' }}</td>
+                <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$activity->status" /></td>
+                <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
                                 aria-label="{{ $activity->title }} — অ্যাকশন মেনু">
@@ -70,18 +70,18 @@
                         </button>
                         <div class="dropdown-menu dropdown-menu-end">
                             <a href="{{ route('admin.activities.show', $activity) }}" class="dropdown-item">
-                                <i class="ti ti-eye me-1" aria-hidden="true"></i>দেখুন
+                                <i class="ti ti-eye me-1" aria-hidden="true"></i>{{ __('admin.actions.view') }}
                             </a>
                             @can('activities.update')
                                 <a href="{{ route('admin.activities.edit', $activity) }}" class="dropdown-item">
-                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>সম্পাদনা
+                                    <i class="ti ti-pencil me-1" aria-hidden="true"></i>{{ __('admin.actions.edit') }}
                                 </a>
                             @endcan
                             @can('activities.delete')
                                 <div class="dropdown-divider"></div>
                                 <button type="button" class="dropdown-item text-danger"
                                         data-bs-toggle="modal" data-bs-target="#delete-activity-{{ $activity->id }}">
-                                    <i class="ti ti-trash me-1" aria-hidden="true"></i>মুছে ফেলুন
+                                    <i class="ti ti-trash me-1" aria-hidden="true"></i>{{ __('admin.actions.delete') }}
                                 </button>
                             @endcan
                         </div>
@@ -90,7 +90,7 @@
             </tr>
         @empty
             <x-admin.empty-state colspan="5" icon="{{ $isFiltered ? 'ti-search-off' : 'ti-calendar-off' }}"
-                :title="$isFiltered ? 'এই ফিল্টারে কিছু পাওয়া যায়নি' : 'এখনো কোনো কার্যক্রম নেই'"
+                :title="$isFiltered ? __('admin.filters.no_results') : 'এখনো কোনো কার্যক্রম নেই'"
                 message="কার্যক্রম যোগ করলে এখানে তালিকা দেখা যাবে।">
                 @can('activities.create')
                     @unless ($isFiltered)
@@ -110,7 +110,7 @@
                 <x-slot:confirm>
                     <form method="POST" action="{{ route('admin.activities.destroy', $activity) }}">
                         @csrf @method('DELETE')
-                        <button type="submit" class="btn btn-danger">মুছে ফেলুন</button>
+                        <button type="submit" class="btn btn-danger">{{ __('admin.actions.delete') }}</button>
                     </form>
                 </x-slot:confirm>
             </x-admin.modal>

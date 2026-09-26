@@ -1,10 +1,10 @@
 @extends('errors.layout')
 
-@section('title', 'সেশন মেয়াদোত্তীর্ণ')
-@section('code', '৪১৯')
-@section('heading', 'পাতার মেয়াদ শেষ হয়ে গেছে')
-@section('message', 'নিরাপত্তার জন্য দীর্ঘক্ষণ ফর্মটি খোলা থাকলে তা মেয়াদোত্তীর্ণ হয়ে যায়। পাতাটি আবার লোড করে আরেকবার চেষ্টা করুন — আগের কোনো তথ্য হারায়নি।')
+@section('title', __('admin.errors.419.title'))
+@section('code', __('admin.errors.419.code'))
+@section('heading', __('admin.errors.419.heading'))
+@section('message', __('admin.errors.419.body'))
 @section('actions')
-    <button type="button" class="primary" onclick="history.back()">পূর্বের পাতায় ফিরে যান</button>
-    <a href="{{ url('/login') }}">লগইন</a>
+    <button type="button" class="primary" onclick="history.back()">{{ __('admin.errors.back_previous_alt') }}</button>
+    <a href="{{ url('/login') }}">{{ __('admin.auth.login_title') }}</a>
 @endsection

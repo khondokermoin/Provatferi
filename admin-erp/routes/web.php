@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VisionController;
+use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -308,5 +309,12 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
+
+// Phase 3: UI language switch. Deliberately outside the `auth` group — the
+// login and password-reset screens carry the same switcher, and a visitor
+// who has not signed in yet still gets their choice remembered (session +
+// cookie). For a signed-in admin it additionally persists to their account.
+// POST + CSRF because it writes a preference; never a GET link.
+Route::post('/locale', [LocaleController::class, 'update'])->name('locale.update');
 
 require __DIR__.'/auth.php';

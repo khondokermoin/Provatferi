@@ -13,10 +13,10 @@
                     <x-admin.form-input name="name" label="পুরো নাম" :value="$user->name" required />
                     <div class="row">
                         <div class="col-md-6">
-                            <x-admin.form-input name="email" label="ই-মেইল" type="email" :value="$user->email" required />
+                            <x-admin.form-input name="email" label="{{ __('admin.common.email') }}" type="email" :value="$user->email" required />
                         </div>
                         <div class="col-md-6">
-                            <x-admin.form-input name="phone" label="ফোন" :value="$user->phone" />
+                            <x-admin.form-input name="phone" label="{{ __('admin.fields.phone_short') }}" :value="$user->phone" />
                         </div>
                     </div>
 
@@ -47,7 +47,7 @@
 
             <div class="col-lg-4">
                 <x-admin.card title="স্ট্যাটাস ও ভূমিকা">
-                    <x-admin.form-select name="status" label="স্ট্যাটাস" :options="$statuses"
+                    <x-admin.form-select name="status" label="{{ __('admin.common.status') }}" :options="$statuses"
                         :value="$user->status" :placeholder="null" required />
 
                     <fieldset class="mb-3">
@@ -77,10 +77,10 @@
 
                 <div class="d-flex flex-wrap gap-2 mb-4">
                     <button type="submit" class="btn btn-primary">
-                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ $isEdit ? 'হালনাগাদ করুন' : 'তৈরি করুন' }}
+                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ $isEdit ? __('admin.actions.update') : __('admin.actions.create') }}
                     </button>
                     <a href="{{ $isEdit ? route('admin.users.show', $user) : route('admin.users.index') }}"
-                       class="btn btn-light">বাতিল</a>
+                       class="btn btn-light">{{ __('admin.actions.cancel') }}</a>
                 </div>
             </div>
         </div>

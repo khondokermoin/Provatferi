@@ -1,4 +1,4 @@
-<x-admin.card title="প্রোফাইল তথ্য" subtitle="আপনার নাম ও ই-মেইল ঠিকানা হালনাগাদ করুন।" class="mb-3">
+<x-admin.card title="{{ __('admin.profile.info_heading') }}" subtitle="{{ __('admin.profile.info_intro') }}" class="mb-3">
     <form method="post" action="{{ route('profile.update') }}" class="pf-form-measure">
         @csrf
         @method('patch')
@@ -7,7 +7,7 @@
             <div class="col-md-6">
                 <div class="mb-3">
                     <label class="form-label" for="name">
-                        নাম <span class="pf-required" aria-hidden="true">*</span><span class="visually-hidden">(আবশ্যক)</span>
+                        {{ __('admin.common.name') }} <span class="pf-required" aria-hidden="true">*</span><span class="visually-hidden">{{ __('admin.forms.required_marker') }}</span>
                     </label>
                     <input type="text" id="name" name="name" value="{{ old('name', $user->name) }}"
                            class="form-control @error('name') is-invalid @enderror"
@@ -23,7 +23,7 @@
             <div class="col-md-6">
                 <div class="mb-3">
                     <label class="form-label" for="email">
-                        ই-মেইল <span class="pf-required" aria-hidden="true">*</span><span class="visually-hidden">(আবশ্যক)</span>
+                        {{ __('admin.auth.email') }} <span class="pf-required" aria-hidden="true">*</span><span class="visually-hidden">{{ __('admin.forms.required_marker') }}</span>
                     </label>
                     <input type="email" id="email" name="email" value="{{ old('email', $user->email) }}"
                            class="form-control @error('email') is-invalid @enderror"
@@ -39,7 +39,7 @@
         </div>
 
         <button type="submit" class="btn btn-primary">
-            <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>সংরক্ষণ করুন
+            <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ __('admin.actions.save') }}
         </button>
     </form>
 </x-admin.card>

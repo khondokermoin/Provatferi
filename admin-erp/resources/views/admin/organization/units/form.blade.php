@@ -12,7 +12,7 @@
 
         <div class="row">
             <div class="col-lg-8">
-                <x-admin.card title="মূল তথ্য" subtitle="ইউনিটের পরিচয় ও কাঠামোগত অবস্থান।">
+                <x-admin.card title="{{ __('admin.fields.main_info') }}" subtitle="ইউনিটের পরিচয় ও কাঠামোগত অবস্থান।">
                     <x-admin.form-input
                         name="name"
                         label="ইউনিটের নাম"
@@ -49,29 +49,29 @@
 
                     <x-admin.form-textarea
                         name="description"
-                        label="বিবরণ"
+                        label="{{ __('admin.common.description') }}"
                         :value="$unit->description"
                         :rows="3" />
                 </x-admin.card>
 
-                <x-admin.card title="যোগাযোগ" subtitle="ঐচ্ছিক — জানা থাকলে পূরণ করুন।">
-                    <x-admin.form-textarea name="address" label="ঠিকানা" :value="$unit->address" :rows="2" />
+                <x-admin.card title="{{ __('admin.fields.contact') }}" subtitle="ঐচ্ছিক — জানা থাকলে পূরণ করুন।">
+                    <x-admin.form-textarea name="address" label="{{ __('admin.common.address') }}" :value="$unit->address" :rows="2" />
                     <div class="row">
                         <div class="col-md-6">
-                            <x-admin.form-input name="phone" label="ফোন" :value="$unit->phone" />
+                            <x-admin.form-input name="phone" label="{{ __('admin.fields.phone_short') }}" :value="$unit->phone" />
                         </div>
                         <div class="col-md-6">
-                            <x-admin.form-input name="email" label="ই-মেইল" type="email" :value="$unit->email" />
+                            <x-admin.form-input name="email" label="{{ __('admin.common.email') }}" type="email" :value="$unit->email" />
                         </div>
                     </div>
                 </x-admin.card>
             </div>
 
             <div class="col-lg-4">
-                <x-admin.card title="প্রকাশনা">
+                <x-admin.card title="{{ __('admin.common.publication') }}">
                     <x-admin.form-select
                         name="status"
-                        label="স্ট্যাটাস"
+                        label="{{ __('admin.common.status') }}"
                         :options="$statuses"
                         :value="$unit->status"
                         :placeholder="null"
@@ -79,7 +79,7 @@
 
                     <x-admin.form-input
                         name="sort_order"
-                        label="ক্রম"
+                        label="{{ __('admin.common.order') }}"
                         type="number"
                         :value="$unit->sort_order ?? 0"
                         required
@@ -94,7 +94,7 @@
 
                     <x-admin.form-input
                         name="code"
-                        label="কোড"
+                        label="{{ __('admin.fields.code') }}"
                         :value="$unit->code"
                         help="অভ্যন্তরীণ শনাক্তকরণ কোড (ঐচ্ছিক)।" />
                 </x-admin.card>
@@ -102,10 +102,10 @@
                 {{-- Primary action first, cancel as a low-emphasis link. --}}
                 <div class="d-flex flex-wrap gap-2 mb-4">
                     <button type="submit" class="btn btn-primary">
-                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ $isEdit ? 'হালনাগাদ করুন' : 'তৈরি করুন' }}
+                        <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ $isEdit ? __('admin.actions.update') : __('admin.actions.create') }}
                     </button>
                     <a href="{{ $isEdit ? route('admin.organization.units.show', $unit) : route('admin.organization.units.index') }}"
-                       class="btn btn-light">বাতিল</a>
+                       class="btn btn-light">{{ __('admin.actions.cancel') }}</a>
                 </div>
             </div>
         </div>
