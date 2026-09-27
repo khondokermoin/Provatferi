@@ -3,7 +3,7 @@
 @section('page-actions')
     @can('organization.create')
         <a href="{{ route('admin.organization.units.create') }}" class="btn btn-primary">
-            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন সাংগঠনিক ইউনিট
+            <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.fields.new_org_unit') }}
         </a>
     @endcan
 @endsection
@@ -13,12 +13,12 @@
 
     <x-admin.table
         :paginator="$units"
-        caption="সাংগঠনিক ইউনিটের তালিকা"
+        caption="{{ __('admin.fields.org_units_list') }}"
         :headers="[
             __('admin.common.name'),
             __('admin.common.type'),
-            'মূল ইউনিট',
-            'উপ-ইউনিট',
+            __('admin.fields.root_unit'),
+            __('admin.fields.sub_unit_short'),
             __('admin.common.order'),
             __('admin.common.status'),
             ['label' => __('admin.actions.actions'), 'align' => 'end'],
@@ -29,10 +29,10 @@
                 <div class="col-12 col-md-4">
                     <label for="filter-search" class="form-label fs-13 mb-1">{{ __('admin.actions.search') }}</label>
                     <input type="search" id="filter-search" name="search" value="{{ $filters['search'] }}"
-                           class="form-control" placeholder="নাম, কোড বা ই-মেইল">
+                           class="form-control" placeholder="{{ __('admin.fields.search_unit_placeholder') }}">
                 </div>
                 <div class="col-6 col-md-3">
-                    <label for="filter-type" class="form-label fs-13 mb-1">ইউনিটের ধরন</label>
+                    <label for="filter-type" class="form-label fs-13 mb-1">{{ __('admin.fields.unit_type') }}</label>
                     <select id="filter-type" name="unit_type" class="form-select">
                         <option value="">{{ __('admin.filters.all_types') }}</option>
                         @foreach ($unitTypes as $value => $label)
@@ -71,14 +71,14 @@
                     @endif
                 </td>
                 <td data-label="{{ __('admin.common.type') }}">{{ $unitTypes[$unit->unit_type] ?? $unit->unit_type }}</td>
-                <td data-label="মূল ইউনিট">{{ $unit->parent?->name ?? '—' }}</td>
-                <td data-label="উপ-ইউনিট">{{ $unit->children_count }}</td>
+                <td data-label="{{ __('admin.fields.root_unit') }}">{{ $unit->parent?->name ?? '—' }}</td>
+                <td data-label="{{ __('admin.fields.sub_unit_short') }}">{{ $unit->children_count }}</td>
                 <td data-label="{{ __('admin.common.order') }}">{{ $unit->sort_order }}</td>
                 <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$unit->status" /></td>
                 <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
-                                aria-label="{{ $unit->name }} — অ্যাকশন মেনু">
+                                aria-label="{{ $unit->name }} — {{ __('admin.fields.action_menu') }}">
                             <i class="ti ti-dots-vertical" aria-hidden="true"></i>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end">
@@ -107,18 +107,18 @@
                     colspan="7"
                     icon="ti-search-off"
                     title="{{ __('admin.filters.no_results') }}"
-                    message="ফিল্টার পরিবর্তন করে আবার চেষ্টা করুন।">
+                    message="{{ __('admin.fields.change_filter_try_again') }}">
                     <a href="{{ route('admin.organization.units.index') }}" class="btn btn-light btn-sm">{{ __('admin.actions.clear_filters') }}</a>
                 </x-admin.empty-state>
             @else
                 <x-admin.empty-state
                     colspan="7"
                     icon="ti-sitemap"
-                    title="এখনো কোনো সাংগঠনিক ইউনিট নেই"
-                    message="প্রথম ইউনিট তৈরি করে সাংগঠনিক কাঠামো গড়া শুরু করুন।">
+                    title="{{ __('admin.fields.no_org_units_yet') }}"
+                    message="{{ __('admin.fields.create_first_unit_hint') }}">
                     @can('organization.create')
                         <a href="{{ route('admin.organization.units.create') }}" class="btn btn-primary btn-sm">
-                            <i class="ti ti-plus me-1" aria-hidden="true"></i>নতুন সাংগঠনিক ইউনিট
+                            <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.fields.new_org_unit') }}
                         </a>
                     @endcan
                 </x-admin.empty-state>
@@ -128,13 +128,13 @@
 
     @can('organization.delete')
         @foreach ($units as $unit)
-            <x-admin.modal :id="'delete-unit-'.$unit->id" title="ইউনিট মুছে ফেলবেন?">
+            <x-admin.modal :id="'delete-unit-'.$unit->id" title="{{ __('admin.fields.delete_unit_title') }}">
                 <p class="mb-0">
-                    <strong>{{ $unit->name }}</strong> মুছে ফেলা হবে।
+                    <strong>{{ $unit->name }}</strong> {{ __('admin.fields.will_be_deleted') }}
                     @if ($unit->children_count > 0)
                         <span class="d-block text-danger mt-2">
                             <i class="ti ti-alert-triangle" aria-hidden="true"></i>
-                            এই ইউনিটের অধীনে {{ $unit->children_count }}টি সাব-ইউনিট আছে — আগে সেগুলো সরাতে হবে।
+                            {{ __('admin.fields.unit_has_sub_units_cannot_delete', ['count' => $unit->children_count]) }}
                         </span>
                     @endif
                 </p>
