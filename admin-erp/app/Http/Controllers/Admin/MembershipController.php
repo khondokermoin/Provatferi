@@ -69,7 +69,7 @@ class MembershipController extends Controller
             'breadcrumbs' => [['label' => 'সদস্যপদ'], ['label' => 'আবেদনসমূহ']],
             'applications' => $applications,
             'filters' => $filters,
-            'statuses' => MembershipApplication::STATUSES,
+            'statuses' => status_options(MembershipApplication::STATUSES),
             'types' => MembershipType::query()->orderBy('name')->pluck('name', 'id'),
         ]);
     }
@@ -83,7 +83,7 @@ class MembershipController extends Controller
             'breadcrumbs' => [['label' => 'আবেদনসমূহ', 'route' => 'admin.membership.index'], ['label' => $membershipApplication->application_no]],
             'application' => $membershipApplication,
             'allowedTransitions' => self::TRANSITIONS[$membershipApplication->status] ?? [],
-            'statuses' => MembershipApplication::STATUSES,
+            'statuses' => status_options(MembershipApplication::STATUSES),
             'paymentSatisfied' => $this->paymentSatisfied($membershipApplication),
         ]);
     }

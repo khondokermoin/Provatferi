@@ -38,7 +38,7 @@ class PositionController extends Controller
             'breadcrumbs' => [['label' => 'সংগঠন'], ['label' => 'পদসমূহ']],
             'positions' => $positions,
             'filters' => $filters,
-            'statuses' => self::STATUSES,
+            'statuses' => status_options(self::STATUSES),
             'units' => $this->unitOptions(),
         ]);
     }
@@ -50,7 +50,7 @@ class PositionController extends Controller
             'breadcrumbs' => [['label' => 'পদসমূহ', 'route' => 'admin.positions.index'], ['label' => 'তৈরি করুন']],
             'position' => new OrganizationalPosition(['status' => 'active', 'level' => 0, 'is_public' => true]),
             'units' => $this->unitOptions(),
-            'statuses' => self::STATUSES,
+            'statuses' => status_options(self::STATUSES),
         ]);
     }
 
@@ -73,7 +73,7 @@ class PositionController extends Controller
             'breadcrumbs' => [['label' => 'পদসমূহ', 'route' => 'admin.positions.index'], ['label' => $position->name]],
             'position' => $position,
             'units' => $this->unitOptions(),
-            'statuses' => self::STATUSES,
+            'statuses' => status_options(self::STATUSES),
         ]);
     }
 

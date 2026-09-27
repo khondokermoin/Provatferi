@@ -68,11 +68,11 @@ class JobApplicationController extends Controller
             ->withQueryString();
 
         return view('admin.recruitment.applications.index', [
-            'title' => 'আবেদনসমূহ',
-            'breadcrumbs' => [['label' => 'নিয়োগ'], ['label' => 'আবেদনসমূহ']],
+            'title' => __('admin.nav.job_applications'),
+            'breadcrumbs' => [['label' => __('admin.nav.recruitment')], ['label' => __('admin.nav.job_applications')]],
             'applications' => $applications,
             'filters' => $filters,
-            'statuses' => JobApplication::STATUSES,
+            'statuses' => status_options(JobApplication::STATUSES),
             'skills' => JobApplication::SKILLS,
             'districts' => JobApplication::query()->whereNotNull('district')->distinct()->orderBy('district')->pluck('district', 'district')->all(),
             'postings' => JobPosting::query()->orderBy('title')->pluck('title', 'id'),
@@ -85,10 +85,10 @@ class JobApplicationController extends Controller
 
         return view('admin.recruitment.applications.show', [
             'title' => $jobApplication->applicant_name,
-            'breadcrumbs' => [['label' => 'আবেদনসমূহ', 'route' => 'admin.recruitment.applications.index'], ['label' => $jobApplication->applicant_name]],
+            'breadcrumbs' => [['label' => __('admin.nav.job_applications'), 'route' => 'admin.recruitment.applications.index'], ['label' => $jobApplication->applicant_name]],
             'application' => $jobApplication,
-            'statuses' => JobApplication::STATUSES,
-            'contactLabels' => JobApplication::PREFERRED_CONTACTS,
+            'statuses' => status_options(JobApplication::STATUSES),
+            'contactLabels' => option_options('preferred_contacts', JobApplication::PREFERRED_CONTACTS),
         ]);
     }
 
@@ -97,7 +97,7 @@ class JobApplicationController extends Controller
         $data = $request->validate([
             'status' => ['required', Rule::in(array_keys(JobApplication::STATUSES))],
             'internal_note' => ['nullable', 'string', 'max:2000'],
-        ], [], ['status' => 'স্ট্যাটাস', 'internal_note' => 'অভ্যন্তরীণ নোট']);
+        ], [], ['status' => __('admin.common.status'), 'internal_note' => __('admin.fields.internal_note')]);
 
         $previousStatus = $jobApplication->status;
 
@@ -117,7 +117,7 @@ class JobApplicationController extends Controller
         }
 
         return redirect()->route('admin.recruitment.applications.show', $jobApplication)
-            ->with('success', 'আবেদনের স্ট্যাটাস হালনাগাদ হয়েছে — '.$jobApplication->statusLabel().'।');
+            ->with('success', __('admin.fields.application_status_updated', ['status' => $jobApplication->statusLabel()]));
     }
 
     /**
@@ -165,7 +165,7 @@ class JobApplicationController extends Controller
         return view('admin.recruitment.applications.print', [
             'title' => $jobApplication->applicant_name,
             'application' => $jobApplication,
-            'contactLabels' => JobApplication::PREFERRED_CONTACTS,
+            'contactLabels' => option_options('preferred_contacts', JobApplication::PREFERRED_CONTACTS),
             // photoFileExists(), not photo_path truthiness — a recorded path
             // whose file is gone must render the placeholder, not an <img>
             // pointing at a route that will 404 (a broken image icon).
@@ -204,7 +204,7 @@ class JobApplicationController extends Controller
 
         $html = view('admin.recruitment.applications.document', [
             'application' => $jobApplication,
-            'contactLabels' => JobApplication::PREFERRED_CONTACTS,
+            'contactLabels' => option_options('preferred_contacts', JobApplication::PREFERRED_CONTACTS),
             'photoSrc' => $photoSrc,
             'logoSrc' => $logoSrc,
             'generatedAt' => Carbon::now(),

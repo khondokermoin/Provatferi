@@ -47,7 +47,7 @@
                     <dt class="fs-13 text-muted">{{ __('admin.fields.compensation') }}</dt>
                     <dd>
                         @if ($jobPosting->isVolunteer())
-                            <span class="fs-13">{{ \App\Models\JobPosting::VOLUNTEER_NOTE }}</span>
+                            <span class="fs-13">{{ __('options.volunteer_note') }}</span>
                         @else
                             {{ $jobPosting->salary_range ?: '—' }}
                         @endif

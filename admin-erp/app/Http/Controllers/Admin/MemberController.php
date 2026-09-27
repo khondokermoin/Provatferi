@@ -45,7 +45,7 @@ class MemberController extends Controller
             'breadcrumbs' => [['label' => 'সদস্যপদ'], ['label' => 'সদস্যবৃন্দ']],
             'members' => $members,
             'filters' => $filters,
-            'statuses' => Membership::STATUSES,
+            'statuses' => status_options(Membership::STATUSES),
             'types' => MembershipType::query()->orderBy('name')->pluck('name', 'id'),
         ]);
     }
@@ -76,7 +76,7 @@ class MemberController extends Controller
                 ['label' => $membership->member_code],
             ],
             'member' => $membership,
-            'statuses' => Membership::STATUSES,
+            'statuses' => status_options(Membership::STATUSES),
         ]);
     }
 

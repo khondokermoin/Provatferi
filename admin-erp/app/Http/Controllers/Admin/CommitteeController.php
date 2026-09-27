@@ -59,7 +59,7 @@ class CommitteeController extends Controller
             'breadcrumbs' => [['label' => 'সংগঠন'], ['label' => 'কমিটি']],
             'committees' => $committees,
             'filters' => $filters,
-            'statuses' => Committee::STATUSES,
+            'statuses' => status_options(Committee::STATUSES),
             'types' => self::TYPES,
             'units' => $this->unitOptions(),
         ]);
@@ -105,7 +105,7 @@ class CommitteeController extends Controller
             'breadcrumbs' => [['label' => 'কমিটি', 'route' => 'admin.committees.index'], ['label' => $committee->name]],
             'committee' => $committee,
             'types' => self::TYPES,
-            'statuses' => Committee::STATUSES,
+            'statuses' => status_options(Committee::STATUSES),
             'allowedTransitions' => self::TRANSITIONS[$committee->status] ?? [],
             'pendingSubmissionsCount' => $committee->submissions()->whereIn('status', ['pending', 'correction_requested'])->count(),
         ]);

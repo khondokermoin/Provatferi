@@ -34,7 +34,7 @@ class MembershipTypeController extends Controller
             'type' => new MembershipType([
                 'status' => 'active', 'sort_order' => 0, 'fee' => 0, 'is_student' => false, 'is_public_self_apply' => true,
             ]),
-            'statuses' => self::STATUSES,
+            'statuses' => status_options(self::STATUSES),
         ]);
     }
 
@@ -56,7 +56,7 @@ class MembershipTypeController extends Controller
             'title' => 'সম্পাদনা — '.$membershipType->name,
             'breadcrumbs' => [['label' => 'সদস্যপদের ধরন', 'route' => 'admin.membership.types.index'], ['label' => $membershipType->name]],
             'type' => $membershipType,
-            'statuses' => self::STATUSES,
+            'statuses' => status_options(self::STATUSES),
         ]);
     }
 

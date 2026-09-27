@@ -136,3 +136,54 @@ if (! function_exists('status_label')) {
         return $label === $key ? ucwords(str_replace('_', ' ', $status)) : $label;
     }
 }
+
+/**
+ * Builds a status <select> options array (slug => label) from a Model's own
+ * STATUSES constant, but sourcing every label through status_label() instead
+ * of the constant's own hardcoded value. Phase 3: a handful of models'
+ * STATUSES constants had drifted from the canonical statuses.php wording
+ * (e.g. Committee's 'archived' said "আর্কাইভ" while the badge — which already
+ * went through status_label() — said "সংরক্ষিত" for the same slug). This
+ * closes that gap rather than adding a second one: the constant's KEY SET is
+ * still the source of truth for validation (Rule::in(array_keys(...))), only
+ * the displayed label now always matches the badge, in whichever language
+ * the admin is reading.
+ *
+ * @param  array<string, string>|array<int, string>  $keys  A STATUSES constant, or a plain list of slugs.
+ * @return array<string, string>
+ */
+if (! function_exists('status_options')) {
+    function status_options(array $keys): array
+    {
+        $slugs = array_is_list($keys) ? $keys : array_keys($keys);
+
+        return collect($slugs)->mapWithKeys(fn (string $slug) => [$slug => status_label($slug)])->all();
+    }
+}
+
+/**
+ * The non-status counterpart to status_label()/status_options(): labels for
+ * Model "option" constants (notice types, employment types, ...) sourced
+ * from lang/{bn,en}/options.php. ADMIN-SIDE ONLY — see that file's own
+ * docblock for why several of the constants it mirrors must never have
+ * their own raw value or public-API usage touched.
+ */
+if (! function_exists('option_label')) {
+    function option_label(string $group, string $key): string
+    {
+        $catalogKey = "options.{$group}.{$key}";
+        $label = __($catalogKey);
+
+        return $label === $catalogKey ? ucwords(str_replace('_', ' ', $key)) : $label;
+    }
+}
+
+/** @param  array<string, mixed>|array<int, string>  $keys  A label-map constant, or a plain list of keys. */
+if (! function_exists('option_options')) {
+    function option_options(string $group, array $keys): array
+    {
+        $slugs = array_is_list($keys) ? $keys : array_keys($keys);
+
+        return collect($slugs)->mapWithKeys(fn (string $slug) => [$slug => option_label($group, $slug)])->all();
+    }
+}

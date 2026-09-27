@@ -57,7 +57,7 @@ class OrganizationUnitController extends Controller
             'units' => $units,
             'filters' => $filters,
             'unitTypes' => self::UNIT_TYPES,
-            'statuses' => self::STATUSES,
+            'statuses' => status_options(self::STATUSES),
             'hasAnyUnit' => OrganizationalUnit::query()->exists(),
         ]);
     }
@@ -73,7 +73,7 @@ class OrganizationUnitController extends Controller
             'unit' => new OrganizationalUnit(['status' => 'active', 'sort_order' => 0]),
             'parentOptions' => $this->parentOptions(),
             'unitTypes' => self::UNIT_TYPES,
-            'statuses' => self::STATUSES,
+            'statuses' => status_options(self::STATUSES),
         ]);
     }
 
@@ -116,7 +116,7 @@ class OrganizationUnitController extends Controller
             'unit' => $unit,
             'parentOptions' => $this->parentOptions($unit),
             'unitTypes' => self::UNIT_TYPES,
-            'statuses' => self::STATUSES,
+            'statuses' => status_options(self::STATUSES),
         ]);
     }
 

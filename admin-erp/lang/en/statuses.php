@@ -30,4 +30,5 @@ return [
     'correction_requested' => 'Correction requested',
     'unpublished' => 'Unpublished',
     'paid' => 'Paid',
+    'waived' => 'Waived',
 ];

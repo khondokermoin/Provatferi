@@ -54,7 +54,7 @@ class CommitteeSubmissionController extends Controller
             ],
             'committee' => $committee,
             'submissions' => $submissions,
-            'statuses' => CommitteeSubmission::STATUSES,
+            'statuses' => status_options(CommitteeSubmission::STATUSES),
             'currentStatus' => $status,
         ]);
     }
@@ -75,7 +75,7 @@ class CommitteeSubmissionController extends Controller
             ],
             'committee' => $committee,
             'submission' => $submission,
-            'statuses' => CommitteeSubmission::STATUSES,
+            'statuses' => status_options(CommitteeSubmission::STATUSES),
             'nextStatuses' => self::TRANSITIONS[$submission->status] ?? [],
             'photoUrl' => $submission->photo_approved_path
                 ? app(PhotoUploadService::class)->publicUrl($submission->photo_approved_path)

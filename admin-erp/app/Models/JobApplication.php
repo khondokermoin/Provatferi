@@ -106,7 +106,7 @@ class JobApplication extends Model
 
     public function statusLabel(): string
     {
-        return self::STATUSES[$this->status] ?? $this->status;
+        return status_label($this->status);
     }
 
     /** @return array<int, string> */
