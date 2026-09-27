@@ -33,7 +33,7 @@ class CommitteeMemberController extends Controller
             'member' => new CommitteeMember(['status' => 'active']),
             'users' => $this->userOptions(),
             'positions' => $this->positionOptions(),
-            'statuses' => self::STATUSES,
+            'statuses' => status_options(self::STATUSES),
         ]);
     }
 
@@ -62,7 +62,7 @@ class CommitteeMemberController extends Controller
             'member' => $member,
             'users' => $this->userOptions(),
             'positions' => $this->positionOptions(),
-            'statuses' => self::STATUSES,
+            'statuses' => status_options(self::STATUSES),
         ]);
     }
 

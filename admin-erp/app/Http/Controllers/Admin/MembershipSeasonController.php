@@ -26,8 +26,8 @@ class MembershipSeasonController extends Controller
             ->orderBy('display_order')->orderByDesc('opens_at')->paginate(15);
 
         return view('admin.membership.seasons.index', [
-            'title' => 'সদস্য নিবন্ধন সিজন',
-            'breadcrumbs' => [['label' => 'সদস্যপদ'], ['label' => 'নিবন্ধন সিজন']],
+            'title' => __('admin.nav.membership').' — '.__('admin.nav.seasons'),
+            'breadcrumbs' => [['label' => __('admin.nav.membership')], ['label' => __('admin.nav.seasons')]],
             'seasons' => $seasons,
         ]);
     }
@@ -35,13 +35,13 @@ class MembershipSeasonController extends Controller
     public function create(): View
     {
         return view('admin.membership.seasons.form', [
-            'title' => 'নতুন নিবন্ধন সিজন',
-            'breadcrumbs' => [['label' => 'নিবন্ধন সিজন', 'route' => 'admin.membership.seasons.index'], ['label' => 'তৈরি করুন']],
+            'title' => __('admin.fields.new_season'),
+            'breadcrumbs' => [['label' => __('admin.nav.seasons'), 'route' => 'admin.membership.seasons.index'], ['label' => __('admin.actions.create')]],
             'season' => new MembershipSeason([
                 'campaign_type' => 'regular', 'status' => 'draft', 'public_profile_opt_in' => true, 'display_order' => 0,
             ]),
-            'campaignTypes' => MembershipSeason::CAMPAIGN_TYPES,
-            'statuses' => MembershipSeason::STATUSES,
+            'campaignTypes' => option_options('campaign_types', MembershipSeason::CAMPAIGN_TYPES),
+            'statuses' => status_options(MembershipSeason::STATUSES),
             'membershipTypes' => MembershipType::query()->where('status', 'active')->orderBy('sort_order')->get(),
             'selectedTypeIds' => [],
         ]);
@@ -59,17 +59,17 @@ class MembershipSeasonController extends Controller
         $season = MembershipSeason::query()->create($data);
         $season->membershipTypes()->sync($typeIds);
 
-        return redirect()->route('admin.membership.seasons.index')->with('success', "\u{201c}{$season->name}\u{201d} তৈরি হয়েছে।");
+        return redirect()->route('admin.membership.seasons.index')->with('success', __('admin.flash.season_created', ['name' => $season->name]));
     }
 
     public function edit(MembershipSeason $season): View
     {
         return view('admin.membership.seasons.form', [
-            'title' => 'সম্পাদনা — '.$season->name,
-            'breadcrumbs' => [['label' => 'নিবন্ধন সিজন', 'route' => 'admin.membership.seasons.index'], ['label' => $season->name]],
+            'title' => __('admin.fields.edit_prefix').' — '.$season->name,
+            'breadcrumbs' => [['label' => __('admin.nav.seasons'), 'route' => 'admin.membership.seasons.index'], ['label' => $season->name]],
             'season' => $season,
-            'campaignTypes' => MembershipSeason::CAMPAIGN_TYPES,
-            'statuses' => MembershipSeason::STATUSES,
+            'campaignTypes' => option_options('campaign_types', MembershipSeason::CAMPAIGN_TYPES),
+            'statuses' => status_options(MembershipSeason::STATUSES),
             'membershipTypes' => MembershipType::query()->where('status', 'active')->orderBy('sort_order')->get(),
             'selectedTypeIds' => $season->membershipTypes()->pluck('membership_types.id')->all(),
         ]);
@@ -85,7 +85,7 @@ class MembershipSeasonController extends Controller
         $season->update($data);
         $season->membershipTypes()->sync($typeIds);
 
-        return redirect()->route('admin.membership.seasons.index')->with('success', "\u{201c}{$season->name}\u{201d} হালনাগাদ হয়েছে।");
+        return redirect()->route('admin.membership.seasons.index')->with('success', __('admin.flash.season_updated', ['name' => $season->name]));
     }
 
     /**
@@ -102,19 +102,19 @@ class MembershipSeasonController extends Controller
 
         $season->update($data);
 
-        return back()->with('success', 'সিজনের স্ট্যাটাস হালনাগাদ হয়েছে।');
+        return back()->with('success', __('admin.fields.season_status_updated'));
     }
 
     public function destroy(MembershipSeason $season): RedirectResponse
     {
         if ($season->applications()->exists()) {
-            return back()->with('error', 'এই সিজনের সঙ্গে আবেদন যুক্ত আছে — মুছে ফেলা যাবে না।');
+            return back()->with('error', __('admin.fields.season_has_applications_cannot_delete'));
         }
 
         $name = $season->name;
         $season->delete();
 
-        return redirect()->route('admin.membership.seasons.index')->with('success', "\u{201c}{$name}\u{201d} মুছে ফেলা হয়েছে।");
+        return redirect()->route('admin.membership.seasons.index')->with('success', __('admin.flash.season_deleted', ['name' => $name]));
     }
 
     /** @return array<string, mixed> */
@@ -140,8 +140,8 @@ class MembershipSeasonController extends Controller
     private function attributes(): array
     {
         return [
-            'name' => 'নাম', 'campaign_type' => 'ধরন', 'opens_at' => 'শুরুর তারিখ', 'closes_at' => 'শেষের তারিখ',
-            'status' => 'স্ট্যাটাস', 'display_order' => 'ক্রম',
+            'name' => __('admin.common.name'), 'campaign_type' => __('admin.common.type'), 'opens_at' => __('admin.fields.date_opens'), 'closes_at' => __('admin.fields.date_closes'),
+            'status' => __('admin.common.status'), 'display_order' => __('admin.common.order'),
         ];
     }
 

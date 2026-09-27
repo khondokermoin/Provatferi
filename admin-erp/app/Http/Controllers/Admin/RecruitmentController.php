@@ -40,19 +40,19 @@ class RecruitmentController extends Controller
             ->withQueryString();
 
         return view('admin.recruitment.index', [
-            'title' => 'চাকরির বিজ্ঞপ্তি',
-            'breadcrumbs' => [['label' => 'নিয়োগ'], ['label' => 'চাকরির বিজ্ঞপ্তি']],
+            'title' => __('admin.nav.job_postings'),
+            'breadcrumbs' => [['label' => __('admin.nav.recruitment')], ['label' => __('admin.nav.job_postings')]],
             'jobPostings' => $jobPostings,
             'filters' => $filters,
-            'statuses' => JobPosting::STATUSES,
+            'statuses' => status_options(JobPosting::STATUSES),
         ]);
     }
 
     public function create(): View
     {
         return view('admin.recruitment.form', [
-            'title' => 'নতুন চাকরির বিজ্ঞপ্তি',
-            'breadcrumbs' => [['label' => 'চাকরির বিজ্ঞপ্তি', 'route' => 'admin.recruitment.index'], ['label' => 'তৈরি করুন']],
+            'title' => __('admin.fields.new_job_posting'),
+            'breadcrumbs' => [['label' => __('admin.nav.job_postings'), 'route' => 'admin.recruitment.index'], ['label' => __('admin.actions.create')]],
             'jobPosting' => new JobPosting(['status' => 'draft', 'application_mode' => 'fixed']),
             ...$this->formOptions(),
         ]);
@@ -84,7 +84,7 @@ class RecruitmentController extends Controller
 
         $note = $this->publishToNoticeBoard($request, $jobPosting);
 
-        return redirect()->route('admin.recruitment.show', $jobPosting)->with('success', "\u{201c}{$jobPosting->title}\u{201d} তৈরি হয়েছে।".$note);
+        return redirect()->route('admin.recruitment.show', $jobPosting)->with('success', __('admin.flash.posting_created', ['title' => $jobPosting->title]).$note);
     }
 
     public function show(JobPosting $jobPosting): View
@@ -93,7 +93,7 @@ class RecruitmentController extends Controller
 
         return view('admin.recruitment.show', [
             'title' => $jobPosting->title,
-            'breadcrumbs' => [['label' => 'চাকরির বিজ্ঞপ্তি', 'route' => 'admin.recruitment.index'], ['label' => $jobPosting->title]],
+            'breadcrumbs' => [['label' => __('admin.nav.job_postings'), 'route' => 'admin.recruitment.index'], ['label' => $jobPosting->title]],
             'jobPosting' => $jobPosting,
         ]);
     }
@@ -103,11 +103,11 @@ class RecruitmentController extends Controller
         $jobPosting->load('notice');
 
         return view('admin.recruitment.form', [
-            'title' => 'সম্পাদনা — '.$jobPosting->title,
+            'title' => __('admin.fields.edit_prefix').' — '.$jobPosting->title,
             'breadcrumbs' => [
-                ['label' => 'চাকরির বিজ্ঞপ্তি', 'route' => 'admin.recruitment.index'],
+                ['label' => __('admin.nav.job_postings'), 'route' => 'admin.recruitment.index'],
                 ['label' => $jobPosting->title, 'route' => 'admin.recruitment.show', 'params' => $jobPosting],
-                ['label' => 'সম্পাদনা'],
+                ['label' => __('admin.fields.edit_prefix')],
             ],
             'jobPosting' => $jobPosting,
             ...$this->formOptions(),
@@ -151,7 +151,7 @@ class RecruitmentController extends Controller
         $this->linker->syncFrom($jobPosting, $request->user());
         $note = $this->publishToNoticeBoard($request, $jobPosting);
 
-        return redirect()->route('admin.recruitment.show', $jobPosting)->with('success', "\u{201c}{$jobPosting->title}\u{201d} হালনাগাদ হয়েছে।".$note);
+        return redirect()->route('admin.recruitment.show', $jobPosting)->with('success', __('admin.flash.posting_updated', ['title' => $jobPosting->title]).$note);
     }
 
     /**
@@ -188,13 +188,13 @@ class RecruitmentController extends Controller
     public function destroy(JobPosting $jobPosting): RedirectResponse
     {
         if ($jobPosting->applications()->exists()) {
-            return back()->with('error', 'এই বিজ্ঞপ্তিতে আবেদন জমা পড়েছে — মুছে ফেলার বদলে "Archived" করুন।');
+            return back()->with('error', __('admin.fields.posting_has_applications_archive_instead'));
         }
 
         $title = $jobPosting->title;
         $jobPosting->delete();
 
-        return redirect()->route('admin.recruitment.index')->with('success', "\u{201c}{$title}\u{201d} মুছে ফেলা হয়েছে।");
+        return redirect()->route('admin.recruitment.index')->with('success', __('admin.flash.posting_deleted', ['title' => $title]));
     }
 
     /** @return array<string, mixed> */
@@ -255,8 +255,8 @@ class RecruitmentController extends Controller
         $notice = $this->linker->createFor($jobPosting, $request->user());
 
         return $notice->isPubliclyVisible()
-            ? ' নোটিশ বোর্ডেও প্রকাশিত হয়েছে।'
-            : ' নোটিশ বোর্ডে খসড়া হিসেবে যুক্ত হয়েছে।';
+            ? ' '.__('admin.fields.also_published_to_notice_board')
+            : ' '.__('admin.fields.added_to_notice_board_as_draft');
     }
 
     /** @return array<string, mixed> */
@@ -299,8 +299,8 @@ class RecruitmentController extends Controller
     private function attributes(): array
     {
         return [
-            'title' => 'শিরোনাম', 'slug' => 'ইউআরএল স্লাগ', 'description' => 'বিবরণ', 'status' => 'স্ট্যাটাস',
-            'application_mode' => 'আবেদনের পদ্ধতি', 'share_image' => 'সামাজিক শেয়ার ছবি',
+            'title' => __('admin.common.title'), 'slug' => __('admin.fields.url_slug'), 'description' => __('admin.common.description'), 'status' => __('admin.common.status'),
+            'application_mode' => __('admin.fields.application_mode'), 'share_image' => __('admin.fields.social_share_image'),
         ];
     }
 
@@ -322,11 +322,11 @@ class RecruitmentController extends Controller
     {
         return [
             'units' => OrganizationalUnit::query()->orderBy('name')->pluck('name', 'id')->all(),
-            'statuses' => JobPosting::STATUSES,
-            'employmentTypes' => JobPosting::EMPLOYMENT_TYPES,
-            'applicationModes' => JobPosting::APPLICATION_MODES,
-            'configurableFields' => JobPosting::CONFIGURABLE_APPLICATION_FIELDS,
-            'fieldRequirementOptions' => ['required' => 'আবশ্যক', 'optional' => 'ঐচ্ছিক'],
+            'statuses' => status_options(JobPosting::STATUSES),
+            'employmentTypes' => option_options('employment_types', JobPosting::EMPLOYMENT_TYPES),
+            'applicationModes' => option_options('application_modes', JobPosting::APPLICATION_MODES),
+            'configurableFields' => option_options('application_field_labels', JobPosting::CONFIGURABLE_APPLICATION_FIELDS),
+            'fieldRequirementOptions' => option_options('field_requirement_levels', ['required', 'optional']),
         ];
     }
 }

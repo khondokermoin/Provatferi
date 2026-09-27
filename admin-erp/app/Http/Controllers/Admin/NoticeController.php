@@ -48,27 +48,27 @@ class NoticeController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $statusLabel = Notice::STATUSES[$filters['status']] ?? null;
+        $statusLabel = $filters['status'] !== '' ? status_label($filters['status']) : null;
 
         return view('admin.notices.index', [
-            'title' => $statusLabel ? "নোটিশ বোর্ড — {$statusLabel}" : 'নোটিশ বোর্ড',
-            'breadcrumbs' => [['label' => 'নোটিশ বোর্ড']],
+            'title' => $statusLabel ? __('admin.nav.notices').' — '.$statusLabel : __('admin.nav.notices'),
+            'breadcrumbs' => [['label' => __('admin.nav.notices')]],
             'notices' => $notices,
             'filters' => $filters,
             'types' => Notice::TYPES,
-            'statuses' => Notice::STATUSES,
+            'statuses' => status_options(Notice::STATUSES),
         ]);
     }
 
     public function create(): View
     {
         return view('admin.notices.form', [
-            'title' => 'নতুন নোটিশ',
-            'breadcrumbs' => [['label' => 'নোটিশ বোর্ড', 'route' => 'admin.notices.index'], ['label' => 'নতুন নোটিশ']],
+            'title' => __('admin.fields.new_notice'),
+            'breadcrumbs' => [['label' => __('admin.nav.notices'), 'route' => 'admin.notices.index'], ['label' => __('admin.fields.new_notice')]],
             'notice' => new Notice(['status' => 'draft', 'notice_type' => 'general']),
             'units' => $this->unitOptions(),
             'types' => Notice::TYPES,
-            'statuses' => Notice::STATUSES,
+            'statuses' => status_options(Notice::STATUSES),
         ]);
     }
 
@@ -78,7 +78,7 @@ class NoticeController extends Controller
         $note = $this->persist($request, $notice);
 
         return redirect()->route('admin.notices.show', $notice)
-            ->with('success', "\u{201c}{$notice->title}\u{201d} তৈরি হয়েছে।".$note);
+            ->with('success', __('admin.flash.notice_created', ['title' => $notice->title]).$note);
     }
 
     public function show(Notice $notice): View
@@ -87,7 +87,7 @@ class NoticeController extends Controller
 
         return view('admin.notices.show', [
             'title' => $notice->title,
-            'breadcrumbs' => [['label' => 'নোটিশ বোর্ড', 'route' => 'admin.notices.index'], ['label' => $notice->title]],
+            'breadcrumbs' => [['label' => __('admin.nav.notices'), 'route' => 'admin.notices.index'], ['label' => $notice->title]],
             'notice' => $notice,
         ]);
     }
@@ -97,16 +97,16 @@ class NoticeController extends Controller
         $notice->load('jobPosting');
 
         return view('admin.notices.form', [
-            'title' => 'সম্পাদনা — '.$notice->title,
+            'title' => __('admin.fields.edit_prefix').' — '.$notice->title,
             'breadcrumbs' => [
-                ['label' => 'নোটিশ বোর্ড', 'route' => 'admin.notices.index'],
+                ['label' => __('admin.nav.notices'), 'route' => 'admin.notices.index'],
                 ['label' => $notice->title, 'route' => 'admin.notices.show', 'params' => $notice],
-                ['label' => 'সম্পাদনা'],
+                ['label' => __('admin.fields.edit_prefix')],
             ],
             'notice' => $notice,
             'units' => $this->unitOptions(),
             'types' => Notice::TYPES,
-            'statuses' => Notice::STATUSES,
+            'statuses' => status_options(Notice::STATUSES),
         ]);
     }
 
@@ -115,7 +115,7 @@ class NoticeController extends Controller
         $note = $this->persist($request, $notice);
 
         return redirect()->route('admin.notices.show', $notice)
-            ->with('success', "\u{201c}{$notice->title}\u{201d} হালনাগাদ হয়েছে।".$note);
+            ->with('success', __('admin.flash.notice_updated', ['title' => $notice->title]).$note);
     }
 
     public function publish(Request $request, Notice $notice): RedirectResponse
@@ -129,7 +129,7 @@ class NoticeController extends Controller
             'updated_by' => $request->user()->id,
         ])->save();
 
-        return back()->with('success', "\u{201c}{$notice->title}\u{201d} প্রকাশিত হয়েছে।");
+        return back()->with('success', __('admin.flash.notice_published', ['title' => $notice->title]));
     }
 
     public function archive(Request $request, Notice $notice): RedirectResponse
@@ -140,13 +140,13 @@ class NoticeController extends Controller
 
         $notice->forceFill(['status' => 'archived', 'updated_by' => $request->user()->id])->save();
 
-        return back()->with('success', "\u{201c}{$notice->title}\u{201d} আর্কাইভ করা হয়েছে। নোটিশটি ইতিহাস হিসেবে সাইটে থেকে যাবে।");
+        return back()->with('success', __('admin.flash.notice_archived', ['title' => $notice->title]));
     }
 
     public function destroy(Notice $notice): RedirectResponse
     {
         if ($notice->wasEverPublic()) {
-            return back()->with('error', 'একবার প্রকাশিত নোটিশ মুছে ফেলা যায় না — প্রাতিষ্ঠানিক ইতিহাস রক্ষায় আর্কাইভ করুন।');
+            return back()->with('error', __('admin.fields.published_notice_cannot_delete_help'));
         }
 
         $title = $notice->title;
@@ -156,7 +156,7 @@ class NoticeController extends Controller
         $notice->forceFill(['job_posting_id' => null, 'cover_image_path' => null, 'attachment_path' => null])->save();
         $notice->delete();
 
-        return redirect()->route('admin.notices.index')->with('success', "\u{201c}{$title}\u{201d} মুছে ফেলা হয়েছে।");
+        return redirect()->route('admin.notices.index')->with('success', __('admin.flash.notice_deleted', ['title' => $title]));
     }
 
     /** Admin-only preview of private files, including those on unpublished notices. */
@@ -216,19 +216,19 @@ class NoticeController extends Controller
 
         $errors = [];
         if ($status === 'published' && $publishedAt->isFuture()) {
-            $errors['status'] = 'ভবিষ্যতের তারিখে প্রকাশ করতে স্ট্যাটাস “নির্ধারিত” নির্বাচন করুন।';
+            $errors['status'] = __('admin.fields.notice_future_publish_needs_scheduled');
         }
         if ($status === 'scheduled' && ($publishedAt === null || ! $publishedAt->isFuture())) {
-            $errors['published_at'] = 'নির্ধারিত নোটিশের জন্য ভবিষ্যতের প্রকাশের তারিখ ও সময় দিন।';
+            $errors['published_at'] = __('admin.fields.notice_scheduled_needs_future_date');
         }
         if ($expiresAt !== null && $publishedAt !== null && $expiresAt->lte($publishedAt)) {
-            $errors['expires_at'] = 'মেয়াদ শেষের তারিখ প্রকাশের তারিখের পরে হতে হবে।';
+            $errors['expires_at'] = __('admin.fields.expiry_must_be_after_publish');
         }
 
         $wasPublic = ! $isNew && $notice->wasEverPublic();
         $requestedSlug = $data['slug'] ?? null;
         if ($wasPublic && $requestedSlug !== null && $requestedSlug !== $notice->slug) {
-            $errors['slug'] = 'প্রকাশিত নোটিশের URL পরিবর্তন করা যাবে না — আগে শেয়ার করা লিংক ভেঙে যাবে।';
+            $errors['slug'] = __('admin.fields.published_slug_cannot_change');
         }
 
         if ($errors !== []) {
@@ -238,10 +238,10 @@ class NoticeController extends Controller
         $originalStatus = $isNew ? null : $notice->effectiveStatus();
         $dateMoved = ! $isNew && ! $this->sameMinute($notice->published_at, $publishedAt);
         if (in_array($status, ['published', 'scheduled'], true) && ($originalStatus !== $status || $dateMoved)) {
-            abort_unless($user->can('notices.publish'), 403, 'নোটিশ প্রকাশ বা নির্ধারণের অনুমতি আপনার নেই।');
+            abort_unless($user->can('notices.publish'), 403, __('admin.fields.no_permission_publish_notice'));
         }
         if ($status === 'archived' && $originalStatus !== 'archived') {
-            abort_unless($user->can('notices.archive'), 403, 'নোটিশ আর্কাইভ করার অনুমতি আপনার নেই।');
+            abort_unless($user->can('notices.archive'), 403, __('admin.fields.no_permission_archive_notice'));
         }
 
         $note = '';
@@ -257,11 +257,11 @@ class NoticeController extends Controller
 
             if ($notice->syncs_from_job_posting && $copyChanged) {
                 $notice->syncs_from_job_posting = false;
-                $note = ' শিরোনাম বা বিবরণ হাতে সম্পাদনা করায় নিয়োগ বিজ্ঞপ্তি থেকে স্বয়ংক্রিয় হালনাগাদ বন্ধ করা হয়েছে।';
+                $note = ' '.__('admin.fields.notice_sync_turned_off_note');
             } elseif (! $notice->syncs_from_job_posting && $wantsSync) {
                 $notice->syncs_from_job_posting = true;
                 $resync = true;
-                $note = ' নিয়োগ বিজ্ঞপ্তি থেকে শিরোনাম ও বিবরণ আবার হালনাগাদ করা হয়েছে।';
+                $note = ' '.__('admin.fields.notice_sync_turned_on_note');
             } else {
                 $notice->syncs_from_job_posting = $notice->syncs_from_job_posting && $wantsSync;
             }
@@ -419,20 +419,20 @@ class NoticeController extends Controller
     private function attributes(): array
     {
         return [
-            'title' => 'বিষয়',
-            'slug' => 'URL স্লাগ',
-            'notice_type' => 'নোটিশের ধরন',
-            'summary' => 'সংক্ষিপ্ত বিবরণ',
-            'body' => 'পূর্ণ বিবরণ',
-            'published_at' => 'প্রকাশের তারিখ',
-            'expires_at' => 'মেয়াদ শেষের তারিখ',
-            'organization_unit_id' => 'সাংগঠনিক ইউনিট',
-            'cover_image' => 'ছবি',
-            'share_image' => 'সামাজিক শেয়ার ছবি',
-            'attachment' => 'সংযুক্তি',
-            'action_url' => 'অ্যাকশন লিংক',
-            'action_label' => 'বাটনের লেখা',
-            'status' => 'স্ট্যাটাস',
+            'title' => __('admin.fields.subject'),
+            'slug' => __('admin.fields.url_slug'),
+            'notice_type' => __('admin.fields.notice_type'),
+            'summary' => __('admin.common.summary'),
+            'body' => __('admin.fields.full_body'),
+            'published_at' => __('admin.fields.published_at_label'),
+            'expires_at' => __('admin.fields.expiry_date_label'),
+            'organization_unit_id' => __('admin.fields.unit'),
+            'cover_image' => __('admin.fields.image_label'),
+            'share_image' => __('admin.fields.social_share_image'),
+            'attachment' => __('admin.fields.attachment'),
+            'action_url' => __('admin.fields.action_link_label'),
+            'action_label' => __('admin.fields.button_text'),
+            'status' => __('admin.common.status'),
         ];
     }
 

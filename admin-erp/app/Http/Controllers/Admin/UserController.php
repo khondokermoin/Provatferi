@@ -45,7 +45,7 @@ class UserController extends Controller
             'breadcrumbs' => [['label' => 'সিস্টেম'], ['label' => 'ব্যবহারকারী']],
             'users' => $users,
             'filters' => $filters,
-            'statuses' => self::STATUSES,
+            'statuses' => status_options(self::STATUSES),
             'roles' => Role::query()->orderBy('name')->pluck('name', 'slug')->all(),
         ]);
     }
@@ -58,7 +58,7 @@ class UserController extends Controller
             'user' => new User(['status' => 'active']),
             'roles' => Role::query()->orderBy('name')->get(),
             'assignedRoleIds' => [],
-            'statuses' => self::STATUSES,
+            'statuses' => status_options(self::STATUSES),
         ]);
     }
 
@@ -114,7 +114,7 @@ class UserController extends Controller
             'user' => $user,
             'roles' => Role::query()->orderBy('name')->get(),
             'assignedRoleIds' => $user->roles->pluck('id')->all(),
-            'statuses' => self::STATUSES,
+            'statuses' => status_options(self::STATUSES),
             'isLastSuperAdmin' => SuperAdminGuard::isLastUsable($user),
         ]);
     }

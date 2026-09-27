@@ -38,7 +38,7 @@ class ActivityController extends Controller
             'breadcrumbs' => [['label' => 'কার্যক্রম']],
             'activities' => $activities,
             'filters' => $filters,
-            'statuses' => Activity::STATUSES,
+            'statuses' => status_options(Activity::STATUSES),
             'types' => ActivityType::query()->orderBy('name')->pluck('name', 'id'),
         ]);
     }
@@ -51,7 +51,7 @@ class ActivityController extends Controller
             'activity' => new Activity(['status' => 'draft', 'participant_count' => 0]),
             'types' => $this->typeOptions(),
             'units' => $this->unitOptions(),
-            'statuses' => Activity::STATUSES,
+            'statuses' => status_options(Activity::STATUSES),
         ]);
     }
 
@@ -93,7 +93,7 @@ class ActivityController extends Controller
             'activity' => $activity,
             'types' => $this->typeOptions(),
             'units' => $this->unitOptions(),
-            'statuses' => Activity::STATUSES,
+            'statuses' => status_options(Activity::STATUSES),
         ]);
     }
 

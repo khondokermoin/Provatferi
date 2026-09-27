@@ -32,7 +32,7 @@ class ActivityTypeController extends Controller
             'title' => 'নতুন কার্যক্রমের ধরন',
             'breadcrumbs' => [['label' => 'কার্যক্রমের ধরন', 'route' => 'admin.activities.types.index'], ['label' => 'তৈরি করুন']],
             'type' => new ActivityType(['status' => 'active', 'sort_order' => 0]),
-            'statuses' => self::STATUSES,
+            'statuses' => status_options(self::STATUSES),
         ]);
     }
 
@@ -52,7 +52,7 @@ class ActivityTypeController extends Controller
             'title' => 'সম্পাদনা — '.$activityType->name,
             'breadcrumbs' => [['label' => 'কার্যক্রমের ধরন', 'route' => 'admin.activities.types.index'], ['label' => $activityType->name]],
             'type' => $activityType,
-            'statuses' => self::STATUSES,
+            'statuses' => status_options(self::STATUSES),
         ]);
     }
 

@@ -37,4 +37,5 @@ return [
     'correction_requested' => 'সংশোধন প্রয়োজন',
     'unpublished' => 'অপ্রকাশিত',
     'paid' => 'পরিশোধিত',
+    'waived' => 'মওকুফ',
 ];

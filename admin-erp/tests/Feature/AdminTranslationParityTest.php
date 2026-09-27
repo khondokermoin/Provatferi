@@ -39,6 +39,7 @@ class AdminTranslationParityTest extends TestCase
         return [
             'admin' => ['admin'],
             'statuses' => ['statuses'],
+            'options' => ['options'],
         ];
     }
 
@@ -98,6 +99,7 @@ class AdminTranslationParityTest extends TestCase
         foreach (AdminLocale::codes() as $locale) {
             $this->assertFileExists(lang_path("{$locale}/admin.php"), "AdminLocale advertises '{$locale}' but lang/{$locale}/admin.php does not exist.");
             $this->assertFileExists(lang_path("{$locale}/statuses.php"), "AdminLocale advertises '{$locale}' but lang/{$locale}/statuses.php does not exist.");
+            $this->assertFileExists(lang_path("{$locale}/options.php"), "AdminLocale advertises '{$locale}' but lang/{$locale}/options.php does not exist.");
         }
     }
 }
