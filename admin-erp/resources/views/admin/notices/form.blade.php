@@ -13,59 +13,59 @@
 
         <div class="row">
             <div class="col-lg-8">
-                <x-admin.card title="নোটিশের বিষয়বস্তু">
+                <x-admin.card title="{{ __('admin.fields.notice_content') }}">
                     <x-admin.form-input name="title" label="{{ __('admin.fields.subject') }}" :value="$notice->title" required maxlength="255" />
                     <x-admin.form-input name="title_en" label="{{ __('admin.fields.subject') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$notice->title_en" maxlength="255" />
 
                     <div class="row">
                         <div class="col-md-6">
-                            <x-admin.form-select name="notice_type" label="নোটিশের ধরন" :options="$types"
+                            <x-admin.form-select name="notice_type" label="{{ __('admin.fields.notice_type') }}" :options="$types"
                                 :value="$notice->notice_type" :placeholder="null" required />
                         </div>
                         <div class="col-md-6">
                             @if ($slugLocked)
-                                <x-admin.form-input name="slug" label="URL স্লাগ" :value="$notice->slug" readonly
-                                    help="প্রকাশিত নোটিশের URL স্থায়ী — আগে শেয়ার করা লিংক যাতে না ভাঙে।" />
+                                <x-admin.form-input name="slug" label="{{ __('admin.fields.url_slug') }}" :value="$notice->slug" readonly
+                                    help="{{ __('admin.fields.slug_locked_help') }}" />
                             @else
-                                <x-admin.form-input name="slug" label="URL স্লাগ (ঐচ্ছিক)" :value="$notice->slug" maxlength="120"
-                                    placeholder="যেমন: volunteer-team-call"
-                                    help="ইংরেজি ছোট হাতের অক্ষর, সংখ্যা ও হাইফেন। খালি রাখলে বিষয় থেকে তৈরি হবে।" />
+                                <x-admin.form-input name="slug" label="{{ __('admin.fields.url_slug') }} ({{ __('admin.common.optional') }})" :value="$notice->slug" maxlength="120"
+                                    placeholder="{{ __('admin.fields.slug_example_placeholder') }}"
+                                    help="{{ __('admin.fields.slug_format_help') }}" />
                             @endif
                         </div>
                     </div>
 
                     <x-admin.form-textarea name="summary" label="{{ __('admin.common.summary') }}" :value="$notice->summary" :rows="3" maxlength="500"
-                        help="নোটিশ বোর্ডের তালিকায় ও লিংক শেয়ারের প্রিভিউতে দেখায়। সর্বোচ্চ ৫০০ অক্ষর।" />
+                        help="{{ __('admin.fields.summary_shown_in_list_help') }}" />
                     <x-admin.form-textarea name="summary_en" label="{{ __('admin.fields.summary') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$notice->summary_en" :rows="3" maxlength="500" />
                     <x-admin.form-textarea name="body" label="{{ __('admin.fields.full_body') }}" :value="$notice->body" :rows="18" required
-                        help="সাধারণ লেখা হিসেবে সংরক্ষিত হয়। খালি লাইন দিয়ে অনুচ্ছেদ আলাদা করুন; “• ” দিয়ে শুরু হওয়া লাইন সাইটে তালিকা হিসেবে দেখাবে। লিংক নিজে থেকেই ক্লিকযোগ্য হবে।" />
+                        help="{{ __('admin.fields.body_formatting_help') }}" />
                     <x-admin.form-textarea name="body_en" label="{{ __('admin.fields.full_body') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$notice->body_en" :rows="18" />
                 </x-admin.card>
 
-                <x-admin.card title="ছবি ও সংযুক্তি">
+                <x-admin.card title="{{ __('admin.fields.images_and_attachments') }}">
                     <div class="row">
                         <div class="col-md-6">
-                            <x-admin.form-input name="cover_image" label="ছবি (ঐচ্ছিক)" type="file" accept="image/jpeg,image/png,image/webp"
-                                help="JPG, PNG বা WEBP, সর্বোচ্চ ৫ MB।" />
+                            <x-admin.form-input name="cover_image" label="{{ __('admin.fields.image_label') }} ({{ __('admin.common.optional') }})" type="file" accept="image/jpeg,image/png,image/webp"
+                                help="{{ __('admin.fields.image_format_size_help') }}" />
                             @if ($notice->cover_image_path)
                                 <div class="form-check mb-3">
                                     <input type="checkbox" class="form-check-input" id="remove_cover_image" name="remove_cover_image" value="1">
                                     <label class="form-check-label" for="remove_cover_image">
-                                        বর্তমান ছবি সরিয়ে দিন
+                                        {{ __('admin.fields.remove_current_image') }}
                                         (<a href="{{ route('admin.notices.file', [$notice, 'cover']) }}" target="_blank" rel="noopener noreferrer">{{ __('admin.actions.view') }}</a>)
                                     </label>
                                 </div>
                             @endif
                         </div>
                         <div class="col-md-6">
-                            <x-admin.form-input name="attachment" label="সংযুক্তি / PDF (ঐচ্ছিক)" type="file" accept="application/pdf"
-                                help="শুধু PDF, সর্বোচ্চ ১০ MB। নোটিশ প্রকাশিত থাকলেই কেবল সাইট থেকে ডাউনলোড করা যাবে।" />
+                            <x-admin.form-input name="attachment" label="{{ __('admin.fields.attachment_pdf_label') }} ({{ __('admin.common.optional') }})" type="file" accept="application/pdf"
+                                help="{{ __('admin.fields.attachment_help') }}" />
                             @if ($notice->attachment_path)
                                 <div class="form-check mb-3">
                                     <input type="checkbox" class="form-check-input" id="remove_attachment" name="remove_attachment" value="1">
                                     <label class="form-check-label" for="remove_attachment">
-                                        বর্তমান সংযুক্তি সরিয়ে দিন
-                                        (<a href="{{ route('admin.notices.file', [$notice, 'attachment']) }}">ডাউনলোড</a>)
+                                        {{ __('admin.fields.remove_current_attachment') }}
+                                        (<a href="{{ route('admin.notices.file', [$notice, 'attachment']) }}">{{ __('admin.fields.download_short') }}</a>)
                                     </label>
                                 </div>
                             @endif
@@ -81,13 +81,13 @@
                                 <img src="{{ route('admin.notices.file', [$notice, 'share']) }}" alt=""
                                      class="rounded border mb-2" style="max-width: 240px; max-height: 126px; object-fit: cover;">
                             @endif
-                            <x-admin.form-input name="share_image" label="সামাজিক শেয়ার ছবি (ঐচ্ছিক)" type="file" accept="image/jpeg,image/png,image/webp"
-                                help="সেরা ফলাফলের জন্য 1200 × 630 পিক্সেল (1.91:1) ছবি ব্যবহার করুন। JPG, PNG বা WEBP, সর্বোচ্চ ৫ MB। ফেসবুক, WhatsApp ও Twitter-এ লিংক শেয়ার করলে এই ছবিটি দেখানো হবে।" />
+                            <x-admin.form-input name="share_image" label="{{ __('admin.fields.social_share_image') }} ({{ __('admin.common.optional') }})" type="file" accept="image/jpeg,image/png,image/webp"
+                                help="{{ __('admin.fields.share_image_help') }}" />
                             @if ($notice->share_image_path)
                                 <div class="form-check mb-3">
                                     <input type="checkbox" class="form-check-input" id="remove_share_image" name="remove_share_image" value="1">
                                     <label class="form-check-label" for="remove_share_image">
-                                        বর্তমান শেয়ার ছবি সরিয়ে দিন
+                                        {{ __('admin.fields.remove_current_share_image') }}
                                         (<a href="{{ route('admin.notices.file', [$notice, 'share']) }}" target="_blank" rel="noopener noreferrer">{{ __('admin.actions.view') }}</a>)
                                     </label>
                                 </div>
@@ -96,15 +96,15 @@
                     </div>
                 </x-admin.card>
 
-                <x-admin.card title="অ্যাকশন বাটন (ঐচ্ছিক)">
+                <x-admin.card title="{{ __('admin.fields.action_button') }} ({{ __('admin.common.optional') }})">
                     <div class="row">
                         <div class="col-md-8">
-                            <x-admin.form-input name="action_url" label="অ্যাকশন লিংক" type="url" :value="$notice->action_url" maxlength="500"
-                                placeholder="https://" help="যেমন আবেদন ফর্ম বা যোগদানের লিংক। সাইটে বাটন হিসেবে নতুন ট্যাবে খুলবে।" />
+                            <x-admin.form-input name="action_url" label="{{ __('admin.fields.action_link_label') }}" type="url" :value="$notice->action_url" maxlength="500"
+                                placeholder="https://" help="{{ __('admin.fields.action_link_help') }}" />
                         </div>
                         <div class="col-md-4">
-                            <x-admin.form-input name="action_label" label="বাটনের লেখা" :value="$notice->action_label" maxlength="100"
-                                placeholder="যেমন: আবেদন করুন" />
+                            <x-admin.form-input name="action_label" label="{{ __('admin.fields.button_text') }}" :value="$notice->action_label" maxlength="100"
+                                placeholder="{{ __('admin.fields.button_text_example_placeholder') }}" />
                             <x-admin.form-input name="action_label_en" label="{{ __('admin.fields.button_text') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$notice->action_label_en" maxlength="100" />
                         </div>
                     </div>
@@ -115,38 +115,37 @@
                 <x-admin.card title="{{ __('admin.common.publication') }}">
                     <x-admin.form-select name="status" label="{{ __('admin.common.status') }}" :options="$statuses"
                         :value="$isEdit ? $notice->effectiveStatus() : $notice->status" :placeholder="null" required
-                        help="“প্রকাশিত” ও “নির্ধারিত” করতে প্রকাশের অনুমতি এবং “সংরক্ষিত” (আর্কাইভ) করতে আর্কাইভের অনুমতি প্রয়োজন।" />
-                    <x-admin.form-input name="published_at" label="প্রকাশের তারিখ ও সময়" type="datetime-local"
+                        help="{{ __('admin.fields.publish_permission_help') }}" />
+                    <x-admin.form-input name="published_at" label="{{ __('admin.fields.published_at_datetime_label') }}" type="datetime-local"
                         :value="\App\Models\Notice::toLocalInput($notice->published_at)"
-                        help="বাংলাদেশ সময়। “প্রকাশিত” হলে খালি রাখলে এখনকার সময় ধরা হবে; “নির্ধারিত” হলে ভবিষ্যতের সময় দিন।" />
-                    <x-admin.form-input name="expires_at" label="মেয়াদ শেষের তারিখ (ঐচ্ছিক)" type="datetime-local"
+                        help="{{ __('admin.fields.published_at_help') }}" />
+                    <x-admin.form-input name="expires_at" label="{{ __('admin.fields.expiry_date_label') }} ({{ __('admin.common.optional') }})" type="datetime-local"
                         :value="\App\Models\Notice::toLocalInput($notice->expires_at)"
-                        help="মেয়াদ শেষ হলেও নোটিশ মুছে যাবে না — সাইটে থেকে যাবে, “মেয়াদোত্তীর্ণ” চিহ্নিত হবে এবং পিন সরে যাবে।" />
+                        help="{{ __('admin.fields.expiry_help') }}" />
                     <div class="form-check mb-0">
                         <input type="checkbox" class="form-check-input" id="is_pinned" name="is_pinned" value="1"
                                @checked(old('is_pinned', $notice->is_pinned))>
-                        <label class="form-check-label" for="is_pinned">গুরুত্বপূর্ণ হিসেবে তালিকার শীর্ষে রাখুন</label>
+                        <label class="form-check-label" for="is_pinned">{{ __('admin.fields.pin_to_top_label') }}</label>
                     </div>
                 </x-admin.card>
 
-                <x-admin.card title="সাংগঠনিক তথ্য">
+                <x-admin.card title="{{ __('admin.fields.organizational_info') }}">
                     <x-admin.form-select name="organization_unit_id" label="{{ __('admin.fields.unit') }}" :options="$units"
                         :value="$notice->organization_unit_id" placeholder="{{ __('admin.filters.none_specific') }}" />
                 </x-admin.card>
 
                 @if ($isEdit && $notice->jobPosting)
-                    <x-admin.card title="যুক্ত নিয়োগ বিজ্ঞপ্তি">
+                    <x-admin.card title="{{ __('admin.fields.linked_job_posting') }}">
                         <p class="fs-13 mb-2">
                             <a href="{{ route('admin.recruitment.show', $notice->jobPosting) }}" class="fw-semibold">{{ $notice->jobPosting->title }}</a>
                         </p>
                         <div class="form-check">
                             <input type="checkbox" class="form-check-input" id="syncs_from_job_posting" name="syncs_from_job_posting" value="1"
                                    aria-describedby="syncs-help" @checked(old('syncs_from_job_posting', $notice->syncs_from_job_posting))>
-                            <label class="form-check-label" for="syncs_from_job_posting">নিয়োগ বিজ্ঞপ্তি হালনাগাদ হলে শিরোনাম ও বিবরণও হালনাগাদ হবে</label>
+                            <label class="form-check-label" for="syncs_from_job_posting">{{ __('admin.fields.sync_checkbox_label') }}</label>
                         </div>
                         <div class="form-text" id="syncs-help">
-                            এখানে বিষয়, সংক্ষিপ্ত বা পূর্ণ বিবরণ হাতে বদলালে স্বয়ংক্রিয় হালনাগাদ নিজে থেকেই বন্ধ হবে, যাতে আপনার লেখা পরে মুছে না যায়।
-                            আবার চালু করলে নিয়োগ বিজ্ঞপ্তির লেখা দিয়ে প্রতিস্থাপিত হবে। আবেদনের শর্তাবলী (ধরন, সময়সীমা, পারিশ্রমিক) সবসময় নিয়োগ বিজ্ঞপ্তি থেকেই দেখানো হয়।
+                            {{ __('admin.fields.sync_detailed_help') }}
                         </div>
                     </x-admin.card>
                 @endif
