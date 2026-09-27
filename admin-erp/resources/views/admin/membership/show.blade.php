@@ -9,13 +9,13 @@
 @section('content')
     <div class="row">
         <div class="col-lg-7">
-            <x-admin.card title="আবেদনকারীর তথ্য">
+            <x-admin.card title="{{ __('admin.fields.applicant_info') }}">
                 <dl class="row mb-0">
                     <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.applicant') }}</dt>
                     <dd class="col-sm-8">
                         {{ $application->applicantDisplayName() ?: '—' }}
                         @if ($application->isPublicApplicant())
-                            <span class="badge bg-info-subtle text-info-emphasis fs-11 ms-1">পাবলিক আবেদন</span>
+                            <span class="badge bg-info-subtle text-info-emphasis fs-11 ms-1">{{ __('admin.fields.public_application_badge') }}</span>
                         @endif
                     </dd>
 
@@ -30,72 +30,72 @@
                     <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.nav.membership_types') }}</dt>
                     <dd class="col-sm-8">{{ $application->membershipType->name ?? '—' }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">নিবন্ধন সিজন</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.registration_season') }}</dt>
                     <dd class="col-sm-8">{{ $application->season?->name ?? '—' }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.unit') }}</dt>
                     <dd class="col-sm-8">{{ $application->organizationUnit?->name ?? '—' }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">জমা দেওয়ার তারিখ</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.submission_date') }}</dt>
                     <dd class="col-sm-8 mb-0">{{ bn_datetime($application->created_at) }}</dd>
                 </dl>
             </x-admin.card>
 
-            <x-admin.card title="পরিশোধ (নগদ)">
+            <x-admin.card title="{{ __('admin.fields.payment_cash') }}">
                 @forelse ($application->payments as $payment)
                     <div class="d-flex justify-content-between align-items-start border-bottom pb-2 mb-2">
                         <div>
                             <span class="fw-semibold">{{ number_format((float) $payment->amount_received, 2) }}</span>
-                            <span class="text-muted fs-12">/ প্রত্যাশিত {{ number_format((float) $payment->amount_expected, 2) }}</span>
-                            <span class="d-block text-muted fs-12">{{ $payment->received_at?->format('d M Y') }} — {{ $payment->reference ?: 'রেফারেন্স নেই' }}</span>
+                            <span class="text-muted fs-12">{{ __('admin.fields.expected_slash') }} {{ number_format((float) $payment->amount_expected, 2) }}</span>
+                            <span class="d-block text-muted fs-12">{{ $payment->received_at?->format('d M Y') }} — {{ $payment->reference ?: __('admin.fields.no_reference') }}</span>
                             @if ($payment->status === 'waived')
-                                <span class="d-block text-muted fs-12">মওকুফের কারণ: {{ $payment->waiver_reason }}</span>
+                                <span class="d-block text-muted fs-12">{{ __('admin.fields.waiver_reason_label') }}: {{ $payment->waiver_reason }}</span>
                             @endif
                         </div>
                         <div class="text-end">
                             <x-admin.status-badge :status="$payment->status" />
                             @if ($payment->verified_at)
-                                <span class="d-block text-success fs-11 mt-1"><i class="ti ti-check" aria-hidden="true"></i> যাচাইকৃত</span>
+                                <span class="d-block text-success fs-11 mt-1"><i class="ti ti-check" aria-hidden="true"></i> {{ __('admin.fields.verified_badge') }}</span>
                             @elseif ($payment->status === 'paid')
                                 @can('payments.approve')
                                     <form method="POST" action="{{ route('admin.membership.payments.verify', $payment) }}" class="d-inline">
                                         @csrf @method('PATCH')
-                                        <button type="submit" class="btn btn-sm btn-outline-success mt-1">যাচাই করুন</button>
+                                        <button type="submit" class="btn btn-sm btn-outline-success mt-1">{{ __('admin.fields.verify_action') }}</button>
                                     </form>
                                 @endcan
                             @endif
                         </div>
                     </div>
                 @empty
-                    <p class="text-muted fs-13 mb-0">এখনো কোনো পরিশোধ রেকর্ড হয়নি।</p>
+                    <p class="text-muted fs-13 mb-0">{{ __('admin.fields.no_payments_recorded_yet') }}</p>
                 @endforelse
 
                 @can('payments.create')
                     <details class="mt-3">
-                        <summary class="fs-13 text-primary" style="cursor:pointer">+ নগদ পরিশোধ রেকর্ড করুন</summary>
+                        <summary class="fs-13 text-primary" style="cursor:pointer">+ {{ __('admin.fields.record_cash_payment') }}</summary>
                         <form method="POST" action="{{ route('admin.membership.payments.store', $application) }}" class="mt-2">
                             @csrf
                             <div class="row">
                                 <div class="col-6">
-                                    <x-admin.form-input name="amount_expected" label="প্রত্যাশিত পরিমাণ" type="number" step="0.01" min="0"
+                                    <x-admin.form-input name="amount_expected" label="{{ __('admin.fields.expected_amount') }}" type="number" step="0.01" min="0"
                                         :value="$application->membershipType->fee ?? 0" required />
                                 </div>
                                 <div class="col-6">
-                                    <x-admin.form-input name="amount_received" label="প্রাপ্ত পরিমাণ" type="number" step="0.01" min="0" required />
+                                    <x-admin.form-input name="amount_received" label="{{ __('admin.fields.received_amount') }}" type="number" step="0.01" min="0" required />
                                 </div>
                             </div>
-                            <x-admin.form-input name="received_at" label="প্রাপ্তির তারিখ" type="date" :value="now()->toDateString()" required />
-                            <x-admin.form-input name="reference" label="রেফারেন্স (ঐচ্ছিক)" />
-                            <button type="submit" class="btn btn-sm btn-primary">রেকর্ড করুন</button>
+                            <x-admin.form-input name="received_at" label="{{ __('admin.fields.date_received') }}" type="date" :value="now()->toDateString()" required />
+                            <x-admin.form-input name="reference" label="{{ __('admin.fields.reference') }} ({{ __('admin.common.optional') }})" />
+                            <button type="submit" class="btn btn-sm btn-primary">{{ __('admin.fields.record_action') }}</button>
                         </form>
                     </details>
                     @if ($application->payments->isEmpty())
                         <details class="mt-2">
-                            <summary class="fs-13 text-muted" style="cursor:pointer">+ পরিশোধ মওকুফ করুন</summary>
+                            <summary class="fs-13 text-muted" style="cursor:pointer">+ {{ __('admin.fields.waive_payment') }}</summary>
                             <form method="POST" action="{{ route('admin.membership.payments.waive', $application) }}" class="mt-2">
                                 @csrf
-                                <x-admin.form-textarea name="waiver_reason" label="মওকুফের কারণ" :rows="2" required />
-                                <button type="submit" class="btn btn-sm btn-outline-secondary">মওকুফ করুন</button>
+                                <x-admin.form-textarea name="waiver_reason" label="{{ __('admin.fields.waiver_reason_label') }}" :rows="2" required />
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">{{ __('admin.fields.waive_action') }}</button>
                             </form>
                         </details>
                     @endif
@@ -103,7 +103,7 @@
             </x-admin.card>
 
             @if (! empty($application->application_data))
-                <x-admin.card title="আবেদনের তথ্য">
+                <x-admin.card title="{{ __('admin.fields.application_info') }}">
                     <dl class="row mb-0">
                         @foreach ($application->application_data as $key => $value)
                             <dt class="col-sm-4 fs-13 text-muted">{{ $key }}</dt>
@@ -114,7 +114,7 @@
             @endif
 
             @if ($application->history->isNotEmpty())
-                <x-admin.card title="{{ __('admin.fields.history') }}" subtitle="শুধুমাত্র প্রশাসনিক ব্যবহারের জন্য।">
+                <x-admin.card title="{{ __('admin.fields.history') }}" subtitle="{{ __('admin.fields.admin_use_only_subtitle') }}">
                     <ul class="list-unstyled mb-0 fs-13">
                         @foreach ($application->history->sortByDesc('created_at') as $entry)
                             <li class="border-bottom pb-2 mb-2">
@@ -142,14 +142,14 @@
                 <x-admin.status-badge :status="$application->status" class="mb-3" />
                 @if ($application->reviewer)
                     <p class="fs-13 text-muted mb-0">
-                        সর্বশেষ পর্যালোচনা: {{ $application->reviewer->name }} — {{ $application->reviewed_at ? bn_datetime($application->reviewed_at) : '—' }}
+                        {{ __('admin.fields.last_review_label') }}: {{ $application->reviewer->name }} — {{ $application->reviewed_at ? bn_datetime($application->reviewed_at) : '—' }}
                     </p>
                 @endif
             </x-admin.card>
 
             {{-- Internal only — review_notes is never exposed via the public API. --}}
             @if ($application->review_notes)
-                <x-admin.card title="{{ __('admin.fields.internal_note') }}" subtitle="শুধুমাত্র প্রশাসনিক ব্যবহারের জন্য — পাবলিকভাবে প্রকাশিত হয় না।">
+                <x-admin.card title="{{ __('admin.fields.internal_note') }}" subtitle="{{ __('admin.fields.internal_not_published_subtitle') }}">
                     <p class="mb-0">{{ $application->review_notes }}</p>
                 </x-admin.card>
             @endif
@@ -159,7 +159,7 @@
                     @if (! $paymentSatisfied && in_array('approved', $allowedTransitions, true))
                         <div class="alert alert-warning fs-13" role="alert">
                             <i class="ti ti-alert-triangle me-1" aria-hidden="true"></i>
-                            পরিশোধ যাচাই না হওয়া পর্যন্ত অনুমোদন করা যাবে না — বাঁয়ে পরিশোধ রেকর্ড করুন অথবা মওকুফ করুন।
+                            {{ __('admin.fields.approval_blocked_payment_unverified') }}
                         </div>
                     @endif
                     <x-admin.card title="{{ __('admin.actions2.change_status') }}">
@@ -172,20 +172,20 @@
                                     ->mapWithKeys(fn ($s) => [$s => $statuses[$s]])->all()"
                                 :placeholder="null" required />
 
-                            <x-admin.form-textarea name="review_notes" label="অভ্যন্তরীণ নোট (ঐচ্ছিক)" :rows="3"
-                                help="আবেদনকারীকে দেখানো হবে না।" />
+                            <x-admin.form-textarea name="review_notes" label="{{ __('admin.fields.internal_note') }} ({{ __('admin.common.optional') }})" :rows="3"
+                                help="{{ __('admin.fields.not_shown_to_applicant_help') }}" />
 
                             <x-admin.form-textarea name="rejection_reason" label="{{ __('admin.actions2.reject_reason') }}"
-                                help="শুধু প্রত্যাখ্যান করলে আবশ্যক।" :rows="2" />
+                                help="{{ __('admin.fields.required_only_if_rejecting_help') }}" :rows="2" />
 
                             <button type="submit" class="btn btn-primary w-100">
-                                <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>স্ট্যাটাস হালনাগাদ করুন
+                                <i class="ti ti-device-floppy me-1" aria-hidden="true"></i>{{ __('admin.fields.update_status_action') }}
                             </button>
                         </form>
                     </x-admin.card>
                 @else
                     <div class="alert alert-secondary fs-13" role="alert">
-                        এই আবেদনটি একটি চূড়ান্ত অবস্থায় আছে — আর কোনো পরিবর্তন সম্ভব নয়।
+                        {{ __('admin.fields.submission_terminal_state') }}
                     </div>
                 @endif
             @endcan
