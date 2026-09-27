@@ -9,7 +9,7 @@
 @section('content')
     <div class="row">
         <div class="col-lg-7">
-            <x-admin.card title="আবেদনকারীর তথ্য">
+            <x-admin.card title="{{ __('admin.fields.applicant_info') }}">
                 <div class="d-flex align-items-start gap-3 mb-3">
                     @if ($photoUrl)
                         <img src="{{ $photoUrl }}" alt="{{ $submission->full_name }}" class="rounded" style="width:80px;height:80px;object-fit:cover;">
@@ -25,14 +25,14 @@
                         @endif
                         @if ($submission->member)
                             <span class="badge bg-info-subtle text-info-emphasis fs-11 mt-1">
-                                <i class="ti ti-link" aria-hidden="true"></i> বিদ্যমান সদস্য যুক্ত
+                                <i class="ti ti-link" aria-hidden="true"></i> {{ __('admin.fields.linked_to_existing_member') }}
                             </span>
                         @endif
                     </div>
                 </div>
 
                 <dl class="row mb-0">
-                    <dt class="col-sm-4 fs-13 text-muted">পদ (আবেদনকারীর পছন্দ)</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.position_applicant_choice') }}</dt>
                     <dd class="col-sm-8">{{ $submission->position?->name ?? '—' }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.email') }}</dt>
@@ -42,15 +42,15 @@
                     <dd class="col-sm-8">{{ $submission->phone ?: '—' }}</dd>
 
                     @if ($submission->facebook_url)
-                        <dt class="col-sm-4 fs-13 text-muted">ফেসবুক</dt>
+                        <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.facebook') }}</dt>
                         <dd class="col-sm-8"><a href="{{ $submission->facebook_url }}" target="_blank" rel="noopener">{{ $submission->facebook_url }}</a></dd>
                     @endif
                     @if ($submission->linkedin_url)
-                        <dt class="col-sm-4 fs-13 text-muted">লিংকডইন</dt>
+                        <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.linkedin') }}</dt>
                         <dd class="col-sm-8"><a href="{{ $submission->linkedin_url }}" target="_blank" rel="noopener">{{ $submission->linkedin_url }}</a></dd>
                     @endif
                     @if ($submission->website_url)
-                        <dt class="col-sm-4 fs-13 text-muted">ওয়েবসাইট</dt>
+                        <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.website') }}</dt>
                         <dd class="col-sm-8"><a href="{{ $submission->website_url }}" target="_blank" rel="noopener">{{ $submission->website_url }}</a></dd>
                     @endif
 
@@ -60,30 +60,30 @@
             </x-admin.card>
 
             @if ($submission->bio)
-                <x-admin.card title="সংক্ষিপ্ত পরিচিতি">
+                <x-admin.card title="{{ __('admin.fields.short_bio') }}">
                     <p class="mb-0">{{ $submission->bio }}</p>
                 </x-admin.card>
             @endif
 
             @if ($submission->provatferi_comment)
-                <x-admin.card title="প্রভাতফেরী সম্পর্কে মন্তব্য">
+                <x-admin.card title="{{ __('admin.fields.comment_about_provatferi') }}">
                     <p class="mb-0">{{ $submission->provatferi_comment }}</p>
                 </x-admin.card>
             @endif
 
-            <x-admin.card title="সম্মতি">
+            <x-admin.card title="{{ __('admin.fields.consent') }}">
                 <p class="mb-1 fs-13">
                     <i class="ti {{ $submission->publishing_consent ? 'ti-circle-check text-success' : 'ti-circle-x text-danger' }} me-1" aria-hidden="true"></i>
-                    পাবলিক প্রকাশনায় সম্মতি
+                    {{ __('admin.fields.public_publishing_consent') }}
                 </p>
                 <p class="mb-0 fs-13">
                     <i class="ti {{ $submission->accuracy_declaration ? 'ti-circle-check text-success' : 'ti-circle-x text-danger' }} me-1" aria-hidden="true"></i>
-                    তথ্যের সঠিকতা ঘোষণা
+                    {{ __('admin.fields.accuracy_declaration_label') }}
                 </p>
             </x-admin.card>
 
             @if ($submission->history->isNotEmpty())
-                <x-admin.card title="{{ __('admin.fields.history') }}" subtitle="শুধুমাত্র প্রশাসনিক ব্যবহারের জন্য।">
+                <x-admin.card title="{{ __('admin.fields.history') }}" subtitle="{{ __('admin.fields.admin_use_only_subtitle') }}">
                     <ul class="list-unstyled mb-0 fs-13">
                         @foreach ($submission->history->sortByDesc('created_at') as $entry)
                             <li class="border-bottom pb-2 mb-2">
@@ -105,21 +105,21 @@
                 <x-admin.status-badge :status="$submission->status" class="mb-2" />
                 @if ($submission->reviewer)
                     <p class="fs-13 text-muted mb-0">
-                        সর্বশেষ পর্যালোচনা: {{ $submission->reviewer->name }} — {{ $submission->reviewed_at ? bn_datetime($submission->reviewed_at) : '—' }}
+                        {{ __('admin.fields.last_review_label') }}: {{ $submission->reviewer->name }} — {{ $submission->reviewed_at ? bn_datetime($submission->reviewed_at) : '—' }}
                     </p>
                 @endif
             </x-admin.card>
 
             @if ($submission->admin_note)
-                <x-admin.card title="প্রশাসনিক নোট">
+                <x-admin.card title="{{ __('admin.fields.admin_note_title') }}">
                     <p class="mb-0">{{ $submission->admin_note }}</p>
                 </x-admin.card>
             @endif
 
             @if (session('generated_correction_link'))
-                <x-admin.card title="সংশোধন লিংক">
+                <x-admin.card title="{{ __('admin.fields.correction_link_title') }}">
                     <div class="alert alert-info fs-13 mb-0" role="alert">
-                        <strong>একবারই দেখানো হবে — এখনই কপি করুন:</strong>
+                        <strong>{{ __('admin.fields.shown_once_copy_now') }}</strong>
                         <code class="d-block mt-1 text-break">{{ session('generated_correction_link') }}</code>
                     </div>
                 </x-admin.card>
@@ -138,12 +138,12 @@
                 @endif
 
                 @if (in_array('correction_requested', $nextStatuses, true))
-                    <x-admin.card title="সংশোধন প্রয়োজন">
+                    <x-admin.card title="{{ __('admin.fields.correction_needed_title') }}">
                         <form method="POST" action="{{ route('admin.committees.submissions.request-correction', [$committee, $submission]) }}">
                             @csrf @method('PATCH')
-                            <x-admin.form-textarea name="admin_note" label="সংশোধনের কারণ" :rows="3" required />
+                            <x-admin.form-textarea name="admin_note" label="{{ __('admin.fields.correction_reason') }}" :rows="3" required />
                             <button type="submit" class="btn btn-outline-warning w-100">
-                                <i class="ti ti-edit me-1" aria-hidden="true"></i>সংশোধনের জন্য পাঠান
+                                <i class="ti ti-edit me-1" aria-hidden="true"></i>{{ __('admin.fields.send_for_correction') }}
                             </button>
                         </form>
                     </x-admin.card>
@@ -163,7 +163,7 @@
 
                 @if (empty($nextStatuses))
                     <div class="alert alert-secondary fs-13" role="alert">
-                        এই আবেদনটি একটি চূড়ান্ত অবস্থায় আছে — আর কোনো পরিবর্তন সম্ভব নয়।
+                        {{ __('admin.fields.submission_terminal_state') }}
                     </div>
                 @endif
             @endcan
