@@ -3,10 +3,10 @@
 @section('page-actions')
     <div class="d-flex flex-wrap gap-2">
         <a href="{{ route('admin.recruitment.applications.pdf', $application) }}" class="btn btn-light border" target="_blank" rel="noopener noreferrer">
-            <i class="ti ti-file-type-pdf me-1" aria-hidden="true"></i>PDF ডাউনলোড করুন
+            <i class="ti ti-file-type-pdf me-1" aria-hidden="true"></i>{{ __('admin.fields.download_pdf_action') }}
         </a>
         <a href="{{ route('admin.recruitment.applications.print', $application) }}" class="btn btn-light border" target="_blank" rel="noopener noreferrer">
-            <i class="ti ti-printer me-1" aria-hidden="true"></i>প্রিন্ট করুন
+            <i class="ti ti-printer me-1" aria-hidden="true"></i>{{ __('admin.fields.print_action') }}
         </a>
         <a href="{{ route('admin.recruitment.applications.index') }}" class="btn btn-light">
             <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>{{ __('admin.actions.back') }}
@@ -27,18 +27,18 @@
     <div class="row">
         <div class="col-lg-7">
             {{-- আবেদনকারী সারসংক্ষেপ --}}
-            <x-admin.card title="আবেদনকারী সারসংক্ষেপ" :subtitle="$application->application_no">
+            <x-admin.card title="{{ __('admin.fields.applicant_summary') }}" :subtitle="$application->application_no">
                 <div class="d-flex gap-3 align-items-start">
                     @if ($photoExists)
                         <a href="{{ route('admin.recruitment.applications.file', [$application, 'photo']) }}" target="_blank" rel="noopener noreferrer"
-                           class="flex-shrink-0" title="পূর্ণ আকারে দেখুন">
+                           class="flex-shrink-0" title="{{ __('admin.fields.view_full_size') }}">
                             <img src="{{ route('admin.recruitment.applications.file', [$application, 'photo']) }}"
                                 alt="{{ $application->applicant_name }}" width="88" height="88"
                                 class="rounded object-fit-cover border" style="object-fit: cover;">
                         </a>
                     @else
                         <div class="rounded border d-flex align-items-center justify-content-center flex-shrink-0 bg-light text-muted"
-                             style="width: 88px; height: 88px;" title="ছবি পাওয়া যায়নি">
+                             style="width: 88px; height: 88px;" title="{{ __('admin.fields.photo_not_found') }}">
                             <i class="ti ti-user fs-24" aria-hidden="true"></i>
                         </div>
                     @endif
@@ -62,7 +62,7 @@
             </x-admin.card>
 
             {{-- যোগাযোগের তথ্য --}}
-            <x-admin.card title="যোগাযোগের তথ্য">
+            <x-admin.card title="{{ __('admin.fields.contact_info') }}">
                 <dl class="row mb-0">
                     <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.mobile') }}</dt>
                     <dd class="col-sm-8"><a href="tel:{{ $application->applicant_phone }}">{{ $application->applicant_phone ?: '—' }}</a></dd>
@@ -70,24 +70,24 @@
                     <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.email') }}</dt>
                     <dd class="col-sm-8"><a href="mailto:{{ $application->applicant_email }}">{{ $application->applicant_email }}</a></dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">পছন্দের যোগাযোগ</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.preferred_contact') }}</dt>
                     <dd class="col-sm-8 mb-0">{{ $contactLabels[$application->preferred_contact] ?? '—' }}</dd>
                 </dl>
             </x-admin.card>
 
             {{-- আবেদনের বিবরণ --}}
-            <x-admin.card title="আবেদনের বিবরণ">
+            <x-admin.card title="{{ __('admin.fields.application_details') }}">
                 <dl class="row mb-0">
                     <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.district') }}</dt>
                     <dd class="col-sm-8">{{ $application->district ?: '—' }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">বর্তমান অবস্থান</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.current_location') }}</dt>
                     <dd class="col-sm-8">{{ $application->current_location ?: '—' }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">পেশা / শিক্ষা</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.profession_education') }}</dt>
                     <dd class="col-sm-8">{{ $application->profession ?: '—' }}</dd>
 
-                    <dt class="col-sm-4 fs-13 text-muted">সময় দিতে পারবেন</dt>
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.availability_label') }}</dt>
                     <dd class="col-sm-8 mb-0">{{ $application->availability ?: '—' }}</dd>
                 </dl>
             </x-admin.card>
@@ -95,7 +95,7 @@
             {{-- দক্ষতা --}}
             @php $skillLabels = $application->skillLabels(); @endphp
             @if ($skillLabels !== [] || $application->other_skills)
-                <x-admin.card title="আগ্রহ ও দক্ষতা">
+                <x-admin.card title="{{ __('admin.fields.interests_and_skills') }}">
                     @if ($skillLabels !== [])
                         <div class="d-flex flex-wrap gap-1 mb-2">
                             @foreach ($skillLabels as $label)
@@ -104,27 +104,27 @@
                         </div>
                     @endif
                     @if ($application->other_skills)
-                        <p class="mb-0 fs-14"><span class="text-muted">অন্যান্য:</span> {{ $application->other_skills }}</p>
+                        <p class="mb-0 fs-14"><span class="text-muted">{{ __('admin.fields.other_colon') }}:</span> {{ $application->other_skills }}</p>
                     @endif
                 </x-admin.card>
             @endif
 
             {{-- অভিজ্ঞতা --}}
             @if ($application->experience)
-                <x-admin.card title="কাজের অভিজ্ঞতা">
+                <x-admin.card title="{{ __('admin.fields.work_experience') }}">
                     <p class="mb-0" style="white-space: pre-line;">{{ $application->experience }}</p>
                 </x-admin.card>
             @endif
 
             {{-- অবদান --}}
             @if ($application->contribution)
-                <x-admin.card title="প্রভাতফেরীতে যেভাবে অবদান রাখতে চান">
+                <x-admin.card title="{{ __('admin.fields.how_want_to_contribute') }}">
                     <p class="mb-0" style="white-space: pre-line;">{{ $application->contribution }}</p>
                 </x-admin.card>
             @endif
 
             @if ($application->cover_note)
-                <x-admin.card title="কভার নোট">
+                <x-admin.card title="{{ __('admin.fields.cover_note') }}">
                     <p class="mb-0" style="white-space: pre-line;">{{ $application->cover_note }}</p>
                 </x-admin.card>
             @endif
@@ -134,7 +134,7 @@
             <x-admin.card title="{{ __('admin.common.status') }}">
                 <x-admin.status-badge :status="$application->status" class="mb-2" />
                 @if ($application->reviewer)
-                    <p class="text-muted fs-12 mb-0">সর্বশেষ হালনাগাদ: {{ $application->reviewer->name }}</p>
+                    <p class="text-muted fs-12 mb-0">{{ __('admin.fields.last_updated') }}: {{ $application->reviewer->name }}</p>
                 @endif
             </x-admin.card>
 
@@ -142,7 +142,7 @@
             <x-admin.card title="{{ __('admin.fields.attachment') }}">
                 <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
                     <li class="d-flex align-items-center justify-content-between">
-                        <span class="fs-13"><i class="ti ti-photo me-1 text-muted" aria-hidden="true"></i>প্রোফাইল ছবি</span>
+                        <span class="fs-13"><i class="ti ti-photo me-1 text-muted" aria-hidden="true"></i>{{ __('admin.fields.profile_photo') }}</span>
                         @if ($photoExists)
                             <a href="{{ route('admin.recruitment.applications.file', [$application, 'photo']) }}" class="btn btn-light border btn-sm" target="_blank" rel="noopener noreferrer">
                                 <i class="ti ti-eye me-1" aria-hidden="true"></i>{{ __('admin.actions.view') }}
@@ -150,25 +150,25 @@
                         @elseif ($application->photo_path)
                             {{-- Recorded but the file itself is gone — a genuinely different,
                                  more useful thing for an admin to know than "never provided". --}}
-                            <span class="fs-12 text-warning-emphasis" title="আপলোড করা হয়েছিল কিন্তু ফাইলটি এখন পাওয়া যাচ্ছে না।">
-                                <i class="ti ti-alert-triangle me-1" aria-hidden="true"></i>ফাইল পাওয়া যায়নি
+                            <span class="fs-12 text-warning-emphasis" title="{{ __('admin.fields.uploaded_but_file_missing') }}">
+                                <i class="ti ti-alert-triangle me-1" aria-hidden="true"></i>{{ __('admin.fields.file_not_found') }}
                             </span>
                         @else
-                            <span class="fs-12 text-muted">ছবি প্রদান করা হয়নি</span>
+                            <span class="fs-12 text-muted">{{ __('admin.fields.photo_not_provided') }}</span>
                         @endif
                     </li>
                     <li class="d-flex align-items-center justify-content-between">
-                        <span class="fs-13"><i class="ti ti-file-cv me-1 text-muted" aria-hidden="true"></i>সিভি</span>
+                        <span class="fs-13"><i class="ti ti-file-cv me-1 text-muted" aria-hidden="true"></i>{{ __('admin.fields.cv_label') }}</span>
                         @if ($cvExists)
                             <a href="{{ route('admin.recruitment.applications.file', [$application, 'cv']) }}" class="btn btn-light border btn-sm">
-                                <i class="ti ti-download me-1" aria-hidden="true"></i>ডাউনলোড (PDF)
+                                <i class="ti ti-download me-1" aria-hidden="true"></i>{{ __('admin.fields.download_pdf_short') }}
                             </a>
                         @elseif ($application->cv_path)
-                            <span class="fs-12 text-warning-emphasis" title="আপলোড করা হয়েছিল কিন্তু ফাইলটি এখন পাওয়া যাচ্ছে না।">
-                                <i class="ti ti-alert-triangle me-1" aria-hidden="true"></i>ফাইল পাওয়া যায়নি
+                            <span class="fs-12 text-warning-emphasis" title="{{ __('admin.fields.uploaded_but_file_missing') }}">
+                                <i class="ti ti-alert-triangle me-1" aria-hidden="true"></i>{{ __('admin.fields.file_not_found') }}
                             </span>
                         @else
-                            <span class="fs-12 text-muted">সিভি প্রদান করা হয়নি</span>
+                            <span class="fs-12 text-muted">{{ __('admin.fields.cv_not_provided') }}</span>
                         @endif
                     </li>
                     @foreach (['linkedin_url' => 'LinkedIn', 'facebook_url' => 'Facebook', 'portfolio_url' => 'Portfolio / Website'] as $field => $label)
@@ -183,9 +183,9 @@
             </x-admin.card>
 
             {{-- সম্মতি --}}
-            <x-admin.card title="সম্মতি">
+            <x-admin.card title="{{ __('admin.fields.consent') }}">
                 <ul class="list-unstyled mb-0 fs-13 d-flex flex-column gap-1">
-                    @foreach (['accuracy_declaration' => 'তথ্যের সঠিকতার ঘোষণা', 'privacy_consent' => 'গোপনীয়তা নীতিতে সম্মতি', 'contact_consent' => 'যোগাযোগের অনুমতি'] as $field => $label)
+                    @foreach (['accuracy_declaration' => __('admin.fields.accuracy_declaration_label'), 'privacy_consent' => __('admin.fields.privacy_policy_consent'), 'contact_consent' => __('admin.fields.contact_permission')] as $field => $label)
                         <li>
                             <i class="ti {{ $application->{$field} ? 'ti-circle-check text-success' : 'ti-circle-x text-muted' }} me-1" aria-hidden="true"></i>{{ $label }}
                         </li>
@@ -194,7 +194,7 @@
             </x-admin.card>
 
             @if ($application->internal_note)
-                <x-admin.card title="{{ __('admin.fields.internal_note') }}" subtitle="পাবলিকভাবে প্রকাশিত হয় না — PDF/প্রিন্টেও অন্তর্ভুক্ত হয় না।">
+                <x-admin.card title="{{ __('admin.fields.internal_note') }}" subtitle="{{ __('admin.fields.not_published_not_in_pdf_help') }}">
                     <p class="mb-0" style="white-space: pre-line;">{{ $application->internal_note }}</p>
                 </x-admin.card>
             @endif
@@ -207,7 +207,7 @@
                         <x-admin.form-select name="status" label="{{ __('admin.actions2.new_status') }}" :options="$statuses"
                             :value="$application->status" :placeholder="null" required />
 
-                        <x-admin.form-textarea name="internal_note" label="অভ্যন্তরীণ নোট (ঐচ্ছিক)" :rows="3"
+                        <x-admin.form-textarea name="internal_note" label="{{ __('admin.fields.internal_note') }} ({{ __('admin.common.optional') }})" :rows="3"
                             :value="$application->internal_note" />
 
                         <button type="submit" class="btn btn-primary w-100">
