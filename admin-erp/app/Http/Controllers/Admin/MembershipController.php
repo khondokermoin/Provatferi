@@ -65,8 +65,8 @@ class MembershipController extends Controller
             ->withQueryString();
 
         return view('admin.membership.index', [
-            'title' => 'সদস্যপদ আবেদন',
-            'breadcrumbs' => [['label' => 'সদস্যপদ'], ['label' => 'আবেদনসমূহ']],
+            'title' => __('admin.nav.membership_applications'),
+            'breadcrumbs' => [['label' => __('admin.nav.membership')], ['label' => __('admin.nav.membership_applications')]],
             'applications' => $applications,
             'filters' => $filters,
             'statuses' => status_options(MembershipApplication::STATUSES),
@@ -80,7 +80,7 @@ class MembershipController extends Controller
 
         return view('admin.membership.show', [
             'title' => $membershipApplication->application_no,
-            'breadcrumbs' => [['label' => 'আবেদনসমূহ', 'route' => 'admin.membership.index'], ['label' => $membershipApplication->application_no]],
+            'breadcrumbs' => [['label' => __('admin.nav.membership_applications'), 'route' => 'admin.membership.index'], ['label' => $membershipApplication->application_no]],
             'application' => $membershipApplication,
             'allowedTransitions' => self::TRANSITIONS[$membershipApplication->status] ?? [],
             'statuses' => status_options(MembershipApplication::STATUSES),
@@ -105,7 +105,7 @@ class MembershipController extends Controller
         // or an explicit waiver) unless the type is genuinely free (fee-less
         // types, e.g. honorary, never had a payment record to satisfy).
         if ($data['status'] === 'approved' && !$this->paymentSatisfied($membershipApplication)) {
-            return back()->with('error', 'পরিশোধ যাচাই না হওয়া পর্যন্ত অনুমোদন করা যাবে না — আগে পেমেন্ট যাচাই করুন অথবা মওকুফ রেকর্ড করুন।');
+            return back()->with('error', __('admin.fields.membership_approval_blocked_payment'));
         }
 
         $membershipApplication->update([
@@ -127,7 +127,7 @@ class MembershipController extends Controller
         }
 
         return redirect()->route('admin.membership.show', $membershipApplication)
-            ->with('success', 'আবেদনের স্ট্যাটাস হালনাগাদ হয়েছে।');
+            ->with('success', __('admin.flash.application_status_updated_generic'));
     }
 
     /** §40: an email-transport failure must never turn an already-persisted status change into a 500. */
@@ -171,7 +171,7 @@ class MembershipController extends Controller
             'status' => 'paid',
         ]);
 
-        return back()->with('success', 'নগদ পরিশোধ রেকর্ড করা হয়েছে — এখন যাচাই করুন।');
+        return back()->with('success', __('admin.flash.cash_payment_recorded'));
     }
 
     /** §9: a second, explicit action — the recorder and the verifier are never forced to be the same click. */
@@ -181,7 +181,7 @@ class MembershipController extends Controller
 
         $payment->update(['verified_at' => now(), 'verified_by' => $request->user()->id]);
 
-        return back()->with('success', 'পরিশোধ যাচাই করা হয়েছে।');
+        return back()->with('success', __('admin.flash.payment_verified'));
     }
 
     /**
@@ -193,7 +193,7 @@ class MembershipController extends Controller
     public function waiveApplicationPayment(Request $request, MembershipApplication $membershipApplication): RedirectResponse
     {
         if ($membershipApplication->payments()->exists()) {
-            return back()->with('error', 'ইতিমধ্যে একটি পরিশোধ রেকর্ড আছে — নতুন করে মওকুফ করা যাবে না।');
+            return back()->with('error', __('admin.fields.payment_already_recorded_cannot_waive'));
         }
 
         $data = $request->validate(['waiver_reason' => ['required', 'string', 'max:1000']]);
@@ -209,7 +209,7 @@ class MembershipController extends Controller
             'verified_by' => $request->user()->id,
         ]);
 
-        return back()->with('success', 'পরিশোধ মওকুফ রেকর্ড করা হয়েছে।');
+        return back()->with('success', __('admin.flash.payment_waived'));
     }
 
     /**

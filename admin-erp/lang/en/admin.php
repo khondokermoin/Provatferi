@@ -184,6 +184,14 @@ return [
         'profile_approved' => 'Public profile approved and published.',
         'profile_rejected' => 'Public profile rejected.',
         'settings_updated' => 'Settings have been updated.',
+        'position_added' => '":name" position has been added.',
+        'position_updated_generic' => 'Position has been updated.',
+        'position_deleted_generic' => 'Position has been deleted.',
+        'member_updated' => '":code" was updated.',
+        'application_status_updated_generic' => 'The application status has been updated.',
+        'cash_payment_recorded' => 'Cash payment recorded — verify it now.',
+        'payment_verified' => 'Payment has been verified.',
+        'payment_waived' => 'Payment waiver recorded.',
     ],
 
     'forms' => [
@@ -776,6 +784,9 @@ return [
         'date_closes' => 'Closes on',
         'application_status_updated' => 'The application status has been updated — :status.',
         'version_already_reviewed' => 'This version has already been reviewed.',
+        'position_has_members_cannot_delete' => 'This position has members or applications linked to it — it cannot be deleted.',
+        'membership_approval_blocked_payment' => 'Cannot approve until payment is verified — verify the payment first or record a waiver.',
+        'payment_already_recorded_cannot_waive' => 'A payment has already been recorded — it cannot be waived now.',
     ],
 
     'filters' => [
