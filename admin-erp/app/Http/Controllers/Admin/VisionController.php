@@ -15,8 +15,8 @@ class VisionController extends Controller
     public function edit(): View
     {
         return view('admin.content.vision', [
-            'title' => 'দৃষ্টিভঙ্গি',
-            'breadcrumbs' => [['label' => 'বিষয়বস্তু'], ['label' => 'দৃষ্টিভঙ্গি']],
+            'title' => __('admin.nav.vision'),
+            'breadcrumbs' => [['label' => __('admin.nav.groups.content')], ['label' => __('admin.nav.vision')]],
             'block' => ContentBlock::query()->firstOrCreate(['key' => self::KEY], ['title' => 'দৃষ্টিভঙ্গি', 'group_name' => 'about']),
         ]);
     }
@@ -32,6 +32,6 @@ class VisionController extends Controller
 
         ContentBlock::query()->where('key', self::KEY)->update($data);
 
-        return redirect()->route('admin.content.vision.edit')->with('success', 'Vision হালনাগাদ হয়েছে।');
+        return redirect()->route('admin.content.vision.edit')->with('success', __('admin.flash.vision_updated'));
     }
 }

@@ -34,7 +34,7 @@ class CommitteeRegistrationLinkController extends Controller
 
         $url = rtrim(config('services.public_site.url'), '/').'/committee/register/'.$raw;
 
-        return back()->with('success', 'নিবন্ধন লিংক তৈরি হয়েছে — একবারই দেখানো হবে, এখনই কপি করুন।')
+        return back()->with('success', __('admin.flash.registration_link_created'))
             ->with('generated_registration_link', $url);
     }
 
@@ -44,6 +44,6 @@ class CommitteeRegistrationLinkController extends Controller
 
         $link->revoke();
 
-        return back()->with('success', 'নিবন্ধন লিংক বাতিল করা হয়েছে।');
+        return back()->with('success', __('admin.flash.registration_link_revoked'));
     }
 }

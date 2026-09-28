@@ -15,8 +15,8 @@ class MissionController extends Controller
     public function edit(): View
     {
         return view('admin.content.mission', [
-            'title' => 'লক্ষ্য',
-            'breadcrumbs' => [['label' => 'বিষয়বস্তু'], ['label' => 'লক্ষ্য']],
+            'title' => __('admin.nav.mission'),
+            'breadcrumbs' => [['label' => __('admin.nav.groups.content')], ['label' => __('admin.nav.mission')]],
             'block' => ContentBlock::query()->firstOrCreate(['key' => self::KEY], ['title' => 'লক্ষ্য', 'group_name' => 'about']),
         ]);
     }
@@ -32,6 +32,6 @@ class MissionController extends Controller
 
         ContentBlock::query()->where('key', self::KEY)->update($data);
 
-        return redirect()->route('admin.content.mission.edit')->with('success', 'Mission হালনাগাদ হয়েছে।');
+        return redirect()->route('admin.content.mission.edit')->with('success', __('admin.flash.mission_updated'));
     }
 }

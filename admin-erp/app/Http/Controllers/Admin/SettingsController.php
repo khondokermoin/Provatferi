@@ -28,8 +28,8 @@ class SettingsController extends Controller
         $settings = Setting::query()->whereIn('key', $this->allKeys())->pluck('value', 'key');
 
         return view('admin.settings.index', [
-            'title' => 'সাইট সেটিংস',
-            'breadcrumbs' => [['label' => 'বিষয়বস্তু'], ['label' => 'সাইট সেটিংস']],
+            'title' => __('admin.nav.site_settings'),
+            'breadcrumbs' => [['label' => __('admin.nav.groups.content')], ['label' => __('admin.nav.site_settings')]],
             'settings' => $settings,
         ]);
     }
@@ -51,7 +51,7 @@ class SettingsController extends Controller
             'site.website_url' => ['nullable', 'url', 'max:255'],
             'site.literature_url' => ['nullable', 'url', 'max:255'],
         ], [], [
-            'site.name_bn' => 'বাংলা নাম', 'site.name_en' => 'ইংরেজি নাম', 'site.email' => 'ই-মেইল',
+            'site.name_bn' => __('admin.fields.name_bangla_label'), 'site.name_en' => __('admin.fields.name_english_label'), 'site.email' => __('admin.common.email'),
         ]);
 
         foreach ($data as $key => $value) {
@@ -61,7 +61,7 @@ class SettingsController extends Controller
             $setting?->update(['value' => $value, 'updated_by' => $request->user()->id]);
         }
 
-        return redirect()->route('admin.settings.index')->with('success', 'সেটিংস হালনাগাদ হয়েছে।');
+        return redirect()->route('admin.settings.index')->with('success', __('admin.flash.settings_updated'));
     }
 
     /** @return array<int, string> */

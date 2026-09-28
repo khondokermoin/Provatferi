@@ -176,6 +176,14 @@ return [
         'season_created' => '":name" was created.',
         'season_updated' => '":name" was updated.',
         'season_deleted' => '":name" was deleted.',
+        'registration_link_created' => 'Registration link created — it will only be shown once, copy it now.',
+        'registration_link_revoked' => 'Registration link revoked.',
+        'about_updated' => 'The About page has been updated.',
+        'mission_updated' => 'Mission has been updated.',
+        'vision_updated' => 'Vision has been updated.',
+        'profile_approved' => 'Public profile approved and published.',
+        'profile_rejected' => 'Public profile rejected.',
+        'settings_updated' => 'Settings have been updated.',
     ],
 
     'forms' => [
@@ -767,6 +775,7 @@ return [
         'date_opens' => 'Opens on',
         'date_closes' => 'Closes on',
         'application_status_updated' => 'The application status has been updated — :status.',
+        'version_already_reviewed' => 'This version has already been reviewed.',
     ],
 
     'filters' => [
