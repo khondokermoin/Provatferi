@@ -191,6 +191,14 @@ return [
         'profile_approved' => 'পাবলিক প্রোফাইল অনুমোদিত ও প্রকাশিত হয়েছে।',
         'profile_rejected' => 'পাবলিক প্রোফাইল প্রত্যাখ্যান করা হয়েছে।',
         'settings_updated' => 'সেটিংস হালনাগাদ হয়েছে।',
+        'position_added' => '":name" পদ যোগ হয়েছে।',
+        'position_updated_generic' => 'পদ হালনাগাদ হয়েছে।',
+        'position_deleted_generic' => 'পদ মুছে ফেলা হয়েছে।',
+        'member_updated' => '":code" হালনাগাদ হয়েছে।',
+        'application_status_updated_generic' => 'আবেদনের স্ট্যাটাস হালনাগাদ হয়েছে।',
+        'cash_payment_recorded' => 'নগদ পরিশোধ রেকর্ড করা হয়েছে — এখন যাচাই করুন।',
+        'payment_verified' => 'পরিশোধ যাচাই করা হয়েছে।',
+        'payment_waived' => 'পরিশোধ মওকুফ রেকর্ড করা হয়েছে।',
     ],
 
     'forms' => [
@@ -783,6 +791,9 @@ return [
         'date_closes' => 'শেষের তারিখ',
         'application_status_updated' => 'আবেদনের স্ট্যাটাস হালনাগাদ হয়েছে — :status।',
         'version_already_reviewed' => 'এই সংস্করণটি ইতিমধ্যে পর্যালোচনা করা হয়েছে।',
+        'position_has_members_cannot_delete' => 'এই পদে সদস্য বা আবেদন যুক্ত আছে — মুছে ফেলা যাবে না।',
+        'membership_approval_blocked_payment' => 'পরিশোধ যাচাই না হওয়া পর্যন্ত অনুমোদন করা যাবে না — আগে পেমেন্ট যাচাই করুন অথবা মওকুফ রেকর্ড করুন।',
+        'payment_already_recorded_cannot_waive' => 'ইতিমধ্যে একটি পরিশোধ রেকর্ড আছে — নতুন করে মওকুফ করা যাবে না।',
     ],
 
     'filters' => [

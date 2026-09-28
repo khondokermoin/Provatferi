@@ -41,8 +41,8 @@ class MemberController extends Controller
             ->withQueryString();
 
         return view('admin.membership.members.index', [
-            'title' => 'সদস্যবৃন্দ',
-            'breadcrumbs' => [['label' => 'সদস্যপদ'], ['label' => 'সদস্যবৃন্দ']],
+            'title' => __('admin.nav.members'),
+            'breadcrumbs' => [['label' => __('admin.nav.membership')], ['label' => __('admin.nav.members')]],
             'members' => $members,
             'filters' => $filters,
             'statuses' => status_options(Membership::STATUSES),
@@ -60,7 +60,7 @@ class MemberController extends Controller
 
         return view('admin.membership.members.show', [
             'title' => $membership->member_code,
-            'breadcrumbs' => [['label' => 'সদস্যবৃন্দ', 'route' => 'admin.membership.members.index'], ['label' => $membership->member_code]],
+            'breadcrumbs' => [['label' => __('admin.nav.members'), 'route' => 'admin.membership.members.index'], ['label' => $membership->member_code]],
             'member' => $membership,
             'pendingProfileVersion' => $pendingProfileVersion,
             'liveProfileVersion' => $liveProfileVersion,
@@ -70,9 +70,9 @@ class MemberController extends Controller
     public function edit(Membership $membership): View
     {
         return view('admin.membership.members.form', [
-            'title' => 'সম্পাদনা — '.$membership->member_code,
+            'title' => __('admin.fields.edit_prefix').' — '.$membership->member_code,
             'breadcrumbs' => [
-                ['label' => 'সদস্যবৃন্দ', 'route' => 'admin.membership.members.index'],
+                ['label' => __('admin.nav.members'), 'route' => 'admin.membership.members.index'],
                 ['label' => $membership->member_code],
             ],
             'member' => $membership,
@@ -86,11 +86,11 @@ class MemberController extends Controller
             'status' => ['required', Rule::in(array_keys(Membership::STATUSES))],
             'expiry_date' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:2000'],
-        ], [], ['status' => 'স্ট্যাটাস']);
+        ], [], ['status' => __('admin.common.status')]);
 
         $membership->update($data);
 
         return redirect()->route('admin.membership.members.show', $membership)
-            ->with('success', "\u{201c}{$membership->member_code}\u{201d} হালনাগাদ হয়েছে।");
+            ->with('success', __('admin.flash.member_updated', ['code' => $membership->member_code]));
     }
 }
