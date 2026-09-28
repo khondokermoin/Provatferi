@@ -183,6 +183,14 @@ return [
         'season_created' => '":name" তৈরি হয়েছে।',
         'season_updated' => '":name" হালনাগাদ হয়েছে।',
         'season_deleted' => '":name" মুছে ফেলা হয়েছে।',
+        'registration_link_created' => 'নিবন্ধন লিংক তৈরি হয়েছে — একবারই দেখানো হবে, এখনই কপি করুন।',
+        'registration_link_revoked' => 'নিবন্ধন লিংক বাতিল করা হয়েছে।',
+        'about_updated' => 'About পাতা হালনাগাদ হয়েছে।',
+        'mission_updated' => 'Mission হালনাগাদ হয়েছে।',
+        'vision_updated' => 'Vision হালনাগাদ হয়েছে।',
+        'profile_approved' => 'পাবলিক প্রোফাইল অনুমোদিত ও প্রকাশিত হয়েছে।',
+        'profile_rejected' => 'পাবলিক প্রোফাইল প্রত্যাখ্যান করা হয়েছে।',
+        'settings_updated' => 'সেটিংস হালনাগাদ হয়েছে।',
     ],
 
     'forms' => [
@@ -774,6 +782,7 @@ return [
         'date_opens' => 'শুরুর তারিখ',
         'date_closes' => 'শেষের তারিখ',
         'application_status_updated' => 'আবেদনের স্ট্যাটাস হালনাগাদ হয়েছে — :status।',
+        'version_already_reviewed' => 'এই সংস্করণটি ইতিমধ্যে পর্যালোচনা করা হয়েছে।',
     ],
 
     'filters' => [

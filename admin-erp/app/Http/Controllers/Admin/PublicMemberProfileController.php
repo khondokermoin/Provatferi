@@ -31,14 +31,14 @@ class PublicMemberProfileController extends Controller
         ApprovalHistory::record($version, 'approved', $request->user());
         $this->notifyMember($membership, new PublicProfileReviewedNotification('approved'));
 
-        return back()->with('success', 'পাবলিক প্রোফাইল অনুমোদিত ও প্রকাশিত হয়েছে।');
+        return back()->with('success', __('admin.flash.profile_approved'));
     }
 
     public function reject(Request $request, Membership $membership, PublicMemberProfileVersion $version): RedirectResponse
     {
         $this->assertBelongsToMembership($membership, $version);
 
-        $data = $request->validate(['note' => ['required', 'string', 'max:1000']], [], ['note' => 'কারণ']);
+        $data = $request->validate(['note' => ['required', 'string', 'max:1000']], [], ['note' => __('admin.fields.reason')]);
 
         $version->forceFill([
             'status' => 'rejected', 'reviewed_by' => $request->user()->id, 'reviewed_at' => now(),
@@ -47,13 +47,13 @@ class PublicMemberProfileController extends Controller
         ApprovalHistory::record($version, 'rejected', $request->user(), $data['note']);
         $this->notifyMember($membership, new PublicProfileReviewedNotification('rejected', $data['note']));
 
-        return back()->with('success', 'পাবলিক প্রোফাইল প্রত্যাখ্যান করা হয়েছে।');
+        return back()->with('success', __('admin.flash.profile_rejected'));
     }
 
     private function assertBelongsToMembership(Membership $membership, PublicMemberProfileVersion $version): void
     {
         abort_unless($membership->member_id && $version->member_id === $membership->member_id, 404);
-        abort_unless($version->status === 'pending', 422, 'এই সংস্করণটি ইতিমধ্যে পর্যালোচনা করা হয়েছে।');
+        abort_unless($version->status === 'pending', 422, __('admin.fields.version_already_reviewed'));
     }
 
     /** §40: an email-transport failure must never turn an already-persisted review decision into a 500. */

@@ -13,8 +13,8 @@ class AboutController extends Controller
     public function edit(): View
     {
         return view('admin.content.about', [
-            'title' => 'আমাদের সম্পর্কে',
-            'breadcrumbs' => [['label' => 'বিষয়বস্তু'], ['label' => 'আমাদের সম্পর্কে']],
+            'title' => __('admin.nav.about'),
+            'breadcrumbs' => [['label' => __('admin.nav.groups.content')], ['label' => __('admin.nav.about')]],
             'about' => AboutPage::current(),
         ]);
     }
@@ -39,6 +39,6 @@ class AboutController extends Controller
 
         AboutPage::current()->update($data);
 
-        return redirect()->route('admin.content.about.edit')->with('success', 'About পাতা হালনাগাদ হয়েছে।');
+        return redirect()->route('admin.content.about.edit')->with('success', __('admin.flash.about_updated'));
     }
 }
