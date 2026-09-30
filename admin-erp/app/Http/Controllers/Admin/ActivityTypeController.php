@@ -20,8 +20,8 @@ class ActivityTypeController extends Controller
             ->orderBy('sort_order')->orderBy('name')->paginate(15);
 
         return view('admin.activities.types.index', [
-            'title' => 'কার্যক্রমের ধরন',
-            'breadcrumbs' => [['label' => 'কার্যক্রম'], ['label' => 'কার্যক্রমের ধরন']],
+            'title' => __('admin.nav.activity_types'),
+            'breadcrumbs' => [['label' => __('admin.nav.activities')], ['label' => __('admin.nav.activity_types')]],
             'types' => $types,
         ]);
     }
@@ -29,8 +29,8 @@ class ActivityTypeController extends Controller
     public function create(): View
     {
         return view('admin.activities.types.form', [
-            'title' => 'নতুন কার্যক্রমের ধরন',
-            'breadcrumbs' => [['label' => 'কার্যক্রমের ধরন', 'route' => 'admin.activities.types.index'], ['label' => 'তৈরি করুন']],
+            'title' => __('admin.fields.new_activity_type'),
+            'breadcrumbs' => [['label' => __('admin.nav.activity_types'), 'route' => 'admin.activities.types.index'], ['label' => __('admin.actions.create')]],
             'type' => new ActivityType(['status' => 'active', 'sort_order' => 0]),
             'statuses' => status_options(self::STATUSES),
         ]);
@@ -43,14 +43,14 @@ class ActivityTypeController extends Controller
 
         $type = ActivityType::query()->create($data);
 
-        return redirect()->route('admin.activities.types.index')->with('success', "\u{201c}{$type->name}\u{201d} তৈরি হয়েছে।");
+        return redirect()->route('admin.activities.types.index')->with('success', __('admin.flash.activity_type_created', ['name' => $type->name]));
     }
 
     public function edit(ActivityType $activityType): View
     {
         return view('admin.activities.types.form', [
-            'title' => 'সম্পাদনা — '.$activityType->name,
-            'breadcrumbs' => [['label' => 'কার্যক্রমের ধরন', 'route' => 'admin.activities.types.index'], ['label' => $activityType->name]],
+            'title' => __('admin.fields.edit_prefix').' — '.$activityType->name,
+            'breadcrumbs' => [['label' => __('admin.nav.activity_types'), 'route' => 'admin.activities.types.index'], ['label' => $activityType->name]],
             'type' => $activityType,
             'statuses' => status_options(self::STATUSES),
         ]);
@@ -60,19 +60,19 @@ class ActivityTypeController extends Controller
     {
         $activityType->update($request->validate($this->rules(), [], $this->attributes()));
 
-        return redirect()->route('admin.activities.types.index')->with('success', "\u{201c}{$activityType->name}\u{201d} হালনাগাদ হয়েছে।");
+        return redirect()->route('admin.activities.types.index')->with('success', __('admin.flash.activity_type_updated', ['name' => $activityType->name]));
     }
 
     public function destroy(ActivityType $activityType): RedirectResponse
     {
         if ($activityType->activities()->exists()) {
-            return back()->with('error', 'এই ধরনটি কার্যক্রমে ব্যবহৃত হচ্ছে — আগে সেগুলোর ধরন পরিবর্তন করুন।');
+            return back()->with('error', __('admin.fields.activity_type_in_use_simple'));
         }
 
         $name = $activityType->name;
         $activityType->delete();
 
-        return redirect()->route('admin.activities.types.index')->with('success', "\u{201c}{$name}\u{201d} মুছে ফেলা হয়েছে।");
+        return redirect()->route('admin.activities.types.index')->with('success', __('admin.flash.activity_type_deleted', ['name' => $name]));
     }
 
     /** @return array<string, mixed> */
@@ -91,6 +91,6 @@ class ActivityTypeController extends Controller
     /** @return array<string, string> */
     private function attributes(): array
     {
-        return ['name' => 'নাম', 'status' => 'স্ট্যাটাস', 'sort_order' => 'ক্রম'];
+        return ['name' => __('admin.common.name'), 'status' => __('admin.common.status'), 'sort_order' => __('admin.common.order')];
     }
 }

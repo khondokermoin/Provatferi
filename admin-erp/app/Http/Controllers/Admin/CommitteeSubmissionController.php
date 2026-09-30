@@ -46,11 +46,11 @@ class CommitteeSubmissionController extends Controller
             ->withQueryString();
 
         return view('admin.committees.submissions.index', [
-            'title' => 'আবেদন পর্যালোচনা — '.$committee->name,
+            'title' => __('admin.fields.review_applications').' — '.$committee->name,
             'breadcrumbs' => [
-                ['label' => 'কমিটি', 'route' => 'admin.committees.index'],
+                ['label' => __('admin.nav.committees'), 'route' => 'admin.committees.index'],
                 ['label' => $committee->name, 'route' => 'admin.committees.show', 'params' => $committee],
-                ['label' => 'আবেদন'],
+                ['label' => __('admin.fields.applications_bare')],
             ],
             'committee' => $committee,
             'submissions' => $submissions,
@@ -68,9 +68,9 @@ class CommitteeSubmissionController extends Controller
         return view('admin.committees.submissions.show', [
             'title' => $submission->full_name,
             'breadcrumbs' => [
-                ['label' => 'কমিটি', 'route' => 'admin.committees.index'],
+                ['label' => __('admin.nav.committees'), 'route' => 'admin.committees.index'],
                 ['label' => $committee->name, 'route' => 'admin.committees.show', 'params' => $committee],
-                ['label' => 'আবেদন', 'route' => 'admin.committees.submissions.index', 'params' => $committee],
+                ['label' => __('admin.fields.applications_bare'), 'route' => 'admin.committees.submissions.index', 'params' => $committee],
                 ['label' => $submission->full_name],
             ],
             'committee' => $committee,
@@ -93,7 +93,7 @@ class CommitteeSubmissionController extends Controller
         DB::transaction(function () use ($request, $committee, $submission, &$warning) {
             $position = $submission->position;
             if ($position && $position->isOccupied()) {
-                $warning = "\u{201c}{$position->name}\u{201d} পদটি ইতিমধ্যে পূর্ণ — তবু এই সদস্যকে যোগ করা হয়েছে, চাইলে পর্যালোচনা করুন।";
+                $warning = __('admin.flash.position_already_occupied_warning', ['position' => $position->name]);
             }
 
             $photoApprovedPath = $submission->photo_approved_path;
@@ -124,7 +124,7 @@ class CommitteeSubmissionController extends Controller
         $this->notifySubmission($submission, new CommitteeSubmissionStatusChangedNotification($committee->name, 'approved'));
 
         return redirect()->route('admin.committees.submissions.show', [$committee, $submission])
-            ->with($warning ? 'warning' : 'success', $warning ?? 'আবেদন অনুমোদিত হয়েছে — কমিটির সদস্য তালিকায় যুক্ত হয়েছে।');
+            ->with($warning ? 'warning' : 'success', $warning ?? __('admin.flash.submission_approved'));
     }
 
     public function reject(Request $request, Committee $committee, CommitteeSubmission $submission): RedirectResponse
@@ -132,7 +132,7 @@ class CommitteeSubmissionController extends Controller
         abort_unless($submission->committee_id === $committee->id, 404);
         $this->assertTransitionAllowed($submission, 'rejected');
 
-        $data = $request->validate(['admin_note' => ['required', 'string', 'max:2000']], [], ['admin_note' => 'কারণ']);
+        $data = $request->validate(['admin_note' => ['required', 'string', 'max:2000']], [], ['admin_note' => __('admin.fields.reason')]);
 
         $submission->forceFill([
             'status' => 'rejected', 'admin_note' => $data['admin_note'],
@@ -144,7 +144,7 @@ class CommitteeSubmissionController extends Controller
         $this->notifySubmission($submission, new CommitteeSubmissionStatusChangedNotification($committee->name, 'rejected', $data['admin_note']));
 
         return redirect()->route('admin.committees.submissions.show', [$committee, $submission])
-            ->with('success', 'আবেদন প্রত্যাখ্যান করা হয়েছে।');
+            ->with('success', __('admin.flash.submission_rejected'));
     }
 
     /**
@@ -157,7 +157,7 @@ class CommitteeSubmissionController extends Controller
         abort_unless($submission->committee_id === $committee->id, 404);
         $this->assertTransitionAllowed($submission, 'correction_requested');
 
-        $data = $request->validate(['admin_note' => ['required', 'string', 'max:2000']], [], ['admin_note' => 'সংশোধনের কারণ']);
+        $data = $request->validate(['admin_note' => ['required', 'string', 'max:2000']], [], ['admin_note' => __('admin.fields.correction_reason')]);
 
         $raw = $submission->issueCorrectionToken(now()->addDays(14));
         $submission->forceFill([
@@ -174,13 +174,13 @@ class CommitteeSubmissionController extends Controller
         ));
 
         return redirect()->route('admin.committees.submissions.show', [$committee, $submission])
-            ->with('success', 'সংশোধনের জন্য ই-মেইল পাঠানো হয়েছে — লিংকটি নিচে একবারই দেখানো হবে (ব্যাকআপ হিসেবে), এখনই কপি করুন।')
+            ->with('success', __('admin.flash.correction_email_sent'))
             ->with('generated_correction_link', $url);
     }
 
     private function assertTransitionAllowed(CommitteeSubmission $submission, string $target): void
     {
-        abort_unless(in_array($target, self::TRANSITIONS[$submission->status] ?? [], true), 422, 'এই অবস্থা থেকে এই পরিবর্তন সম্ভব নয়।');
+        abort_unless(in_array($target, self::TRANSITIONS[$submission->status] ?? [], true), 422, __('admin.fields.transition_not_allowed'));
     }
 
     /**

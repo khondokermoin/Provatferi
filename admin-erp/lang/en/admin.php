@@ -192,6 +192,15 @@ return [
         'cash_payment_recorded' => 'Cash payment recorded — verify it now.',
         'payment_verified' => 'Payment has been verified.',
         'payment_waived' => 'Payment waiver recorded.',
+        'activity_type_created' => '":name" was created.',
+        'activity_type_updated' => '":name" was updated.',
+        'activity_type_deleted' => '":name" was deleted.',
+        'submission_approved' => 'The submission has been approved — added to the committee member list.',
+        'submission_rejected' => 'The submission has been rejected.',
+        'correction_email_sent' => 'A correction email has been sent — the link below will only be shown once (as a backup), copy it now.',
+        'membership_type_created' => '":name" was created.',
+        'membership_type_updated' => '":name" was updated.',
+        'membership_type_deleted' => '":name" was deleted.',
     ],
 
     'forms' => [
@@ -787,6 +796,10 @@ return [
         'position_has_members_cannot_delete' => 'This position has members or applications linked to it — it cannot be deleted.',
         'membership_approval_blocked_payment' => 'Cannot approve until payment is verified — verify the payment first or record a waiver.',
         'payment_already_recorded_cannot_waive' => 'A payment has already been recorded — it cannot be waived now.',
+        'activity_type_in_use_simple' => 'This type is used by activities — change their type first.',
+        'applications_bare' => 'Applications',
+        'position_already_occupied_warning' => 'The ":position" position is already occupied — this member was added anyway; review if needed.',
+        'transition_not_allowed' => 'This change is not possible from the current state.',
     ],
 
     'filters' => [

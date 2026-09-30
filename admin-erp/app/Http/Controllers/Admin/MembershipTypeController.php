@@ -20,8 +20,8 @@ class MembershipTypeController extends Controller
             ->orderBy('sort_order')->orderBy('name')->paginate(15);
 
         return view('admin.membership.types.index', [
-            'title' => 'সদস্যপদের ধরন',
-            'breadcrumbs' => [['label' => 'সদস্যপদ'], ['label' => 'সদস্যপদের ধরন']],
+            'title' => __('admin.nav.membership_types'),
+            'breadcrumbs' => [['label' => __('admin.nav.membership')], ['label' => __('admin.nav.membership_types')]],
             'types' => $types,
         ]);
     }
@@ -29,8 +29,8 @@ class MembershipTypeController extends Controller
     public function create(): View
     {
         return view('admin.membership.types.form', [
-            'title' => 'নতুন সদস্যপদের ধরন',
-            'breadcrumbs' => [['label' => 'সদস্যপদের ধরন', 'route' => 'admin.membership.types.index'], ['label' => 'তৈরি করুন']],
+            'title' => __('admin.fields.new_membership_type'),
+            'breadcrumbs' => [['label' => __('admin.nav.membership_types'), 'route' => 'admin.membership.types.index'], ['label' => __('admin.actions.create')]],
             'type' => new MembershipType([
                 'status' => 'active', 'sort_order' => 0, 'fee' => 0, 'is_student' => false, 'is_public_self_apply' => true,
             ]),
@@ -47,14 +47,14 @@ class MembershipTypeController extends Controller
 
         $type = MembershipType::query()->create($data);
 
-        return redirect()->route('admin.membership.types.index')->with('success', "\u{201c}{$type->name}\u{201d} তৈরি হয়েছে।");
+        return redirect()->route('admin.membership.types.index')->with('success', __('admin.flash.membership_type_created', ['name' => $type->name]));
     }
 
     public function edit(MembershipType $membershipType): View
     {
         return view('admin.membership.types.form', [
-            'title' => 'সম্পাদনা — '.$membershipType->name,
-            'breadcrumbs' => [['label' => 'সদস্যপদের ধরন', 'route' => 'admin.membership.types.index'], ['label' => $membershipType->name]],
+            'title' => __('admin.fields.edit_prefix').' — '.$membershipType->name,
+            'breadcrumbs' => [['label' => __('admin.nav.membership_types'), 'route' => 'admin.membership.types.index'], ['label' => $membershipType->name]],
             'type' => $membershipType,
             'statuses' => status_options(self::STATUSES),
         ]);
@@ -68,19 +68,19 @@ class MembershipTypeController extends Controller
 
         $membershipType->update($data);
 
-        return redirect()->route('admin.membership.types.index')->with('success', "\u{201c}{$membershipType->name}\u{201d} হালনাগাদ হয়েছে।");
+        return redirect()->route('admin.membership.types.index')->with('success', __('admin.flash.membership_type_updated', ['name' => $membershipType->name]));
     }
 
     public function destroy(MembershipType $membershipType): RedirectResponse
     {
         if ($membershipType->applications()->exists() || $membershipType->memberships()->exists()) {
-            return back()->with('error', 'এই ধরনটি আবেদন বা সদস্যপদের সঙ্গে যুক্ত — মুছে ফেলা যাবে না।');
+            return back()->with('error', __('admin.fields.type_in_use_cannot_delete'));
         }
 
         $name = $membershipType->name;
         $membershipType->delete();
 
-        return redirect()->route('admin.membership.types.index')->with('success', "\u{201c}{$name}\u{201d} মুছে ফেলা হয়েছে।");
+        return redirect()->route('admin.membership.types.index')->with('success', __('admin.flash.membership_type_deleted', ['name' => $name]));
     }
 
     /** @return array<string, mixed> */
@@ -101,6 +101,6 @@ class MembershipTypeController extends Controller
     /** @return array<string, string> */
     private function attributes(): array
     {
-        return ['name' => 'নাম', 'fee' => 'ফি', 'status' => 'স্ট্যাটাস', 'sort_order' => 'ক্রম'];
+        return ['name' => __('admin.common.name'), 'fee' => __('admin.fields.fee'), 'status' => __('admin.common.status'), 'sort_order' => __('admin.common.order')];
     }
 }
