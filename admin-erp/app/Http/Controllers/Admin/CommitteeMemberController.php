@@ -23,11 +23,11 @@ class CommitteeMemberController extends Controller
     public function create(Committee $committee): View
     {
         return view('admin.committees.members.form', [
-            'title' => 'সদস্য যোগ করুন — '.$committee->name,
+            'title' => __('admin.fields.add_member').' — '.$committee->name,
             'breadcrumbs' => [
-                ['label' => 'কমিটি', 'route' => 'admin.committees.index'],
+                ['label' => __('admin.nav.committees'), 'route' => 'admin.committees.index'],
                 ['label' => $committee->name, 'route' => 'admin.committees.show', 'params' => $committee],
-                ['label' => 'সদস্য যোগ করুন'],
+                ['label' => __('admin.fields.add_member')],
             ],
             'committee' => $committee,
             'member' => new CommitteeMember(['status' => 'active']),
@@ -44,7 +44,7 @@ class CommitteeMemberController extends Controller
         $committee->members()->create($data);
 
         return redirect()->route('admin.committees.show', $committee)
-            ->with('success', 'কমিটির সদস্য যোগ হয়েছে।');
+            ->with('success', __('admin.flash.committee_member_added'));
     }
 
     public function edit(Committee $committee, CommitteeMember $member): View
@@ -52,11 +52,11 @@ class CommitteeMemberController extends Controller
         abort_unless($member->committee_id === $committee->id, 404);
 
         return view('admin.committees.members.form', [
-            'title' => 'সদস্য সম্পাদনা — '.$committee->name,
+            'title' => __('admin.fields.edit_member_title').' — '.$committee->name,
             'breadcrumbs' => [
-                ['label' => 'কমিটি', 'route' => 'admin.committees.index'],
+                ['label' => __('admin.nav.committees'), 'route' => 'admin.committees.index'],
                 ['label' => $committee->name, 'route' => 'admin.committees.show', 'params' => $committee],
-                ['label' => 'সদস্য সম্পাদনা'],
+                ['label' => __('admin.fields.edit_member_title')],
             ],
             'committee' => $committee,
             'member' => $member,
@@ -73,7 +73,7 @@ class CommitteeMemberController extends Controller
         $member->update($request->validate($this->rules($committee, $member), [], $this->attributes()));
 
         return redirect()->route('admin.committees.show', $committee)
-            ->with('success', 'সদস্যের তথ্য হালনাগাদ হয়েছে।');
+            ->with('success', __('admin.flash.committee_member_updated'));
     }
 
     public function destroy(Committee $committee, CommitteeMember $member): RedirectResponse
@@ -83,7 +83,7 @@ class CommitteeMemberController extends Controller
         $member->delete();
 
         return redirect()->route('admin.committees.show', $committee)
-            ->with('success', 'সদস্য সরানো হয়েছে।');
+            ->with('success', __('admin.flash.committee_member_removed'));
     }
 
     /** @return array<string, mixed> */
@@ -110,12 +110,12 @@ class CommitteeMemberController extends Controller
     private function attributes(): array
     {
         return [
-            'user_id' => 'ব্যক্তি',
-            'position_id' => 'পদ',
-            'serial_no' => 'ক্রম',
-            'start_date' => 'শুরুর তারিখ',
-            'end_date' => 'শেষ তারিখ',
-            'status' => 'স্ট্যাটাস',
+            'user_id' => __('admin.fields.person'),
+            'position_id' => __('admin.fields.position'),
+            'serial_no' => __('admin.common.order'),
+            'start_date' => __('admin.fields.start_date'),
+            'end_date' => __('admin.fields.end_date'),
+            'status' => __('admin.common.status'),
         ];
     }
 
