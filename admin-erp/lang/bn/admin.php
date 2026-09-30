@@ -863,6 +863,11 @@ return [
         'start_date' => 'শুরুর তারিখ',
         'edit_member_title' => 'সদস্য সম্পাদনা',
         'cannot_delete_own_account' => 'নিজের অ্যাকাউন্ট এখান থেকে মুছে ফেলা যাবে না।',
+        'system_role_badge' => 'সিস্টেম',
+        'custom_role_badge' => 'কাস্টম',
+        'student_badge' => 'শিক্ষার্থী',
+        'featured_badge' => 'ফিচার্ড',
+        'send_password_reset_action' => 'পাসওয়ার্ড রিসেট পাঠান',
     ],
 
     'filters' => [

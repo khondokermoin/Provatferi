@@ -25,10 +25,10 @@
                 <td data-label="{{ __('admin.common.type') }}">
                     @if ($role->is_system_role)
                         <span class="badge bg-primary-subtle text-primary-emphasis d-inline-flex align-items-center gap-1">
-                            <i class="ti ti-lock" aria-hidden="true"></i>System
+                            <i class="ti ti-lock" aria-hidden="true"></i>{{ __('admin.fields.system_role_badge') }}
                         </span>
                     @else
-                        <span class="badge bg-secondary-subtle text-secondary-emphasis">Custom</span>
+                        <span class="badge bg-secondary-subtle text-secondary-emphasis">{{ __('admin.fields.custom_role_badge') }}</span>
                     @endif
                 </td>
                 <td data-label="{{ __('admin.actions.actions') }}" class="text-end">

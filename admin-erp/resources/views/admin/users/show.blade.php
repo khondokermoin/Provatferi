@@ -8,7 +8,7 @@
         <form method="POST" action="{{ route('admin.users.password-reset', $user) }}">
             @csrf
             <button type="submit" class="btn btn-light">
-                <i class="ti ti-mail-forward me-1" aria-hidden="true"></i>Send password reset
+                <i class="ti ti-mail-forward me-1" aria-hidden="true"></i>{{ __('admin.fields.send_password_reset_action') }}
             </button>
         </form>
     @endcan

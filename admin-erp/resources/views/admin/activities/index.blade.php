@@ -56,7 +56,7 @@
                 <td data-label="{{ __('admin.common.title') }}">
                     <a href="{{ route('admin.activities.show', $activity) }}" class="fw-semibold">{{ $activity->title }}</a>
                     @if ($activity->featured)
-                        <span class="badge bg-primary-subtle text-primary-emphasis fs-11 ms-1">Featured</span>
+                        <span class="badge bg-primary-subtle text-primary-emphasis fs-11 ms-1">{{ __('admin.fields.featured_badge') }}</span>
                     @endif
                 </td>
                 <td data-label="{{ __('admin.common.type') }}">{{ $activity->type?->name ?? '—' }}</td>

@@ -856,6 +856,11 @@ return [
         'start_date' => 'Start date',
         'edit_member_title' => 'Edit member',
         'cannot_delete_own_account' => 'You cannot delete your own account from here.',
+        'system_role_badge' => 'System',
+        'custom_role_badge' => 'Custom',
+        'student_badge' => 'Student',
+        'featured_badge' => 'Featured',
+        'send_password_reset_action' => 'Send password reset',
     ],
 
     'filters' => [
