@@ -18,7 +18,7 @@
                 <td data-label="{{ __('admin.common.name') }}">
                     <span class="fw-semibold">{{ $type->name }}</span>
                     @if ($type->is_student)
-                        <span class="badge bg-secondary-subtle text-secondary-emphasis fs-11 ms-1">Student</span>
+                        <span class="badge bg-secondary-subtle text-secondary-emphasis fs-11 ms-1">{{ __('admin.fields.student_badge') }}</span>
                     @endif
                 </td>
                 <td data-label="{{ __('admin.fields.fee') }}">{{ $type->fee > 0 ? number_format((float) $type->fee, 2) : __('admin.fields.not_set') }}</td>
