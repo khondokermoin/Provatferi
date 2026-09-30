@@ -220,6 +220,21 @@ return [
         'role_updated' => '":name" হালনাগাদ হয়েছে।',
         'role_deleted' => '":name" মুছে ফেলা হয়েছে।',
         'super_admin_permissions_not_applied' => 'Super Admin সবসময় সব permission ধরে রাখে — permission পরিবর্তন প্রয়োগ করা হয়নি।',
+        'organizational_position_created' => '":name" তৈরি হয়েছে।',
+        'organizational_position_updated' => '":name" হালনাগাদ হয়েছে।',
+        'organizational_position_deleted' => '":name" মুছে ফেলা হয়েছে।',
+        'committee_member_added' => 'কমিটির সদস্য যোগ হয়েছে।',
+        'committee_member_updated' => 'সদস্যের তথ্য হালনাগাদ হয়েছে।',
+        'committee_member_removed' => 'সদস্য সরানো হয়েছে।',
+        'user_created' => '":name" তৈরি হয়েছে।',
+        'user_updated' => '":name" হালনাগাদ হয়েছে।',
+        'user_deleted' => '":name" মুছে ফেলা হয়েছে।',
+        'user_status_changed' => '":name" এখন :status।',
+        'last_super_admin_role_cannot_remove' => 'এটিই শেষ সক্রিয় Super Admin — এর Super Admin ভূমিকা সরানো যাবে না।',
+        'last_super_admin_cannot_deactivate' => 'এটিই শেষ সক্রিয় Super Admin — একে নিষ্ক্রিয় করা যাবে না।',
+        'last_super_admin_cannot_delete' => 'এটিই শেষ সক্রিয় Super Admin — একে মুছে ফেলা যাবে না।',
+        'password_reset_sent' => '":email" ঠিকানায় পাসওয়ার্ড রিসেট লিঙ্ক পাঠানো হয়েছে।',
+        'password_reset_failed' => 'রিসেট লিঙ্ক পাঠানো যায়নি।',
     ],
 
     'forms' => [
@@ -823,8 +838,10 @@ return [
         'start_datetime' => 'শুরুর তারিখ ও সময়',
         'publish_required_field' => 'প্রকাশ করার জন্য এই তথ্যটি আবশ্যক।',
         'edit_objective_title' => 'উদ্দেশ্য সম্পাদনা',
-        'new_role' => 'নতুন ভূমিকা',
         'system_role_cannot_delete' => '":name" একটি সিস্টেম ভূমিকা — মুছে ফেলা যাবে না।',
+        'start_date' => 'শুরুর তারিখ',
+        'edit_member_title' => 'সদস্য সম্পাদনা',
+        'cannot_delete_own_account' => 'নিজের অ্যাকাউন্ট এখান থেকে মুছে ফেলা যাবে না।',
     ],
 
     'filters' => [

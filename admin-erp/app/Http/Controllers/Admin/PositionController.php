@@ -34,8 +34,8 @@ class PositionController extends Controller
             ->withQueryString();
 
         return view('admin.positions.index', [
-            'title' => 'পদসমূহ',
-            'breadcrumbs' => [['label' => 'সংগঠন'], ['label' => 'পদসমূহ']],
+            'title' => __('admin.nav.positions'),
+            'breadcrumbs' => [['label' => __('admin.nav.groups.organization')], ['label' => __('admin.nav.positions')]],
             'positions' => $positions,
             'filters' => $filters,
             'statuses' => status_options(self::STATUSES),
@@ -46,8 +46,8 @@ class PositionController extends Controller
     public function create(): View
     {
         return view('admin.positions.form', [
-            'title' => 'নতুন পদ',
-            'breadcrumbs' => [['label' => 'পদসমূহ', 'route' => 'admin.positions.index'], ['label' => 'তৈরি করুন']],
+            'title' => __('admin.fields.new_position'),
+            'breadcrumbs' => [['label' => __('admin.nav.positions'), 'route' => 'admin.positions.index'], ['label' => __('admin.actions.create')]],
             'position' => new OrganizationalPosition(['status' => 'active', 'level' => 0, 'is_public' => true]),
             'units' => $this->unitOptions(),
             'statuses' => status_options(self::STATUSES),
@@ -63,14 +63,14 @@ class PositionController extends Controller
         $position = OrganizationalPosition::query()->create($data);
 
         return redirect()->route('admin.positions.index')
-            ->with('success', "“{$position->name}” তৈরি হয়েছে।");
+            ->with('success', __('admin.flash.organizational_position_created', ['name' => $position->name]));
     }
 
     public function edit(OrganizationalPosition $position): View
     {
         return view('admin.positions.form', [
-            'title' => 'সম্পাদনা — '.$position->name,
-            'breadcrumbs' => [['label' => 'পদসমূহ', 'route' => 'admin.positions.index'], ['label' => $position->name]],
+            'title' => __('admin.fields.edit_prefix').' — '.$position->name,
+            'breadcrumbs' => [['label' => __('admin.nav.positions'), 'route' => 'admin.positions.index'], ['label' => $position->name]],
             'position' => $position,
             'units' => $this->unitOptions(),
             'statuses' => status_options(self::STATUSES),
@@ -85,19 +85,19 @@ class PositionController extends Controller
         $position->update($data);
 
         return redirect()->route('admin.positions.index')
-            ->with('success', "“{$position->name}” হালনাগাদ হয়েছে।");
+            ->with('success', __('admin.flash.organizational_position_updated', ['name' => $position->name]));
     }
 
     public function destroy(OrganizationalPosition $position): RedirectResponse
     {
         if ($position->committeeMembers()->exists()) {
-            return back()->with('error', 'এই পদটি কমিটির সদস্যদের সঙ্গে যুক্ত — আগে সেই রেকর্ডগুলো সরান।');
+            return back()->with('error', __('admin.fields.position_has_members_cannot_delete'));
         }
 
         $name = $position->name;
         $position->delete();
 
-        return redirect()->route('admin.positions.index')->with('success', "“{$name}” মুছে ফেলা হয়েছে।");
+        return redirect()->route('admin.positions.index')->with('success', __('admin.flash.organizational_position_deleted', ['name' => $name]));
     }
 
     /** @return array<string, mixed> */
@@ -117,10 +117,10 @@ class PositionController extends Controller
     private function attributes(): array
     {
         return [
-            'name' => 'পদের নাম',
-            'organization_unit_id' => 'সাংগঠনিক ইউনিট',
-            'level' => 'স্তর/ক্রম',
-            'status' => 'স্ট্যাটাস',
+            'name' => __('admin.fields.position_name'),
+            'organization_unit_id' => __('admin.fields.unit'),
+            'level' => __('admin.fields.level_order'),
+            'status' => __('admin.common.status'),
         ];
     }
 

@@ -41,8 +41,8 @@ class UserController extends Controller
             ->withQueryString();
 
         return view('admin.users.index', [
-            'title' => 'ব্যবহারকারী',
-            'breadcrumbs' => [['label' => 'সিস্টেম'], ['label' => 'ব্যবহারকারী']],
+            'title' => __('admin.nav.users'),
+            'breadcrumbs' => [['label' => __('admin.nav.groups.system')], ['label' => __('admin.nav.users')]],
             'users' => $users,
             'filters' => $filters,
             'statuses' => status_options(self::STATUSES),
@@ -53,8 +53,8 @@ class UserController extends Controller
     public function create(): View
     {
         return view('admin.users.form', [
-            'title' => 'নতুন ব্যবহারকারী',
-            'breadcrumbs' => [['label' => 'ব্যবহারকারী', 'route' => 'admin.users.index'], ['label' => 'তৈরি করুন']],
+            'title' => __('admin.fields.new_user'),
+            'breadcrumbs' => [['label' => __('admin.nav.users'), 'route' => 'admin.users.index'], ['label' => __('admin.actions.create')]],
             'user' => new User(['status' => 'active']),
             'roles' => Role::query()->orderBy('name')->get(),
             'assignedRoleIds' => [],
@@ -87,7 +87,7 @@ class UserController extends Controller
         $user->roles()->sync($data['roles'] ?? []);
 
         return redirect()->route('admin.users.show', $user)
-            ->with('success', "“{$user->name}” তৈরি হয়েছে।");
+            ->with('success', __('admin.flash.user_created', ['name' => $user->name]));
     }
 
     public function show(User $user): View
@@ -96,7 +96,7 @@ class UserController extends Controller
 
         return view('admin.users.show', [
             'title' => $user->name,
-            'breadcrumbs' => [['label' => 'ব্যবহারকারী', 'route' => 'admin.users.index'], ['label' => $user->name]],
+            'breadcrumbs' => [['label' => __('admin.nav.users'), 'route' => 'admin.users.index'], ['label' => $user->name]],
             'user' => $user,
             'isLastSuperAdmin' => SuperAdminGuard::isLastUsable($user),
         ]);
@@ -105,11 +105,11 @@ class UserController extends Controller
     public function edit(User $user): View
     {
         return view('admin.users.form', [
-            'title' => 'সম্পাদনা — '.$user->name,
+            'title' => __('admin.fields.edit_prefix').' — '.$user->name,
             'breadcrumbs' => [
-                ['label' => 'ব্যবহারকারী', 'route' => 'admin.users.index'],
+                ['label' => __('admin.nav.users'), 'route' => 'admin.users.index'],
                 ['label' => $user->name, 'route' => 'admin.users.show', 'params' => $user],
-                ['label' => 'সম্পাদনা'],
+                ['label' => __('admin.actions.edit')],
             ],
             'user' => $user,
             'roles' => Role::query()->orderBy('name')->get(),
@@ -134,12 +134,12 @@ class UserController extends Controller
 
         if (SuperAdminGuard::wouldOrphanBySync($user, $roles)) {
             return back()->withInput()
-                ->with('error', 'এটিই শেষ সক্রিয় Super Admin — এর Super Admin ভূমিকা সরানো যাবে না।');
+                ->with('error', __('admin.flash.last_super_admin_role_cannot_remove'));
         }
 
         if ($data['status'] !== 'active' && SuperAdminGuard::isLastUsable($user)) {
             return back()->withInput()
-                ->with('error', 'এটিই শেষ সক্রিয় Super Admin — একে নিষ্ক্রিয় করা যাবে না।');
+                ->with('error', __('admin.flash.last_super_admin_cannot_deactivate'));
         }
 
         // Password is never edited here; use the reset-link action instead.
@@ -147,7 +147,7 @@ class UserController extends Controller
         $user->roles()->sync($roles);
 
         return redirect()->route('admin.users.show', $user)
-            ->with('success', "“{$user->name}” হালনাগাদ হয়েছে।");
+            ->with('success', __('admin.flash.user_updated', ['name' => $user->name]));
     }
 
     public function toggleStatus(User $user): RedirectResponse
@@ -155,12 +155,12 @@ class UserController extends Controller
         $next = $user->status === 'active' ? 'inactive' : 'active';
 
         if ($next === 'inactive' && SuperAdminGuard::isLastUsable($user)) {
-            return back()->with('error', 'এটিই শেষ সক্রিয় Super Admin — একে নিষ্ক্রিয় করা যাবে না।');
+            return back()->with('error', __('admin.flash.last_super_admin_cannot_deactivate'));
         }
 
         $user->update(['status' => $next]);
 
-        return back()->with('success', "“{$user->name}” এখন ".self::STATUSES[$next].'।');
+        return back()->with('success', __('admin.flash.user_status_changed', ['name' => $user->name, 'status' => status_label($next)]));
     }
 
     /**
@@ -174,24 +174,24 @@ class UserController extends Controller
         return back()->with(
             $status === Password::RESET_LINK_SENT ? 'success' : 'error',
             $status === Password::RESET_LINK_SENT
-                ? "“{$user->email}” ঠিকানায় পাসওয়ার্ড রিসেট লিঙ্ক পাঠানো হয়েছে।"
-                : 'রিসেট লিঙ্ক পাঠানো যায়নি।',
+                ? __('admin.flash.password_reset_sent', ['email' => $user->email])
+                : __('admin.flash.password_reset_failed'),
         );
     }
 
     public function destroy(Request $request, User $user): RedirectResponse
     {
         if ($user->id === $request->user()->id) {
-            return back()->with('error', 'নিজের অ্যাকাউন্ট এখান থেকে মুছে ফেলা যাবে না।');
+            return back()->with('error', __('admin.fields.cannot_delete_own_account'));
         }
 
         if (SuperAdminGuard::isLastUsable($user)) {
-            return back()->with('error', 'এটিই শেষ সক্রিয় Super Admin — একে মুছে ফেলা যাবে না।');
+            return back()->with('error', __('admin.flash.last_super_admin_cannot_delete'));
         }
 
         $name = $user->name;
         $user->delete();
 
-        return redirect()->route('admin.users.index')->with('success', "“{$name}” মুছে ফেলা হয়েছে।");
+        return redirect()->route('admin.users.index')->with('success', __('admin.flash.user_deleted', ['name' => $name]));
     }
 }

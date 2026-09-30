@@ -213,6 +213,21 @@ return [
         'role_updated' => '":name" was updated.',
         'role_deleted' => '":name" was deleted.',
         'super_admin_permissions_not_applied' => 'Super Admin always holds every permission — the permission change was not applied.',
+        'organizational_position_created' => '":name" was created.',
+        'organizational_position_updated' => '":name" was updated.',
+        'organizational_position_deleted' => '":name" was deleted.',
+        'committee_member_added' => 'Committee member added.',
+        'committee_member_updated' => "The member's information has been updated.",
+        'committee_member_removed' => 'Member removed.',
+        'user_created' => '":name" was created.',
+        'user_updated' => '":name" was updated.',
+        'user_deleted' => '":name" was deleted.',
+        'user_status_changed' => '":name" is now :status.',
+        'last_super_admin_role_cannot_remove' => 'This is the last active Super Admin — their Super Admin role cannot be removed.',
+        'last_super_admin_cannot_deactivate' => 'This is the last active Super Admin — this account cannot be deactivated.',
+        'last_super_admin_cannot_delete' => 'This is the last active Super Admin — this account cannot be deleted.',
+        'password_reset_sent' => 'A password reset link has been sent to ":email".',
+        'password_reset_failed' => 'The reset link could not be sent.',
     ],
 
     'forms' => [
@@ -816,8 +831,10 @@ return [
         'start_datetime' => 'Start date & time',
         'publish_required_field' => 'This is required to publish.',
         'edit_objective_title' => 'Edit objective',
-        'new_role' => 'New role',
         'system_role_cannot_delete' => '":name" is a system role — it cannot be deleted.',
+        'start_date' => 'Start date',
+        'edit_member_title' => 'Edit member',
+        'cannot_delete_own_account' => 'You cannot delete your own account from here.',
     ],
 
     'filters' => [
