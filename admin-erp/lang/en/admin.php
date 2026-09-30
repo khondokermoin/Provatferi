@@ -228,6 +228,14 @@ return [
         'last_super_admin_cannot_delete' => 'This is the last active Super Admin — this account cannot be deleted.',
         'password_reset_sent' => 'A password reset link has been sent to ":email".',
         'password_reset_failed' => 'The reset link could not be sent.',
+        'committee_created' => '":name" was created.',
+        'committee_updated' => '":name" was updated.',
+        'committee_deleted' => '":name" was deleted.',
+        'committee_status_updated' => "The committee's status has been updated.",
+        'committee_has_members_cannot_delete' => 'This committee has members — remove them first.',
+        'unit_created' => '":name" was created.',
+        'unit_updated' => '":name" was updated.',
+        'unit_deleted' => '":name" was deleted.',
     ],
 
     'forms' => [
