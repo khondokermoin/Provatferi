@@ -201,6 +201,18 @@ return [
         'membership_type_created' => '":name" was created.',
         'membership_type_updated' => '":name" was updated.',
         'membership_type_deleted' => '":name" was deleted.',
+        'activity_created' => '":title" was created.',
+        'activity_updated' => '":title" was updated.',
+        'activity_deleted' => '":title" was deleted.',
+        'objective_created' => 'Objective added.',
+        'objective_updated' => 'Objective updated.',
+        'objective_deleted' => 'Objective deleted.',
+        'objective_activated' => 'Activated.',
+        'objective_deactivated' => 'Deactivated.',
+        'role_created' => '":name" was created.',
+        'role_updated' => '":name" was updated.',
+        'role_deleted' => '":name" was deleted.',
+        'super_admin_permissions_not_applied' => 'Super Admin always holds every permission — the permission change was not applied.',
     ],
 
     'forms' => [
@@ -800,6 +812,12 @@ return [
         'applications_bare' => 'Applications',
         'position_already_occupied_warning' => 'The ":position" position is already occupied — this member was added anyway; review if needed.',
         'transition_not_allowed' => 'This change is not possible from the current state.',
+        'activity_type' => 'Activity type',
+        'start_datetime' => 'Start date & time',
+        'publish_required_field' => 'This is required to publish.',
+        'edit_objective_title' => 'Edit objective',
+        'new_role' => 'New role',
+        'system_role_cannot_delete' => '":name" is a system role — it cannot be deleted.',
     ],
 
     'filters' => [

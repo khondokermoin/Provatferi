@@ -34,8 +34,8 @@ class ActivityController extends Controller
             ->withQueryString();
 
         return view('admin.activities.index', [
-            'title' => 'কার্যক্রম',
-            'breadcrumbs' => [['label' => 'কার্যক্রম']],
+            'title' => __('admin.nav.activities'),
+            'breadcrumbs' => [['label' => __('admin.nav.activities')]],
             'activities' => $activities,
             'filters' => $filters,
             'statuses' => status_options(Activity::STATUSES),
@@ -46,8 +46,8 @@ class ActivityController extends Controller
     public function create(): View
     {
         return view('admin.activities.form', [
-            'title' => 'Create Activity',
-            'breadcrumbs' => [['label' => 'কার্যক্রম', 'route' => 'admin.activities.index'], ['label' => 'তৈরি করুন']],
+            'title' => __('admin.fields.new_activity'),
+            'breadcrumbs' => [['label' => __('admin.nav.activities'), 'route' => 'admin.activities.index'], ['label' => __('admin.actions.create')]],
             'activity' => new Activity(['status' => 'draft', 'participant_count' => 0]),
             'types' => $this->typeOptions(),
             'units' => $this->unitOptions(),
@@ -67,7 +67,7 @@ class ActivityController extends Controller
 
         $activity = Activity::query()->create($data);
 
-        return redirect()->route('admin.activities.show', $activity)->with('success', "\u{201c}{$activity->title}\u{201d} তৈরি হয়েছে।");
+        return redirect()->route('admin.activities.show', $activity)->with('success', __('admin.flash.activity_created', ['title' => $activity->title]));
     }
 
     public function show(Activity $activity): View
@@ -76,7 +76,7 @@ class ActivityController extends Controller
 
         return view('admin.activities.show', [
             'title' => $activity->title,
-            'breadcrumbs' => [['label' => 'কার্যক্রম', 'route' => 'admin.activities.index'], ['label' => $activity->title]],
+            'breadcrumbs' => [['label' => __('admin.nav.activities'), 'route' => 'admin.activities.index'], ['label' => $activity->title]],
             'activity' => $activity,
         ]);
     }
@@ -84,11 +84,11 @@ class ActivityController extends Controller
     public function edit(Activity $activity): View
     {
         return view('admin.activities.form', [
-            'title' => 'সম্পাদনা — '.$activity->title,
+            'title' => __('admin.fields.edit_prefix').' — '.$activity->title,
             'breadcrumbs' => [
-                ['label' => 'কার্যক্রম', 'route' => 'admin.activities.index'],
+                ['label' => __('admin.nav.activities'), 'route' => 'admin.activities.index'],
                 ['label' => $activity->title, 'route' => 'admin.activities.show', 'params' => $activity],
-                ['label' => 'সম্পাদনা'],
+                ['label' => __('admin.actions.edit')],
             ],
             'activity' => $activity,
             'types' => $this->typeOptions(),
@@ -105,7 +105,7 @@ class ActivityController extends Controller
 
         $activity->update($data);
 
-        return redirect()->route('admin.activities.show', $activity)->with('success', "\u{201c}{$activity->title}\u{201d} হালনাগাদ হয়েছে।");
+        return redirect()->route('admin.activities.show', $activity)->with('success', __('admin.flash.activity_updated', ['title' => $activity->title]));
     }
 
     public function destroy(Activity $activity): RedirectResponse
@@ -113,7 +113,7 @@ class ActivityController extends Controller
         $title = $activity->title;
         $activity->delete();
 
-        return redirect()->route('admin.activities.index')->with('success', "\u{201c}{$title}\u{201d} মুছে ফেলা হয়েছে।");
+        return redirect()->route('admin.activities.index')->with('success', __('admin.flash.activity_deleted', ['title' => $title]));
     }
 
     /**
@@ -134,7 +134,7 @@ class ActivityController extends Controller
             }
             foreach (['title', 'activity_type_id', 'summary', 'start_datetime'] as $field) {
                 if (blank($request->input($field))) {
-                    $v->errors()->add($field, 'প্রকাশ করার জন্য এই তথ্যটি আবশ্যক।');
+                    $v->errors()->add($field, __('admin.fields.publish_required_field'));
                 }
             }
         });
@@ -194,8 +194,8 @@ class ActivityController extends Controller
     private function attributes(): array
     {
         return [
-            'activity_type_id' => 'কার্যক্রমের ধরন', 'title' => 'শিরোনাম', 'summary' => 'সংক্ষিপ্ত বিবরণ',
-            'start_datetime' => 'শুরুর তারিখ ও সময়', 'status' => 'স্ট্যাটাস',
+            'activity_type_id' => __('admin.fields.activity_type'), 'title' => __('admin.common.title'), 'summary' => __('admin.common.summary'),
+            'start_datetime' => __('admin.fields.start_datetime'), 'status' => __('admin.common.status'),
         ];
     }
 
