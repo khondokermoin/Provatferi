@@ -10,9 +10,9 @@
         <div class="row">
             <div class="col-lg-8">
                 <x-admin.card title="{{ __('admin.common.description') }}">
-                    <x-admin.form-input name="name" label="{{ __('admin.fields.name_bn') }}" :value="$season->name" required
+                    <x-admin.bilingual-field name="name" label="{{ __('admin.common.name') }}"
+                        :bn-value="$season->name" :en-value="$season->name_en" required
                         help="{{ __('admin.fields.season_name_example_help') }}" />
-                    <x-admin.form-input name="name_en" label="{{ __('admin.common.name') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$season->name_en" />
                     <x-admin.form-textarea name="description" label="{{ __('admin.common.description') }}" :value="$season->description" :rows="3" />
                     <x-admin.form-textarea name="cash_payment_instructions" label="{{ __('admin.fields.cash_payment_instructions') }}"
                         :value="$season->cash_payment_instructions" :rows="3"

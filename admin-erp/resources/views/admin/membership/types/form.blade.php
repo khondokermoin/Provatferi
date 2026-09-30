@@ -10,11 +10,11 @@
         <div class="row">
             <div class="col-lg-8">
                 <x-admin.card title="{{ __('admin.common.description') }}">
-                    <x-admin.form-input name="name" label="{{ __('admin.common.name') }}" :value="$type->name" required />
-                    <x-admin.form-input name="name_en" label="{{ __('admin.common.name') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$type->name_en" />
-                    <x-admin.form-textarea name="description" label="{{ __('admin.fields.description_requirements') }}" :value="$type->description" :rows="4"
+                    <x-admin.bilingual-field name="name" label="{{ __('admin.common.name') }}"
+                        :bn-value="$type->name" :en-value="$type->name_en" required />
+                    <x-admin.bilingual-field as="textarea" name="description" label="{{ __('admin.fields.description_requirements') }}"
+                        :bn-value="$type->description" :en-value="$type->description_en" :rows="4"
                         help="{{ __('admin.fields.membership_requirements_help') }}" />
-                    <x-admin.form-textarea name="description_en" label="{{ __('admin.fields.description_requirements') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$type->description_en" :rows="4" />
                     <x-admin.form-input name="duration_months" label="{{ __('admin.fields.duration_months') }}" type="number" :value="$type->duration_months"
                         min="1" help="{{ __('admin.fields.lifetime_membership_help') }}" />
                 </x-admin.card>

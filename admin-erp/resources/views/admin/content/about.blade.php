@@ -8,22 +8,22 @@
         <div class="row">
             <div class="col-lg-7">
                 <x-admin.card title="{{ __('admin.fields.main_info') }}">
-                    <x-admin.form-textarea name="introduction" label="{{ __('admin.fields.brief_intro') }}" :value="$about->introduction" :rows="2"
+                    <x-admin.bilingual-field as="textarea" name="introduction" label="{{ __('admin.fields.brief_intro') }}"
+                        :bn-value="$about->introduction" :en-value="$about->introduction_en" :rows="2"
                         help="{{ __('admin.fields.brief_intro_help') }}" />
-                    <x-admin.form-textarea name="introduction_en" label="{{ __('admin.fields.brief_intro') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$about->introduction_en" :rows="2" />
-                    <x-admin.form-textarea name="description" label="{{ __('admin.fields.org_description') }}" :value="$about->description" :rows="4" />
-                    <x-admin.form-textarea name="description_en" label="{{ __('admin.fields.org_description') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$about->description_en" :rows="4" />
+                    <x-admin.bilingual-field as="textarea" name="description" label="{{ __('admin.fields.org_description') }}"
+                        :bn-value="$about->description" :en-value="$about->description_en" :rows="4" />
                     <x-admin.form-textarea name="registration_status" label="{{ __('admin.fields.registration_status') }}" :value="$about->registration_status" :rows="1"
                         help="{{ __('admin.fields.registration_status_help') }}" />
                 </x-admin.card>
 
                 <x-admin.card title="{{ __('admin.fields.background') }}" subtitle="{{ __('admin.fields.no_fabrication_help') }}">
-                    <x-admin.form-textarea name="history" label="{{ __('admin.fields.history_background') }}" :value="$about->history" :rows="5" />
-                    <x-admin.form-textarea name="history_en" label="{{ __('admin.fields.history_background') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$about->history_en" :rows="5" />
-                    <x-admin.form-textarea name="why_exists" label="{{ __('admin.fields.why_provatferi') }}" :value="$about->why_exists" :rows="4" />
-                    <x-admin.form-textarea name="why_exists_en" label="{{ __('admin.fields.why_provatferi') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$about->why_exists_en" :rows="4" />
-                    <x-admin.form-textarea name="identity_explanation" label="{{ __('admin.fields.identity_explanation') }}" :value="$about->identity_explanation" :rows="3" />
-                    <x-admin.form-textarea name="identity_explanation_en" label="{{ __('admin.fields.identity_explanation') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$about->identity_explanation_en" :rows="3" />
+                    <x-admin.bilingual-field as="textarea" name="history" label="{{ __('admin.fields.history_background') }}"
+                        :bn-value="$about->history" :en-value="$about->history_en" :rows="5" />
+                    <x-admin.bilingual-field as="textarea" name="why_exists" label="{{ __('admin.fields.why_provatferi') }}"
+                        :bn-value="$about->why_exists" :en-value="$about->why_exists_en" :rows="4" />
+                    <x-admin.bilingual-field as="textarea" name="identity_explanation" label="{{ __('admin.fields.identity_explanation') }}"
+                        :bn-value="$about->identity_explanation" :en-value="$about->identity_explanation_en" :rows="3" />
                 </x-admin.card>
 
                 <x-admin.card title="{{ __('admin.common.publication') }}">

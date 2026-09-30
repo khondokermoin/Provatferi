@@ -14,8 +14,8 @@
         <div class="row">
             <div class="col-lg-8">
                 <x-admin.card title="{{ __('admin.fields.notice_content') }}">
-                    <x-admin.form-input name="title" label="{{ __('admin.fields.subject') }}" :value="$notice->title" required maxlength="255" />
-                    <x-admin.form-input name="title_en" label="{{ __('admin.fields.subject') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$notice->title_en" maxlength="255" />
+                    <x-admin.bilingual-field name="title" label="{{ __('admin.fields.subject') }}"
+                        :bn-value="$notice->title" :en-value="$notice->title_en" required maxlength="255" />
 
                     <div class="row">
                         <div class="col-md-6">
@@ -34,12 +34,12 @@
                         </div>
                     </div>
 
-                    <x-admin.form-textarea name="summary" label="{{ __('admin.common.summary') }}" :value="$notice->summary" :rows="3" maxlength="500"
+                    <x-admin.bilingual-field as="textarea" name="summary" label="{{ __('admin.common.summary') }}"
+                        :bn-value="$notice->summary" :en-value="$notice->summary_en" :rows="3" maxlength="500"
                         help="{{ __('admin.fields.summary_shown_in_list_help') }}" />
-                    <x-admin.form-textarea name="summary_en" label="{{ __('admin.fields.summary') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$notice->summary_en" :rows="3" maxlength="500" />
-                    <x-admin.form-textarea name="body" label="{{ __('admin.fields.full_body') }}" :value="$notice->body" :rows="18" required
+                    <x-admin.bilingual-field as="textarea" name="body" label="{{ __('admin.fields.full_body') }}"
+                        :bn-value="$notice->body" :en-value="$notice->body_en" :rows="18" required
                         help="{{ __('admin.fields.body_formatting_help') }}" />
-                    <x-admin.form-textarea name="body_en" label="{{ __('admin.fields.full_body') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$notice->body_en" :rows="18" />
                 </x-admin.card>
 
                 <x-admin.card title="{{ __('admin.fields.images_and_attachments') }}">
@@ -103,9 +103,9 @@
                                 placeholder="https://" help="{{ __('admin.fields.action_link_help') }}" />
                         </div>
                         <div class="col-md-4">
-                            <x-admin.form-input name="action_label" label="{{ __('admin.fields.button_text') }}" :value="$notice->action_label" maxlength="100"
+                            <x-admin.bilingual-field name="action_label" label="{{ __('admin.fields.button_text') }}"
+                                :bn-value="$notice->action_label" :en-value="$notice->action_label_en" maxlength="100"
                                 placeholder="{{ __('admin.fields.button_text_example_placeholder') }}" />
-                            <x-admin.form-input name="action_label_en" label="{{ __('admin.fields.button_text') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$notice->action_label_en" maxlength="100" />
                         </div>
                     </div>
                 </x-admin.card>
