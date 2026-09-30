@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\CommitteePositionController;
 use App\Http\Controllers\Admin\CommitteeRegistrationLinkController;
 use App\Http\Controllers\Admin\CommitteeSubmissionController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\HomepageCarouselController;
 use App\Http\Controllers\Admin\JobApplicationController;
 use App\Http\Controllers\Admin\MemberController;
 use App\Http\Controllers\Admin\MembershipController;
@@ -300,6 +301,27 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         Route::post('/{objective}/move-down', [ObjectiveController::class, 'moveDown'])
             ->middleware('permission:settings.update')->name('move-down');
         Route::delete('/{objective}', [ObjectiveController::class, 'destroy'])
+            ->middleware('permission:settings.delete')->name('destroy');
+    });
+
+    Route::prefix('homepage-carousel')->name('homepage-carousel.')->group(function () {
+        Route::get('/', [HomepageCarouselController::class, 'index'])
+            ->middleware('permission:settings.view')->name('index');
+        Route::get('/create', [HomepageCarouselController::class, 'create'])
+            ->middleware('permission:settings.create')->name('create');
+        Route::post('/', [HomepageCarouselController::class, 'store'])
+            ->middleware('permission:settings.create')->name('store');
+        Route::get('/{homepageCarouselSlide}/edit', [HomepageCarouselController::class, 'edit'])
+            ->middleware('permission:settings.update')->name('edit');
+        Route::put('/{homepageCarouselSlide}', [HomepageCarouselController::class, 'update'])
+            ->middleware('permission:settings.update')->name('update');
+        Route::patch('/{homepageCarouselSlide}/toggle', [HomepageCarouselController::class, 'toggleStatus'])
+            ->middleware('permission:settings.update')->name('toggle');
+        Route::post('/{homepageCarouselSlide}/move-up', [HomepageCarouselController::class, 'moveUp'])
+            ->middleware('permission:settings.update')->name('move-up');
+        Route::post('/{homepageCarouselSlide}/move-down', [HomepageCarouselController::class, 'moveDown'])
+            ->middleware('permission:settings.update')->name('move-down');
+        Route::delete('/{homepageCarouselSlide}', [HomepageCarouselController::class, 'destroy'])
             ->middleware('permission:settings.delete')->name('destroy');
     });
 });
