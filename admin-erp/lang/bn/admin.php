@@ -334,6 +334,19 @@ return [
     'document' => [
         'application' => 'আবেদনপত্র',
         'print' => 'প্রিন্ট করুন',
+        'close' => 'বন্ধ করুন',
+        'doc_title' => 'স্বেচ্ছাসেবী আবেদনপত্র',
+        'application_no' => 'আবেদন নম্বর',
+        'other_prefix' => 'অন্যান্য',
+        'attached' => 'সংযুক্ত আছে',
+        'not_provided' => 'প্রদান করা হয়নি',
+        'declarations_and_consent' => 'ঘোষণা ও সম্মতি',
+        'accuracy_declaration' => 'তথ্যের সঠিকতার ঘোষণা',
+        'privacy_consent' => 'গোপনীয়তা নীতিতে সম্মতি',
+        'contact_consent' => 'যোগাযোগের অনুমতি',
+        'contribution_heading' => 'প্রভাতফেরীতে যেভাবে অবদান রাখতে চান',
+        'generated_footer' => 'এই নথিটি Provatferi ERP থেকে :datetime-এ তৈরি হয়েছে — শুধুমাত্র অভ্যন্তরীণ পর্যালোচনার জন্য।',
+        'language_label' => 'নথির ভাষা',
     ],
 
     'fields' => [
