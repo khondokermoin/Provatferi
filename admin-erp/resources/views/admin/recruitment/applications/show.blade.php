@@ -2,12 +2,36 @@
 
 @section('page-actions')
     <div class="d-flex flex-wrap gap-2">
-        <a href="{{ route('admin.recruitment.applications.pdf', $application) }}" class="btn btn-light border" target="_blank" rel="noopener noreferrer">
-            <i class="ti ti-file-type-pdf me-1" aria-hidden="true"></i>{{ __('admin.fields.download_pdf_action') }}
-        </a>
-        <a href="{{ route('admin.recruitment.applications.print', $application) }}" class="btn btn-light border" target="_blank" rel="noopener noreferrer">
-            <i class="ti ti-printer me-1" aria-hidden="true"></i>{{ __('admin.fields.print_action') }}
-        </a>
+        <div class="btn-group">
+            <a href="{{ route('admin.recruitment.applications.pdf', $application) }}" class="btn btn-light border" target="_blank" rel="noopener noreferrer">
+                <i class="ti ti-file-type-pdf me-1" aria-hidden="true"></i>{{ __('admin.fields.download_pdf_action') }}
+            </a>
+            <button type="button" class="btn btn-light border dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="visually-hidden">{{ __('admin.document.language_label') }}</span>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end">
+                @foreach (\App\Support\AdminLocale::codes() as $code)
+                    <a href="{{ route('admin.recruitment.applications.pdf', [$application, 'doclang' => $code]) }}" class="dropdown-item" target="_blank" rel="noopener noreferrer">
+                        {{ \App\Support\AdminLocale::label($code) }}
+                    </a>
+                @endforeach
+            </div>
+        </div>
+        <div class="btn-group">
+            <a href="{{ route('admin.recruitment.applications.print', $application) }}" class="btn btn-light border" target="_blank" rel="noopener noreferrer">
+                <i class="ti ti-printer me-1" aria-hidden="true"></i>{{ __('admin.fields.print_action') }}
+            </a>
+            <button type="button" class="btn btn-light border dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="visually-hidden">{{ __('admin.document.language_label') }}</span>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end">
+                @foreach (\App\Support\AdminLocale::codes() as $code)
+                    <a href="{{ route('admin.recruitment.applications.print', [$application, 'doclang' => $code]) }}" class="dropdown-item" target="_blank" rel="noopener noreferrer">
+                        {{ \App\Support\AdminLocale::label($code) }}
+                    </a>
+                @endforeach
+            </div>
+        </div>
         <a href="{{ route('admin.recruitment.applications.index') }}" class="btn btn-light">
             <i class="ti ti-arrow-left me-1" aria-hidden="true"></i>{{ __('admin.actions.back') }}
         </a>

@@ -9,10 +9,12 @@ use App\Notifications\VolunteerApplicationStatusChangedNotification;
 use App\Services\ApplicationDocumentService;
 use App\Services\NoticeFileService;
 use App\Services\RecruitmentPdfService;
+use App\Support\AdminLocale;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
@@ -153,19 +155,48 @@ class JobApplicationController extends Controller
     }
 
     /**
+     * §Phase3-4: the document's own language, independent of the admin's own
+     * panel locale — an admin browsing in Bangla can still hand an English
+     * copy to an English-speaking board member. ?doclang=bn|en picks it
+     * explicitly; anything else (omitted, unsupported) falls back to the
+     * admin's current panel locale, per Phase 3's "default follows current
+     * admin locale" requirement.
+     */
+    private function resolveDocLocale(Request $request): string
+    {
+        $requested = $request->query('doclang');
+
+        return AdminLocale::isSupported($requested) ? $requested : App::getLocale();
+    }
+
+    /**
      * Print view: plain authenticated HTML, no admin chrome (layouts.print).
      * The photo is fetched by the BROWSER via the normal authenticated file
      * route — the admin viewing this page already has that session, exactly
      * like the detail page's own photo thumbnail.
      */
-    public function print(JobApplication $jobApplication): View
+    public function print(Request $request, JobApplication $jobApplication): Response
     {
         $jobApplication->load(['jobPosting', 'reviewer']);
+        $docLocale = $this->resolveDocLocale($request);
+        $originalLocale = App::getLocale();
 
-        return view('admin.recruitment.applications.print', [
+        // The whole page — including document.blade.php's labels and
+        // section headings via document.blade.php's own __()/option_label()
+        // calls — must render under the DOCUMENT's language, not the admin's
+        // own. A View is normally returned lazily and rendered by the
+        // framework after this method returns, which would happen too late
+        // for App::setLocale() here to reach it — ->render() forces it to
+        // happen now, inside the locale switch, exactly like pdf() below.
+        App::setLocale($docLocale);
+        $html = view('admin.recruitment.applications.print', [
             'title' => $jobApplication->applicant_name,
             'application' => $jobApplication,
             'contactLabels' => option_options('preferred_contacts', JobApplication::PREFERRED_CONTACTS),
+            'docLocale' => $docLocale,
+            'docLocaleLinks' => collect(AdminLocale::codes())
+                ->mapWithKeys(fn (string $code) => [$code => route('admin.recruitment.applications.print', [$jobApplication, 'doclang' => $code])])
+                ->all(),
             // photoFileExists(), not photo_path truthiness — a recorded path
             // whose file is gone must render the placeholder, not an <img>
             // pointing at a route that will 404 (a broken image icon).
@@ -174,7 +205,10 @@ class JobApplicationController extends Controller
                 : null,
             'logoSrc' => asset('brand/provatferi-logo-light.png'),
             'generatedAt' => Carbon::now(),
-        ]);
+        ])->render();
+        App::setLocale($originalLocale);
+
+        return response($html);
     }
 
     /**
@@ -184,9 +218,11 @@ class JobApplicationController extends Controller
      * mPDF's own HTML parser. Same document.blade.php partial as print(),
      * so the two outputs never drift apart.
      */
-    public function pdf(JobApplication $jobApplication): Response
+    public function pdf(Request $request, JobApplication $jobApplication): Response
     {
         $jobApplication->load(['jobPosting', 'reviewer']);
+        $docLocale = $this->resolveDocLocale($request);
+        $originalLocale = App::getLocale();
 
         $photoSrc = null;
         if ($jobApplication->photoFileExists()) {
@@ -202,6 +238,13 @@ class JobApplicationController extends Controller
             ? 'data:image/png;base64,'.base64_encode((string) file_get_contents($logoPath))
             : null;
 
+        // The whole document — labels, section headings, and contactLabels —
+        // renders under the DOCUMENT's own language, restored immediately
+        // after so the rest of this request is unaffected. Every
+        // applicant-entered value ($application->applicant_*, district,
+        // profession, experience, contribution, ...) is read verbatim inside
+        // document.blade.php regardless of this locale — never translated.
+        App::setLocale($docLocale);
         $html = view('admin.recruitment.applications.document', [
             'application' => $jobApplication,
             'contactLabels' => option_options('preferred_contacts', JobApplication::PREFERRED_CONTACTS),
@@ -209,6 +252,7 @@ class JobApplicationController extends Controller
             'logoSrc' => $logoSrc,
             'generatedAt' => Carbon::now(),
         ])->render();
+        App::setLocale($originalLocale);
 
         $bytes = $this->pdf->render($html);
 

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="bn">
+<html lang="{{ $docLocale ?? 'bn' }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $title ?? 'আবেদনপত্র' }} — Provatferi ERP</title>
+    <title>{{ $title ?? __('admin.document.application') }} — Provatferi ERP</title>
     <link rel="icon" href="{{ asset('brand/provatferi-icon-light.png') }}" type="image/png">
 
     <style>
@@ -39,7 +39,8 @@
             padding: 7px 14px; border-radius: 6px; border: 1px solid #D8CFC2;
             background: #FFFFFF; color: #201B17; text-decoration: none; line-height: 1.3;
         }
-        .print-toolbar button.primary { background: #AC350A; border-color: #AC350A; color: #fff; }
+        .print-toolbar button.primary, .print-toolbar a.primary { background: #AC350A; border-color: #AC350A; color: #fff; }
+        .print-toolbar .toolbar-label { align-self: center; font-size: 12px; color: #6B5F53; margin-right: -4px; }
 
         .print-page {
             max-width: 210mm; margin: 20px auto 40px; background: #FFFFFF;
@@ -63,8 +64,16 @@
     <div class="print-toolbar no-print">
         {{-- This standalone layout never loads the admin panel's icon font —
              plain text only, not an icon glyph that would silently render blank. --}}
-        <button type="button" class="primary" onclick="window.print()">প্রিন্ট করুন</button>
-        <button type="button" onclick="window.close()">বন্ধ করুন</button>
+        @if (! empty($docLocaleLinks))
+            <span class="toolbar-label">{{ __('admin.document.language_label') }}:</span>
+            @foreach ($docLocaleLinks as $locale => $url)
+                <a href="{{ $url }}" class="{{ ($docLocale ?? 'bn') === $locale ? 'primary' : '' }}">
+                    {{ \App\Support\AdminLocale::label($locale) }}
+                </a>
+            @endforeach
+        @endif
+        <button type="button" class="primary" onclick="window.print()">{{ __('admin.document.print') }}</button>
+        <button type="button" onclick="window.close()">{{ __('admin.document.close') }}</button>
     </div>
 
     <div class="print-page">

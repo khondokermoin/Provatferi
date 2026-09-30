@@ -18,6 +18,23 @@
     reviewed_by, status, id/job_posting_id, any storage path, skill KEYS
     (labels only). If a CV exists, its presence is noted — the file itself
     is never embedded.
+
+    BILINGUAL DOCUMENT (Phase 3 Step 4): the caller (JobApplicationController
+    print()/pdf()) sets App::setLocale() to the requested document language
+    (?doclang=bn|en, defaulting to the admin's own current locale) BEFORE
+    building $contactLabels and rendering this view — every __()/option_label()
+    call below, and bn_datetime()'s digit/month-name choice, therefore follows
+    that document language, completely independent of the admin's own UI
+    locale for the rest of the panel. What must NEVER be translated stays
+    untouched here: every literal $application->applicant_* / district /
+    current_location / profession / availability / experience / contribution /
+    other_skills read is the applicant's own submitted text, shown verbatim in
+    whichever language they wrote it in — the same rule as
+    admin.bilingual.applicant_note. skillLabels() is also left alone in either
+    document language, per the established, pre-existing policy that
+    JobApplication::SKILLS is a fixed, largely-English technical vocabulary,
+    not a translation gap (see StatusAndOptionHelpersTest's sibling decision
+    for option_label()/status_label() call sites elsewhere in admin).
 --}}
 <style>
     body { font-family: notosansbengali, sans-serif; font-size: 10.5pt; color: #201B17; line-height: 1.5; }
@@ -70,7 +87,7 @@
         <td>
             <div class="org-name-bn">প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র</div>
             <div class="org-name-en">Provatferi Literary and Cultural Center</div>
-            <div class="doc-title">স্বেচ্ছাসেবী আবেদনপত্র / Volunteer Application</div>
+            <div class="doc-title">{{ __('admin.document.doc_title') }}</div>
         </td>
     </tr>
 </table>
@@ -78,13 +95,13 @@
 
 <table class="doc-meta">
     <tr>
-        <td class="meta-label">আবেদন নম্বর</td>
+        <td class="meta-label">{{ __('admin.document.application_no') }}</td>
         <td><strong>{{ $application->application_no }}</strong></td>
         <td class="meta-label" style="width: 110px;">{{ __('admin.fields.notice') }}</td>
         <td>{{ $application->jobPosting?->title ?? '—' }}</td>
     </tr>
     <tr>
-        <td class="meta-label">জমার তারিখ/সময়</td>
+        <td class="meta-label">{{ __('admin.fields.submitted_at') }}</td>
         <td colspan="3">{{ bn_datetime($application->submitted_at ?? $application->created_at) }}</td>
     </tr>
 </table>
@@ -107,16 +124,16 @@
 <table class="fields">
     <tr><th>{{ __('admin.fields.mobile') }}</th><td>{{ $application->applicant_phone ?: '—' }}</td></tr>
     <tr><th>{{ __('admin.common.email') }}</th><td>{{ $application->applicant_email }}</td></tr>
-    <tr><th>পছন্দের যোগাযোগ মাধ্যম</th><td>{{ $contactLabels[$application->preferred_contact] ?? '—' }}</td></tr>
+    <tr><th>{{ option_label('application_field_labels', 'preferred_contact') }}</th><td>{{ $contactLabels[$application->preferred_contact] ?? '—' }}</td></tr>
     <tr><th>{{ __('admin.fields.district') }}</th><td>{{ $application->district ?: '—' }}</td></tr>
-    <tr><th>বর্তমান অবস্থান</th><td>{{ $application->current_location ?: '—' }}</td></tr>
-    <tr><th>পেশা / শিক্ষা</th><td>{{ $application->profession ?: '—' }}</td></tr>
-    <tr><th>সপ্তাহে সময় দিতে পারবেন</th><td>{{ $application->availability ?: '—' }}</td></tr>
+    <tr><th>{{ option_label('application_field_labels', 'current_location') }}</th><td>{{ $application->current_location ?: '—' }}</td></tr>
+    <tr><th>{{ option_label('application_field_labels', 'profession') }}</th><td>{{ $application->profession ?: '—' }}</td></tr>
+    <tr><th>{{ option_label('application_field_labels', 'availability') }}</th><td>{{ $application->availability ?: '—' }}</td></tr>
 </table>
 
 @php $skillLabels = $application->skillLabels(); @endphp
 @if ($skillLabels !== [] || $application->other_skills)
-    <div class="section-title">আগ্রহ ও দক্ষতার ক্ষেত্র</div>
+    <div class="section-title">{{ option_label('application_field_labels', 'skills') }}</div>
     @if ($skillLabels !== [])
         <div>
             @foreach ($skillLabels as $label)
@@ -125,34 +142,34 @@
         </div>
     @endif
     @if ($application->other_skills)
-        <p class="long-text">অন্যান্য: {{ $application->other_skills }}</p>
+        <p class="long-text">{{ __('admin.document.other_prefix') }}: {{ $application->other_skills }}</p>
     @endif
 @endif
 
 @if ($application->experience)
-    <div class="section-title">কাজের অভিজ্ঞতা</div>
+    <div class="section-title">{{ option_label('application_field_labels', 'experience') }}</div>
     <p class="long-text">{{ $application->experience }}</p>
 @endif
 
 @if ($application->contribution)
-    <div class="section-title">প্রভাতফেরীতে যেভাবে অবদান রাখতে চান</div>
+    <div class="section-title">{{ __('admin.document.contribution_heading') }}</div>
     <p class="long-text">{{ $application->contribution }}</p>
 @endif
 
 <div class="section-title">{{ __('admin.fields.attachment') }}</div>
 <table class="fields">
-    <tr><th>সিভি / রেজিউমে</th><td>{{ $application->cv_path ? 'সংযুক্ত আছে' : 'প্রদান করা হয়নি' }}</td></tr>
+    <tr><th>{{ option_label('application_field_labels', 'cv') }}</th><td>{{ $application->cv_path ? __('admin.document.attached') : __('admin.document.not_provided') }}</td></tr>
 </table>
 
-<div class="section-title">ঘোষণা ও সম্মতি</div>
+<div class="section-title">{{ __('admin.document.declarations_and_consent') }}</div>
 <ul class="consent-list">
-    @foreach (['accuracy_declaration' => 'তথ্যের সঠিকতার ঘোষণা', 'privacy_consent' => 'গোপনীয়তা নীতিতে সম্মতি', 'contact_consent' => 'যোগাযোগের অনুমতি'] as $field => $label)
+    @foreach (['accuracy_declaration', 'privacy_consent', 'contact_consent'] as $field)
         <li class="{{ $application->{$field} ? 'consent-yes' : 'consent-no' }}">
-            {{ $application->{$field} ? '✓' : '✗' }} {{ $label }}
+            {{ $application->{$field} ? '✓' : '✗' }} {{ __('admin.document.'.$field) }}
         </li>
     @endforeach
 </ul>
 
 <div class="doc-footer">
-    এই নথিটি Provatferi ERP থেকে {{ bn_datetime($generatedAt) }}-এ তৈরি হয়েছে — শুধুমাত্র অভ্যন্তরীণ পর্যালোচনার জন্য।
+    {{ __('admin.document.generated_footer', ['datetime' => bn_datetime($generatedAt)]) }}
 </div>
