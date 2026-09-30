@@ -199,6 +199,15 @@ return [
         'cash_payment_recorded' => 'নগদ পরিশোধ রেকর্ড করা হয়েছে — এখন যাচাই করুন।',
         'payment_verified' => 'পরিশোধ যাচাই করা হয়েছে।',
         'payment_waived' => 'পরিশোধ মওকুফ রেকর্ড করা হয়েছে।',
+        'activity_type_created' => '":name" তৈরি হয়েছে।',
+        'activity_type_updated' => '":name" হালনাগাদ হয়েছে।',
+        'activity_type_deleted' => '":name" মুছে ফেলা হয়েছে।',
+        'submission_approved' => 'আবেদন অনুমোদিত হয়েছে — কমিটির সদস্য তালিকায় যুক্ত হয়েছে।',
+        'submission_rejected' => 'আবেদন প্রত্যাখ্যান করা হয়েছে।',
+        'correction_email_sent' => 'সংশোধনের জন্য ই-মেইল পাঠানো হয়েছে — লিংকটি নিচে একবারই দেখানো হবে (ব্যাকআপ হিসেবে), এখনই কপি করুন।',
+        'membership_type_created' => '":name" তৈরি হয়েছে।',
+        'membership_type_updated' => '":name" হালনাগাদ হয়েছে।',
+        'membership_type_deleted' => '":name" মুছে ফেলা হয়েছে।',
     ],
 
     'forms' => [
@@ -794,6 +803,10 @@ return [
         'position_has_members_cannot_delete' => 'এই পদে সদস্য বা আবেদন যুক্ত আছে — মুছে ফেলা যাবে না।',
         'membership_approval_blocked_payment' => 'পরিশোধ যাচাই না হওয়া পর্যন্ত অনুমোদন করা যাবে না — আগে পেমেন্ট যাচাই করুন অথবা মওকুফ রেকর্ড করুন।',
         'payment_already_recorded_cannot_waive' => 'ইতিমধ্যে একটি পরিশোধ রেকর্ড আছে — নতুন করে মওকুফ করা যাবে না।',
+        'activity_type_in_use_simple' => 'এই ধরনটি কার্যক্রমে ব্যবহৃত হচ্ছে — আগে সেগুলোর ধরন পরিবর্তন করুন।',
+        'applications_bare' => 'আবেদন',
+        'position_already_occupied_warning' => '":position" পদটি ইতিমধ্যে পূর্ণ — তবু এই সদস্যকে যোগ করা হয়েছে, চাইলে পর্যালোচনা করুন।',
+        'transition_not_allowed' => 'এই অবস্থা থেকে এই পরিবর্তন সম্ভব নয়।',
     ],
 
     'filters' => [
