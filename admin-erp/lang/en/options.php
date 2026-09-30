@@ -53,4 +53,19 @@ return [
         'email' => 'Email',
     ],
     'volunteer_note' => 'This is a volunteer opportunity; there is currently no commitment of financial compensation.',
+    'committee_types' => [
+        'executive' => 'Executive Committee',
+        'advisory' => 'Advisory Council',
+        'sub' => 'Sub-committee',
+        'ad_hoc' => 'Ad-hoc Committee',
+    ],
+    'unit_types' => [
+        'central' => 'Central',
+        'division' => 'Division',
+        'district' => 'District',
+        'upazila' => 'Upazila',
+        'union' => 'Union',
+        'branch' => 'Branch',
+        'unit' => 'Unit',
+    ],
 ];

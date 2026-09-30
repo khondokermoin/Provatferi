@@ -52,11 +52,11 @@ class OrganizationUnitController extends Controller
             ->withQueryString();
 
         return view('admin.organization.units.index', [
-            'title' => 'সাংগঠনিক ইউনিট',
-            'breadcrumbs' => [['label' => 'সংগঠন'], ['label' => 'সাংগঠনিক ইউনিট']],
+            'title' => __('admin.nav.units'),
+            'breadcrumbs' => [['label' => __('admin.nav.groups.organization')], ['label' => __('admin.nav.units')]],
             'units' => $units,
             'filters' => $filters,
-            'unitTypes' => self::UNIT_TYPES,
+            'unitTypes' => option_options('unit_types', self::UNIT_TYPES),
             'statuses' => status_options(self::STATUSES),
             'hasAnyUnit' => OrganizationalUnit::query()->exists(),
         ]);
@@ -65,14 +65,14 @@ class OrganizationUnitController extends Controller
     public function create(): View
     {
         return view('admin.organization.units.form', [
-            'title' => 'নতুন সাংগঠনিক ইউনিট',
+            'title' => __('admin.fields.new_unit'),
             'breadcrumbs' => [
-                ['label' => 'সাংগঠনিক ইউনিট', 'route' => 'admin.organization.units.index'],
-                ['label' => 'তৈরি করুন'],
+                ['label' => __('admin.nav.units'), 'route' => 'admin.organization.units.index'],
+                ['label' => __('admin.actions.create')],
             ],
             'unit' => new OrganizationalUnit(['status' => 'active', 'sort_order' => 0]),
             'parentOptions' => $this->parentOptions(),
-            'unitTypes' => self::UNIT_TYPES,
+            'unitTypes' => option_options('unit_types', self::UNIT_TYPES),
             'statuses' => status_options(self::STATUSES),
         ]);
     }
@@ -86,7 +86,7 @@ class OrganizationUnitController extends Controller
 
         return redirect()
             ->route('admin.organization.units.show', $unit)
-            ->with('success', "“{$unit->name}” তৈরি হয়েছে।");
+            ->with('success', __('admin.flash.unit_created', ['name' => $unit->name]));
     }
 
     public function show(OrganizationalUnit $unit): View
@@ -96,26 +96,26 @@ class OrganizationUnitController extends Controller
         return view('admin.organization.units.show', [
             'title' => $unit->name,
             'breadcrumbs' => [
-                ['label' => 'সাংগঠনিক ইউনিট', 'route' => 'admin.organization.units.index'],
+                ['label' => __('admin.nav.units'), 'route' => 'admin.organization.units.index'],
                 ['label' => $unit->name],
             ],
             'unit' => $unit,
-            'unitTypes' => self::UNIT_TYPES,
+            'unitTypes' => option_options('unit_types', self::UNIT_TYPES),
         ]);
     }
 
     public function edit(OrganizationalUnit $unit): View
     {
         return view('admin.organization.units.form', [
-            'title' => 'সম্পাদনা — '.$unit->name,
+            'title' => __('admin.fields.edit_prefix').' — '.$unit->name,
             'breadcrumbs' => [
-                ['label' => 'সাংগঠনিক ইউনিট', 'route' => 'admin.organization.units.index'],
+                ['label' => __('admin.nav.units'), 'route' => 'admin.organization.units.index'],
                 ['label' => $unit->name, 'route' => 'admin.organization.units.show', 'params' => $unit],
-                ['label' => 'সম্পাদনা'],
+                ['label' => __('admin.actions.edit')],
             ],
             'unit' => $unit,
             'parentOptions' => $this->parentOptions($unit),
-            'unitTypes' => self::UNIT_TYPES,
+            'unitTypes' => option_options('unit_types', self::UNIT_TYPES),
             'statuses' => status_options(self::STATUSES),
         ]);
     }
@@ -128,7 +128,7 @@ class OrganizationUnitController extends Controller
 
         return redirect()
             ->route('admin.organization.units.show', $unit)
-            ->with('success', "“{$unit->name}” হালনাগাদ হয়েছে।");
+            ->with('success', __('admin.flash.unit_updated', ['name' => $unit->name]));
     }
 
     public function destroy(OrganizationalUnit $unit): RedirectResponse
@@ -138,7 +138,7 @@ class OrganizationUnitController extends Controller
         if ($unit->children()->exists()) {
             return redirect()
                 ->route('admin.organization.units.show', $unit)
-                ->with('error', 'এই ইউনিটের অধীনে সাব-ইউনিট আছে। আগে সেগুলো সরান বা অন্য প্যারেন্টে নিন।');
+                ->with('error', __('admin.fields.unit_has_sub_units_cannot_delete', ['count' => $unit->children()->count()]));
         }
 
         $name = $unit->name;
@@ -146,7 +146,7 @@ class OrganizationUnitController extends Controller
 
         return redirect()
             ->route('admin.organization.units.index')
-            ->with('success', "“{$name}” মুছে ফেলা হয়েছে।");
+            ->with('success', __('admin.flash.unit_deleted', ['name' => $name]));
     }
 
     /** @return array<string, mixed> */
@@ -178,11 +178,11 @@ class OrganizationUnitController extends Controller
     private function attributeNames(): array
     {
         return [
-            'name' => 'নাম',
-            'unit_type' => 'ইউনিটের ধরন',
-            'parent_id' => 'প্যারেন্ট ইউনিট',
-            'status' => 'স্ট্যাটাস',
-            'sort_order' => 'ক্রম',
+            'name' => __('admin.common.name'),
+            'unit_type' => __('admin.fields.unit_type'),
+            'parent_id' => __('admin.fields.parent_unit'),
+            'status' => __('admin.common.status'),
+            'sort_order' => __('admin.common.order'),
         ];
     }
 

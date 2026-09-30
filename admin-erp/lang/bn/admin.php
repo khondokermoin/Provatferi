@@ -235,6 +235,14 @@ return [
         'last_super_admin_cannot_delete' => 'এটিই শেষ সক্রিয় Super Admin — একে মুছে ফেলা যাবে না।',
         'password_reset_sent' => '":email" ঠিকানায় পাসওয়ার্ড রিসেট লিঙ্ক পাঠানো হয়েছে।',
         'password_reset_failed' => 'রিসেট লিঙ্ক পাঠানো যায়নি।',
+        'committee_created' => '":name" তৈরি হয়েছে।',
+        'committee_updated' => '":name" হালনাগাদ হয়েছে।',
+        'committee_deleted' => '":name" মুছে ফেলা হয়েছে।',
+        'committee_status_updated' => 'কমিটির স্ট্যাটাস হালনাগাদ হয়েছে।',
+        'committee_has_members_cannot_delete' => 'এই কমিটিতে সদস্য আছে — আগে সদস্যদের সরান।',
+        'unit_created' => '":name" তৈরি হয়েছে।',
+        'unit_updated' => '":name" হালনাগাদ হয়েছে।',
+        'unit_deleted' => '":name" মুছে ফেলা হয়েছে।',
     ],
 
     'forms' => [
