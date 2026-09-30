@@ -99,8 +99,7 @@
                         <summary class="fs-13 text-primary" style="cursor:pointer">+ {{ __('admin.fields.add_new_position') }}</summary>
                         <form method="POST" action="{{ route('admin.committees.positions.store', $committee) }}" class="mt-2">
                             @csrf
-                            <x-admin.form-input name="name" label="{{ __('admin.fields.position_name') }}" required />
-                            <x-admin.form-input name="name_en" label="{{ __('admin.fields.position_name') }} {{ __('admin.bilingual.en_label_suffix') }}" />
+                            <x-admin.bilingual-field name="name" label="{{ __('admin.fields.position_name') }}" required />
                             <x-admin.form-input name="display_order" label="{{ __('admin.common.order') }}" type="number" min="0" :value="0" required />
                             <div class="form-check mb-3">
                                 <input type="checkbox" class="form-check-input" id="allow_duplicates" name="allow_duplicates" value="1">

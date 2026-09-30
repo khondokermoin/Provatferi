@@ -10,11 +10,11 @@
         <div class="row">
             <div class="col-lg-8">
                 <x-admin.card title="{{ __('admin.fields.objective') }}">
-                    <x-admin.form-input name="title" label="{{ __('admin.fields.title') }} ({{ __('admin.common.optional') }})" :value="$objective->title"
+                    <x-admin.bilingual-field name="title" label="{{ __('admin.fields.title') }} ({{ __('admin.common.optional') }})"
+                        :bn-value="$objective->title" :en-value="$objective->title_en"
                         help="{{ __('admin.fields.objective_title_help') }}" />
-                    <x-admin.form-input name="title_en" label="{{ __('admin.fields.title') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$objective->title_en" />
-                    <x-admin.form-textarea name="body" label="{{ __('admin.common.description') }}" :value="$objective->body" :rows="3" required />
-                    <x-admin.form-textarea name="body_en" label="{{ __('admin.common.description') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$objective->body_en" :rows="3" />
+                    <x-admin.bilingual-field as="textarea" name="body" label="{{ __('admin.common.description') }}"
+                        :bn-value="$objective->body" :en-value="$objective->body_en" :rows="3" required />
                 </x-admin.card>
             </div>
 

@@ -924,5 +924,6 @@ return [
         'en_complete' => 'English translation added',
         'optional_note' => 'English is optional — if left empty, the public site shows the Bangla text on the English page.',
         'applicant_note' => 'Applicant-submitted information is never translated — it is shown exactly as it was submitted.',
+        'tab_has_error' => 'This tab has a validation error',
     ],
 ];

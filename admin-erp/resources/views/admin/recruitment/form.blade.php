@@ -18,16 +18,16 @@
         <div class="row">
             <div class="col-lg-8">
                 <x-admin.card title="{{ __('admin.common.description') }}">
-                    <x-admin.form-input name="title" label="{{ __('admin.common.title') }}" :value="$jobPosting->title" required />
-                    <x-admin.form-input name="title_en" label="{{ __('admin.fields.title') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$jobPosting->title_en" />
+                    <x-admin.bilingual-field name="title" label="{{ __('admin.common.title') }}"
+                        :bn-value="$jobPosting->title" :en-value="$jobPosting->title_en" required />
                     <x-admin.form-input name="slug" label="{{ __('admin.common.slug') }}" :value="$jobPosting->slug"
                         help="{{ $isEdit ? __('admin.fields.slug_change_redirect_help') : __('admin.fields.slug_auto_generate_help') }}" />
-                    <x-admin.form-textarea name="summary" label="{{ __('admin.common.summary') }}" :value="$jobPosting->summary" :rows="2" />
-                    <x-admin.form-textarea name="summary_en" label="{{ __('admin.fields.summary') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$jobPosting->summary_en" :rows="2" />
-                    <x-admin.form-textarea name="description" label="{{ __('admin.fields.full_body') }}" :value="$jobPosting->description" :rows="6" required />
-                    <x-admin.form-textarea name="description_en" label="{{ __('admin.fields.full_body') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$jobPosting->description_en" :rows="6" />
-                    <x-admin.form-textarea name="requirements" label="{{ __('admin.fields.requirements') }}" :value="$jobPosting->requirements" :rows="4" />
-                    <x-admin.form-textarea name="requirements_en" label="{{ __('admin.fields.requirements') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$jobPosting->requirements_en" :rows="4" />
+                    <x-admin.bilingual-field as="textarea" name="summary" label="{{ __('admin.common.summary') }}"
+                        :bn-value="$jobPosting->summary" :en-value="$jobPosting->summary_en" :rows="2" />
+                    <x-admin.bilingual-field as="textarea" name="description" label="{{ __('admin.fields.full_body') }}"
+                        :bn-value="$jobPosting->description" :en-value="$jobPosting->description_en" :rows="6" required />
+                    <x-admin.bilingual-field as="textarea" name="requirements" label="{{ __('admin.fields.requirements') }}"
+                        :bn-value="$jobPosting->requirements" :en-value="$jobPosting->requirements_en" :rows="4" />
 
                     <div class="row">
                         <div class="col-md-6">

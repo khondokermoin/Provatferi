@@ -13,17 +13,13 @@
         <div class="row">
             <div class="col-lg-8">
                 <x-admin.card title="{{ __('admin.fields.main_info') }}" subtitle="{{ __('admin.fields.unit_identity_subtitle') }}">
-                    <x-admin.form-input
+                    <x-admin.bilingual-field
                         name="name"
                         label="{{ __('admin.fields.unit_name') }}"
-                        :value="$unit->name"
+                        :bn-value="$unit->name"
+                        :en-value="$unit->name_en"
                         required
                         help="{{ __('admin.fields.unit_name_example_help') }}" />
-
-                    <x-admin.form-input
-                        name="name_en"
-                        label="{{ __('admin.fields.unit_name') }} {{ __('admin.bilingual.en_label_suffix') }}"
-                        :value="$unit->name_en" />
 
                     {{-- Two columns only where the fields are genuinely short;
                          Bootstrap stacks them below 768px automatically. --}}

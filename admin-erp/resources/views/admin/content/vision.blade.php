@@ -8,9 +8,8 @@
         <div class="row">
             <div class="col-lg-7">
                 <x-admin.card title="Vision" subtitle="{{ __('admin.fields.long_form_content') }} — {{ __('admin.fields.last_updated') }}: {{ $block->updated_at ? bn_datetime($block->updated_at) : '—' }}">
-                    <x-admin.form-textarea name="body" label="{{ __('admin.common.description') }}" :value="$block->body" :rows="8" required
-                        :disabled="! auth()->user()->can('settings.update')" />
-                    <x-admin.form-textarea name="body_en" label="{{ __('admin.common.description') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$block->body_en" :rows="8"
+                    <x-admin.bilingual-field as="textarea" name="body" label="{{ __('admin.common.description') }}"
+                        :bn-value="$block->body" :en-value="$block->body_en" :rows="8" required
                         :disabled="! auth()->user()->can('settings.update')" />
 
                     <div class="form-check">

@@ -966,3 +966,24 @@ input:-webkit-autofill:focus {
 .pf-password-toggle[data-showing='true'] .pf-icon-eye {
   display: none;
 }
+
+/*
+ * PHASE3-EDITOR: the reusable [বাংলা] [English] tabbed content editor
+ * (components/admin/bilingual-field.blade.php). Bootstrap's own nav-tabs
+ * and tab-content classes do the actual show/hide and theming; this is
+ * only the touch-target and visual-attachment polish Bootstrap doesn't
+ * provide out of the box.
+ */
+.pf-bilingual-tabs .nav-link {
+  min-height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+.pf-bilingual-tab-content {
+  background-color: var(--ct-secondary-bg);
+}
+.pf-bilingual-missing-hint {
+  color: var(--ct-secondary-color);
+}

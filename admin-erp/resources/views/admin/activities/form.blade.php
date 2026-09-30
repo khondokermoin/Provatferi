@@ -17,13 +17,13 @@
         <div class="row">
             <div class="col-lg-8">
                 <x-admin.card title="{{ __('admin.fields.main_info') }}">
-                    <x-admin.form-input name="title" label="{{ __('admin.common.title') }}" :value="$activity->title" required />
-                    <x-admin.form-input name="title_en" label="{{ __('admin.fields.title') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$activity->title_en" />
-                    <x-admin.form-textarea name="summary" label="{{ __('admin.common.summary') }}" :value="$activity->summary" :rows="2"
+                    <x-admin.bilingual-field name="title" label="{{ __('admin.common.title') }}"
+                        :bn-value="$activity->title" :en-value="$activity->title_en" required />
+                    <x-admin.bilingual-field as="textarea" name="summary" label="{{ __('admin.common.summary') }}"
+                        :bn-value="$activity->summary" :en-value="$activity->summary_en" :rows="2"
                         help="{{ __('admin.fields.shown_in_list_and_cards_help') }}" />
-                    <x-admin.form-textarea name="summary_en" label="{{ __('admin.fields.summary') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$activity->summary_en" :rows="2" />
-                    <x-admin.form-textarea name="description" label="{{ __('admin.fields.detailed_description') }}" :value="$activity->description" :rows="4" />
-                    <x-admin.form-textarea name="description_en" label="{{ __('admin.fields.detailed_description') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$activity->description_en" :rows="4" />
+                    <x-admin.bilingual-field as="textarea" name="description" label="{{ __('admin.fields.detailed_description') }}"
+                        :bn-value="$activity->description" :en-value="$activity->description_en" :rows="4" />
 
                     <div class="row">
                         <div class="col-md-6">
@@ -62,12 +62,12 @@
                 </x-admin.card>
 
                 <x-admin.card title="{{ __('admin.fields.details_and_results') }}" subtitle="{{ __('admin.fields.leave_empty_if_no_real_info_help') }}">
-                    <x-admin.form-textarea name="objective" label="{{ __('admin.fields.objective') }}" :value="$activity->objective" :rows="2" />
-                    <x-admin.form-textarea name="objective_en" label="{{ __('admin.fields.objective') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$activity->objective_en" :rows="2" />
-                    <x-admin.form-textarea name="what_happened" label="{{ __('admin.fields.what_happened') }}" :value="$activity->what_happened" :rows="4" />
-                    <x-admin.form-textarea name="what_happened_en" label="{{ __('admin.fields.what_happened') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$activity->what_happened_en" :rows="4" />
-                    <x-admin.form-textarea name="outcomes" label="{{ __('admin.fields.outcomes_impact') }}" :value="$activity->outcomes" :rows="3" />
-                    <x-admin.form-textarea name="outcomes_en" label="{{ __('admin.fields.outcomes_impact') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$activity->outcomes_en" :rows="3" />
+                    <x-admin.bilingual-field as="textarea" name="objective" label="{{ __('admin.fields.objective') }}"
+                        :bn-value="$activity->objective" :en-value="$activity->objective_en" :rows="2" />
+                    <x-admin.bilingual-field as="textarea" name="what_happened" label="{{ __('admin.fields.what_happened') }}"
+                        :bn-value="$activity->what_happened" :en-value="$activity->what_happened_en" :rows="4" />
+                    <x-admin.bilingual-field as="textarea" name="outcomes" label="{{ __('admin.fields.outcomes_impact') }}"
+                        :bn-value="$activity->outcomes" :en-value="$activity->outcomes_en" :rows="3" />
                     <x-admin.form-input name="facebook_post_url" label="{{ __('admin.fields.facebook_post_link') }}" type="url" :value="$activity->facebook_post_url" />
                 </x-admin.card>
             </div>

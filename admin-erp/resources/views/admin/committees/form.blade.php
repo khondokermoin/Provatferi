@@ -10,8 +10,8 @@
         <div class="row">
             <div class="col-lg-8">
                 <x-admin.card title="{{ __('admin.fields.committee_info') }}">
-                    <x-admin.form-input name="name" label="{{ __('admin.fields.committee_name') }}" :value="$committee->name" required />
-                    <x-admin.form-input name="name_en" label="{{ __('admin.fields.committee_name') }} {{ __('admin.bilingual.en_label_suffix') }}" :value="$committee->name_en" />
+                    <x-admin.bilingual-field name="name" label="{{ __('admin.fields.committee_name') }}"
+                        :bn-value="$committee->name" :en-value="$committee->name_en" required />
 
                     <div class="row">
                         <div class="col-md-6">
@@ -24,10 +24,8 @@
                         </div>
                     </div>
 
-                    <x-admin.form-textarea name="description" label="{{ __('admin.fields.notes_desc') }}"
-                        :value="$committee->description" :rows="4" />
-                    <x-admin.form-textarea name="description_en" label="{{ __('admin.fields.notes_desc') }} {{ __('admin.bilingual.en_label_suffix') }}"
-                        :value="$committee->description_en" :rows="4" />
+                    <x-admin.bilingual-field as="textarea" name="description" label="{{ __('admin.fields.notes_desc') }}"
+                        :bn-value="$committee->description" :en-value="$committee->description_en" :rows="4" />
                 </x-admin.card>
             </div>
 
