@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\OrganizationUnitController;
 use App\Http\Controllers\Api\V1\Public\CommitteeController as PublicCommitteeController;
 use App\Http\Controllers\Api\V1\Public\CommitteeCorrectionController;
 use App\Http\Controllers\Api\V1\Public\CommitteeRegistrationController;
+use App\Http\Controllers\Api\V1\Public\HomepageCarouselController;
 use App\Http\Controllers\Api\V1\Public\MemberDirectoryController;
 use App\Http\Controllers\Api\V1\Public\MembershipApplicationController;
 use App\Http\Controllers\Api\V1\Public\MembershipCampaignController;
@@ -52,6 +53,8 @@ Route::prefix('v1')->group(function () {
     // Public — new-phase membership/committee contracts (§41), consumed by
     // provatferi.org's server-side fetches only, never the browser directly.
     Route::prefix('public')->group(function () {
+        Route::get('/homepage-carousel', [HomepageCarouselController::class, 'index']);
+
         Route::get('/membership/campaigns/current', [MembershipCampaignController::class, 'current']);
         Route::post('/membership/applications', [MembershipApplicationController::class, 'store'])->middleware('throttle:6,1');
 

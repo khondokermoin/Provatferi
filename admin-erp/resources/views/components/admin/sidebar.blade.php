@@ -94,6 +94,7 @@
                         ['label' => __('admin.nav.mission'), 'route' => 'admin.content.mission.edit'],
                         ['label' => __('admin.nav.vision'), 'route' => 'admin.content.vision.edit'],
                         ['label' => __('admin.nav.objectives'), 'route' => 'admin.content.objectives.index'],
+                        ['label' => __('admin.nav.homepage_carousel'), 'route' => 'admin.homepage-carousel.index'],
                         ['label' => __('admin.nav.site_settings'), 'route' => 'admin.settings.index'],
                     ],
                 ],
