@@ -2,7 +2,9 @@ import Link from "next/link";
 import { activityCategories, org, recentActivities } from "@/lib/content";
 import { activityCategories as activityCategoriesEn, recentActivities as recentActivitiesEn } from "@/lib/content.en";
 import { getNotices } from "@/lib/api/notices";
+import { getCarouselSlides } from "@/lib/api/carousel";
 import NoticeList from "@/components/NoticeList";
+import HomeCarousel from "@/components/HomeCarousel";
 import { isLocale, type Locale } from "@/lib/i18n";
 import { localizeHref } from "@/lib/i18n/paths";
 
@@ -129,8 +131,17 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const noticesResult = await getNotices({ perPage: HOME_NOTICE_COUNT });
   const latestNotices = noticesResult.ok ? noticesResult.data.data : [];
 
+  // Same rule as notices: no slides, or the ERP unreachable, means no
+  // carousel section at all — HomeCarousel itself also returns null on an
+  // empty list, so this is belt-and-suspenders against ever rendering an
+  // empty carousel shell.
+  const carouselResult = await getCarouselSlides();
+  const carouselSlides = carouselResult.ok ? carouselResult.data : [];
+
   return (
     <div className="home-page">
+      {carouselSlides.length > 0 && <HomeCarousel slides={carouselSlides} locale={locale} />}
+
       <section className="home-hero" aria-labelledby="hero-title">
         <div className="hero-copy">
           <p className="eyebrow"><span className="sun-dot" /> {c.eyebrow}</p>

@@ -137,6 +137,14 @@ export interface UiStrings {
     bn: string;
     en: string;
   };
+  carousel: {
+    ariaLabel: string;
+    previousSlide: string;
+    nextSlide: string;
+    pause: string;
+    play: string;
+    goToSlide: (n: number) => string;
+  };
   enums: {
     noticeType: Record<string, string>;
     employmentType: Record<string, string>;
