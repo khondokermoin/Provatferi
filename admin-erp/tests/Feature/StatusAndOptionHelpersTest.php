@@ -70,4 +70,31 @@ class StatusAndOptionHelpersTest extends TestCase
 
         $this->assertSame(['required' => 'আবশ্যক', 'optional' => 'ঐচ্ছিক'], $options);
     }
+
+    public function test_upload_error_label_translates_a_known_message_under_english_locale(): void
+    {
+        App::setLocale('en');
+
+        $this->assertSame(
+            'Only PDF files are accepted.',
+            upload_error_label('শুধুমাত্র PDF ফাইল গ্রহণযোগ্য।'),
+        );
+    }
+
+    public function test_upload_error_label_leaves_the_message_untouched_under_bangla_locale(): void
+    {
+        App::setLocale('bn');
+
+        $this->assertSame(
+            'শুধুমাত্র PDF ফাইল গ্রহণযোগ্য।',
+            upload_error_label('শুধুমাত্র PDF ফাইল গ্রহণযোগ্য।'),
+        );
+    }
+
+    public function test_upload_error_label_returns_an_unrecognised_message_unchanged_under_english_locale(): void
+    {
+        App::setLocale('en');
+
+        $this->assertSame('কিছু একটা ভুল হয়েছে।', upload_error_label('কিছু একটা ভুল হয়েছে।'));
+    }
 }

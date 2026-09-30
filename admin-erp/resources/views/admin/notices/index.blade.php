@@ -65,7 +65,7 @@
                 <td data-label="{{ __('admin.fields.subject') }}">
                     <div class="d-flex flex-column gap-1">
                         <span class="d-flex flex-wrap align-items-center gap-2">
-                            <span class="badge bg-light text-body border fw-medium">{{ $notice->typeLabel() }}</span>
+                            <span class="badge bg-light text-body border fw-medium">{{ option_label('notice_types', $notice->notice_type) }}</span>
                             @if ($notice->isActivelyPinned())
                                 <span class="badge bg-warning-subtle text-warning-emphasis d-inline-flex align-items-center gap-1">
                                     <i class="ti ti-pin" aria-hidden="true"></i>{{ __('admin.fields.pinned') }}
