@@ -17,8 +17,8 @@ class RoleController extends Controller
     public function index(): View
     {
         return view('admin.roles.index', [
-            'title' => 'ভূমিকা',
-            'breadcrumbs' => [['label' => 'সিস্টেম'], ['label' => 'ভূমিকা']],
+            'title' => __('admin.nav.roles'),
+            'breadcrumbs' => [['label' => __('admin.nav.groups.system')], ['label' => __('admin.nav.roles')]],
             'roles' => Role::query()->withCount(['users', 'permissions'])->orderBy('name')->paginate(15),
         ]);
     }
@@ -26,8 +26,8 @@ class RoleController extends Controller
     public function create(): View
     {
         return view('admin.roles.form', [
-            'title' => 'নতুন ভূমিকা',
-            'breadcrumbs' => [['label' => 'ভূমিকা', 'route' => 'admin.roles.index'], ['label' => 'তৈরি করুন']],
+            'title' => __('admin.fields.new_role'),
+            'breadcrumbs' => [['label' => __('admin.nav.roles'), 'route' => 'admin.roles.index'], ['label' => __('admin.actions.create')]],
             'role' => new Role(),
             'grouped' => $this->groupedPermissions(),
             'assigned' => [],
@@ -46,14 +46,14 @@ class RoleController extends Controller
         ]);
         $role->permissions()->sync($data['permissions'] ?? []);
 
-        return redirect()->route('admin.roles.index')->with('success', "“{$role->name}” তৈরি হয়েছে।");
+        return redirect()->route('admin.roles.index')->with('success', __('admin.flash.role_created', ['name' => $role->name]));
     }
 
     public function edit(Role $role): View
     {
         return view('admin.roles.form', [
-            'title' => 'সম্পাদনা — '.$role->name,
-            'breadcrumbs' => [['label' => 'ভূমিকা', 'route' => 'admin.roles.index'], ['label' => $role->name]],
+            'title' => __('admin.fields.edit_prefix').' — '.$role->name,
+            'breadcrumbs' => [['label' => __('admin.nav.roles'), 'route' => 'admin.roles.index'], ['label' => $role->name]],
             'role' => $role,
             'grouped' => $this->groupedPermissions(),
             'assigned' => $role->permissions->pluck('id')->all(),
@@ -70,7 +70,7 @@ class RoleController extends Controller
             $role->permissions()->sync(Permission::query()->pluck('id'));
 
             return redirect()->route('admin.roles.index')
-                ->with('warning', 'Super Admin সবসময় সব permission ধরে রাখে — permission পরিবর্তন প্রয়োগ করা হয়নি।');
+                ->with('warning', __('admin.flash.super_admin_permissions_not_applied'));
         }
 
         $role->update([
@@ -79,24 +79,24 @@ class RoleController extends Controller
         ]);
         $role->permissions()->sync($data['permissions'] ?? []);
 
-        return redirect()->route('admin.roles.index')->with('success', "“{$role->name}” হালনাগাদ হয়েছে।");
+        return redirect()->route('admin.roles.index')->with('success', __('admin.flash.role_updated', ['name' => $role->name]));
     }
 
     public function destroy(Role $role): RedirectResponse
     {
         if ($role->is_system_role) {
-            return back()->with('error', "“{$role->name}” একটি সিস্টেম ভূমিকা — মুছে ফেলা যাবে না।");
+            return back()->with('error', __('admin.fields.system_role_cannot_delete', ['name' => $role->name]));
         }
 
         if ($role->users()->exists()) {
-            return back()->with('error', "“{$role->name}” এখনো {$role->users()->count()} জন ব্যবহারকারীর সঙ্গে যুক্ত — আগে তাদের সরান।");
+            return back()->with('error', __('admin.fields.role_in_use_cannot_delete', ['count' => $role->users()->count()]));
         }
 
         $name = $role->name;
         $role->permissions()->detach();
         $role->delete();
 
-        return redirect()->route('admin.roles.index')->with('success', "“{$name}” মুছে ফেলা হয়েছে।");
+        return redirect()->route('admin.roles.index')->with('success', __('admin.flash.role_deleted', ['name' => $name]));
     }
 
     /** @return array<string, mixed> */
@@ -107,7 +107,7 @@ class RoleController extends Controller
             'description' => ['nullable', 'string', 'max:1000'],
             'permissions' => ['array'],
             'permissions.*' => ['integer', Rule::exists('permissions', 'id')],
-        ], [], ['name' => 'ভূমিকার নাম']);
+        ], [], ['name' => __('admin.fields.role_name')]);
     }
 
     /**

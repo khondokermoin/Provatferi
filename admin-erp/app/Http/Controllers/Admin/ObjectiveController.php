@@ -13,8 +13,8 @@ class ObjectiveController extends Controller
     public function index(): View
     {
         return view('admin.content.objectives.index', [
-            'title' => 'উদ্দেশ্যসমূহ',
-            'breadcrumbs' => [['label' => 'বিষয়বস্তু'], ['label' => 'উদ্দেশ্যসমূহ']],
+            'title' => __('admin.nav.objectives'),
+            'breadcrumbs' => [['label' => __('admin.nav.groups.content')], ['label' => __('admin.nav.objectives')]],
             'objectives' => Objective::query()->orderBy('sort_order')->orderBy('id')->get(),
         ]);
     }
@@ -24,10 +24,10 @@ class ObjectiveController extends Controller
         $nextOrder = (int) Objective::query()->max('sort_order') + 1;
 
         return view('admin.content.objectives.form', [
-            'title' => 'নতুন উদ্দেশ্য',
+            'title' => __('admin.fields.new_objective'),
             'breadcrumbs' => [
-                ['label' => 'উদ্দেশ্যসমূহ', 'route' => 'admin.content.objectives.index'],
-                ['label' => 'তৈরি করুন'],
+                ['label' => __('admin.nav.objectives'), 'route' => 'admin.content.objectives.index'],
+                ['label' => __('admin.actions.create')],
             ],
             'objective' => new Objective(['sort_order' => $nextOrder, 'active' => true]),
         ]);
@@ -37,16 +37,16 @@ class ObjectiveController extends Controller
     {
         Objective::query()->create($this->validated($request));
 
-        return redirect()->route('admin.content.objectives.index')->with('success', 'উদ্দেশ্য যোগ হয়েছে।');
+        return redirect()->route('admin.content.objectives.index')->with('success', __('admin.flash.objective_created'));
     }
 
     public function edit(Objective $objective): View
     {
         return view('admin.content.objectives.form', [
-            'title' => 'উদ্দেশ্য সম্পাদনা',
+            'title' => __('admin.fields.edit_objective_title'),
             'breadcrumbs' => [
-                ['label' => 'উদ্দেশ্যসমূহ', 'route' => 'admin.content.objectives.index'],
-                ['label' => 'সম্পাদনা'],
+                ['label' => __('admin.nav.objectives'), 'route' => 'admin.content.objectives.index'],
+                ['label' => __('admin.actions.edit')],
             ],
             'objective' => $objective,
         ]);
@@ -56,21 +56,21 @@ class ObjectiveController extends Controller
     {
         $objective->update($this->validated($request));
 
-        return redirect()->route('admin.content.objectives.index')->with('success', 'উদ্দেশ্য হালনাগাদ হয়েছে।');
+        return redirect()->route('admin.content.objectives.index')->with('success', __('admin.flash.objective_updated'));
     }
 
     public function destroy(Objective $objective): RedirectResponse
     {
         $objective->delete();
 
-        return redirect()->route('admin.content.objectives.index')->with('success', 'উদ্দেশ্য মুছে ফেলা হয়েছে।');
+        return redirect()->route('admin.content.objectives.index')->with('success', __('admin.flash.objective_deleted'));
     }
 
     public function toggleActive(Objective $objective): RedirectResponse
     {
         $objective->update(['active' => ! $objective->active]);
 
-        return back()->with('success', $objective->active ? 'সক্রিয় করা হয়েছে।' : 'নিষ্ক্রিয় করা হয়েছে।');
+        return back()->with('success', $objective->active ? __('admin.flash.objective_activated') : __('admin.flash.objective_deactivated'));
     }
 
     /** Swaps sort_order with the immediately preceding objective. */
@@ -116,7 +116,7 @@ class ObjectiveController extends Controller
             'body' => ['required', 'string', 'max:2000'],
             'body_en' => ['nullable', 'string', 'max:2000'],
             'sort_order' => ['required', 'integer', 'min:0', 'max:65535'],
-        ], [], ['body' => 'বিবরণ', 'sort_order' => 'ক্রম']);
+        ], [], ['body' => __('admin.common.description'), 'sort_order' => __('admin.common.order')]);
         $data['active'] = $request->boolean('active');
 
         return $data;

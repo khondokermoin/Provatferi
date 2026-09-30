@@ -208,6 +208,18 @@ return [
         'membership_type_created' => '":name" তৈরি হয়েছে।',
         'membership_type_updated' => '":name" হালনাগাদ হয়েছে।',
         'membership_type_deleted' => '":name" মুছে ফেলা হয়েছে।',
+        'activity_created' => '":title" তৈরি হয়েছে।',
+        'activity_updated' => '":title" হালনাগাদ হয়েছে।',
+        'activity_deleted' => '":title" মুছে ফেলা হয়েছে।',
+        'objective_created' => 'উদ্দেশ্য যোগ হয়েছে।',
+        'objective_updated' => 'উদ্দেশ্য হালনাগাদ হয়েছে।',
+        'objective_deleted' => 'উদ্দেশ্য মুছে ফেলা হয়েছে।',
+        'objective_activated' => 'সক্রিয় করা হয়েছে।',
+        'objective_deactivated' => 'নিষ্ক্রিয় করা হয়েছে।',
+        'role_created' => '":name" তৈরি হয়েছে।',
+        'role_updated' => '":name" হালনাগাদ হয়েছে।',
+        'role_deleted' => '":name" মুছে ফেলা হয়েছে।',
+        'super_admin_permissions_not_applied' => 'Super Admin সবসময় সব permission ধরে রাখে — permission পরিবর্তন প্রয়োগ করা হয়নি।',
     ],
 
     'forms' => [
@@ -807,6 +819,12 @@ return [
         'applications_bare' => 'আবেদন',
         'position_already_occupied_warning' => '":position" পদটি ইতিমধ্যে পূর্ণ — তবু এই সদস্যকে যোগ করা হয়েছে, চাইলে পর্যালোচনা করুন।',
         'transition_not_allowed' => 'এই অবস্থা থেকে এই পরিবর্তন সম্ভব নয়।',
+        'activity_type' => 'কার্যক্রমের ধরন',
+        'start_datetime' => 'শুরুর তারিখ ও সময়',
+        'publish_required_field' => 'প্রকাশ করার জন্য এই তথ্যটি আবশ্যক।',
+        'edit_objective_title' => 'উদ্দেশ্য সম্পাদনা',
+        'new_role' => 'নতুন ভূমিকা',
+        'system_role_cannot_delete' => '":name" একটি সিস্টেম ভূমিকা — মুছে ফেলা যাবে না।',
     ],
 
     'filters' => [
