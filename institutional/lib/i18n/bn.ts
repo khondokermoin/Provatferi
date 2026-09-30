@@ -140,6 +140,14 @@ export const bn: UiStrings = {
     bn: "বাংলা",
     en: "English",
   },
+  carousel: {
+    ariaLabel: "বিশেষ প্রদর্শনী",
+    previousSlide: "আগের স্লাইড",
+    nextSlide: "পরের স্লাইড",
+    pause: "স্লাইডশো থামান",
+    play: "স্লাইডশো চালু করুন",
+    goToSlide: (n) => `স্লাইড ${n}-এ যান`,
+  },
   enums: {
     noticeType: {
       general: "সাধারণ বিজ্ঞপ্তি",

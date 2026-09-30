@@ -141,6 +141,14 @@ export const en: UiStrings = {
     bn: "বাংলা",
     en: "English",
   },
+  carousel: {
+    ariaLabel: "Featured highlights",
+    previousSlide: "Previous slide",
+    nextSlide: "Next slide",
+    pause: "Pause slideshow",
+    play: "Play slideshow",
+    goToSlide: (n) => `Go to slide ${n}`,
+  },
   enums: {
     noticeType: {
       general: "General Notice",

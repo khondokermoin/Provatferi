@@ -486,3 +486,19 @@ export interface MemberProfileState {
   live: MemberProfileVersionView | null;
   pending: MemberProfileVersionView | null;
 }
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/public/homepage-carousel — Phase 4
+// ---------------------------------------------------------------------------
+
+export interface CarouselSlide {
+  id: number;
+  image_url: string | null;
+  title: string | null;
+  title_en: string | null;
+  alt_text: string | null;
+  alt_text_en: string | null;
+  link_url: string | null;
+  link_label: string | null;
+  link_label_en: string | null;
+}
