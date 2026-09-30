@@ -181,7 +181,7 @@ class RecruitmentController extends Controller
         try {
             return $this->files->storeShareImage($request->file('share_image'));
         } catch (RuntimeException $e) {
-            throw ValidationException::withMessages(['share_image' => $e->getMessage()]);
+            throw ValidationException::withMessages(['share_image' => upload_error_label($e->getMessage())]);
         }
     }
 

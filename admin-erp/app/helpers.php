@@ -187,3 +187,44 @@ if (! function_exists('option_options')) {
         return collect($slugs)->mapWithKeys(fn (string $slug) => [$slug => option_label($group, $slug)])->all();
     }
 }
+
+/**
+ * PhotoUploadService, ApplicationDocumentService and NoticeFileService are
+ * shared with public API controllers (public committee registration,
+ * membership application, volunteer application, member profile) serving
+ * provatferi.org, where error text must stay Bangla per Phase 2's documented
+ * "validation messages are not locale-aware" limitation — so those services
+ * always throw a raw Bangla RuntimeException message and are never touched
+ * to call __() themselves. This is the one place an ADMIN controller (e.g.
+ * NoticeController/RecruitmentController catching that same exception to
+ * show the admin user) converts a recognised message to English under the
+ * `en` admin locale. An unrecognised message — a future wording change in
+ * one of the services — is returned unchanged rather than silently dropped.
+ */
+if (! function_exists('upload_error_label')) {
+    function upload_error_label(string $message): string
+    {
+        if (admin_locale_is_bn()) {
+            return $message;
+        }
+
+        static $map = [
+            'সিভির আকার সর্বোচ্চ ৫ MB হতে পারে।' => 'The CV can be at most 5 MB.',
+            'শুধুমাত্র PDF ফাইল গ্রহণযোগ্য।' => 'Only PDF files are accepted.',
+            'ফাইলটি পড়া যায়নি।' => 'The file could not be read.',
+            'ফাইলটি একটি বৈধ PDF নয়।' => 'The file is not a valid PDF.',
+            'ফাইল সংরক্ষণ করা যায়নি।' => 'The file could not be saved.',
+            'সংযুক্তির আকার সর্বোচ্চ ১০ MB হতে পারে।' => 'The attachment can be at most 10 MB.',
+            'শুধুমাত্র PDF সংযুক্তি গ্রহণযোগ্য।' => 'Only PDF attachments are accepted.',
+            'সংযুক্তি সংরক্ষণ করা যায়নি।' => 'The attachment could not be saved.',
+            'ফাইলের আকার সর্বোচ্চ সীমার চেয়ে বড়।' => 'The file size exceeds the maximum allowed.',
+            'শুধুমাত্র JPG, JPEG, PNG বা WEBP ফাইল গ্রহণযোগ্য।' => 'Only JPG, JPEG, PNG, or WEBP files are accepted.',
+            'ফাইলটি একটি বৈধ ছবি নয়।' => 'The file is not a valid image.',
+            'ছবিটি ক্ষতিগ্রস্ত বা অসম্পূর্ণ।' => 'The image is corrupted or incomplete.',
+            'ছবি সংরক্ষণ করা যায়নি।' => 'The image could not be saved.',
+            'মূল ছবিটি খুঁজে পাওয়া যায়নি।' => 'The original image could not be found.',
+        ];
+
+        return $map[$message] ?? $message;
+    }
+}

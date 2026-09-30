@@ -274,7 +274,7 @@ class NoticeController extends Controller
             try {
                 $newCover = $this->files->storeCover($request->file('cover_image'));
             } catch (RuntimeException $e) {
-                throw ValidationException::withMessages(['cover_image' => $e->getMessage()]);
+                throw ValidationException::withMessages(['cover_image' => upload_error_label($e->getMessage())]);
             }
         }
         if ($request->hasFile('share_image')) {
@@ -282,7 +282,7 @@ class NoticeController extends Controller
                 $newShareImage = $this->files->storeShareImage($request->file('share_image'));
             } catch (RuntimeException $e) {
                 $this->files->delete($newCover);
-                throw ValidationException::withMessages(['share_image' => $e->getMessage()]);
+                throw ValidationException::withMessages(['share_image' => upload_error_label($e->getMessage())]);
             }
         }
         if ($request->hasFile('attachment')) {
@@ -291,7 +291,7 @@ class NoticeController extends Controller
             } catch (RuntimeException $e) {
                 $this->files->delete($newCover);
                 $this->files->delete($newShareImage);
-                throw ValidationException::withMessages(['attachment' => $e->getMessage()]);
+                throw ValidationException::withMessages(['attachment' => upload_error_label($e->getMessage())]);
             }
         }
 

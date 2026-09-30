@@ -8,7 +8,7 @@
     @endcan
     @can('recruitment.view')
         <a href="{{ route('admin.recruitment.applications.index', ['posting' => $jobPosting->id]) }}" class="btn btn-light">
-            <i class="ti ti-users me-1" aria-hidden="true"></i>Applications ({{ $jobPosting->applications_count }})
+            <i class="ti ti-users me-1" aria-hidden="true"></i>{{ __('admin.fields.applications_bare') }} ({{ $jobPosting->applications_count }})
         </a>
     @endcan
     <a href="{{ route('admin.recruitment.index') }}" class="btn btn-light">
@@ -43,7 +43,7 @@
                     <dt class="fs-13 text-muted">{{ __('admin.fields.department') }}</dt>
                     <dd>{{ $jobPosting->department ?: '—' }}</dd>
                     <dt class="fs-13 text-muted">{{ __('admin.fields.employment_type') }}</dt>
-                    <dd>{{ $jobPosting->employmentTypeLabel() ?? '—' }}</dd>
+                    <dd>{{ $jobPosting->employment_type ? option_label('employment_types', $jobPosting->employment_type) : '—' }}</dd>
                     <dt class="fs-13 text-muted">{{ __('admin.fields.compensation') }}</dt>
                     <dd>
                         @if ($jobPosting->isVolunteer())
