@@ -20,7 +20,7 @@ import { NextRequest, NextResponse } from "next/server";
  * resolved page, which does have them). Client Components don't need this;
  * they already derive locale from `usePathname()`.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const headers = new Headers(request.headers);
   headers.set("x-pathname", pathname);

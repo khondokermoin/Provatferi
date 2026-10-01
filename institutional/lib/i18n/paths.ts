@@ -2,7 +2,7 @@ import type { Locale } from "./types";
 import { DEFAULT_LOCALE } from "./types";
 
 /**
- * middleware.ts always rewrites a bn request to an internal `/bn/...` path
+ * proxy.ts always rewrites a bn request to an internal `/bn/...` path
  * (there is no real `/bn` segment in any browser-visible URL) and leaves an
  * `/en/...` request as-is — so `usePathname()`/the resolved route ALWAYS
  * carries one of these two prefixes internally. This strips it back to the

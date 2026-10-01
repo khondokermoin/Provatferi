@@ -10,7 +10,7 @@
 //
 // Phase 2 Increment 2 (plan Section I): extended to assert the `[locale]`
 // route tree itself survived the build — both locales resolve to the SAME
-// route set (bn is served from these routes unprefixed via middleware.ts's
+// route set (bn is served from these routes unprefixed via proxy.ts's
 // rewrite; en matches them directly), so one manifest check covers both.
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
