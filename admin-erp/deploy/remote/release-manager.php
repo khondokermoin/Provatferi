@@ -147,6 +147,13 @@ function extractTar(string $tarPath, string $destDir): void
 // contract is directly unit-testable (see that file's own docblock).
 require_once __DIR__.'/lib/uploads-persistence.php';
 
+// publicUploadsRoot(), ensurePublicUploadsRoot(), migrateLegacyPublicUploads(),
+// setEnvValue(), writePublicUploadsSentinel() — the PUBLIC-uploads half of the
+// same problem, added 2026-10-02 and split out for the same testability
+// reason (see lib/public-uploads.php's docblock for the storage:link failure
+// this exists to fix).
+require_once __DIR__.'/lib/public-uploads.php';
+
 function bootApp(string $appBase): \Illuminate\Foundation\Application
 {
     if (!defined('LARAVEL_PUBLIC_PATH_OVERRIDE')) {
@@ -195,16 +202,23 @@ case 'install':
     // release-manager.php itself (as public_html/admin/lib/uploads-persistence.php)
     // in the same staging batch; relocated into _tooling/lib/ here, same
     // pattern as config-contract.php above.
-    $libSrc = $PUBLIC_DOCROOT.'/lib/uploads-persistence.php';
-    if (!$SELF_IN_TOOLING && is_file($libSrc)) {
-        if (!is_dir($TOOLING_DIR.'/lib')) mkdir($TOOLING_DIR.'/lib', 0755, true);
-        copy($libSrc, $TOOLING_DIR.'/lib/uploads-persistence.php');
-        @unlink($libSrc);
-        @rmdir($PUBLIC_DOCROOT.'/lib'); // only removes it if now empty — never fails loudly if not
-        $result['relocated_uploads_persistence_lib'] = is_file($TOOLING_DIR.'/lib/uploads-persistence.php');
-    } else {
-        $result['relocated_uploads_persistence_lib'] = is_file($TOOLING_DIR.'/lib/uploads-persistence.php') ? 'already present' : 'MISSING — upload lib/uploads-persistence.php alongside release-manager.php and rerun install';
+    // Both libs are required unconditionally at the top of this file, so they
+    // must exist next to whichever copy is running or every action fatals
+    // before dispatch. lib/public-uploads.php joined the list 2026-10-02.
+    foreach (['uploads-persistence.php', 'public-uploads.php'] as $libFile) {
+        $libSrc = $PUBLIC_DOCROOT.'/lib/'.$libFile;
+        $libDest = $TOOLING_DIR.'/lib/'.$libFile;
+        $resultKey = 'relocated_lib_'.str_replace(['-', '.php'], ['_', ''], $libFile);
+        if (!$SELF_IN_TOOLING && is_file($libSrc)) {
+            if (!is_dir($TOOLING_DIR.'/lib')) mkdir($TOOLING_DIR.'/lib', 0755, true);
+            copy($libSrc, $libDest);
+            @unlink($libSrc);
+            $result[$resultKey] = is_file($libDest);
+        } else {
+            $result[$resultKey] = is_file($libDest) ? 'already present' : 'MISSING — upload lib/'.$libFile.' alongside release-manager.php and rerun install';
+        }
     }
+    @rmdir($PUBLIC_DOCROOT.'/lib'); // only removes it if now empty — never fails loudly if not
 
     $composerSrc = $PUBLIC_DOCROOT.'/_bootstrap_composer.phar';
     if (is_file($composerSrc)) {
@@ -328,13 +342,37 @@ case 'stage':
 
     copy($manifestPath, $releaseDir.'/manifest.json');
 
+    // PUBLIC uploads (approved derivatives served over HTTP) — the mirror of
+    // the private-uploads problem solved immediately above, found 2026-10-02.
+    // storage:link can never work here (symlink() is disabled), so the
+    // 'public' disk points at <docroot>/storage instead. That path lives
+    // OUTSIDE every release directory on purpose: the switch renames
+    // laravel-admin/, never the docroot, and the public-asset sync is purely
+    // additive (copyRecursive only — it never prunes), so nothing in the
+    // deploy can erase or orphan an upload written there. Three things happen
+    // here, all idempotent: the root is created and proven writable, anything
+    // still in the old unreachable stock location is copied forward once, and
+    // PUBLIC_UPLOADS_ROOT is pinned in this release's .env so the live value
+    // is explicit rather than relying on helpers.php's auto-detection alone.
+    $publicUploadsRoot = publicUploadsRoot($PUBLIC_DOCROOT);
+    $publicUploads = ensurePublicUploadsRoot($publicUploadsRoot);
+    $publicUploads['legacy_migration'] = migrateLegacyPublicUploads($LIVE_APP.'/storage/app/public', $publicUploadsRoot);
+    $publicUploads['env_pinned'] = setEnvValue($releaseDir.'/app/.env', 'PUBLIC_UPLOADS_ROOT', $publicUploadsRoot);
+    $publicUploads['sentinel'] = writePublicUploadsSentinel($publicUploadsRoot, $releaseId);
+    if (!($publicUploads['sentinel']['ok'] ?? false)) {
+        $publicUploads['ok'] = false;
+    }
+
     $result = [
-        'ok' => $uploadsResult['ok'], 'release_dir' => $releaseDir, 'checksum_checks' => $checks,
+        'ok' => $uploadsResult['ok'] && $publicUploads['ok'], 'release_dir' => $releaseDir, 'checksum_checks' => $checks,
         'env_copied' => is_file($releaseDir.'/app/.env'),
         'uploads_persisted' => $uploadsResult,
+        'public_uploads' => $publicUploads,
     ];
     if (!$uploadsResult['ok']) {
         $result['error'] = "uploads regression: {$uploadsResult['source_file_count']} file(s) existed on the live disk before staging, only {$uploadsResult['dest_file_count']} survived the copy into the new release — refusing to let switch proceed. Investigate copyRecursive/permissions before retrying; do not re-run switch against this releaseId until this passes.";
+    } elseif (!$publicUploads['ok']) {
+        $result['error'] = 'public uploads root unusable at '.$publicUploadsRoot.' — every approved photo would publish to a path no visitor can fetch. Refusing to let switch proceed.';
     }
     mergeStatus($releaseDir, 'stage', $result);
     jout($result);
@@ -613,15 +651,41 @@ case 'switch':
         $cacheResult['error'] = $e->getMessage();
     }
 
+    // 5. PUBLIC UPLOADS PERSISTENCE GATE. The sentinel stage() wrote into the
+    //    docroot's storage/ root must still be there, byte-for-byte, AFTER
+    //    the swap and after the public-asset sync ran over the same docroot.
+    //    This is the check that would have caught the 2026-10-02 defect (and
+    //    would catch a future regression that reintroduced a release-local
+    //    public root, or made the asset sync destructive) instead of a broken
+    //    image being discovered by a visitor months later.
+    $publicUploadsRoot = publicUploadsRoot($PUBLIC_DOCROOT);
+    $expectedSentinel = $status['stage']['public_uploads']['sentinel'] ?? null;
+    $sentinelCheck = ['ok' => false, 'reason' => 'stage recorded no sentinel'];
+    if (is_array($expectedSentinel) && ($expectedSentinel['relative_path'] ?? null)) {
+        $sentinelFile = $publicUploadsRoot.'/'.$expectedSentinel['relative_path'];
+        $actualHash = is_file($sentinelFile) ? hash_file('sha256', $sentinelFile) : null;
+        $sentinelCheck = [
+            'ok' => $actualHash !== null && $actualHash === ($expectedSentinel['sha256'] ?? null),
+            'path' => $sentinelFile,
+            'expected_sha256' => $expectedSentinel['sha256'] ?? null,
+            'actual_sha256' => $actualHash,
+            'survived_switch' => $actualHash !== null,
+        ];
+    }
+
     $result = [
-        'ok' => true,
+        'ok' => $sentinelCheck['ok'],
         'previous_path' => $previousPath,
         'public_asset_sync_ms' => $publicSyncMs,
         'atomic_rename_ms' => $switchMs,
         'routes_changed' => $routesChanged,
         'cache_rebuild' => $cacheResult,
+        'public_uploads_persisted' => $sentinelCheck,
         'switched_at' => date('c'),
     ];
+    if (!$sentinelCheck['ok']) {
+        $result['error'] = 'public uploads did not survive the switch byte-identically — approved photos are at risk of being erased or unreachable. The new release IS live (the rename already completed); verify '.$publicUploadsRoot.' before trusting any upload, and consider rollback.';
+    }
     mergeStatus($releaseDir, 'switch', $result);
     file_put_contents($RELEASES_ROOT.'/CURRENT_RELEASE.json', json_encode(['release_id' => $releaseId, 'previous_path' => $previousPath, 'switched_at' => $result['switched_at']], JSON_PRETTY_PRINT));
     jout($result);
@@ -649,6 +713,51 @@ case 'smoke-test-live':
         if (config('app.debug')) $result['ok'] = false;
         $logPath = $LIVE_APP.'/storage/logs/laravel.log';
         $result['log_size_bytes_after_switch'] = is_file($logPath) ? filesize($logPath) : 0;
+
+        // The public-upload path proven END TO END over real HTTP: the disk
+        // the live app would actually write an approved photo to, fetched
+        // back as a visitor, with its bytes compared. A 200 here is the only
+        // thing that distinguishes "the file exists on disk" (which was
+        // always true, even while broken) from "a visitor can see it".
+        $sentinelRelative = null;
+        $sentinelDir = config('filesystems.disks.public.root').'/_deploy_sentinel';
+        if (is_dir($sentinelDir)) {
+            $newest = null;
+            foreach (glob($sentinelDir.'/*.txt') ?: [] as $candidate) {
+                if ($newest === null || filemtime($candidate) > filemtime($newest)) $newest = $candidate;
+            }
+            if ($newest !== null) $sentinelRelative = '_deploy_sentinel/'.basename($newest);
+        }
+
+        if ($sentinelRelative === null) {
+            $result['public_upload_http'] = ['ok' => false, 'reason' => 'no sentinel file found under the live public disk root'];
+            $result['ok'] = false;
+        } else {
+            $url = \Illuminate\Support\Facades\Storage::disk('public')->url($sentinelRelative);
+            $onDisk = config('filesystems.disks.public.root').'/'.$sentinelRelative;
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15, CURLOPT_FOLLOWLOCATION => false]);
+            $body = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            $diskHash = is_file($onDisk) ? hash_file('sha256', $onDisk) : null;
+            $httpHash = is_string($body) ? hash('sha256', $body) : null;
+            $httpOk = $code === 200 && $diskHash !== null && $diskHash === $httpHash;
+
+            $result['public_upload_http'] = [
+                'ok' => $httpOk,
+                'url' => $url,
+                'http_code' => $code,
+                'disk_sha256' => $diskHash,
+                'http_sha256' => $httpHash,
+                'bytes_match' => $diskHash !== null && $diskHash === $httpHash,
+            ];
+            if (!$httpOk) {
+                $result['ok'] = false;
+                $result['public_upload_error'] = 'the live public disk is not web-reachable (or served altered bytes) — approved photos will appear broken to visitors. This is the exact 2026-10-02 storage:link failure mode; check the public disk root and the vhost docroot before shipping.';
+            }
+        }
     } catch (\Throwable $e) {
         $result['ok'] = false;
         $result['boot_error'] = $e->getMessage();
@@ -738,3 +847,4 @@ function deleteRecursive(string $dir): void
     }
     @rmdir($dir);
 }
+

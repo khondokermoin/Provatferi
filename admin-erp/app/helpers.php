@@ -228,3 +228,43 @@ if (! function_exists('upload_error_label')) {
         return $map[$message] ?? $message;
     }
 }
+
+/**
+ * Absolute filesystem root for the 'public' disk (approved public uploads).
+ *
+ * Called from config/filesystems.php, so it must work with nothing but
+ * Composer's autoloader loaded — no facades, no container, no config().
+ *
+ * Why this exists instead of storage_path('app/public'): symlink() is in
+ * this host's php.ini disable_functions, so `storage:link` can never run
+ * here and the stock layout is permanently unreachable over HTTP. The live
+ * vhost docroot (public_html/admin) is used instead — it is web-served
+ * directly and, unlike public_path(), is never renamed by the atomic release
+ * switch, so uploads persist across deploys with no sync step. See the
+ * 'public' disk comment in config/filesystems.php for the full rationale.
+ *
+ * Resolution order:
+ *   1. PUBLIC_UPLOADS_ROOT — set explicitly by release-manager.php's `stage`
+ *      on every production release; authoritative when present.
+ *   2. Auto-detected production docroot, as a safety net if that env var is
+ *      ever missing: <laravel-admin>/../public_html/admin/storage, used only
+ *      when public_html/admin actually exists on disk.
+ *   3. storage_path('app/public') — local dev, where storage:link works.
+ */
+if (! function_exists('public_uploads_root')) {
+    function public_uploads_root(): string
+    {
+        $explicit = $_ENV['PUBLIC_UPLOADS_ROOT'] ?? $_SERVER['PUBLIC_UPLOADS_ROOT'] ?? getenv('PUBLIC_UPLOADS_ROOT');
+        if (is_string($explicit) && $explicit !== '') {
+            return rtrim($explicit, '/\\');
+        }
+
+        $base = \dirname(__DIR__); // app/ -> Laravel base path
+        $docroot = \dirname($base).'/public_html/admin';
+        if (is_dir($docroot)) {
+            return $docroot.'/storage';
+        }
+
+        return $base.'/storage/app/public';
+    }
+}
