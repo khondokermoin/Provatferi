@@ -12,7 +12,7 @@ import { splitLocaleFromPathname, localizeHref } from "@/lib/i18n/paths";
 // present — a visitor who mistyped a link can still get anywhere else.
 //
 // A genuinely unmatched URL doesn't reliably carry route params here, so
-// locale is read from the `x-pathname` header middleware.ts sets on every
+// locale is read from the `x-pathname` header proxy.ts sets on every
 // request — see that file's own docblock.
 
 async function currentLocale() {

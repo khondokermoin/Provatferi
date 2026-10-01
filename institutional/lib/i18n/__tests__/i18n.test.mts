@@ -66,14 +66,14 @@ test("pickOptionalText behaves exactly like pickText once a bn value exists", ()
 // Locale path helpers — the routing contract every Link/redirect depends on
 // ---------------------------------------------------------------------------
 
-test("splitLocaleFromPathname strips the internal /bn or /en prefix middleware always adds", () => {
+test("splitLocaleFromPathname strips the internal /bn or /en prefix proxy.ts always adds", () => {
   assert.deepEqual(splitLocaleFromPathname("/bn"), { locale: "bn", path: "/" });
   assert.deepEqual(splitLocaleFromPathname("/bn/activities"), { locale: "bn", path: "/activities" });
   assert.deepEqual(splitLocaleFromPathname("/en"), { locale: "en", path: "/" });
   assert.deepEqual(splitLocaleFromPathname("/en/activities/foo"), { locale: "en", path: "/activities/foo" });
 });
 
-test("splitLocaleFromPathname defaults to bn for a path with neither prefix (defensive — shouldn't happen given middleware)", () => {
+test("splitLocaleFromPathname defaults to bn for a path with neither prefix (defensive — shouldn't happen given proxy.ts)", () => {
   assert.deepEqual(splitLocaleFromPathname("/activities"), { locale: "bn", path: "/activities" });
 });
 
