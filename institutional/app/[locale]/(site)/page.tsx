@@ -132,16 +132,14 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const latestNotices = noticesResult.ok ? noticesResult.data.data : [];
 
   // Same rule as notices: no slides, or the ERP unreachable, means no
-  // carousel section at all — HomeCarousel itself also returns null on an
-  // empty list, so this is belt-and-suspenders against ever rendering an
-  // empty carousel shell.
+  // carousel at all — HomeCarousel itself also returns null on an empty
+  // list, so this is belt-and-suspenders against ever rendering an empty
+  // carousel shell.
   const carouselResult = await getCarouselSlides();
   const carouselSlides = carouselResult.ok ? carouselResult.data : [];
 
   return (
     <div className="home-page">
-      {carouselSlides.length > 0 && <HomeCarousel slides={carouselSlides} locale={locale} />}
-
       <section className="home-hero" aria-labelledby="hero-title">
         <div className="hero-copy">
           <p className="eyebrow"><span className="sun-dot" /> {c.eyebrow}</p>
@@ -153,6 +151,14 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           </div>
           <p className="hero-location"><span aria-hidden="true">◎</span> {c.heroLocation}</p>
         </div>
+        {/* The hero's right-hand media card. When an admin has published
+            carousel slides it IS the carousel; with none published it falls
+            back to the original static dawn poster, so the hero is never a
+            half-empty two-column layout. Both occupy the same grid cell and
+            the same aspect box, so switching between them shifts nothing. */}
+        {carouselSlides.length > 0 ? (
+          <HomeCarousel slides={carouselSlides} locale={locale} />
+        ) : (
         <div className="dawn-poster" aria-label={locale === "en" ? "A symbolic sunrise and open book" : "নতুন সকালের প্রতীকী সূর্য ও খোলা বই"}>
           <div className="poster-top"><span>{c.posterTop1}</span><span>{c.posterTop2}</span></div>
           <div className="dawn-art" aria-hidden="true">
@@ -172,6 +178,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           </div>
           <div className="poster-bottom">{c.posterBottom.map((label) => <span key={label}>{label}</span>)}</div>
         </div>
+        )}
       </section>
 
       <div className="values-strip" aria-label={locale === "en" ? "Our values" : "আমাদের মূল্যবোধ"}>
