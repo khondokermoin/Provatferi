@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { org } from "@/lib/content";
 import { getStrings, type Locale } from "@/lib/i18n";
 import { localizeHref } from "@/lib/i18n/paths";

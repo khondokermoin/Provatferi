@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import type { PublicNoticeSummary } from "@/lib/api/types";
 import { dhakaIsoDate, formatDate } from "@/lib/format";
 import { getStrings, type Locale } from "@/lib/i18n";

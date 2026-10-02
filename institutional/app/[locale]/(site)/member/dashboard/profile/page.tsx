@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { redirect } from "next/navigation";
 import { getMemberProfileState } from "@/lib/api/member";
 import { clearMemberSessionCookie, getMemberSessionToken } from "@/lib/member-session";

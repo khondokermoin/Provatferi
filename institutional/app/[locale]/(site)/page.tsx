@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { activityCategories, org, recentActivities } from "@/lib/content";
 import { activityCategories as activityCategoriesEn, recentActivities as recentActivitiesEn } from "@/lib/content.en";
 import { getNotices } from "@/lib/api/notices";

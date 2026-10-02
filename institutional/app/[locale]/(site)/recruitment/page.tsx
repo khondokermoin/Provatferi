@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { org } from "@/lib/content";
 import { applicationWindowLabel, applyCtaLabel, getJobPostings } from "@/lib/api/recruitment";
 import { formatDate } from "@/lib/format";

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { usePathname } from "next/navigation";
 import { footerExploreLinks, footerInvolvedLinks, org } from "@/lib/content";
 import { address as addressEn } from "@/lib/content.en";

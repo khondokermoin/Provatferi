@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { useActionState } from "react";
 import { loginMember, type MemberLoginState } from "@/app/[locale]/(site)/member/login/actions";
 

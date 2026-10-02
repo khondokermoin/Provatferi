@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { localizedMetadata } from "@/lib/social-meta";
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { org } from "@/lib/content";
 import { getCommittees } from "@/lib/api/committees";
 import type { PublicCommitteeSummary } from "@/lib/api/types";

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { localizedMetadata } from "@/lib/social-meta";
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { org } from "@/lib/content";
 import { getMemberDirectory } from "@/lib/api/member-directory";
 import PageHeader from "@/components/PageHeader";
