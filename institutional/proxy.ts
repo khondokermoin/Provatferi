@@ -9,9 +9,12 @@ import { NextRequest, NextResponse } from "next/server";
  * under `/en/...` matches `[locale]=en` directly and needs no rewrite.
  *
  * The matcher below excludes anything containing a dot (favicon.ico,
- * /sitemap.xml, /robots.txt, /brand/*.png, /js/*.js, ...) and `_next` — all
- * of those are real routes/static files at the true app root, outside
- * `[locale]`, and rewriting them to `/bn/sitemap.xml` etc. would 404 them.
+ * /sitemap.xml, /robots.txt, /brand/*.png, /js/*.js, ...), `_next`, and
+ * `api/` — all of those are real routes/static files at the true app root,
+ * outside `[locale]`, and rewriting them to `/bn/sitemap.xml` etc. would 404
+ * them. `api/` matters specifically for /api/revalidate: without it the
+ * server-to-server call from Laravel is rewritten to /bn/api/revalidate and
+ * 404s, and the failure is silent because Laravel deliberately swallows it.
  *
  * `x-pathname` carries the real, browser-visible URL through to Server
  * Components that have no route params to read it from — specifically
@@ -35,5 +38,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next|.*\\..*).*)"],
+  matcher: ["/((?!api/|_next|.*\\..*).*)"],
 };

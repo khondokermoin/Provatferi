@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState, type CSSProperties } from "react";
 import { getStrings, type Locale } from "@/lib/i18n";
 import { pickOptionalText } from "@/lib/i18n/pick";
 import type { CarouselSlide } from "@/lib/api/types";
@@ -41,6 +41,33 @@ function PlayIcon() {
 }
 
 /**
+ * `index` is the visible slide. `frontier` is the highest slide index whose
+ * image is allowed to load: slide 0 (the hero's LCP image) and slide 1 (so the
+ * first autoplay transition is already decoded) at first paint, then always
+ * one ahead of wherever the visitor has navigated. Kept in a reducer rather
+ * than derived from `index` alone because it must only ever grow — stepping
+ * back to an earlier slide must not unload anything that already loaded.
+ */
+type CarouselState = { index: number; frontier: number };
+type CarouselAction = { type: "go"; to: number; count: number } | { type: "step"; delta: number; count: number };
+
+function wrap(n: number, count: number) {
+  return ((n % count) + count) % count;
+}
+
+function carouselReducer(state: CarouselState, action: CarouselAction): CarouselState {
+  const to = action.type === "go" ? wrap(action.to, action.count) : wrap(state.index + action.delta, action.count);
+  return { index: to, frontier: Math.max(state.frontier, Math.min(to + 1, action.count - 1)) };
+}
+
+/**
+ * The slide image URL is server-generated (storage disk URL + a UUID), never
+ * admin-typed, but it is interpolated into a CSS url("...") below, so only a
+ * plain http(s) URL with no quote, paren or whitespace is ever allowed there.
+ */
+const SAFE_CSS_URL = /^https?:\/\/[^\s"')\\]+$/;
+
+/**
  * Phase 4: an admin-managed image carousel. It is the HERO'S RIGHT-HAND MEDIA
  * CARD — it replaces the static dawn poster in that same grid cell rather
  * than sitting above the hero (owner correction, 2026-10-02: the earlier
@@ -50,10 +77,17 @@ function PlayIcon() {
  * collapses to one column and DOM order puts the copy and CTA first, the
  * media second, which is the intended reading order.
  *
- * All slides render together in the DOM (each absolutely positioned,
- * cross-fading via opacity) rather than only the current one, so images are
- * already decoded by the time they become active — this is a small, bounded
- * list (an admin-curated set of slides), so the extra markup is cheap.
+ * Slides are absolutely positioned in one fixed-aspect box and cross-fade via
+ * opacity, so the box never changes size and nothing shifts. Each image is
+ * shown whole (`object-fit: contain`) over a blurred copy of itself rather
+ * than `cover`: admins upload text-bearing graphics and photos of any aspect
+ * ratio, and `cover` silently crops a wide poster's logo and headline off the
+ * edges, while plain `contain` would leave empty bands.
+ *
+ * Only the first slide, and the one after whichever slide is showing, have an
+ * <img> at all. Every slide is stacked in the same spot inside the viewport,
+ * so `loading="lazy"` alone does nothing for them — the browser fetches all
+ * of them at once — which is why later slides are withheld until reached.
  *
  * Accessibility follows the WAI-ARIA "carousel" pattern: the region names
  * itself via aria-roledescription, every inactive slide is aria-hidden (so a
@@ -65,33 +99,37 @@ function PlayIcon() {
  */
 export default function HomeCarousel({ slides, locale }: { slides: CarouselSlide[]; locale: Locale }) {
   const t = getStrings(locale);
-  const [index, setIndex] = useState(0);
+  const count = slides.length;
+  const multiple = count > 1;
+
+  const [state, dispatch] = useReducer(carouselReducer, count, (n): CarouselState => ({ index: 0, frontier: Math.min(1, Math.max(n - 1, 0)) }));
   const [playing, setPlaying] = useState(true);
   const [suspended, setSuspended] = useState(false);
   const regionRef = useRef<HTMLElement>(null);
 
-  const count = slides.length;
-  const multiple = count > 1;
+  // `slides` can shrink under a mounted instance, so never trust a stored index.
+  const index = count > 0 ? Math.min(state.index, count - 1) : 0;
+  const frontier = Math.min(state.frontier, Math.max(count - 1, 0));
 
-  const goTo = useCallback((next: number) => setIndex(((next % count) + count) % count), [count]);
-  const goPrev = useCallback(() => goTo(index - 1), [goTo, index]);
-  const goNext = useCallback(() => goTo(index + 1), [goTo, index]);
+  const goTo = useCallback((to: number) => dispatch({ type: "go", to, count }), [count]);
+  const goPrev = useCallback(() => dispatch({ type: "step", delta: -1, count }), [count]);
+  const goNext = useCallback(() => dispatch({ type: "step", delta: 1, count }), [count]);
 
   // Touch swipe, so the arrows are not the only way through on a phone.
   // Horizontal intent only: a swipe that is mostly vertical is the user
   // scrolling the page past the hero and must not steal that gesture.
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const onTouchStart = (event: React.TouchEvent) => {
-    const t = event.changedTouches[0];
-    touchStart.current = { x: t.clientX, y: t.clientY };
+    const touch = event.changedTouches[0];
+    touchStart.current = { x: touch.clientX, y: touch.clientY };
   };
   const onTouchEnd = (event: React.TouchEvent) => {
     const start = touchStart.current;
     touchStart.current = null;
     if (!start || !multiple) return;
-    const t = event.changedTouches[0];
-    const dx = t.clientX - start.x;
-    const dy = t.clientY - start.y;
+    const touch = event.changedTouches[0];
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
     if (Math.abs(dx) < 40 || Math.abs(dx) <= Math.abs(dy)) return;
     if (dx < 0) {
       goNext();
@@ -107,7 +145,7 @@ export default function HomeCarousel({ slides, locale }: { slides: CarouselSlide
   useEffect(() => {
     if (!multiple || !playing || suspended) return;
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    const id = window.setInterval(() => setIndex((i) => (i + 1) % count), AUTOPLAY_MS);
+    const id = window.setInterval(() => dispatch({ type: "step", delta: 1, count }), AUTOPLAY_MS);
     return () => window.clearInterval(id);
   }, [multiple, playing, suspended, count]);
 
@@ -135,21 +173,26 @@ export default function HomeCarousel({ slides, locale }: { slides: CarouselSlide
           const linkLabel = pickOptionalText(locale, slide.link_label, slide.link_label_en);
           const hasLink = slide.link_url && linkLabel;
 
+          // Withheld until reached (see the component docblock).
+          const imageUrl = slide.image_url && i <= frontier ? slide.image_url : null;
+          const backdrop = imageUrl && SAFE_CSS_URL.test(imageUrl) ? ({ "--slide-image": `url("${imageUrl}")` } as CSSProperties) : undefined;
+
           return (
             <div
               key={slide.id}
               className={`carousel-slide${active ? " is-active" : ""}`}
+              style={backdrop}
               aria-hidden={!active}
               aria-roledescription="slide"
               aria-label={t.carousel.goToSlide(i + 1)}
             >
-              {slide.image_url && (
+              {imageUrl && (
                 // The first slide is the hero's image and therefore the LCP
                 // candidate: eager + high priority so it is not queued behind
-                // later slides. Every other slide stays lazy.
+                // anything. The one after it is only a preload, so it yields.
                 // eslint-disable-next-line @next/next/no-img-element -- admin.provatferi.org is not in next/image's remotePatterns; every other admin-erp-served image on this site uses a plain <img> for the same reason.
                 <img
-                  src={slide.image_url}
+                  src={imageUrl}
                   alt={alt?.text ?? ""}
                   className="carousel-image"
                   loading={i === 0 ? "eager" : "lazy"}
