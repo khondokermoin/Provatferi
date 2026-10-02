@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { localizedMetadata } from "@/lib/social-meta";
 import type { Metadata } from "next";
 import {

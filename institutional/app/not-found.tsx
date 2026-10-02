@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import type { Metadata } from "next";
 
 // The true root fallback — only reachable for a URL that doesn't match the

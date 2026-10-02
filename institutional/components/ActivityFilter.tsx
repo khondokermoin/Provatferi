@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { useState } from "react";
 import { activityCategories } from "@/lib/content";
 import { activityCategories as activityCategoriesEn } from "@/lib/content.en";

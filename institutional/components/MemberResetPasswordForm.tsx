@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/SiteLink";
 import { useActionState } from "react";
 import { resetMemberPassword, type ResetPasswordState } from "@/app/[locale]/(site)/member/reset-password/actions";
 
