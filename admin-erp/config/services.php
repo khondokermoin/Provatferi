@@ -41,6 +41,14 @@ return [
     // are Next.js pages, not Laravel routes.
     'public_site' => [
         'url' => env('PUBLIC_SITE_URL', 'https://provatferi.org'),
+
+        // Shared HMAC secret for POST {url}/api/revalidate (see
+        // App\Services\PublicSiteRevalidator). Server-side only: never sent
+        // over the wire, only used to sign. Unset (local dev, tests) means
+        // revalidation is silently skipped rather than failing. Read through
+        // config() — not env() — at the call site, because `config:cache`
+        // makes env() return null outside config files in production.
+        'revalidate_secret' => env('REVALIDATE_SECRET'),
     ],
 
     // Mail Center (Hostinger official Mail API). The token is scoped in

@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Models\Permission;
 use App\Models\User;
 use App\Services\HostingerMailService;
+use App\Services\PublicSiteRevalidator;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Gate;
@@ -19,6 +20,11 @@ class AppServiceProvider extends ServiceProvider
         // whole request; HostingerMailService::mailboxes() also memoizes its
         // one /me call, which a fresh instance per resolution would defeat.
         $this->app->singleton(HostingerMailService::class, fn () => HostingerMailService::make());
+
+        // Singleton so several model saves in one request (a reorder is two)
+        // collapse into one revalidation call — the de-duplication lives in
+        // this one shared instance's pending list.
+        $this->app->singleton(PublicSiteRevalidator::class);
     }
 
     public function boot(): void

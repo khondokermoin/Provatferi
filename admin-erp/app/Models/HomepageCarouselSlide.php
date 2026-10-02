@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Observers\HomepageCarouselSlideObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+#[ObservedBy([HomepageCarouselSlideObserver::class])]
 class HomepageCarouselSlide extends Model
 {
     public const STATUSES = ['active' => 'সক্রিয়', 'inactive' => 'নিষ্ক্রিয়'];
