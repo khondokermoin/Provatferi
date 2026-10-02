@@ -41,13 +41,19 @@ function PlayIcon() {
 }
 
 /**
- * Phase 4: an admin-managed image carousel, rendered as a new section above
- * the existing static homepage hero (owner decision — the hero itself is
- * unchanged). All slides render together in the DOM (each absolutely
- * positioned, cross-fading via opacity) rather than only the current one, so
- * images are already decoded by the time they become active — this is a
- * small, bounded list (an admin-curated set of slides), so the extra markup
- * is cheap.
+ * Phase 4: an admin-managed image carousel. It is the HERO'S RIGHT-HAND MEDIA
+ * CARD — it replaces the static dawn poster in that same grid cell rather
+ * than sitting above the hero (owner correction, 2026-10-02: the earlier
+ * above-the-hero placement pushed the actual hero below the fold and read as
+ * a large empty box while an image was loading or broken). The hero stays one
+ * coherent section: copy and CTAs left, this right. On mobile the hero grid
+ * collapses to one column and DOM order puts the copy and CTA first, the
+ * media second, which is the intended reading order.
+ *
+ * All slides render together in the DOM (each absolutely positioned,
+ * cross-fading via opacity) rather than only the current one, so images are
+ * already decoded by the time they become active — this is a small, bounded
+ * list (an admin-curated set of slides), so the extra markup is cheap.
  *
  * Accessibility follows the WAI-ARIA "carousel" pattern: the region names
  * itself via aria-roledescription, every inactive slide is aria-hidden (so a
@@ -70,6 +76,29 @@ export default function HomeCarousel({ slides, locale }: { slides: CarouselSlide
   const goTo = useCallback((next: number) => setIndex(((next % count) + count) % count), [count]);
   const goPrev = useCallback(() => goTo(index - 1), [goTo, index]);
   const goNext = useCallback(() => goTo(index + 1), [goTo, index]);
+
+  // Touch swipe, so the arrows are not the only way through on a phone.
+  // Horizontal intent only: a swipe that is mostly vertical is the user
+  // scrolling the page past the hero and must not steal that gesture.
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const onTouchStart = (event: React.TouchEvent) => {
+    const t = event.changedTouches[0];
+    touchStart.current = { x: t.clientX, y: t.clientY };
+  };
+  const onTouchEnd = (event: React.TouchEvent) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (!start || !multiple) return;
+    const t = event.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) < 40 || Math.abs(dx) <= Math.abs(dy)) return;
+    if (dx < 0) {
+      goNext();
+    } else {
+      goPrev();
+    }
+  };
 
   // Never auto-advance for a visitor who has asked for reduced motion —
   // manual prev/next/dots remain fully available either way. Checked inside
@@ -98,7 +127,7 @@ export default function HomeCarousel({ slides, locale }: { slides: CarouselSlide
         if (!regionRef.current?.contains(event.relatedTarget as Node)) setSuspended(false);
       }}
     >
-      <div className="carousel-viewport">
+      <div className="carousel-viewport" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {slides.map((slide, i) => {
           const active = i === index;
           const heading = pickOptionalText(locale, slide.title, slide.title_en);
@@ -115,12 +144,17 @@ export default function HomeCarousel({ slides, locale }: { slides: CarouselSlide
               aria-label={t.carousel.goToSlide(i + 1)}
             >
               {slide.image_url && (
+                // The first slide is the hero's image and therefore the LCP
+                // candidate: eager + high priority so it is not queued behind
+                // later slides. Every other slide stays lazy.
                 // eslint-disable-next-line @next/next/no-img-element -- admin.provatferi.org is not in next/image's remotePatterns; every other admin-erp-served image on this site uses a plain <img> for the same reason.
                 <img
                   src={slide.image_url}
                   alt={alt?.text ?? ""}
                   className="carousel-image"
                   loading={i === 0 ? "eager" : "lazy"}
+                  fetchPriority={i === 0 ? "high" : "low"}
+                  decoding={i === 0 ? "sync" : "async"}
                   tabIndex={-1}
                 />
               )}
