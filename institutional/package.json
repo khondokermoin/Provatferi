@@ -14,7 +14,7 @@
     "test": "npm run test:api && npm run test:i18n && npm run test:config"
   },
   "dependencies": {
-    "next": "16.3.4",
+    "next": "16.3.6",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "server-only": "^0.0.1"
@@ -25,7 +25,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.3.4",
+    "eslint-config-next": "16.3.6",
     "puppeteer-core": "^25.10.0",
     "tailwindcss": "^4",
     "typescript": "^5"
