@@ -33,6 +33,9 @@ export interface ApiGetOptions<T> {
   /** ISR window in seconds. Callers set this per content type (see each
    *  lib/api/*.ts file) rather than relying on a single global default. */
   revalidateSeconds: number;
+  /** Cache tags for this fetch, so the data can be invalidated on demand
+   *  (see app/api/revalidate) instead of waiting out `revalidateSeconds`. */
+  tags?: string[];
   timeoutMs?: number;
 }
 
@@ -51,7 +54,7 @@ export async function apiGet<T>(path: string, opts: ApiGetOptions<T>): Promise<A
     response = await fetch(`${base}${path}`, {
       signal: controller.signal,
       headers: { Accept: "application/json" },
-      next: { revalidate: opts.revalidateSeconds },
+      next: { revalidate: opts.revalidateSeconds, ...(opts.tags ? { tags: opts.tags } : {}) },
     });
   } catch (err) {
     const reason: ApiErrorReason = err instanceof DOMException && err.name === "AbortError" ? "timeout" : "network_error";
