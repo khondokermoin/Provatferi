@@ -49,7 +49,7 @@ $action = $argv[1] ?? null;
 $arg2 = $argv[2] ?? null;
 
 if (!$action) {
-    fwrite(STDERR, "Usage: php release-manager.php <install|stage|build|contract-check|migrate-check|smoke-test-isolated|switch|smoke-test-live|rollback|status|cleanup> [releaseId]\n");
+    fwrite(STDERR, "Usage: php release-manager.php <install|pipeline|stage|build|contract-check|migrate-check|smoke-test-isolated|switch|smoke-test-live|rollback|status|cleanup> [releaseId]\n");
     exit(2);
 }
 
@@ -764,6 +764,44 @@ case 'smoke-test-live':
     }
     jout($result);
     if (!$result['ok']) exit(1);
+    break;
+
+case 'pipeline':
+    // Runs every PRE-SWITCH action in sequence, in one invocation, stopping
+    // at the first failure. Added 2026-10-02 for a blunt operational reason:
+    // this host caps a cron command at 255 characters once escaped, and the
+    // absolute path to this script is 91 of them, so chaining actions with
+    // `&&` in the cron itself does not fit. Without this, every deploy costs
+    // one ~5-minute cron round-trip PER action.
+    //
+    // Deliberately STOPS before `switch`: switch is the irreversible step and
+    // stays a separate, explicit decision made after a human has read
+    // migrate-check's pretend output. Same reason `migrate-apply` is not here.
+    if (!$arg2) { fwrite(STDERR, "pipeline requires <releaseId>\n"); exit(2); }
+    $releaseId = $arg2;
+    $releaseDir = $RELEASES_ROOT.'/'.$releaseId;
+
+    $steps = ['stage', 'build', 'contract-check', 'migrate-check', 'smoke-test-isolated'];
+    $pipeline = ['ok' => true, 'release_id' => $releaseId, 'steps' => []];
+    foreach ($steps as $step) {
+        $run = runProcess([$PHP_BINARY, __FILE__, $step, $releaseId], null, 900);
+        $stepOk = $run['exit_code'] === 0;
+        $pipeline['steps'][$step] = ['ok' => $stepOk, 'exit_code' => $run['exit_code']];
+        if (!$stepOk) {
+            $pipeline['ok'] = false;
+            $pipeline['failed_at'] = $step;
+            // The step already merged its own detail into status.json; echo
+            // its tail here so the cron output alone explains the failure.
+            $pipeline['steps'][$step]['stderr'] = substr($run['stderr'], -800);
+            $pipeline['steps'][$step]['stdout_tail'] = substr($run['stdout'], -800);
+            break;
+        }
+    }
+    $pipeline['next'] = $pipeline['ok']
+        ? 'review migrate-check in status.json, then run: switch '.$releaseId
+        : 'fix the failure above and re-run pipeline '.$releaseId;
+    jout($pipeline);
+    if (!$pipeline['ok']) exit(1);
     break;
 
 case 'rollback':
