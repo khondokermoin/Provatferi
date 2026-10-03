@@ -68,6 +68,7 @@ class JobApplication extends Model
         'preferred_contact', 'accuracy_declaration', 'privacy_consent', 'contact_consent',
         'cv_path', 'photo_path', 'cover_note', 'status', 'interview_at', 'interview_location',
         'interview_notes', 'internal_note', 'submitted_at', 'reviewed_by',
+        'submission_token', 'receipt_sent_at',
     ];
 
     protected function casts(): array
@@ -75,6 +76,7 @@ class JobApplication extends Model
         return [
             'interview_at' => 'datetime',
             'submitted_at' => 'datetime',
+            'receipt_sent_at' => 'datetime',
             'skills' => 'array',
             'accuracy_declaration' => 'boolean',
             'privacy_consent' => 'boolean',
@@ -97,9 +99,11 @@ class JobApplication extends Model
      * identifier in this app reads the same way. Never used for
      * authorization — no public route resolves an application at all.
      */
-    public static function generateApplicationNo(): string
+    public static function generateApplicationNo(int $skip = 0): string
     {
-        $next = (self::query()->max('id') ?? 0) + 1;
+        // $skip: a caller that lost a race for a number (the UNIQUE index refused it) asks for the
+        // next one along instead of recomputing the same max(id)+1 and losing again.
+        $next = (self::query()->max('id') ?? 0) + 1 + $skip;
 
         return 'VOL-'.now()->format('Y').'-'.str_pad((string) $next, 4, '0', STR_PAD_LEFT);
     }
