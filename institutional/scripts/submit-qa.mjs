@@ -121,9 +121,17 @@ async function openForm(browser, withTimingHeader) {
 
   const net = { posts: [] };
   cdp.on("Network.requestWillBeSent", (e) => {
-    if (e.request.method === "POST" && e.request.headers["next-action"] !== undefined) net.posts.push({ id: e.requestId, ts: e.timestamp, wall: e.wallTime });
+    // The form posts to its own route handler (app/api/recruitment/<slug>/apply); a Server Action post (next-action header) is also counted.
+    const submit = e.request.method === "POST" && (e.request.headers["next-action"] !== undefined || e.request.url.includes("/api/recruitment/"));
+    if (submit) net.posts.push({ id: e.requestId, ts: e.timestamp, wall: e.wallTime });
   });
   cdp.on("Network.responseReceived", (e) => { const p = net.posts.find((x) => x.id === e.requestId); if (p) p.response = e.response; });
+  // A refused action POST (a 4xx/5xx from an upstream layer, not the app): keep who said it and what it said.
+  page.on("response", (res) => {
+    if (res.request().method() !== "POST" || res.status() < 400) return;
+    net.refused = { status: res.status(), headers: res.headers(), body: null };
+    Promise.race([res.text(), new Promise((r) => setTimeout(() => r("(body not delivered)"), 4000))]).then((t) => { net.refused.body = String(t).slice(0, 1500); }, () => { net.refused.body = "(unreadable)"; });
+  });
   cdp.on("Network.loadingFinished", (e) => { const p = net.posts.find((x) => x.id === e.requestId); if (p) p.finished = e.timestamp; });
 
   const url = `${base}${locale === "en" ? "/en" : ""}/recruitment/${slug}/apply`;
@@ -261,6 +269,7 @@ async function submitOnce(browser, id, run, withTimingHeader = true) {
       row.responseEndMs = post.finished ? ms(epochOf(post.finished) - clickEpoch) : null;
       row.navigationMs = end && post.finished ? ms(end.epoch - epochOf(post.finished)) : null;
     }
+    if (net.refused) row.refused = debug ? net.refused : { status: net.refused.status, server: net.refused.headers.server ?? null, cfRay: net.refused.headers["cf-ray"] ?? null, cfMitigated: net.refused.headers["cf-mitigated"] ?? null };
     if (debug && post) {
       const h = post.response?.headers ?? {};
       const body = await cdp.send("Network.getResponseBody", { requestId: post.id }).then((b) => (b.base64Encoded ? "(base64)" : b.body.slice(0, 400))).catch((e) => "(no body: " + e.message + ")");
