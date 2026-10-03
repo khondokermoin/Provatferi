@@ -1,7 +1,10 @@
 "use server";
 
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { apiPostForm, isRecord } from "@/lib/api/client";
+import { apiPostForm, isRecord, type ApiPostTiming } from "@/lib/api/client";
+
+const round = (ms: number | undefined) => (ms === undefined ? null : Math.round(ms * 10) / 10);
 
 /**
  * §14: on a validation error the submitted text is handed back so the form can
@@ -69,9 +72,28 @@ export async function submitVolunteerApplication(
   _prev: VolunteerApplicationState,
   formData: FormData,
 ): Promise<VolunteerApplicationState> {
+  const startedAt = performance.now();
+  // Opt-in measurement (scripts/submit-qa.mjs sets this header; a visitor never does):
+  // the request carries `x-pf-timing: 1`, Laravel is asked for its Server-Timing, and the
+  // phase durations come back in a short-lived cookie — a successful submission ends in
+  // redirect(), which cannot carry a return value. Durations only, no personal data.
+  const wantTiming = (await headers()).get("x-pf-timing") === "1";
+  let forwarded: ApiPostTiming | undefined;
+
   const result = await apiPostForm(`/api/v1/public/recruitment/${encodeURIComponent(slug)}/applications`, formData, {
     validate: isApplicationCreatedResponse,
+    ...(wantTiming ? { forwardHeaders: { "X-Pf-Timing": "1" }, onTiming: (t: ApiPostTiming) => { forwarded = t; } } : {}),
   });
+
+  if (wantTiming) {
+    (await cookies()).set("pf_timing", encodeURIComponent(JSON.stringify({
+      actionMs: round(performance.now() - startedAt),
+      prepMs: round(forwarded?.prepMs),
+      laravelHeadersMs: round(forwarded?.headersMs),
+      laravelBodyMs: round(forwarded?.bodyMs),
+      laravel: forwarded?.serverTiming ?? null,
+    })), { maxAge: 60, path: "/", sameSite: "lax", secure: true, httpOnly: false });
+  }
 
   // Outside the failure branches on purpose: redirect() signals by throwing,
   // so it must not be wrapped in anything that swallows it.
