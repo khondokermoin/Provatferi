@@ -2,7 +2,7 @@
 //
 //   node scripts/submit-qa.mjs --base https://provatferi.org --fixtures <dir> \
 //        [--slug <posting>] [--locale bn|en] [--scenarios A,B,C,D] [--runs 2] [--spacing 14] \
-//        [--email you@gmail.com] [--label before] [--json out.json] [--shots <dir>]
+//        [--email you@gmail.com] [--label before] [--json out.json] [--shots <dir>] [--photo photo-detail.jpg] [--no-shrink]
 //
 // Scenarios (each submits a REAL application — use a throwaway address and delete the rows after):
 //   A  smallest valid   required fields only, 328-byte photo, no CV
@@ -39,7 +39,12 @@ const runs = Number(arg("runs", 2));
 const spacingMs = Number(arg("spacing", 14)) * 1000;
 const emailBase = arg("email", "khondokermoin2k23@gmail.com");
 const label = arg("label", "run");
+// Every invocation gets its own e-mail addresses (the endpoint refuses a second live application per address).
+const suffix = arg("suffix", Math.random().toString(36).slice(2, 5));
 const jsonOut = arg("json");
+const debug = process.argv.includes("--debug"); // also dump the Server Action response headers + the start of its body
+const bigPhoto = arg("photo", "photo-phone.jpg"); // the "phone photo" fixture used by B and C (photo-detail.jpg is the realistic-texture one)
+const noShrink = process.argv.includes("--no-shrink"); // hide createImageBitmap, so the photo goes up exactly as chosen (A/B for the client-side resize)
 const shotsDir = arg("shots");
 if (!fixtures) {
   console.error("usage: node scripts/submit-qa.mjs --fixtures <dir> [--base url] ...   (make fixtures with scripts/make-submit-fixtures.mjs)");
@@ -57,8 +62,8 @@ const longText = (seed) => Array.from({ length: 14 }, (_, i) => `${seed} paragra
 
 const SCENARIOS = {
   A: { name: "smallest valid", photo: "photo-tiny.png", cv: null, full: false },
-  B: { name: "phone photo", photo: "photo-phone.jpg", cv: null, full: true },
-  C: { name: "phone photo + CV", photo: "photo-phone.jpg", cv: "cv.pdf", full: true },
+  B: { name: "phone photo", photo: bigPhoto, cv: null, full: true },
+  C: { name: "phone photo + CV", photo: bigPhoto, cv: "cv.pdf", full: true },
   D: { name: "CV omitted", photo: "photo-mid.jpg", cv: null, full: true },
   E1: { name: "3 sync clicks", photo: "photo-tiny.png", cv: null, full: false, double: "clicks" },
   E2: { name: "real double-click", photo: "photo-tiny.png", cv: null, full: false, double: "dblclick" },
@@ -110,6 +115,7 @@ async function openForm(browser, withTimingHeader) {
   const page = await context.newPage();
   await page.setViewport({ width: 1440, height: 900 });
   if (withTimingHeader) await page.setExtraHTTPHeaders({ "x-pf-timing": "1" });
+  if (noShrink) await page.evaluateOnNewDocument(() => { window.createImageBitmap = undefined; });
   const cdp = await page.createCDPSession();
   await cdp.send("Network.enable");
 
@@ -131,7 +137,7 @@ async function openForm(browser, withTimingHeader) {
 
 /** Browser-side probes, installed before the click so nothing is measured after the fact. */
 const installProbes = () => {
-  const pf = (window.__pf = { clicks: [], submits: [] });
+  const pf = (window.__pf = { origin: performance.timeOrigin, clicks: [], submits: [] });
   const form = document.querySelector("form.volunteer-form");
   const btn = form.querySelector('button[type="submit"]');
   btn.addEventListener("click", (e) => pf.clicks.push({ ts: e.timeStamp, now: performance.now() }), true);
@@ -148,7 +154,7 @@ const installProbes = () => {
 const readPendingState = () => {
   const form = document.querySelector("form.volunteer-form");
   const btn = form.querySelector('button[type="submit"]');
-  const status = form.querySelector('[role="status"]');
+  const status = form.querySelector(".form-submit-status");
   const controls = [...form.querySelectorAll("input, select, textarea, button")].filter((c) => c.type !== "hidden");
   return {
     buttonDisabled: btn.disabled,
@@ -185,13 +191,25 @@ function parseServerTiming(header) {
 
 async function submitOnce(browser, id, run, withTimingHeader = true) {
   const sc = SCENARIOS[id];
-  const tag = `${id}${run}`;
+  const tag = `${id}${run}${suffix}`;
   const { context, page, cdp, net } = await openForm(browser, withTimingHeader);
   const row = { scenario: id, name: sc.name, run, tag };
+  const diag = { navigations: [], consoleErrors: [], failedRequests: [] };
+  page.on("framenavigated", (f) => { if (f === page.mainFrame()) diag.navigations.push(f.url()); });
+  page.on("console", (m) => { if (m.type() === "error") diag.consoleErrors.push(m.text().slice(0, 160)); });
+  page.on("pageerror", (e) => diag.consoleErrors.push(String(e).slice(0, 160)));
+  page.on("requestfailed", (r) => diag.failedRequests.push(`${r.method()} ${r.url().slice(0, 100)} ${r.failure()?.errorText ?? ""}`));
   try {
     await page.evaluate(fillForm, { fields: fieldsFor(sc, tag), checks: ["accuracy_declaration", "privacy_consent", "contact_consent"] });
     await (await page.$("#photo")).uploadFile(fx(sc.photo));
     if (sc.cv) await (await page.$("#cv")).uploadFile(fx(sc.cv));
+    // A real visitor picks the photo well before pressing Submit, so the form's background resize
+    // (lib/shrink-photo.ts) is done by then; wait for it here and record what will actually be sent.
+    const chosenAt = Date.now();
+    await page.waitForFunction(() => !!document.querySelector("#photo")?.closest(".form-field")?.querySelector('[role="status"]'), { timeout: 4000, polling: 25 }).catch(() => {});
+    row.shrinkMs = Date.now() - chosenAt;
+    row.photoSentBytes = await page.evaluate(() => document.querySelector("#photo").files[0]?.size ?? null);
+    row.photoNote = await page.evaluate(() => document.querySelector("#photo")?.closest(".form-field")?.querySelector('[role="status"]')?.innerText ?? null);
     await page.evaluate(installProbes);
     await sleep(250); // let the layout settle so the click measures the form, not the fill
 
@@ -201,50 +219,59 @@ async function submitOnce(browser, id, run, withTimingHeader = true) {
     else if (sc.double === "enter") { await page.focus("#applicant_name"); await Promise.all([page.keyboard.press("Enter"), page.keyboard.press("Enter")]); }
     else await page.click(btnSel);
 
-    // What the visitor sees while it is in flight.
+    // What the visitor sees while it is in flight (read before any navigation can replace the document).
     await sleep(350);
-    row.pendingState = await page.evaluate(readPendingState).catch(() => null);
-    if (shotsDir) { await mkdir(shotsDir, { recursive: true }); await page.screenshot({ path: resolve(shotsDir, `${label}-${tag}-pending.png`) }); }
-
-    // Either the success page, or the form reporting a problem.
-    const outcome = await page.waitForFunction(() => (window.__pf?.successPaint ? "success" : document.querySelector('form.volunteer-form .form-summary') ? "error" : null), { timeout: 60000, polling: 20 })
-      .then((h) => h.jsonValue()).catch(() => "timeout");
-    row.outcome = outcome;
-
-    const pf = await page.evaluate(() => window.__pf ?? null);
-    const resource = await page.evaluate(() => {
-      const click = window.__pf?.clicks?.[0]?.ts ?? 0;
-      const e = performance.getEntriesByType("resource").filter((r) => r.initiatorType === "fetch" && r.startTime >= click - 5 && r.name.endsWith("/apply")).pop();
-      return e ? { start: e.startTime, requestStart: e.requestStart, responseStart: e.responseStart, responseEnd: e.responseEnd, transferSize: e.transferSize, encodedBodySize: e.encodedBodySize } : null;
+    const early = await page.evaluate(() => {
+      const pf = window.__pf;
+      return pf ? { origin: pf.origin, clicks: pf.clicks, submits: pf.submits, feedbackPaint: pf.feedbackPaint ?? null } : null;
     }).catch(() => null);
+    row.pendingState = await page.evaluate(readPendingState).catch(() => null);
+    if (shotsDir) { await mkdir(shotsDir, { recursive: true }); await page.screenshot({ path: resolve(shotsDir, `${label}-${tag}-pending.png`) }).catch(() => {}); }
 
-    const click = pf?.clicks?.[0]?.ts;
+    // Either the success page (soft client navigation OR a hard page load — both are detected) or the form reporting a problem.
+    const end = await page.waitForFunction(() => {
+      if (location.pathname.endsWith("/apply/success") && document.querySelector(".apply-success")) return { kind: "success", epoch: performance.timeOrigin + performance.now(), soft: !!window.__pf };
+      if (document.querySelector("form.volunteer-form .form-summary")) return { kind: "error", epoch: performance.timeOrigin + performance.now(), soft: true };
+      return null;
+    }, { timeout: 60000, polling: 20 }).then((h) => h.jsonValue()).catch(() => null);
+    row.outcome = end?.kind ?? "timeout";
+    row.navKind = end ? (end.soft ? "soft" : "hard") : null;
+    if (sc.double) await sleep(1500); // catch a late second request
+
+    const clickEpoch = early?.clicks?.[0] ? early.origin + early.clicks[0].ts : null;
+    row.clicksSeen = early?.clicks?.length ?? null;
+    row.submitEventsSeen = early?.submits?.length ?? null;
     row.requestsSent = net.posts.length;
-    row.clicksSeen = pf?.clicks?.length ?? null;
-    row.submitEventsSeen = pf?.submits?.length ?? null;
-    if (click !== undefined) {
-      row.feedbackMs = ms(pf.feedbackPaint - click);
-      row.postStartMs = resource ? ms(resource.start - click) : null;
-      row.responseStartMs = resource ? ms(resource.responseStart - click) : null;
-      row.responseEndMs = resource ? ms(resource.responseEnd - click) : null;
-      row.successDomMs = pf.successDom ? ms(pf.successDom - click) : null;
-      row.totalMs = pf.successPaint ? ms(pf.successPaint - click) : null;
-      row.navigationMs = resource && pf.successPaint ? ms(pf.successPaint - resource.responseEnd) : null;
+    if (clickEpoch !== null) {
+      row.feedbackMs = early.feedbackPaint ? ms(early.origin + early.feedbackPaint - clickEpoch) : null;
+      row.totalMs = end ? ms(end.epoch - clickEpoch) : null;
     }
     const post = net.posts.find((p) => p.response?.timing) ?? net.posts[0];
     const t = post?.response?.timing;
-    if (t) {
+    if (t && clickEpoch !== null) {
+      const epochOf = (mono) => post.wall * 1000 + (mono - post.ts) * 1000;
+      const baseEpoch = epochOf(t.requestTime);
+      row.postStartMs = ms(post.wall * 1000 - clickEpoch);
       row.network = {
         connectMs: t.connectStart >= 0 ? ms(t.connectEnd - Math.max(t.dnsStart, 0)) : 0,
         uploadMs: ms(t.sendEnd - t.sendStart),
         serverWaitMs: ms((t.receiveHeadersStart ?? t.receiveHeadersEnd) - t.sendEnd),
-        bodyBytes: post.response.encodedDataLength ?? null,
       };
+      row.responseHeadersMs = ms(baseEpoch + t.receiveHeadersEnd - clickEpoch);
+      row.responseEndMs = post.finished ? ms(epochOf(post.finished) - clickEpoch) : null;
+      row.navigationMs = end && post.finished ? ms(end.epoch - epochOf(post.finished)) : null;
+    }
+    if (debug && post) {
+      const h = post.response?.headers ?? {};
+      const body = await cdp.send("Network.getResponseBody", { requestId: post.id }).then((b) => (b.base64Encoded ? "(base64)" : b.body.slice(0, 400))).catch((e) => "(no body: " + e.message + ")");
+      row.actionResponse = { status: post.response?.status, headers: Object.fromEntries(Object.entries(h).filter(([k]) => /content-type|x-action|x-nextjs|location|set-cookie|cache-control|vary|content-encoding|cf-cache/i.test(k))), bodyStart: body };
     }
     const timing = decodeTimingCookie(await page.cookies());
     if (timing) { row.server = timing; row.laravel = parseServerTiming(timing.laravel); }
 
-    if (outcome === "error") {
+    if (row.outcome === "timeout") {
+      row.diag = { url: page.url(), title: await page.title().catch(() => null), text: await page.evaluate(() => document.body.innerText.slice(0, 200)).catch(() => null), ...diag };
+    } else if (row.outcome === "error") {
       row.errorSummary = await page.evaluate(() => document.querySelector("form.volunteer-form .form-summary")?.innerText ?? null);
       row.afterError = await page.evaluate(() => {
         const f = document.querySelector("form.volunteer-form");
@@ -257,13 +284,14 @@ async function submitOnce(browser, id, run, withTimingHeader = true) {
           consentsKept: ["accuracy_declaration", "privacy_consent", "contact_consent"].filter((i) => f.querySelector("#" + i).checked).length,
           photoFile: f.querySelector("#photo").files[0]?.name ?? null, cvFile: f.querySelector("#cv").files[0]?.name ?? null,
           focusedId: document.activeElement?.id ?? null, invalidFields: [...f.querySelectorAll('[aria-invalid="true"]')].map((e) => e.id || e.name),
-          statusText: f.querySelector('[role="status"]')?.innerText.trim() ?? null,
+          statusText: f.querySelector(".form-submit-status")?.innerText.trim() ?? null,
         };
       });
-      if (shotsDir) await page.screenshot({ path: resolve(shotsDir, `${label}-${tag}-after-error.png`) });
-    } else if (shotsDir && outcome === "success") {
-      await page.screenshot({ path: resolve(shotsDir, `${label}-${tag}-success.png`) });
+      if (shotsDir) await page.screenshot({ path: resolve(shotsDir, `${label}-${tag}-after-error.png`) }).catch(() => {});
+    } else if (shotsDir) {
+      await page.screenshot({ path: resolve(shotsDir, `${label}-${tag}-success.png`) }).catch(() => {});
     }
+    row.consoleErrors = diag.consoleErrors.length ? diag.consoleErrors : undefined;
   } catch (err) {
     row.outcome = "harness-error";
     row.error = String(err?.message ?? err).slice(0, 300);
@@ -287,7 +315,7 @@ for (const id of scenarioIds) {
     rows.push(row);
     const L = row.laravel ?? {};
     console.log(
-      `${(row.outcome ?? "?").padEnd(8)} ${row.tag.padEnd(3)} ${row.name.padEnd(18)} total ${String(row.totalMs ?? "-").padStart(5)} ms | feedback ${String(row.feedbackMs ?? "-").padStart(4)} | upload ${String(row.network?.uploadMs ?? "-").padStart(5)} | wait ${String(row.network?.serverWaitMs ?? "-").padStart(5)} | nav ${String(row.navigationMs ?? "-").padStart(4)} | next action ${String(row.server?.actionMs ?? "-").padStart(6)} | laravel hop ${String(row.server?.laravelHeadersMs ?? "-").padStart(6)} | laravel total ${String(L.total ?? "-").padStart(6)} | requests ${row.requestsSent}`,
+      `${(row.outcome ?? "?").padEnd(8)} ${(row.navKind ?? "-").padEnd(4)} ${row.tag.padEnd(3)} ${row.name.padEnd(18)} total ${String(row.totalMs ?? "-").padStart(5)} ms | feedback ${String(row.feedbackMs ?? "-").padStart(4)} | upload ${String(row.network?.uploadMs ?? "-").padStart(5)} | wait ${String(row.network?.serverWaitMs ?? "-").padStart(5)} | nav ${String(row.navigationMs ?? "-").padStart(4)} | next action ${String(row.server?.actionMs ?? "-").padStart(6)} | laravel hop ${String(row.server?.laravelHeadersMs ?? "-").padStart(6)} | laravel total ${String(L.total ?? "-").padStart(6)} | requests ${row.requestsSent} | photo sent ${row.photoSentBytes === null || row.photoSentBytes === undefined ? "-" : Math.round(row.photoSentBytes / 1024) + " KB"}`,
     );
   }
 }

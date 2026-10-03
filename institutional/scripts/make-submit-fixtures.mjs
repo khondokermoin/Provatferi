@@ -7,6 +7,10 @@
 //   photo-mid.jpg    ~1.2 MB, 2000x1500 — a downsized/messaging-app phone photo
 //   photo-phone.jpg  ~3.4 MB, 4000x3000 (12 MP) — a normal, un-resized phone photo; the form's own
 //                    ceiling is 5 MB, so this is realistic without being at the limit
+//   photo-detail.jpg ~3.4 MB, 4000x3000 — like photo-phone.jpg but with detail at many scales instead of
+//                    mostly fine grain. Grain averages away when a picture is downscaled, so the grainy
+//                    fixture flatters the form's client-side resize (3.4 MB -> ~0.15 MB); this one keeps
+//                    its detail the way a real photograph does and gives the honest figure.
 //   cv.pdf           ~1.2 MB, a real multi-page PDF produced by Chrome (the same engine a "Save as
 //                    PDF" CV would come from), text + an embedded photo
 //
@@ -15,7 +19,7 @@
 // the server's extension + magic-bytes + libmagic checks.
 
 import { existsSync } from "node:fs";
-import { mkdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import puppeteer from "puppeteer-core";
 
@@ -33,9 +37,9 @@ const page = await browser.newPage();
 await page.setContent("<!doctype html><meta charset=utf-8><body></body>");
 
 /** Draws a photo-like image (smooth gradients + soft blobs + fine grain) and returns it as a data URL. */
-async function drawPhoto(width, height, mime, quality, grain) {
+async function drawPhoto(width, height, mime, quality, grain, detail = 0) {
   return page.evaluate(
-    ({ width, height, mime, quality, grain }) => {
+    ({ width, height, mime, quality, grain, detail }) => {
       const canvas = document.createElement("canvas");
       canvas.width = width;
       canvas.height = height;
@@ -57,6 +61,17 @@ async function drawPhoto(width, height, mime, quality, grain) {
         ctx.fillStyle = g;
         ctx.fillRect(x - r, y - r, r * 2, r * 2);
       }
+      // Detail at every scale (foliage / fabric / text-like strokes): unlike grain it survives a downscale.
+      for (let i = 0; i < detail; i++) {
+        const x = rand() * width, y = rand() * height;
+        const length = 2 + rand() ** 3 * 70, angle = rand() * Math.PI;
+        ctx.strokeStyle = `hsla(${Math.floor(rand() * 360)}, ${20 + Math.floor(rand() * 50)}%, ${15 + Math.floor(rand() * 70)}%, ${0.2 + rand() * 0.4})`;
+        ctx.lineWidth = 1 + rand() * 5;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + Math.cos(angle) * length, y + Math.sin(angle) * length);
+        ctx.stroke();
+      }
       // Fine sensor-like grain, which is what makes a real photo cost real bytes.
       const tile = ctx.createImageData(256, 256);
       for (let p = 0; p < tile.data.length; p += 4) {
@@ -72,7 +87,7 @@ async function drawPhoto(width, height, mime, quality, grain) {
       ctx.fillRect(0, 0, width, height);
       return canvas.toDataURL(mime, quality);
     },
-    { width, height, mime, quality, grain },
+    { width, height, mime, quality, grain, detail },
   );
 }
 
@@ -90,11 +105,11 @@ await save("photo-tiny.png", await drawPhoto(8, 8, "image/png", 1, 0));
 await report("photo-tiny.png");
 
 // Quality is binary-searched per image so each lands within ~6% of its target regardless of the browser build.
-async function tuned(name, width, height, targetMb, grain) {
+async function tuned(name, width, height, targetMb, grain, detail = 0) {
   let lo = 0.3, hi = 0.97, best = null;
   for (let i = 0; i < 9; i++) {
     const q = (lo + hi) / 2;
-    const url = await drawPhoto(width, height, "image/jpeg", q, grain);
+    const url = await drawPhoto(width, height, "image/jpeg", q, grain, detail);
     const mb = Buffer.from(url.split(",")[1], "base64").length / 1048576;
     best = url;
     if (Math.abs(mb - targetMb) / targetMb < 0.06) break;
@@ -106,6 +121,22 @@ await tuned("photo-phone.jpg", 4000, 3000, 3.4, 90);
 await report("photo-phone.jpg");
 await tuned("photo-mid.jpg", 2000, 1500, 1.2, 90);
 await report("photo-mid.jpg");
+await tuned("photo-detail.jpg", 4000, 3000, 3.4, 14, 90000);
+await report("photo-detail.jpg");
+
+// What lib/shrink-photo.ts (2000 px long edge, JPEG q0.85) makes of each big photo, in this same Chrome.
+for (const name of ["photo-phone.jpg", "photo-detail.jpg"]) {
+  const data = (await readFile(resolve(out, name))).toString("base64");
+  const bytes = await page.evaluate(async (b64) => {
+    const blob = await (await fetch("data:image/jpeg;base64," + b64)).blob();
+    const bmp = await createImageBitmap(blob, { imageOrientation: "from-image" });
+    const k = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas"); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    return (await new Promise((r) => c.toBlob(r, "image/jpeg", 0.85))).size;
+  }, data);
+  console.log(`  ${name.padEnd(16)} -> ${(bytes / 1048576).toFixed(2)} MB after the form's resize`);
+}
 
 // CV: a real PDF from Chrome — Bangla + English text plus an embedded scan-like image. The image is a
 // lossless PNG on purpose: Chrome re-encodes embedded JPEGs, which makes the PDF's size unpredictable;
