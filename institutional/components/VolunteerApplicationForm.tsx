@@ -1,12 +1,28 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
-import { useActionState } from "react";
+import { useActionState, useEffect, useId, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { submitVolunteerApplication, type VolunteerApplicationState } from "@/app/[locale]/(site)/recruitment/[slug]/apply/actions";
+import SubmitSpinner from "@/components/SubmitSpinner";
 import type { SkillOption } from "@/lib/api/types";
 import type { Locale } from "@/lib/i18n";
+import { localizeHref } from "@/lib/i18n/paths";
+import { replaceInputFile, shrinkPhoto } from "@/lib/shrink-photo";
 
 const initialState: VolunteerApplicationState = { status: "idle" };
+
+/** One random value per form, sent with every attempt: the server turns a repeat of the same attempt into the original result instead of a second application. */
+function newAttemptToken(): string {
+  const c = globalThis.crypto;
+  if (typeof c?.randomUUID === "function") return c.randomUUID();
+  const bytes = new Uint8Array(16);
+  c.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function formatMegabytes(bytes: number, locale: Locale): string {
+  return `${new Intl.NumberFormat(locale === "en" ? "en" : "bn-BD", { maximumFractionDigits: 1 }).format(bytes / 1_048_576)} MB`;
+}
 
 function errorFor(errors: Record<string, string[]> | undefined, name: string): string | undefined {
   // Laravel keys array errors as `skills.0`; show those against the group.
@@ -84,10 +100,88 @@ export default function VolunteerApplicationForm({
   locale?: Locale;
 }) {
   const en = locale === "en";
+  const router = useRouter();
   const boundAction = submitVolunteerApplication.bind(null, slug);
-  const [state, formAction, isPending] = useActionState(boundAction, initialState);
+  // `formAction` only serves a browser without JavaScript (native post + redirect). With JS, handleSubmit
+  // below takes over: it submits programmatically, so React never resets the form after a failed attempt
+  // (a reset would throw away the chosen photo and CV, which a browser will not let us re-populate).
+  const [serverState, formAction] = useActionState(boundAction, initialState);
+  const [clientState, setClientState] = useState<VolunteerApplicationState>(initialState);
+  const state = clientState.status !== "idle" ? clientState : serverState;
+  const [phase, setPhase] = useState<"idle" | "working" | "navigating">("idle");
+  const busy = phase !== "idle";
+  const [photoNote, setPhotoNote] = useState<{ from: number; to: number } | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const statusRef = useRef<HTMLParagraphElement>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const submitLock = useRef(false); // set synchronously, before React re-renders: a 2nd click or Enter in the same instant finds it taken
+  const attemptToken = useRef<string | null>(null);
+  const photoJob = useRef<Promise<void> | null>(null);
   const uid = useId();
+  const successHref = localizeHref(`/recruitment/${slug}/apply/success`, locale);
+
+  async function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    setPhotoNote(null);
+    if (!file) return;
+    const job = (async () => {
+      const shrunk = await shrinkPhoto(file);
+      if (!shrunk || input.files?.[0] !== file) return; // nothing to gain, or the visitor chose another file meanwhile
+      if (replaceInputFile(input, shrunk.file)) setPhotoNote({ from: shrunk.fromBytes, to: shrunk.toBytes });
+    })();
+    photoJob.current = job;
+    await job;
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (submitLock.current) return;
+    submitLock.current = true;
+    setPhase("working"); // the button, the status line and the parked fields change on the very next frame
+
+    const form = event.currentTarget;
+    // Captured NOW, before the fields are disabled: a disabled control is not part of a form's data.
+    const formData = new FormData(form);
+    attemptToken.current ??= newAttemptToken();
+    formData.set("submission_token", attemptToken.current);
+    formData.set("client_nav", "1");
+
+    void (async () => {
+      let result: VolunteerApplicationState;
+      try {
+        await photoJob.current; // a photo still being shrunk is waited for, then the smaller file is what goes
+        const photo = form.querySelector<HTMLInputElement>("#photo")?.files?.[0];
+        if (photo && photo.size > 0) formData.set("photo", photo);
+        result = await submitVolunteerApplication(slug, initialState, formData);
+      } catch {
+        result = {
+          status: "error",
+          message: en
+            ? "The application could not be submitted — please try again in a moment. If this keeps happening, contact us."
+            : "আবেদন জমা দেওয়া যায়নি — একটু পরে আবার চেষ্টা করুন। সমস্যা চলতে থাকলে আমাদের সঙ্গে যোগাযোগ করুন।",
+          values: {},
+          skills: [],
+          consents: [],
+        };
+      }
+
+      if (result.status === "success") {
+        setPhase("navigating"); // stay busy until the confirmation page replaces this one
+        router.push(successHref);
+        return;
+      }
+      // Failed: everything typed and chosen is still in the form (nothing reset it) — hand control back.
+      setClientState(result);
+      setPhase("idle");
+      submitLock.current = false;
+    })();
+  }
+
+  // Keyboard and screen-reader users: the focused control is about to be disabled, so focus moves to the status line, which is announced.
+  useEffect(() => {
+    if (busy) statusRef.current?.focus({ preventScroll: true });
+  }, [busy]);
 
   // The ERP's Application Form Settings decide this per posting; Laravel's own
   // validation (built from the same source) is the real authority — this only
@@ -98,14 +192,22 @@ export default function VolunteerApplicationForm({
   const errors = state.status === "validation" ? state.errors : undefined;
   // §14: re-render what was typed. React resets an uncontrolled form once the
   // action settles, so the values come back from the action instead.
-  const values = state.status === "idle" ? {} : state.values;
-  const checkedSkills = state.status === "idle" ? [] : state.skills;
+  const echoed = state.status === "validation" || state.status === "error" ? state : null;
+  const values = echoed?.values ?? {};
+  const checkedSkills = echoed?.skills ?? [];
   // §14: the declarations come back ticked too — re-confirming three consents
   // because one field had a typo is exactly the busywork this avoids.
-  const checkedConsents = state.status === "idle" ? [] : state.consents;
+  const checkedConsents = echoed?.consents ?? [];
 
-  // §14: move the visitor to the first thing that needs fixing.
+  // §14: move the visitor to the first thing that needs fixing — the first invalid field, or, when the
+  // whole submission failed (network, server), the message explaining it. The form is enabled again
+  // by the time this runs (handleSubmit hands control back in the same update as the error).
   useEffect(() => {
+    if (state.status === "error") {
+      summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      summaryRef.current?.focus({ preventScroll: true });
+      return;
+    }
     if (!errors) return;
     const form = formRef.current;
     if (!form) return;
@@ -120,7 +222,15 @@ export default function VolunteerApplicationForm({
   const described = (name: string) => (invalid(name) ? errId(name) : undefined);
 
   return (
-    <form ref={formRef} action={formAction} className="application-form volunteer-form" noValidate encType="multipart/form-data">
+    <form
+      ref={formRef}
+      action={formAction}
+      onSubmit={handleSubmit}
+      className="application-form volunteer-form"
+      noValidate
+      encType="multipart/form-data"
+      aria-busy={busy || undefined}
+    >
       <p className="form-intro">
         {en ? (
           <>Please provide the following details to join &ldquo;{jobTitle}&rdquo;. Fields marked <strong>*</strong> are required.</>
@@ -130,13 +240,16 @@ export default function VolunteerApplicationForm({
       </p>
 
       {(state.status === "validation" || state.status === "error") && (
-        <div className="form-summary" role="alert">
+        <div className="form-summary" role="alert" ref={summaryRef} tabIndex={-1}>
           {state.status === "validation"
             ? (en ? "Some fields need fixing — see those marked below. What you've entered has not been lost." : "কিছু তথ্য ঠিক করতে হবে — নিচে চিহ্নিত ঘরগুলো দেখুন। আপনার লেখা তথ্য মুছে যায়নি।")
             : state.message}
         </div>
       )}
 
+      {/* While a submission is working every field is parked (disabled) but stays on screen,
+          holding what was typed and chosen; a failed attempt simply re-enables them. */}
+      <fieldset className="form-body" disabled={busy}>
       <fieldset className="form-section">
         <legend>{en ? "Personal Information" : "ব্যক্তিগত তথ্য"}</legend>
 
@@ -245,11 +358,19 @@ export default function VolunteerApplicationForm({
             type="file"
             accept="image/jpeg,image/png,image/webp"
             required={isRequired("photo")}
+            onChange={handlePhotoChange}
             aria-invalid={invalid("photo") || undefined}
           />
           <p className="form-field-help">
             {en ? "JPG, PNG or WEBP — up to 5 MB. Your photo is not published; it's kept only for verification." : "JPG, PNG বা WEBP — সর্বোচ্চ ৫ মেগাবাইট। ছবি প্রকাশ করা হয় না; শুধু যাচাইয়ের জন্য সংরক্ষিত থাকে।"}
           </p>
+          {photoNote && (
+            <p className="form-field-help" role="status">
+              {en
+                ? `Resized for a faster upload: ${formatMegabytes(photoNote.from, locale)} → ${formatMegabytes(photoNote.to, locale)}.`
+                : `দ্রুত জমার জন্য ছবিটি ছোট করা হয়েছে: ${formatMegabytes(photoNote.from, locale)} → ${formatMegabytes(photoNote.to, locale)}।`}
+            </p>
+          )}
           <FieldError message={errorFor(errors, "photo")} id={errId("photo")} />
         </div>
       </fieldset>
@@ -483,12 +604,33 @@ export default function VolunteerApplicationForm({
         <label htmlFor="website">Website</label>
         <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
       </div>
+      </fieldset>
 
-      {/* §7: disabled while in flight, so a second click cannot produce a
-          second row, and the label says what is happening. */}
-      <button type="submit" className="button button-primary" disabled={isPending} aria-busy={isPending || undefined}>
-        {isPending ? (en ? "Submitting application…" : "আবেদন জমা হচ্ছে…") : (en ? "Submit Application" : "আবেদন জমা দিন")}
+      {/* §7: disabled the instant it is clicked (handleSubmit also holds a synchronous lock, so a
+          double click or a second Enter cannot reach the server twice), carrying a spinner and
+          the words, not just a dimmer button. */}
+      <button type="submit" className="button button-primary" disabled={busy} aria-busy={busy || undefined}>
+        {busy ? (
+          <span className="button-busy">
+            <SubmitSpinner />
+            <span>{en ? "Submitting application…" : "আবেদন জমা হচ্ছে…"}</span>
+          </span>
+        ) : (
+          (en ? "Submit Application" : "আবেদন জমা দিন")
+        )}
       </button>
+      {/* Announced by assistive tech (role=status), and visible: the same message in words. */}
+      <p ref={statusRef} className="form-submit-status" role="status" aria-live="polite" tabIndex={-1}>
+        {phase === "working" &&
+          (en ? "Submitting application… please wait and keep this page open." : "আবেদন জমা হচ্ছে… অনুগ্রহ করে অপেক্ষা করুন, পাতাটি বন্ধ করবেন না।")}
+        {phase === "navigating" &&
+          (en ? "Application received — opening the confirmation…" : "আবেদন গৃহীত হয়েছে — নিশ্চিতকরণ পাতা খোলা হচ্ছে…")}
+      </p>
+      {phase === "navigating" && (
+        <p className="form-field-help">
+          <a href={successHref}>{en ? "If the confirmation does not open, tap here." : "নিশ্চিতকরণ পাতা না খুললে এখানে চাপুন।"}</a>
+        </p>
+      )}
     </form>
   );
 }

@@ -16,6 +16,7 @@ export type SubmittedValues = Record<string, string>;
 
 export type VolunteerApplicationState =
   | { status: "idle" }
+  | { status: "success" }
   | { status: "validation"; errors: Record<string, string[]>; values: SubmittedValues; skills: string[]; consents: string[] }
   | { status: "error"; message: string; values: SubmittedValues; skills: string[]; consents: string[] };
 
@@ -98,6 +99,13 @@ export async function submitVolunteerApplication(
   // Outside the failure branches on purpose: redirect() signals by throwing,
   // so it must not be wrapped in anything that swallows it.
   if (result.ok) {
+    // A browser running the form's own submit handler says so (`client_nav`) and goes to the
+    // confirmation itself, as an ordinary client navigation and in the visitor's language.
+    // Measured on production, redirect() from here never produced a client navigation at all —
+    // Next's own follow-up fetch of the success page did not yield a flight response, so every
+    // submission ended in a full page load (~0.3 s). Without JavaScript the form still posts
+    // natively, and this redirect is then the only way to the confirmation.
+    if (formData.get("client_nav") === "1") return { status: "success" };
     redirect(`/recruitment/${encodeURIComponent(slug)}/apply/success`);
   }
 
