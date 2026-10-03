@@ -3,13 +3,36 @@
 import { useActionState, useEffect, useId, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { submitVolunteerApplication, type VolunteerApplicationState } from "@/app/[locale]/(site)/recruitment/[slug]/apply/actions";
-import SubmitSpinner from "@/components/SubmitSpinner";
+import BrandLoader, { preloadBrandLoader } from "@/components/BrandLoader";
 import type { SkillOption } from "@/lib/api/types";
 import type { Locale } from "@/lib/i18n";
 import { localizeHref } from "@/lib/i18n/paths";
 import { replaceInputFile, shrinkPhoto } from "@/lib/shrink-photo";
 
 const initialState: VolunteerApplicationState = { status: "idle" };
+
+/** Waiting is "instant" up to here; past it a sentence under the button says what is going on. Never a fake percentage. */
+const SLOW_AFTER_MS = 2000;
+/** After a successful submit: how long the confirmation page may take before a plain link is offered. */
+const STUCK_AFTER_MS = 5000;
+
+/** Everything the submit control says, in both languages, in one place. */
+const COPY = {
+  bn: {
+    submit: "আবেদন জমা দিন",
+    submitting: "আবেদন জমা হচ্ছে…",
+    wait: "অনুগ্রহ করে অপেক্ষা করুন, আপনার তথ্য নিরাপদভাবে জমা হচ্ছে।",
+    received: "আবেদন গৃহীত হয়েছে — নিশ্চিতকরণ পাতা খোলা হচ্ছে…",
+    fallback: "নিশ্চিতকরণ পাতা না খুললে এখানে চাপুন।",
+  },
+  en: {
+    submit: "Submit Application",
+    submitting: "Submitting application…",
+    wait: "Please wait while your application is being submitted securely.",
+    received: "Application received — opening the confirmation…",
+    fallback: "If the confirmation does not open, tap here.",
+  },
+} as const;
 
 /** One random value per form, sent with every attempt: the server turns a repeat of the same attempt into the original result instead of a second application. */
 function newAttemptToken(): string {
@@ -146,6 +169,9 @@ export default function VolunteerApplicationForm({
   const state = clientState.status !== "idle" ? clientState : serverState;
   const [phase, setPhase] = useState<"idle" | "working" | "navigating">("idle");
   const busy = phase !== "idle";
+  const [slow, setSlow] = useState(false); // has been waiting for SLOW_AFTER_MS: show the helper sentence
+  const [stuck, setStuck] = useState(false); // confirmation still not open STUCK_AFTER_MS after success: offer a plain link
+  const copy = COPY[en ? "en" : "bn"];
   const [photoNote, setPhotoNote] = useState<{ from: number; to: number } | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const statusRef = useRef<HTMLParagraphElement>(null);
@@ -207,6 +233,7 @@ export default function VolunteerApplicationForm({
       // Failed: everything typed and chosen is still in the form (nothing reset it) — hand control back.
       setClientState(result);
       setPhase("idle");
+      setSlow(false);
       submitLock.current = false;
     })();
   }
@@ -215,6 +242,26 @@ export default function VolunteerApplicationForm({
   useEffect(() => {
     if (busy) statusRef.current?.focus({ preventScroll: true });
   }, [busy]);
+
+  // The loader's icon images are fetched and decoded while the visitor fills the form, so the brand mark
+  // is on screen on the very frame of the click instead of arriving a moment after its ring.
+  useEffect(() => {
+    preloadBrandLoader();
+  }, []);
+
+  // The helper sentence appears only once waiting is no longer instant, so a fast submit never flashes it.
+  useEffect(() => {
+    if (!busy) return;
+    const timer = setTimeout(() => setSlow(true), SLOW_AFTER_MS);
+    return () => clearTimeout(timer);
+  }, [busy]);
+
+  // After success the page is already on its way; only if it is slow to open does a plain link appear.
+  useEffect(() => {
+    if (phase !== "navigating") return;
+    const timer = setTimeout(() => setStuck(true), STUCK_AFTER_MS);
+    return () => clearTimeout(timer);
+  }, [phase]);
 
   // The ERP's Application Form Settings decide this per posting; Laravel's own
   // validation (built from the same source) is the real authority — this only
@@ -640,28 +687,25 @@ export default function VolunteerApplicationForm({
       </fieldset>
 
       {/* §7: disabled the instant it is clicked (handleSubmit also holds a synchronous lock, so a
-          double click or a second Enter cannot reach the server twice), carrying a spinner and
-          the words, not just a dimmer button. */}
+          double click or a second Enter cannot reach the server twice). While it works the button holds
+          the brand loader and the words — and stays that way through the hand-over to the confirmation
+          page, so the idle label never flashes back between success and navigation. The loader is
+          silent (announce={false}): the status line below is the one live region. */}
       <button type="submit" className="button button-primary" disabled={busy} aria-busy={busy || undefined}>
-        {busy ? (
-          <span className="button-busy">
-            <SubmitSpinner />
-            <span>{en ? "Submitting application…" : "আবেদন জমা হচ্ছে…"}</span>
-          </span>
-        ) : (
-          (en ? "Submit Application" : "আবেদন জমা দিন")
-        )}
+        {busy ? <BrandLoader size="sm" announce={false} label={copy.submitting} /> : copy.submit}
       </button>
-      {/* Announced by assistive tech (role=status), and visible: the same message in words. */}
+      {/* The one live region. At once it says the short thing, spoken only; after ~2 s a visible helper
+          sentence replaces it (no fake percentage). Space for two lines is reserved in the CSS. */}
       <p ref={statusRef} className="form-submit-status" role="status" aria-live="polite" tabIndex={-1}>
-        {phase === "working" &&
-          (en ? "Submitting application… please wait and keep this page open." : "আবেদন জমা হচ্ছে… অনুগ্রহ করে অপেক্ষা করুন, পাতাটি বন্ধ করবেন না।")}
-        {phase === "navigating" &&
-          (en ? "Application received — opening the confirmation…" : "আবেদন গৃহীত হয়েছে — নিশ্চিতকরণ পাতা খোলা হচ্ছে…")}
+        {slow ? (
+          <span className="form-submit-helper">{phase === "navigating" ? copy.received : copy.wait}</span>
+        ) : (
+          busy && <span className="sr-only">{phase === "navigating" ? copy.received : copy.submitting}</span>
+        )}
       </p>
-      {phase === "navigating" && (
+      {phase === "navigating" && stuck && (
         <p className="form-field-help">
-          <a href={successHref}>{en ? "If the confirmation does not open, tap here." : "নিশ্চিতকরণ পাতা না খুললে এখানে চাপুন।"}</a>
+          <a href={successHref}>{copy.fallback}</a>
         </p>
       )}
     </form>

@@ -1328,17 +1328,54 @@ input[type="radio"]:disabled { cursor: not-allowed; opacity: .55; }
 
 /* ---------- Submit in flight (volunteer application form) ----------
    A disabled, dimmer button alone read as a frozen form: at the bottom of a long page nothing else
-   moved. While a submission is working the button carries a spinner and says so, a status line under
-   it repeats it in words (and is what assistive tech announces), and the fields are visibly parked —
-   still on screen, still holding everything typed and every file chosen. */
+   moved. While a submission is working the button carries the brand loader and says so, a status
+   line under it (what assistive tech announces; after ~2 s also a visible helper sentence) repeats it
+   in words, and the fields are visibly parked — still on screen, still holding everything typed and
+   every file chosen. */
 .volunteer-form .form-body { display: flex; flex-direction: column; gap: inherit; min-width: 0; margin: 0; padding: 0; border: 0; transition: opacity .2s; }
 .volunteer-form[aria-busy="true"] .form-body { opacity: .6; }
-.button-busy { display: inline-flex; align-items: center; gap: 10px; }
-.button-busy > span { font-size: inherit; }
-.submit-spinner { width: 1.2em; height: 1.2em; flex: none; }
-@media (prefers-reduced-motion: no-preference) { .submit-spinner { animation: pf-spin .8s linear infinite; } }
-@keyframes pf-spin { to { transform: rotate(360deg); } }
 /* A busy button is working, not unavailable: keep it legible. */
 .volunteer-form .button:disabled[aria-busy="true"] { opacity: .92; cursor: progress; }
-.form-submit-status { min-height: 1.5em; margin: -8px 0 0; font-size: 14px; color: var(--muted); outline: none; }
+/* Room for the helper sentence is reserved up front (two lines on a phone, one on a desktop), so it
+   appearing after ~2 s moves nothing below it. */
+.form-submit-status { min-height: 3em; margin: -8px 0 0; font-size: 14px; line-height: 1.5; color: var(--muted); outline: none; }
+@media (min-width: 640px) { .form-submit-status { min-height: 1.6em; } }
+.form-submit-helper { display: block; }
+@media (prefers-reduced-motion: no-preference) { .form-submit-helper { animation: pf-helper-in .3s ease-out both; } }
+@keyframes pf-helper-in { from { opacity: 0; transform: translateY(-3px); } }
 .form-summary:focus { outline: none; }
+
+/* ---------- Brand loader (components/BrandLoader.tsx) ----------
+   The one loading mark: the official sun icon, centred, with a thin orbit ring turning round it. The
+   icon is the resized official PNG (light and dark variants swapped by [data-theme], like the logos);
+   the ring is an SVG drawn with the site's own tokens, so both themes come for free. Sizes are set by
+   --bl-size / --bl-stroke on [data-size]. Motion is gated on no-preference: with reduced motion the
+   icon and a static arc stay, and the label says what is happening. */
+.brand-loader { --bl-size: 46px; --bl-stroke: 3.2; --bl-track: var(--border); --bl-arc: var(--brand-orange); --bl-chip: transparent; display: inline-flex; align-items: center; gap: 12px; vertical-align: middle; font-size: inherit; line-height: 1.4; }
+.brand-loader[data-size="sm"] { --bl-size: 30px; --bl-stroke: 4; gap: 10px; }
+.brand-loader[data-size="lg"] { --bl-size: 76px; --bl-stroke: 2.6; gap: 14px; }
+.brand-loader[data-mode="block"] { display: flex; flex-direction: column; justify-content: center; width: 100%; padding-block: 8px; text-align: center; }
+.brand-loader-mark { position: relative; flex: none; display: block; width: var(--bl-size); height: var(--bl-size); }
+.brand-loader-ring { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.brand-loader-track { fill: none; stroke: var(--bl-track); stroke-width: var(--bl-stroke); }
+.brand-loader-arc { fill: none; stroke: var(--bl-arc); stroke-width: calc(var(--bl-stroke) * 1.2); stroke-linecap: round; stroke-dasharray: 26 74; transform: rotate(-90deg); transform-origin: 24px 24px; }
+.brand-loader-chip { position: absolute; inset: 11%; border-radius: 50%; background: var(--bl-chip); }
+.brand-loader-icon { position: absolute; inset: 0; margin: auto; width: 72%; height: 72%; object-fit: contain; user-select: none; }
+.brand-loader-icon-dark { display: none; }
+:root[data-theme="dark"] .brand-loader-icon-light { display: none; }
+:root[data-theme="dark"] .brand-loader-icon-dark { display: block; }
+.brand-loader[data-mode="block"] .brand-loader-label { font-size: 15px; font-weight: 600; color: var(--heading); }
+/* Inside a button: .button span (19px, line-height 1) is meant for arrow glyphs, not for this; the loader
+   must not make the button taller (its margin box is exactly one text line — 1lh, so it follows the
+   mobile font size too — and the mark overflows it harmlessly into the button's padding); and on the primary button's orange the red disc and yellow rays
+   would vanish, so the mark gets a surface chip and the ring turns to the button's own ink. */
+.button .brand-loader, .button .brand-loader span { font-size: inherit; line-height: inherit; }
+.button .brand-loader { margin-block: calc((22.5px - var(--bl-size)) / 2); }
+@supports (height: 1lh) { .button .brand-loader { margin-block: calc((1lh - var(--bl-size)) / 2); } }
+.button-primary .brand-loader { --bl-track: rgba(32, 27, 23, .22); --bl-arc: #201b17; --bl-chip: var(--surface); }
+@media (prefers-reduced-motion: no-preference) {
+  .brand-loader-arc { animation: pf-brand-orbit 1.15s linear infinite; }
+  .brand-loader:not([data-size="sm"]) .brand-loader-icon { animation: pf-brand-breathe 2.6s ease-in-out infinite; }
+}
+@keyframes pf-brand-orbit { to { transform: rotate(270deg); } }
+@keyframes pf-brand-breathe { 50% { transform: scale(.94); } }
