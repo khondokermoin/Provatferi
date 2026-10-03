@@ -1,4 +1,5 @@
 import Link from "@/components/SiteLink";
+import ScrollToTop from "@/components/ScrollToTop";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { org } from "@/lib/content";
@@ -8,8 +9,9 @@ import { localizeHref } from "@/lib/i18n/paths";
 
 /**
  * §8: a dedicated destination rather than a success state left sitting on the
- * completed form. Reached by a redirect from the Server Action, so the
- * browser performs a GET — refreshing it cannot resubmit the application or
+ * completed form. Reached by the form's own client-side navigation (or, with
+ * no JavaScript, by a redirect from the Server Action), so the browser
+ * performs a GET — refreshing it cannot resubmit the application or
  * re-trigger the confirmation e-mail.
  *
  * §12: nothing here identifies the applicant. The page takes no id, no
@@ -41,6 +43,8 @@ export default async function VolunteerApplySuccessPage({ params }: { params: Pr
 
   return (
     <article className="apply-success">
+      {/* The form's JavaScript reaches this page by a client-side navigation from the bottom of a long page. */}
+      <ScrollToTop />
       <p className="apply-success-badge" role="status">
         <span aria-hidden="true">✓</span> {en ? "Application Received" : "আবেদন গৃহীত"}
       </p>

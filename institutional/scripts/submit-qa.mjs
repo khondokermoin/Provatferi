@@ -275,6 +275,11 @@ async function submitOnce(browser, id, run, withTimingHeader = true) {
       const body = await cdp.send("Network.getResponseBody", { requestId: post.id }).then((b) => (b.base64Encoded ? "(base64)" : b.body.slice(0, 400))).catch((e) => "(no body: " + e.message + ")");
       row.actionResponse = { status: post.response?.status, headers: Object.fromEntries(Object.entries(h).filter(([k]) => /content-type|x-action|x-nextjs|location|set-cookie|cache-control|vary|content-encoding|cf-cache/i.test(k))), bodyStart: body };
     }
+    if (row.outcome === "success") {
+      // Where the visitor lands: a soft navigation must open the confirmation at the very top, header included.
+      await sleep(250);
+      row.landing = await page.evaluate(() => ({ scrollY: Math.round(window.scrollY), headerTop: Math.round(document.querySelector("header")?.getBoundingClientRect().top ?? NaN), badgeTop: Math.round(document.querySelector(".apply-success-badge")?.getBoundingClientRect().top ?? NaN) }));
+    }
     const timing = decodeTimingCookie(await page.cookies());
     if (timing) { row.server = timing; row.laravel = parseServerTiming(timing.laravel); }
 
