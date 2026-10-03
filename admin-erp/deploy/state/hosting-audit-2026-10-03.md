@@ -20,13 +20,14 @@ single tenant — **66% of the inodes, 41% of the disk** — but not all of it:
 | domains/nexhomebd.com | 40,863 | 3,064 | 41,196 | 3,117 |
 | domains/provatferi.westernwatchbd.com | 26,072 | 797 | 26,081 | 797 |
 | domains/waymorebd.com | 15,758 | 430 | 15,762 | 430 |
-| home dot-dirs (`.npm .composer .wp-cli .cache .cagefs …`) | ~3.6K | ~680 | ~3.9K | ~800 |
+| home dot-dirs (`.npm .composer .wp-cli .cache .cagefs …`) | 3,820 | 675 | 3,902 | 787 |
 | **Total** | **412,873** | **9,895.1** | **192,195** | **7,178.9** |
 
 (apparent size, i.e. sum of file lengths: 7,364.6 MB → 6,003.0 MB.) Only
 provatferi.org's tree was cleaned; nothing under the westernwatchbd.com,
-nexhomebd.com or waymorebd.com sites was touched (their small changes are normal
-WordPress activity).
+nexhomebd.com or waymorebd.com sites was touched (the small increases there, e.g.
+nexhomebd.com +333 inodes / +53 MB, are new files on those live sites; the home
+dot-dir growth is the npm cache, +112 MB from one Next.js version bump).
 
 "Web Apps 3/5" = three Node.js sites: provatferi.org, sahittopata.provatferi.org and
 provatferi.westernwatchbd.com.
