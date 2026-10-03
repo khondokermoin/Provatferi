@@ -57,13 +57,15 @@ needs a deliberate, separate step — see "index.php" below.
 1. Get a Hostinger upload session for `admin.provatferi.org`
    (`hosting_generateUploadURLV1`), export `HOSTINGER_UPLOAD_URL`,
    `HOSTINGER_AUTH_KEY`, `HOSTINGER_AUTH_REST`.
-2. Upload four files via TUS to `public_html/admin/`:
+2. Upload these files via TUS to `public_html/admin/`:
    - `deploy/remote/release-manager.php` → `release-manager.php`
-   - `deploy/remote/lib/uploads-persistence.php` → `lib/uploads-persistence.php`
-     (added 2026-09-25 — `release-manager.php` `require_once`s this
-     unconditionally, on every action including `install` itself, so it
-     must exist here before `install` ever runs or the script fatals
-     before the switch statement is reached)
+   - every file in `deploy/remote/lib/` → `lib/<same name>`:
+     `uploads-persistence.php` (2026-09-25), `public-uploads.php`
+     (2026-10-02), `housekeeping.php` and `disk-audit.php` (2026-10-03).
+     `release-manager.php` `require_once`s all of them unconditionally, on
+     every action including `install` itself, so each must exist here before
+     `install` ever runs or the script fatals before the switch statement
+     is reached
    - `deploy/config-contract.php` → `_bootstrap_config_contract.php`
    - a real `composer.phar` (download from getcomposer.org) → `_bootstrap_composer.phar`
 3. Run once via cron (absolute paths, the proven pattern):
@@ -77,12 +79,13 @@ needs a deliberate, separate step — see "index.php" below.
 
 ### Updating an already-installed release-manager.php
 
-The same two-file upload (`release-manager.php` + `lib/uploads-persistence.php`,
-both to `public_html/admin/` in the same relative layout as above) followed by
-the same `install` action works for updating an existing installation too —
-`install` relocates both into `_tooling/` (and `_tooling/lib/`) whether or not
-they already exist there. Always re-run `install` after editing either file
-in git; the server only ever runs whatever was last relocated into
+The same upload (`release-manager.php` as `_rm_update.php`, plus every file in
+`deploy/remote/lib/` as `lib/<name>`, all under `public_html/admin/`) followed
+by the same `install` action works for updating an existing installation too —
+`install` relocates them into `_tooling/` (and `_tooling/lib/`) whether or not
+they already exist there, and its output lists a `relocated_lib_*` key per
+library: all must be `true`. Always re-run `install` after editing any of
+these files in git; the server only ever runs whatever was last relocated into
 `_tooling/`, never the git copy directly.
 
 ## Deploying a commit
@@ -105,9 +108,14 @@ php release-manager.php contract-check <releaseId>
 php release-manager.php migrate-check <releaseId>
 php release-manager.php smoke-test-isolated <releaseId>
 
+#    (`php release-manager.php pipeline <releaseId>` runs stage → … →
+#    smoke-test-isolated in one cron, stopping at the first failure, and first
+#    checks account capacity — see "Retention, housekeeping and the capacity
+#    guard". Append `essential` to deploy anyway at >=80% inodes.)
+
 # 4. Only if every step above reported ok:true —
 php release-manager.php switch <releaseId>
-php release-manager.php smoke-test-live
+php release-manager.php smoke-test-live    # on success it also runs housekeeping apply
 
 # 5. Update the local pointer (see "Deployment manifest" below) and commit it.
 ```
@@ -122,6 +130,72 @@ php release-manager.php migrate-apply <releaseId> --i-have-reviewed-the-pretend-
 
 `migrate:fresh` and `db:wipe` are not implemented anywhere in this tooling
 and must never be run against production by hand either.
+
+## Retention, housekeeping and the capacity guard
+
+Added 2026-10-03 after a hosting audit. **Why:** every `switch` renames the whole
+live Laravel tree — `vendor/` included, ~9,000 files, ~175 MB — to
+`laravel-admin-releases/_previous-<ts>`, and nothing ever removed one. The audit
+found 29 of them plus a `_rolled-back-*`: 238,540 of the account's 412,873
+inodes (57.8%) and 3.2 GB, on a plan capped at 600,000 inodes — a full extra
+copy per deploy, so an outage within weeks. The original `cleanup` action could
+not be trusted to fix it: it ranked `_rolled-back-*` ahead of `_previous-*`, so a
+single rolled-back copy made it delete every real rollback target.
+
+**Policy** (`lib/housekeeping.php`, `hkPolicy()`; pinned by `tests/Feature/Deploy/HousekeepingTest.php`):
+
+| Thing | Kept | Removed when |
+|---|---|---|
+| `_previous-<ts>` (a retired live app) | the newest 2, **plus** the one `CURRENT_RELEASE.json` names as `previous_path` (the rollback target) | older than that |
+| `_rolled-back-<ts>` (a failed release, kept for forensics) | younger than 3 days | older |
+| `<releaseId>/` (status.json + public_assets, ~20 inodes: the deploy history) | newest 30, the current release, anything under a day old | older |
+| `_release_staging/<releaseId>/` in the docroot | in-flight (touched within the hour); unstaged and under a day old | its release staged OK (the tars are already unlinked), or a day old |
+| `.trash` (Hostinger's file-API "delete" bin, which still counts against the quota) | entries under a week old | older |
+| `_archived-logs/` | 90 days | older |
+| `~/.npm/_cacache`, `~/.composer/cache`, `~/.wp-cli/cache` | while under 1 GiB / 512 MiB / 512 MiB | over the limit (all regenerable) |
+
+**What it will never do:** touch the live app, `CURRENT_RELEASE.json`'s rollback
+target, `_tooling/`, or a directory whose name does not parse as
+`_previous-/_rolled-back-YYYYMMDD-HHMMSS`; delete anything if `CURRENT_RELEASE.json`
+is missing, unreadable, or names a rollback target that is not on disk (it fails
+closed — after a manual `rollback` that record is stale until the next `switch`
+rewrites it); delete outside the directory it was pointed at or follow a symlink;
+run twice at once (`laravel-admin-releases/.housekeeping.lock`). A retired copy that holds a
+`storage/app` file the live app does not have (matched by path+size, then by
+content hash) is **blocked, not deleted** — that file would be unrecoverable. Run
+`salvage <name>` (copies it, hash-verified, to `_salvaged-uploads/<name>/`) and then
+`housekeeping apply <name>`, or `housekeeping apply salvage` to do both for every
+blocked copy. A copy's logs are gzipped to `_archived-logs/` before it goes.
+
+**Commands** (one per cron; all dry-run unless `apply`):
+
+```
+php release-manager.php housekeeping                 # dry run: exact plan, expected inodes/bytes recovered, before/after usage
+php release-manager.php housekeeping apply           # carry it out (time-boxed to 240 s; re-run if `incomplete`)
+php release-manager.php housekeeping apply salvage   # also preserve-then-delete copies holding unique uploads
+php release-manager.php salvage _previous-<ts>[,..]  # preserve a copy's unique uploads only
+php release-manager.php usage                        # account-wide inodes + disk against the plan limits
+```
+
+It also runs by itself: `smoke-test-live` calls `housekeeping apply` once the live
+site has passed its checks (never before — a release that needs rolling back still
+has its rollback target) and reports under `housekeeping`; it cannot flip the
+deploy's `ok`.
+
+**Capacity guard.** Hostinger's limits cannot be read from the host, so they are
+constants (600,000 inodes, 50 GB — what hPanel shows). `pipeline` measures the
+whole account first (~35 s): **>=70% inodes or disk warns; >=80% inodes (or >=90%
+disk) refuses a non-essential deploy** (`pipeline <releaseId> essential`
+overrides). Every housekeeping run appends to `_usage-history.jsonl`, flags a jump
+of more than 12,000 inodes since the previous sample, and writes
+`CAPACITY_ALERT.json` (shown by `status`) whenever status is not `ok`.
+
+**Audit tool.** `lib/disk-audit.php` is a read-only, CLI-only walk used to
+produce the 2026-10-03 numbers: `php disk-audit.php <root> [report-file]` prints
+total inodes/disk, a tree, the top 30 directories by inodes and by disk, and
+per-category totals (`node_modules`, `.next`, `vendor`, caches, backups, release
+copies, tarballs, logs, …). A web request gets a bare 404; delete any docroot copy
+as soon as it has run.
 
 ## What's in the artifact, and what deliberately isn't
 

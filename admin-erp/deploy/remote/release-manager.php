@@ -33,7 +33,13 @@
  *   php release-manager.php smoke-test-live
  *   php release-manager.php rollback
  *   php release-manager.php status [<releaseId>]
- *   php release-manager.php cleanup
+ *   php release-manager.php housekeeping [apply] [<ack,list>]   (dry-run unless `apply`; `cleanup` is an alias)
+ *   php release-manager.php salvage <_previous-…|_rolled-back-…>
+ *   php release-manager.php usage
+ *
+ * `pipeline <releaseId> [essential]` first checks account capacity and refuses a
+ * non-essential deploy at >=80% inodes; `smoke-test-live` runs `housekeeping
+ * apply` itself once the live site has passed — see lib/housekeeping.php.
  *
  * Every action writes <releaseDir>/status.json (merging into whatever is
  * already there — each stage adds its own key, none overwrite a prior
@@ -49,7 +55,7 @@ $action = $argv[1] ?? null;
 $arg2 = $argv[2] ?? null;
 
 if (!$action) {
-    fwrite(STDERR, "Usage: php release-manager.php <install|pipeline|stage|build|contract-check|migrate-check|smoke-test-isolated|switch|smoke-test-live|rollback|status|cleanup> [releaseId]\n");
+    fwrite(STDERR, "Usage: php release-manager.php <install|pipeline|stage|build|contract-check|migrate-check|smoke-test-isolated|switch|smoke-test-live|rollback|status|housekeeping|salvage|usage> [releaseId]\n");
     exit(2);
 }
 
@@ -154,6 +160,28 @@ require_once __DIR__.'/lib/uploads-persistence.php';
 // this exists to fix).
 require_once __DIR__.'/lib/public-uploads.php';
 
+// hkRun(), hkPlanRetention(), hkCapacity() … — release retention, staging/trash
+// cleanup and the capacity guard, added 2026-10-03 after the hosting audit found
+// 30 retired release copies holding 58% of the account's inodes. Pulls in
+// lib/disk-audit.php for resourceUsage().
+require_once __DIR__.'/lib/housekeeping.php';
+
+/** The paths housekeeping works on, derived from where this copy of the tool lives. */
+function hkContext(): array
+{
+    global $DOMAIN_ROOT, $RELEASES_ROOT, $LIVE_APP, $PUBLIC_DOCROOT, $STAGING_ROOT;
+
+    return [
+        'home' => dirname($DOMAIN_ROOT, 2),
+        'releasesRoot' => $RELEASES_ROOT,
+        'liveApp' => $LIVE_APP,
+        'publicDocroot' => $PUBLIC_DOCROOT,
+        'publicUploadsRoot' => publicUploadsRoot($PUBLIC_DOCROOT),
+        'stagingRoot' => $STAGING_ROOT,
+        'trashDirs' => [$DOMAIN_ROOT.'/.trash', $PUBLIC_DOCROOT.'/.trash'],
+    ];
+}
+
 function bootApp(string $appBase): \Illuminate\Foundation\Application
 {
     if (!defined('LARAVEL_PUBLIC_PATH_OVERRIDE')) {
@@ -202,10 +230,12 @@ case 'install':
     // release-manager.php itself (as public_html/admin/lib/uploads-persistence.php)
     // in the same staging batch; relocated into _tooling/lib/ here, same
     // pattern as config-contract.php above.
-    // Both libs are required unconditionally at the top of this file, so they
+    // Every lib is required unconditionally at the top of this file, so each
     // must exist next to whichever copy is running or every action fatals
-    // before dispatch. lib/public-uploads.php joined the list 2026-10-02.
-    foreach (['uploads-persistence.php', 'public-uploads.php'] as $libFile) {
+    // before dispatch. lib/public-uploads.php joined the list 2026-10-02;
+    // lib/housekeeping.php and lib/disk-audit.php (which housekeeping requires)
+    // joined 2026-10-03.
+    foreach (['uploads-persistence.php', 'public-uploads.php', 'housekeeping.php', 'disk-audit.php'] as $libFile) {
         $libSrc = $PUBLIC_DOCROOT.'/lib/'.$libFile;
         $libDest = $TOOLING_DIR.'/lib/'.$libFile;
         $resultKey = 'relocated_lib_'.str_replace(['-', '.php'], ['_', ''], $libFile);
@@ -375,6 +405,13 @@ case 'stage':
         $result['error'] = 'public uploads root unusable at '.$publicUploadsRoot.' — every approved photo would publish to a path no visitor can fetch. Refusing to let switch proceed.';
     }
     mergeStatus($releaseDir, 'stage', $result);
+    // The manifest was copied into the release dir above and the tars are gone,
+    // so the staging dir is empty weight — 19 of them had piled up by 2026-10-03.
+    // Only on success: a failed stage leaves its inputs for diagnosis.
+    if ($result['ok']) {
+        @unlink($manifestPath);
+        @rmdir($stagingDir);
+    }
     jout($result);
     if (!$result['ok']) exit(1);
     break;
@@ -762,6 +799,18 @@ case 'smoke-test-live':
         $result['ok'] = false;
         $result['boot_error'] = $e->getMessage();
     }
+
+    // Housekeeping only ever runs behind a passing live check, so a release that
+    // needs rolling back still has its rollback target. It cannot flip `ok`: the
+    // deploy itself succeeded — a housekeeping problem is reported, loudly, next
+    // to it. The retention rules (what is never deleted) are in lib/housekeeping.php.
+    if ($result['ok']) {
+        try {
+            $result['housekeeping'] = hkRun(hkContext(), true, ['measure_before' => false, 'label' => 'post-deploy '.(hkReadCurrent($RELEASES_ROOT)['release_id'] ?? '')]);
+        } catch (\Throwable $e) {
+            $result['housekeeping'] = ['ok' => false, 'error' => get_class($e).': '.$e->getMessage()];
+        }
+    }
     jout($result);
     if (!$result['ok']) exit(1);
     break;
@@ -783,6 +832,22 @@ case 'pipeline':
 
     $steps = ['stage', 'build', 'contract-check', 'migrate-check', 'smoke-test-isolated'];
     $pipeline = ['ok' => true, 'release_id' => $releaseId, 'steps' => []];
+
+    // Capacity preflight (2026-10-03). A deploy writes ~9,000 files and ~200 MB;
+    // on an account already past 80% of its inode quota that can be the deploy
+    // that exhausts it, and the failure lands mid-switch. Blocked here, before
+    // anything is staged, unless the caller says the deploy is `essential`. The
+    // figures are account-wide because the quota is: see hkCapacity().
+    $capacity = hkCapacity(resourceUsage(dirname($DOMAIN_ROOT, 2)), hkPolicy());
+    $pipeline['capacity_preflight'] = $capacity;
+    if ($capacity['status'] === 'block' && !in_array('essential', array_slice($argv, 3), true)) {
+        $pipeline['ok'] = false;
+        $pipeline['failed_at'] = 'capacity_preflight';
+        $pipeline['next'] = 'free space first (housekeeping apply), or re-run `pipeline '.$releaseId.' essential` if this deploy cannot wait';
+        jout($pipeline);
+        exit(1);
+    }
+
     foreach ($steps as $step) {
         $run = runProcess([$PHP_BINARY, __FILE__, $step, $releaseId], null, 900);
         $stepOk = $run['exit_code'] === 0;
@@ -835,28 +900,43 @@ case 'status':
     } else {
         $current = is_file($RELEASES_ROOT.'/CURRENT_RELEASE.json') ? json_decode(file_get_contents($RELEASES_ROOT.'/CURRENT_RELEASE.json'), true) : null;
         $releases = array_values(array_filter(scandir($RELEASES_ROOT) ?: [], fn ($d) => $d[0] !== '.' && $d[0] !== '_'));
-        jout(['current' => $current, 'releases_present' => $releases]);
+        $retired = array_values(array_filter(scandir($RELEASES_ROOT) ?: [], fn ($d) => str_starts_with($d, '_previous-') || str_starts_with($d, '_rolled-back-')));
+        jout(['current' => $current, 'releases_present' => $releases, 'retired_copies' => count($retired), 'capacity_alert' => is_file($RELEASES_ROOT.'/CAPACITY_ALERT.json')]);
     }
     break;
 
+case 'housekeeping':
 case 'cleanup':
-    // Keeps the live app, the most recent _previous-*, and up to 2 older
-    // release directories; removes the rest. Never touches _tooling or
-    // CURRENT_RELEASE.json.
-    $entries = scandir($RELEASES_ROOT) ?: [];
-    $previous = [];
-    $releases = [];
-    foreach ($entries as $e) {
-        if ($e[0] === '.' || $e === '_tooling' || $e === 'CURRENT_RELEASE.json') continue;
-        if (str_starts_with($e, '_previous-') || str_starts_with($e, '_rolled-back-')) $previous[] = $e;
-        else $releases[] = $e;
-    }
-    rsort($previous);
-    rsort($releases);
-    $removed = [];
-    foreach (array_slice($previous, 1) as $old) { deleteRecursive($RELEASES_ROOT.'/'.$old); $removed[] = $old; }
-    foreach (array_slice($releases, 2) as $old) { deleteRecursive($RELEASES_ROOT.'/'.$old); $removed[] = $old; }
-    jout(['ok' => true, 'removed' => $removed]);
+    // Replaces the original `cleanup`, which deleted for real with no arguments and
+    // could not be trusted: it sorted `_rolled-back-*` ahead of `_previous-*` (one
+    // rolled-back copy made it delete every real rollback target) and treated
+    // commit-sha release ids as timestamps. Dry-run unless `apply` is given. The
+    // rules — and everything that is never deleted — live in lib/housekeeping.php.
+    // Extra words after `apply`: `salvage` preserves (hash-verified) any storage/app
+    // file a retired copy holds that the live app lacks, then deletes the copy;
+    // anything else is a comma-separated list of copies a human already reviewed.
+    $apply = $arg2 === 'apply';
+    $extra = array_slice($argv, 3);
+    $salvage = in_array('salvage', $extra, true);
+    $ack = array_values(array_filter(explode(',', implode(',', array_diff($extra, ['salvage'])))));
+    $report = hkRun(hkContext(), $apply, ['measure_before' => true, 'ack' => $ack, 'salvage' => $salvage, 'label' => $apply ? 'housekeeping apply' : 'housekeeping dry-run']);
+    jout($report);
+    if (!$report['ok']) exit(1);
+    break;
+
+case 'salvage':
+    // Copies a retired release's storage/app files that the live app lacks into
+    // _salvaged-uploads/ (hash-verified), so housekeeping can then be told to
+    // delete that copy with nothing lost. Never deletes anything itself.
+    if (!$arg2) { fwrite(STDERR, "salvage requires a retired-release directory name\n"); exit(2); }
+    $result = hkSalvageUnique(hkContext(), $arg2);
+    jout($result);
+    if (!$result['ok']) exit(1);
+    break;
+
+case 'usage':
+    $usage = resourceUsage(dirname($DOMAIN_ROOT, 2));
+    jout(['usage' => $usage, 'capacity' => hkCapacity($usage, hkPolicy())]);
     break;
 
 default:
