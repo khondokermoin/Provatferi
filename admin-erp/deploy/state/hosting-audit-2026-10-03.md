@@ -94,8 +94,8 @@ submission); they are preserved, hash-verified, under
 
 Removed: 27 `_previous-*`, 1 `_rolled-back-*`, 2 failed release dirs, 19 staging dirs, both
 `.trash` bins — 221,178 inodes and 3.0 GB (2.8 GiB). Kept: the live app, the rollback target
-`_previous-20261002-115801` and one more (`_previous-20261002-100502`). Six logs were
-gzipped to `_archived-logs/` first.
+`_previous-20261002-115801` and one more (`_previous-20261002-100502`). Nine logs (six in
+the first pass, three in the second) were gzipped to `_archived-logs/` first.
 
 ## 5. Top directories (subtree totals, ancestors included, depth ≤ 4)
 
