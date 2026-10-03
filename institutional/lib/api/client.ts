@@ -108,9 +108,29 @@ export type ApiSubmitResult<T> =
   | { ok: false; error: "validation"; errors: Record<string, string[]> }
   | { ok: false; error: ApiErrorReason };
 
+/**
+ * Where the time went inside one forwarded POST. Only collected when the
+ * caller asks (`onTiming`); never part of a normal submission's response.
+ */
+export interface ApiPostTiming {
+  /** Rebuilding the multipart body (stripEmptyFiles) before forwarding. */
+  prepMs: number;
+  /** fetch() until Laravel's response HEADERS arrive: re-uploading the files,
+   *  TLS/CDN hops and Laravel's whole handling of the request. */
+  headersMs: number;
+  /** Reading the (tiny) JSON response body. */
+  bodyMs: number;
+  /** Laravel's own `Server-Timing` header, verbatim, when it sent one. */
+  serverTiming: string | null;
+}
+
 export interface ApiPostOptions<T> {
   validate: (json: unknown) => json is T;
   timeoutMs?: number;
+  /** Extra request headers for the forwarded call (e.g. the opt-in timing flag). */
+  forwardHeaders?: Record<string, string>;
+  /** Receives the phase timings of this call, if the caller wants them. */
+  onTiming?: (timing: ApiPostTiming) => void;
 }
 
 function isLaravelValidationErrorBody(json: unknown): json is { message: string; errors: Record<string, string[]> } {
@@ -174,13 +194,17 @@ export async function apiPostForm<T>(path: string, formData: FormData, opts: Api
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), opts.timeoutMs ?? DEFAULT_SUBMIT_TIMEOUT_MS);
 
+  const t0 = performance.now();
+  const body = stripEmptyFiles(formData);
+  const t1 = performance.now();
+
   let response: Response;
   try {
     response = await fetch(`${base}${path}`, {
       method: "POST",
-      body: stripEmptyFiles(formData),
+      body,
       signal: controller.signal,
-      headers: { Accept: "application/json" },
+      headers: { Accept: "application/json", ...opts.forwardHeaders },
     });
   } catch (err) {
     const reason: ApiErrorReason = err instanceof DOMException && err.name === "AbortError" ? "timeout" : "network_error";
@@ -189,6 +213,7 @@ export async function apiPostForm<T>(path: string, formData: FormData, opts: Api
   } finally {
     clearTimeout(timeout);
   }
+  const t2 = performance.now();
 
   let json: unknown;
   try {
@@ -197,6 +222,8 @@ export async function apiPostForm<T>(path: string, formData: FormData, opts: Api
     logFailure(path, "invalid_json", err);
     return { ok: false, error: "invalid_json" };
   }
+  const t3 = performance.now();
+  opts.onTiming?.({ prepMs: t1 - t0, headersMs: t2 - t1, bodyMs: t3 - t2, serverTiming: response.headers.get("server-timing") });
 
   if (response.status === 422 && isLaravelValidationErrorBody(json)) {
     return { ok: false, error: "validation", errors: json.errors };
