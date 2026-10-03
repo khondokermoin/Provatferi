@@ -24,6 +24,41 @@ function formatMegabytes(bytes: number, locale: Locale): string {
   return `${new Intl.NumberFormat(locale === "en" ? "en" : "bn-BD", { maximumFractionDigits: 1 }).format(bytes / 1_048_576)} MB`;
 }
 
+function isApplicationState(value: unknown): value is VolunteerApplicationState {
+  if (typeof value !== "object" || value === null) return false;
+  const { status, errors, message } = value as { status?: unknown; errors?: unknown; message?: unknown };
+  if (status === "success") return true;
+  if (status === "validation") return typeof errors === "object" && errors !== null;
+  return status === "error" && typeof message === "string";
+}
+
+/** Longer than any legitimate upload over a slow mobile link; shorter than leaving the visitor waiting for ever. */
+const POST_TIMEOUT_MS = 90_000;
+
+/**
+ * The JavaScript submit path. It posts the multipart body to a plain route, NOT to the Server Action: a
+ * Server Action request carries a `Next-Action` header, and Cloudflare's managed WAF rule for
+ * CVE-2025-55183 refuses such a request whenever the first MiB of its body happens to contain the bytes
+ * `"$F` — which a photo or a PDF does by chance about once per 8 MB (one upload in nine).
+ * See lib/volunteer-application-post.ts.
+ *
+ * Throws on anything that is not the form's own JSON answer (an error page from an edge or proxy layer,
+ * a dropped connection, a timeout); the caller shows its generic message and the form stays as it was.
+ */
+async function postApplication(slug: string, formData: FormData): Promise<VolunteerApplicationState> {
+  const response = await fetch(`/api/recruitment/${encodeURIComponent(slug)}/apply`, {
+    method: "POST",
+    body: formData,
+    headers: { Accept: "application/json" },
+    credentials: "same-origin",
+    cache: "no-store",
+    ...(typeof AbortSignal.timeout === "function" ? { signal: AbortSignal.timeout(POST_TIMEOUT_MS) } : {}),
+  });
+  const json: unknown = await response.json();
+  if (!isApplicationState(json)) throw new Error("unexpected response");
+  return json;
+}
+
 function errorFor(errors: Record<string, string[]> | undefined, name: string): string | undefined {
   // Laravel keys array errors as `skills.0`; show those against the group.
   return errors?.[name]?.[0] ?? Object.entries(errors ?? {}).find(([key]) => key.startsWith(`${name}.`))?.[1]?.[0];
@@ -103,8 +138,9 @@ export default function VolunteerApplicationForm({
   const router = useRouter();
   const boundAction = submitVolunteerApplication.bind(null, slug);
   // `formAction` only serves a browser without JavaScript (native post + redirect). With JS, handleSubmit
-  // below takes over: it submits programmatically, so React never resets the form after a failed attempt
-  // (a reset would throw away the chosen photo and CV, which a browser will not let us re-populate).
+  // below takes over: it posts the form itself (see postApplication), so React never resets the form after
+  // a failed attempt (a reset would throw away the chosen photo and CV, which a browser will not let us
+  // re-populate).
   const [serverState, formAction] = useActionState(boundAction, initialState);
   const [clientState, setClientState] = useState<VolunteerApplicationState>(initialState);
   const state = clientState.status !== "idle" ? clientState : serverState;
@@ -145,7 +181,10 @@ export default function VolunteerApplicationForm({
     const formData = new FormData(form);
     attemptToken.current ??= newAttemptToken();
     formData.set("submission_token", attemptToken.current);
-    formData.set("client_nav", "1");
+
+    const genericError = en
+      ? "The application could not be submitted — please try again in a moment. If this keeps happening, contact us."
+      : "আবেদন জমা দেওয়া যায়নি — একটু পরে আবার চেষ্টা করুন। সমস্যা চলতে থাকলে আমাদের সঙ্গে যোগাযোগ করুন।";
 
     void (async () => {
       let result: VolunteerApplicationState;
@@ -153,18 +192,12 @@ export default function VolunteerApplicationForm({
         await photoJob.current; // a photo still being shrunk is waited for, then the smaller file is what goes
         const photo = form.querySelector<HTMLInputElement>("#photo")?.files?.[0];
         if (photo && photo.size > 0) formData.set("photo", photo);
-        result = await submitVolunteerApplication(slug, initialState, formData);
+        result = await postApplication(slug, formData);
       } catch {
-        result = {
-          status: "error",
-          message: en
-            ? "The application could not be submitted — please try again in a moment. If this keeps happening, contact us."
-            : "আবেদন জমা দেওয়া যায়নি — একটু পরে আবার চেষ্টা করুন। সমস্যা চলতে থাকলে আমাদের সঙ্গে যোগাযোগ করুন।",
-          values: {},
-          skills: [],
-          consents: [],
-        };
+        result = { status: "error", message: genericError, values: {}, skills: [], consents: [] };
       }
+      // The server's own generic text is Bangla; the visitor's language wins.
+      if (result.status === "error") result = { ...result, message: genericError };
 
       if (result.status === "success") {
         setPhase("navigating"); // stay busy until the confirmation page replaces this one

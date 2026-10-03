@@ -2,124 +2,45 @@
 
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { apiPostForm, isRecord, type ApiPostTiming } from "@/lib/api/client";
+import { forwardApplication, type VolunteerApplicationState } from "@/lib/volunteer-application";
 
-const round = (ms: number | undefined) => (ms === undefined ? null : Math.round(ms * 10) / 10);
-
-/**
- * §14: on a validation error the submitted text is handed back so the form can
- * re-render it as defaultValue. React resets an uncontrolled form once its
- * action settles, so without this the visitor would lose everything they typed
- * the moment one field failed.
- */
-export type SubmittedValues = Record<string, string>;
-
-export type VolunteerApplicationState =
-  | { status: "idle" }
-  | { status: "success" }
-  | { status: "validation"; errors: Record<string, string[]>; values: SubmittedValues; skills: string[]; consents: string[] }
-  | { status: "error"; message: string; values: SubmittedValues; skills: string[]; consents: string[] };
-
-function isApplicationCreatedResponse(v: unknown): v is { data: { application_no: string } } {
-  return isRecord(v) && isRecord(v.data) && typeof v.data.application_no === "string";
-}
-
-/** Everything except the file inputs, which a browser will not let us re-populate. */
-const TEXT_FIELDS = [
-  "applicant_name",
-  "applicant_phone",
-  "applicant_email",
-  "district",
-  "current_location",
-  "profession",
-  "experience",
-  "other_skills",
-  "contribution",
-  "availability",
-  "preferred_contact",
-  "linkedin_url",
-  "facebook_url",
-  "portfolio_url",
-] as const;
-
-/** The consent boxes are echoed too — re-ticking three declarations after a
- *  typo in one field is exactly the kind of busywork §14 rules out. */
-const CONSENT_FIELDS = ["accuracy_declaration", "privacy_consent", "contact_consent"] as const;
-
-function echoBack(formData: FormData): { values: SubmittedValues; skills: string[]; consents: string[] } {
-  const values: SubmittedValues = {};
-  for (const field of TEXT_FIELDS) {
-    const value = formData.get(field);
-    if (typeof value === "string") values[field] = value;
-  }
-  const skills = formData.getAll("skills[]").filter((s): s is string => typeof s === "string");
-  const consents = CONSENT_FIELDS.filter((field) => formData.get(field) !== null);
-
-  return { values, skills, consents };
-}
+export type { SubmittedValues, VolunteerApplicationState } from "@/lib/volunteer-application";
 
 /**
- * §2: the website form is the system of record. The posting slug is bound in
- * from the route (see the form's `.bind(null, slug)`) rather than carried as
- * an editable hidden input, so a submission can never be retargeted at a
- * different posting by editing the DOM.
+ * The form's no-JavaScript path (and a click made before the page has hydrated): a native post that
+ * ends in a redirect to the confirmation page.
  *
- * §8: a successful submission redirects to its own page. That makes the
- * browser issue a GET, so a refresh cannot resubmit the application or send
- * the confirmation e-mail twice.
+ * With JavaScript, the form does NOT call this — it posts to app/api/recruitment/[slug]/apply, because a
+ * Server Action request carries a `Next-Action` header and Cloudflare's managed WAF rule "React -
+ * Leaking Server Functions" (CVE-2025-55183) refuses any such request whose first 1 MiB contains the
+ * three bytes `"$F` (or `'$F`). A photo or PDF is binary, so it contains them by chance about once per
+ * 8 MB: roughly one photo upload in nine was refused with a bare 403 — always that same photo, so a
+ * retry could not help. (A request without that header is not subject to the rule.)
+ *
+ * §2: the posting slug is bound in from the route (see the form's `.bind(null, slug)`) rather than
+ * carried as an editable hidden input.
+ *
+ * §8: a successful submission redirects to its own page. That makes the browser issue a GET, so a
+ * refresh cannot resubmit the application or send the confirmation e-mail twice.
  */
 export async function submitVolunteerApplication(
   slug: string,
   _prev: VolunteerApplicationState,
   formData: FormData,
 ): Promise<VolunteerApplicationState> {
-  const startedAt = performance.now();
-  // Opt-in measurement (scripts/submit-qa.mjs sets this header; a visitor never does):
-  // the request carries `x-pf-timing: 1`, Laravel is asked for its Server-Timing, and the
-  // phase durations come back in a short-lived cookie — a successful submission ends in
-  // redirect(), which cannot carry a return value. Durations only, no personal data.
+  // Opt-in measurement (scripts/submit-qa.mjs sets this header; a visitor never does). A successful
+  // submission ends in redirect(), which cannot carry a return value, so the phase durations travel in a
+  // short-lived cookie instead.
   const wantTiming = (await headers()).get("x-pf-timing") === "1";
-  let forwarded: ApiPostTiming | undefined;
 
-  const result = await apiPostForm(`/api/v1/public/recruitment/${encodeURIComponent(slug)}/applications`, formData, {
-    validate: isApplicationCreatedResponse,
-    ...(wantTiming ? { forwardHeaders: { "X-Pf-Timing": "1" }, onTiming: (t: ApiPostTiming) => { forwarded = t; } } : {}),
-  });
+  const { state, timing } = await forwardApplication(slug, formData, wantTiming);
 
-  if (wantTiming) {
-    (await cookies()).set("pf_timing", encodeURIComponent(JSON.stringify({
-      actionMs: round(performance.now() - startedAt),
-      prepMs: round(forwarded?.prepMs),
-      laravelHeadersMs: round(forwarded?.headersMs),
-      laravelBodyMs: round(forwarded?.bodyMs),
-      laravel: forwarded?.serverTiming ?? null,
-    })), { maxAge: 60, path: "/", sameSite: "lax", secure: true, httpOnly: false });
+  if (timing !== null) {
+    (await cookies()).set("pf_timing", encodeURIComponent(timing), { maxAge: 60, path: "/", sameSite: "lax", secure: true, httpOnly: false });
   }
 
-  // Outside the failure branches on purpose: redirect() signals by throwing,
-  // so it must not be wrapped in anything that swallows it.
-  if (result.ok) {
-    // A browser running the form's own submit handler says so (`client_nav`) and goes to the
-    // confirmation itself, as an ordinary client navigation and in the visitor's language.
-    // Measured on production, redirect() from here never produced a client navigation at all —
-    // Next's own follow-up fetch of the success page did not yield a flight response, so every
-    // submission ended in a full page load (~0.3 s). Without JavaScript the form still posts
-    // natively, and this redirect is then the only way to the confirmation.
-    if (formData.get("client_nav") === "1") return { status: "success" };
-    redirect(`/recruitment/${encodeURIComponent(slug)}/apply/success`);
-  }
+  // Outside any try/catch on purpose: redirect() signals by throwing.
+  if (state.status === "success") redirect(`/recruitment/${encodeURIComponent(slug)}/apply/success`);
 
-  const { values, skills, consents } = echoBack(formData);
-
-  if (result.error === "validation") {
-    return { status: "validation", errors: result.errors, values, skills, consents };
-  }
-
-  return {
-    status: "error",
-    message: "আবেদন জমা দেওয়া যায়নি — একটু পরে আবার চেষ্টা করুন। সমস্যা চলতে থাকলে আমাদের সঙ্গে যোগাযোগ করুন।",
-    values,
-    skills,
-    consents,
-  };
+  return state;
 }
