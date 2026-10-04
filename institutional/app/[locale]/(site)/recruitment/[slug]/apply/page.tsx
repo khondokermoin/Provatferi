@@ -5,6 +5,7 @@ import { applicationWindowLabel, getJobPosting } from "@/lib/api/recruitment";
 import { formatDate } from "@/lib/format";
 import { localizedMetadata } from "@/lib/social-meta";
 import VolunteerApplicationForm from "@/components/VolunteerApplicationForm";
+import { submitVolunteerApplication } from "./actions";
 import { getStrings, isLocale, type Locale } from "@/lib/i18n";
 import { pickText } from "@/lib/i18n/pick";
 import { localizeHref } from "@/lib/i18n/paths";
@@ -71,7 +72,11 @@ export default async function VolunteerApplyPage({ params }: { params: Promise<{
         {/* The form no longer owns a success panel — a successful submission
             redirects to apply/success, which reads the community group from
             the posting itself, so neither prop belongs here any more. */}
+        {/* The slug is bound HERE, in the Server Component, never inside the client form: binding while rendering a form
+            that uses useActionState makes a no-JavaScript postback loop forever on the server — the Node worker spins and
+            the site stops answering (production, 2026-10-04; see the committee register page). */}
         <VolunteerApplicationForm
+          action={submitVolunteerApplication.bind(null, job.slug)}
           slug={job.slug}
           jobTitle={jobTitle.text}
           skills={job.skill_options}

@@ -1,16 +1,11 @@
 "use server";
 
-import { apiPostForm, isRecord } from "@/lib/api/client";
+import { postMembershipApplication } from "@/lib/api/membership";
+import { MEMBERSHIP_FAILURE } from "@/lib/form-messages";
+import type { MembershipFormState } from "@/lib/form-state";
+import { stateFromResult } from "@/lib/upload-route";
 
-export type MembershipApplicationState =
-  | { status: "idle" }
-  | { status: "success"; applicationNo: string }
-  | { status: "validation"; errors: Record<string, string[]> }
-  | { status: "error"; message: string };
-
-function isApplicationCreatedResponse(v: unknown): v is { data: { application_no: string } } {
-  return isRecord(v) && isRecord(v.data) && typeof v.data.application_no === "string";
-}
+export type MembershipApplicationState = MembershipFormState;
 
 /**
  * §7/§41: forwards the browser's own FormData straight to admin-erp's public
@@ -19,21 +14,17 @@ function isApplicationCreatedResponse(v: unknown): v is { data: { application_no
  * (honeypot tripped, closed season, non-self-apply type, bad photo) surfaces
  * as field-level messages the form re-renders next to the right input,
  * never a generic failure.
+ *
+ * This is the no-JavaScript path only. With JavaScript the form posts its photo to
+ * /api/membership/apply instead (lib/upload-handlers.ts) — a file in a Server Action request is exposed to
+ * Cloudflare's `Next-Action` WAF rule. Both paths make the same upstream call and show the same messages.
  */
 export async function submitMembershipApplication(
   _prev: MembershipApplicationState,
   formData: FormData,
 ): Promise<MembershipApplicationState> {
-  const result = await apiPostForm("/api/v1/public/membership/applications", formData, {
-    validate: isApplicationCreatedResponse,
+  return stateFromResult(await postMembershipApplication(formData), {
+    success: (data) => ({ applicationNo: data.data.application_no }),
+    failure: MEMBERSHIP_FAILURE,
   });
-
-  if (result.ok) {
-    return { status: "success", applicationNo: result.data.data.application_no };
-  }
-  if (result.error === "validation") {
-    return { status: "validation", errors: result.errors };
-  }
-
-  return { status: "error", message: "আবেদন জমা দেওয়া যায়নি — একটু পরে আবার চেষ্টা করুন, অথবা সরাসরি যোগাযোগ করুন।" };
 }

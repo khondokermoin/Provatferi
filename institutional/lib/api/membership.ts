@@ -1,5 +1,5 @@
-import { apiGet, isOptionalString, isRecord, isNumberOrNull, isStringOrNull } from "./client";
-import type { ApiResult, MembershipCampaign, MembershipType } from "./types";
+import { apiGet, apiPostForm, isOptionalString, isRecord, isNumberOrNull, isStringOrNull, type ApiSubmitResult } from "./client";
+import type { ApiResult, CampaignMembershipType, MembershipCampaign, MembershipType } from "./types";
 
 const REVALIDATE_SECONDS = 300;
 // Campaign status can flip the moment a season opens/closes — much shorter
@@ -19,6 +19,23 @@ function isMembershipType(v: unknown): v is MembershipType {
     typeof v.fee === "string" &&
     typeof v.is_student === "boolean" &&
     typeof v.is_public_self_apply === "boolean"
+  );
+}
+
+/** The same type as it appears inside a campaign: the flag is implied there (see CampaignMembershipType), so it is optional. */
+function isCampaignMembershipType(v: unknown): v is CampaignMembershipType {
+  return (
+    isRecord(v) &&
+    typeof v.id === "number" &&
+    typeof v.name === "string" &&
+    isOptionalString(v.name_en) &&
+    typeof v.slug === "string" &&
+    isStringOrNull(v.description) &&
+    isOptionalString(v.description_en) &&
+    isNumberOrNull(v.duration_months) &&
+    typeof v.fee === "string" &&
+    typeof v.is_student === "boolean" &&
+    (v.is_public_self_apply === undefined || typeof v.is_public_self_apply === "boolean")
   );
 }
 
@@ -49,7 +66,7 @@ function isMembershipCampaign(v: unknown): v is MembershipCampaign {
     isStringOrNull(v.cash_payment_instructions) &&
     typeof v.public_profile_opt_in === "boolean" &&
     Array.isArray(v.membership_types) &&
-    v.membership_types.every(isMembershipType)
+    v.membership_types.every(isCampaignMembershipType)
   );
 }
 
@@ -65,4 +82,18 @@ export async function getCurrentCampaigns(): Promise<ApiResult<MembershipCampaig
   });
 
   return result.ok ? { ok: true, data: result.data.data } : result;
+}
+
+function isApplicationCreatedResponse(v: unknown): v is { data: { application_no: string } } {
+  return isRecord(v) && isRecord(v.data) && typeof v.data.application_no === "string";
+}
+
+/**
+ * §7/§41: the browser's own FormData goes straight to admin-erp's public intake endpoint — the field names already
+ * match what MembershipApplicationController::store() validates. A 422 (honeypot tripped, closed season,
+ * non-self-apply type, bad photo) surfaces as field-level messages, never a generic failure. Shared by the form's
+ * route handler and its no-JavaScript Server Action.
+ */
+export async function postMembershipApplication(formData: FormData): Promise<ApiSubmitResult<{ data: { application_no: string } }>> {
+  return apiPostForm("/api/v1/public/membership/applications", formData, { validate: isApplicationCreatedResponse });
 }

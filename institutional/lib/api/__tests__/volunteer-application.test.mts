@@ -130,7 +130,9 @@ test("the timing flag is forwarded and the phases come back as durations only â€
 // ---------------------------------------------------------------------------
 
 const ENDPOINT = "https://provatferi.org/api/recruitment/posting/apply";
-const multipart = (form: FormData, headers: Record<string, string> = {}) => new Request(ENDPOINT, { method: "POST", body: form, headers });
+// What a browser's fetch() sends from the site's own page; the shared guard (lib/upload-route.ts) refuses a request without it.
+const BROWSER = { origin: "https://provatferi.org", "sec-fetch-site": "same-origin" };
+const multipart = (form: FormData, headers: Record<string, string> = {}) => new Request(ENDPOINT, { method: "POST", body: form, headers: { ...BROWSER, ...headers } });
 
 test("the endpoint answers success as 200 JSON that must never be cached", async () => {
   laravelReplies(created, 201);
@@ -178,7 +180,7 @@ test("a request started by another site's page is refused before anything is for
 
 test("only multipart bodies are accepted", async () => {
   laravelReplies(created, 201);
-  const res = await handleApplicationPost(new Request(ENDPOINT, { method: "POST", body: "{}", headers: { "content-type": "application/json" } }), "posting");
+  const res = await handleApplicationPost(new Request(ENDPOINT, { method: "POST", body: "{}", headers: { ...BROWSER, "content-type": "application/json" } }), "posting");
 
   assert.equal(res.status, 415);
   assert.equal(calls.length, 0);
@@ -187,7 +189,7 @@ test("only multipart bodies are accepted", async () => {
 test("a body larger than any legitimate submission is refused without being read â€” declared size", async () => {
   laravelReplies(created, 201);
   const res = await handleApplicationPost(
-    new Request(ENDPOINT, { method: "POST", body: "x", headers: { "content-type": "multipart/form-data; boundary=b", "content-length": String(MAX_BODY_BYTES + 1) } }),
+    new Request(ENDPOINT, { method: "POST", body: "x", headers: { ...BROWSER, "content-type": "multipart/form-data; boundary=b", "content-length": String(MAX_BODY_BYTES + 1) } }),
     "posting",
   );
 
@@ -206,7 +208,7 @@ test("...and when no size is declared, the stream is cut off at the limit", asyn
       controller.enqueue(megabyte);
     },
   });
-  const request = new Request(ENDPOINT, { method: "POST", body: stream, headers: { "content-type": "multipart/form-data; boundary=b" }, duplex: "half" } as RequestInit);
+  const request = new Request(ENDPOINT, { method: "POST", body: stream, headers: { ...BROWSER, "content-type": "multipart/form-data; boundary=b" }, duplex: "half" } as RequestInit);
   const res = await handleApplicationPost(request, "posting");
 
   assert.equal(res.status, 413);
@@ -217,7 +219,7 @@ test("...and when no size is declared, the stream is cut off at the limit", asyn
 test("a body that is not valid multipart is a 400 error state, nothing forwarded", async () => {
   laravelReplies(created, 201);
   const res = await handleApplicationPost(
-    new Request(ENDPOINT, { method: "POST", body: "this is not multipart", headers: { "content-type": "multipart/form-data; boundary=zzz" } }),
+    new Request(ENDPOINT, { method: "POST", body: "this is not multipart", headers: { ...BROWSER, "content-type": "multipart/form-data; boundary=zzz" } }),
     "posting",
   );
 

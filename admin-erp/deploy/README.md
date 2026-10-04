@@ -301,6 +301,22 @@ ever comes up.
   used — `symlink()`/`link()` are confirmed disabled in `php.ini` on this
   host, not merely untested.
 
+### Known issue — NEXT TASK, deliberately not changed yet: uploads written between `stage` and `switch` are stranded
+
+Found 2026-10-04 (two QA rows kept their data but lost their photo/CV, `photo=GONE`). `stage` copies the live
+uploads into the new release tree; `switch` renames that tree into place and does **not** copy anything again. A
+file uploaded by a visitor between the two steps therefore lands in the OLD tree, which the `switch` retires to
+`laravel-admin-releases/_previous-<ts>/` — the database row survives, the file does not follow it. The window is
+the whole gap between `stage` and `switch` (pipeline run + the operator's check ≈ 10 minutes), so on a busy day it
+is real, and the housekeeping guard later refuses to prune that `_previous-*` copy ("salvage first") because it
+still holds files the live tree lacks.
+
+Planned fix (its own task, its own release — not combined with anything else): at `switch`, delta-copy the files
+that exist in the live uploads tree but not in the staged one (compare by relative path, copy only missing ones)
+immediately before the atomic rename, and report the count in the switch output; then a post-switch check that no
+row in the upload-bearing tables points at a missing file. Until it ships: keep `stage` → `switch` short, and after
+every `switch` check for `GONE` rows and salvage them from the newest `_previous-*` tree.
+
 ## Rollback
 
 ```

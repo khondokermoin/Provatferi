@@ -1,18 +1,18 @@
 "use client";
 
-import { useActionState, useEffect, useId, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useActionState, useEffect, useId, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
-import { submitVolunteerApplication, type VolunteerApplicationState } from "@/app/[locale]/(site)/recruitment/[slug]/apply/actions";
-import BrandLoader, { preloadBrandLoader } from "@/components/BrandLoader";
+import type { VolunteerApplicationState } from "@/app/[locale]/(site)/recruitment/[slug]/apply/actions";
+import SubmitControl from "@/components/SubmitControl";
 import type { SkillOption } from "@/lib/api/types";
+import { isFormState, type FormAction } from "@/lib/form-state";
 import type { Locale } from "@/lib/i18n";
 import { localizeHref } from "@/lib/i18n/paths";
 import { replaceInputFile, shrinkPhoto } from "@/lib/shrink-photo";
+import { useUploadSubmit } from "@/lib/use-upload-submit";
 
 const initialState: VolunteerApplicationState = { status: "idle" };
 
-/** Waiting is "instant" up to here; past it a sentence under the button says what is going on. Never a fake percentage. */
-const SLOW_AFTER_MS = 2000;
 /** After a successful submit: how long the confirmation page may take before a plain link is offered. */
 const STUCK_AFTER_MS = 5000;
 
@@ -47,39 +47,9 @@ function formatMegabytes(bytes: number, locale: Locale): string {
   return `${new Intl.NumberFormat(locale === "en" ? "en" : "bn-BD", { maximumFractionDigits: 1 }).format(bytes / 1_048_576)} MB`;
 }
 
+/** The route answers with the shared form state, plus the echoed text the form re-renders (lib/volunteer-application.ts). */
 function isApplicationState(value: unknown): value is VolunteerApplicationState {
-  if (typeof value !== "object" || value === null) return false;
-  const { status, errors, message } = value as { status?: unknown; errors?: unknown; message?: unknown };
-  if (status === "success") return true;
-  if (status === "validation") return typeof errors === "object" && errors !== null;
-  return status === "error" && typeof message === "string";
-}
-
-/** Longer than any legitimate upload over a slow mobile link; shorter than leaving the visitor waiting for ever. */
-const POST_TIMEOUT_MS = 90_000;
-
-/**
- * The JavaScript submit path. It posts the multipart body to a plain route, NOT to the Server Action: a
- * Server Action request carries a `Next-Action` header, and Cloudflare's managed WAF rule for
- * CVE-2025-55183 refuses such a request whenever the first MiB of its body happens to contain the bytes
- * `"$F` — which a photo or a PDF does by chance about once per 8 MB (one upload in nine).
- * See lib/volunteer-application-post.ts.
- *
- * Throws on anything that is not the form's own JSON answer (an error page from an edge or proxy layer,
- * a dropped connection, a timeout); the caller shows its generic message and the form stays as it was.
- */
-async function postApplication(slug: string, formData: FormData): Promise<VolunteerApplicationState> {
-  const response = await fetch(`/api/recruitment/${encodeURIComponent(slug)}/apply`, {
-    method: "POST",
-    body: formData,
-    headers: { Accept: "application/json" },
-    credentials: "same-origin",
-    cache: "no-store",
-    ...(typeof AbortSignal.timeout === "function" ? { signal: AbortSignal.timeout(POST_TIMEOUT_MS) } : {}),
-  });
-  const json: unknown = await response.json();
-  if (!isApplicationState(json)) throw new Error("unexpected response");
-  return json;
+  return isFormState(value);
 }
 
 function errorFor(errors: Record<string, string[]> | undefined, name: string): string | undefined {
@@ -149,38 +119,57 @@ export default function VolunteerApplicationForm({
   jobTitle,
   skills,
   fieldRequirements,
+  action,
   locale = "bn",
 }: {
   slug: string;
   jobTitle: string;
   skills: SkillOption[];
   fieldRequirements: Record<string, "required" | "optional">;
+  /** The page's Server Action with this posting's slug already bound (see apply/page.tsx for why it is not bound here). */
+  action: FormAction<VolunteerApplicationState>;
   locale?: Locale;
 }) {
   const en = locale === "en";
   const router = useRouter();
-  const boundAction = submitVolunteerApplication.bind(null, slug);
-  // `formAction` only serves a browser without JavaScript (native post + redirect). With JS, handleSubmit
-  // below takes over: it posts the form itself (see postApplication), so React never resets the form after
-  // a failed attempt (a reset would throw away the chosen photo and CV, which a browser will not let us
-  // re-populate).
-  const [serverState, formAction] = useActionState(boundAction, initialState);
-  const [clientState, setClientState] = useState<VolunteerApplicationState>(initialState);
-  const state = clientState.status !== "idle" ? clientState : serverState;
-  const [phase, setPhase] = useState<"idle" | "working" | "navigating">("idle");
-  const busy = phase !== "idle";
-  const [slow, setSlow] = useState(false); // has been waiting for SLOW_AFTER_MS: show the helper sentence
-  const [stuck, setStuck] = useState(false); // confirmation still not open STUCK_AFTER_MS after success: offer a plain link
   const copy = COPY[en ? "en" : "bn"];
-  const [photoNote, setPhotoNote] = useState<{ from: number; to: number } | null>(null);
-  const formRef = useRef<HTMLFormElement>(null);
-  const statusRef = useRef<HTMLParagraphElement>(null);
-  const summaryRef = useRef<HTMLDivElement>(null);
-  const submitLock = useRef(false); // set synchronously, before React re-renders: a 2nd click or Enter in the same instant finds it taken
+  const successHref = localizeHref(`/recruitment/${slug}/apply/success`, locale);
   const attemptToken = useRef<string | null>(null);
   const photoJob = useRef<Promise<void> | null>(null);
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const [photoNote, setPhotoNote] = useState<{ from: number; to: number } | null>(null);
+  const [stuck, setStuck] = useState(false); // confirmation still not open STUCK_AFTER_MS after success: offer a plain link
   const uid = useId();
-  const successHref = localizeHref(`/recruitment/${slug}/apply/success`, locale);
+  // The server's own generic text is Bangla; the visitor's language wins.
+  const genericError = en
+    ? "The application could not be submitted — please try again in a moment. If this keeps happening, contact us."
+    : "আবেদন জমা দেওয়া যায়নি — একটু পরে আবার চেষ্টা করুন। সমস্যা চলতে থাকলে আমাদের সঙ্গে যোগাযোগ করুন।";
+
+  // `formAction` only serves a browser without JavaScript (native post + redirect). With JS, `onSubmit` takes
+  // over (lib/use-upload-submit.ts): it posts the form itself to a plain route — a Server Action request
+  // carrying a photo or a CV can be refused by Cloudflare's WAF depending on the file's bytes, see
+  // lib/upload-route.ts — so React never resets the form after a failed attempt (a reset would throw away the
+  // chosen photo and CV, which a browser will not let us re-populate).
+  const [serverState, formAction] = useActionState(action, initialState);
+  const { answer, phase, busy, slow, formRef, statusRef, onSubmit } = useUploadSubmit<VolunteerApplicationState>({
+    endpoint: `/api/recruitment/${encodeURIComponent(slug)}/apply`,
+    isState: isApplicationState,
+    failure: { status: "error", message: genericError, values: {}, skills: [], consents: [] },
+    focusOnFailure: false, // this form places focus itself, on its own summary (below)
+    prepare: async (formData, form) => {
+      attemptToken.current ??= newAttemptToken();
+      formData.set("submission_token", attemptToken.current);
+      await photoJob.current; // a photo still being shrunk is waited for, then the smaller file is what goes
+      const photo = form.querySelector<HTMLInputElement>("#photo")?.files?.[0];
+      if (photo && photo.size > 0) formData.set("photo", photo);
+    },
+    onAnswer: (result) => {
+      if (result.status !== "success") return;
+      router.push(successHref);
+      return "hold"; // stay busy until the confirmation page replaces this one
+    },
+  });
+  const state = answer ?? serverState;
 
   async function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
     const input = event.currentTarget;
@@ -195,66 +184,6 @@ export default function VolunteerApplicationForm({
     photoJob.current = job;
     await job;
   }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (submitLock.current) return;
-    submitLock.current = true;
-    setPhase("working"); // the button, the status line and the parked fields change on the very next frame
-
-    const form = event.currentTarget;
-    // Captured NOW, before the fields are disabled: a disabled control is not part of a form's data.
-    const formData = new FormData(form);
-    attemptToken.current ??= newAttemptToken();
-    formData.set("submission_token", attemptToken.current);
-
-    const genericError = en
-      ? "The application could not be submitted — please try again in a moment. If this keeps happening, contact us."
-      : "আবেদন জমা দেওয়া যায়নি — একটু পরে আবার চেষ্টা করুন। সমস্যা চলতে থাকলে আমাদের সঙ্গে যোগাযোগ করুন।";
-
-    void (async () => {
-      let result: VolunteerApplicationState;
-      try {
-        await photoJob.current; // a photo still being shrunk is waited for, then the smaller file is what goes
-        const photo = form.querySelector<HTMLInputElement>("#photo")?.files?.[0];
-        if (photo && photo.size > 0) formData.set("photo", photo);
-        result = await postApplication(slug, formData);
-      } catch {
-        result = { status: "error", message: genericError, values: {}, skills: [], consents: [] };
-      }
-      // The server's own generic text is Bangla; the visitor's language wins.
-      if (result.status === "error") result = { ...result, message: genericError };
-
-      if (result.status === "success") {
-        setPhase("navigating"); // stay busy until the confirmation page replaces this one
-        router.push(successHref);
-        return;
-      }
-      // Failed: everything typed and chosen is still in the form (nothing reset it) — hand control back.
-      setClientState(result);
-      setPhase("idle");
-      setSlow(false);
-      submitLock.current = false;
-    })();
-  }
-
-  // Keyboard and screen-reader users: the focused control is about to be disabled, so focus moves to the status line, which is announced.
-  useEffect(() => {
-    if (busy) statusRef.current?.focus({ preventScroll: true });
-  }, [busy]);
-
-  // The loader's icon images are fetched and decoded while the visitor fills the form, so the brand mark
-  // is on screen on the very frame of the click instead of arriving a moment after its ring.
-  useEffect(() => {
-    preloadBrandLoader();
-  }, []);
-
-  // The helper sentence appears only once waiting is no longer instant, so a fast submit never flashes it.
-  useEffect(() => {
-    if (!busy) return;
-    const timer = setTimeout(() => setSlow(true), SLOW_AFTER_MS);
-    return () => clearTimeout(timer);
-  }, [busy]);
 
   // After success the page is already on its way; only if it is slow to open does a plain link appear.
   useEffect(() => {
@@ -281,7 +210,7 @@ export default function VolunteerApplicationForm({
 
   // §14: move the visitor to the first thing that needs fixing — the first invalid field, or, when the
   // whole submission failed (network, server), the message explaining it. The form is enabled again
-  // by the time this runs (handleSubmit hands control back in the same update as the error).
+  // by the time this runs (useUploadSubmit hands control back in the same update as the error).
   useEffect(() => {
     if (state.status === "error") {
       summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -295,7 +224,7 @@ export default function VolunteerApplicationForm({
     const target = firstInvalid ?? form.querySelector<HTMLElement>(".form-field-error");
     target?.scrollIntoView({ behavior: "smooth", block: "center" });
     firstInvalid?.focus({ preventScroll: true });
-  }, [errors, state]);
+  }, [errors, state, formRef]);
 
   const invalid = (name: string) => Boolean(errorFor(errors, name));
   const errId = (name: string) => `${uid}-${name}-error`;
@@ -305,7 +234,7 @@ export default function VolunteerApplicationForm({
     <form
       ref={formRef}
       action={formAction}
-      onSubmit={handleSubmit}
+      onSubmit={onSubmit}
       className="application-form volunteer-form"
       noValidate
       encType="multipart/form-data"
@@ -323,7 +252,7 @@ export default function VolunteerApplicationForm({
         <div className="form-summary" role="alert" ref={summaryRef} tabIndex={-1}>
           {state.status === "validation"
             ? (en ? "Some fields need fixing — see those marked below. What you've entered has not been lost." : "কিছু তথ্য ঠিক করতে হবে — নিচে চিহ্নিত ঘরগুলো দেখুন। আপনার লেখা তথ্য মুছে যায়নি।")
-            : state.message}
+            : genericError}
         </div>
       )}
 
@@ -686,23 +615,20 @@ export default function VolunteerApplicationForm({
       </div>
       </fieldset>
 
-      {/* §7: disabled the instant it is clicked (handleSubmit also holds a synchronous lock, so a
-          double click or a second Enter cannot reach the server twice). While it works the button holds
-          the brand loader and the words — and stays that way through the hand-over to the confirmation
-          page, so the idle label never flashes back between success and navigation. The loader is
-          silent (announce={false}): the status line below is the one live region. */}
-      <button type="submit" className="button button-primary" disabled={busy} aria-busy={busy || undefined}>
-        {busy ? <BrandLoader size="sm" announce={false} label={copy.submitting} /> : copy.submit}
-      </button>
-      {/* The one live region. At once it says the short thing, spoken only; after ~2 s a visible helper
-          sentence replaces it (no fake percentage). Space for two lines is reserved in the CSS. */}
-      <p ref={statusRef} className="form-submit-status" role="status" aria-live="polite" tabIndex={-1}>
-        {slow ? (
-          <span className="form-submit-helper">{phase === "navigating" ? copy.received : copy.wait}</span>
-        ) : (
-          busy && <span className="sr-only">{phase === "navigating" ? copy.received : copy.submitting}</span>
-        )}
-      </p>
+      {/* §7: disabled the instant it is clicked (the hook also holds a synchronous lock, so a double click or
+          a second Enter cannot reach the server twice). While it works the button holds the brand loader and
+          the words — and stays that way through the hand-over to the confirmation page, so the idle label
+          never flashes back between success and navigation. The status line under it is the one live
+          region; after success it says the confirmation is opening. */}
+      <SubmitControl
+        busy={busy}
+        slow={slow}
+        idleLabel={copy.submit}
+        busyLabel={copy.submitting}
+        helper={phase === "navigating" ? copy.received : copy.wait}
+        spokenWhileBusy={phase === "navigating" ? copy.received : copy.submitting}
+        statusRef={statusRef}
+      />
       {phase === "navigating" && stuck && (
         <p className="form-field-help">
           <a href={successHref}>{copy.fallback}</a>

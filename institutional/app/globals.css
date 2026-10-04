@@ -1326,16 +1326,16 @@ input[type="radio"]:disabled { cursor: not-allowed; opacity: .55; }
 
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { transition: none !important; } }
 
-/* ---------- Submit in flight (volunteer application form) ----------
+/* ---------- Submit in flight (every upload form: volunteer, committee, membership, member profile) ----------
    A disabled, dimmer button alone read as a frozen form: at the bottom of a long page nothing else
    moved. While a submission is working the button carries the brand loader and says so, a status
    line under it (what assistive tech announces; after ~2 s also a visible helper sentence) repeats it
    in words, and the fields are visibly parked — still on screen, still holding everything typed and
    every file chosen. */
-.volunteer-form .form-body { display: flex; flex-direction: column; gap: inherit; min-width: 0; margin: 0; padding: 0; border: 0; transition: opacity .2s; }
-.volunteer-form[aria-busy="true"] .form-body { opacity: .6; }
+.application-form .form-body { display: flex; flex-direction: column; gap: inherit; min-width: 0; margin: 0; padding: 0; border: 0; transition: opacity .2s; }
+.application-form[aria-busy="true"] .form-body { opacity: .6; }
 /* A busy button is working, not unavailable: keep it legible. */
-.volunteer-form .button:disabled[aria-busy="true"] { opacity: .92; cursor: progress; }
+.application-form .button:disabled[aria-busy="true"] { opacity: .92; cursor: progress; }
 /* Room for the helper sentence is reserved up front (two lines on a phone, one on a desktop), so it
    appearing after ~2 s moves nothing below it. */
 .form-submit-status { min-height: 3em; margin: -8px 0 0; font-size: 14px; line-height: 1.5; color: var(--muted); outline: none; }
@@ -1343,7 +1343,7 @@ input[type="radio"]:disabled { cursor: not-allowed; opacity: .55; }
 .form-submit-helper { display: block; }
 @media (prefers-reduced-motion: no-preference) { .form-submit-helper { animation: pf-helper-in .3s ease-out both; } }
 @keyframes pf-helper-in { from { opacity: 0; transform: translateY(-3px); } }
-.form-summary:focus { outline: none; }
+.form-summary:focus, .callout:focus { outline: none; }
 
 /* ---------- Brand loader (components/BrandLoader.tsx) ----------
    The one loading mark: the official sun icon, centred, with a thin orbit ring turning round it. The

@@ -135,6 +135,14 @@ export interface MembershipType {
 // this is never collapsed to a single nullable campaign.
 // ---------------------------------------------------------------------------
 
+/**
+ * A membership type as the campaigns endpoint nests it. That endpoint returns ONLY the types a visitor can apply for
+ * themselves (status active, public self-apply), so it does not repeat `is_public_self_apply` — the flag belongs to the
+ * membership-types list above. Requiring it here made every open season fail the shape check, and the application form
+ * never rendered.
+ */
+export type CampaignMembershipType = Omit<MembershipType, "is_public_self_apply"> & { is_public_self_apply?: boolean };
+
 export interface MembershipCampaign {
   id: number;
   name: string;
@@ -146,7 +154,7 @@ export interface MembershipCampaign {
   description: string | null;
   cash_payment_instructions: string | null;
   public_profile_opt_in: boolean;
-  membership_types: MembershipType[];
+  membership_types: CampaignMembershipType[];
 }
 
 // ---------------------------------------------------------------------------

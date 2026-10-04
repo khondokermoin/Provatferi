@@ -1,4 +1,4 @@
-import { apiGet, isRecord, isStringOrNull } from "./client";
+import { apiGet, apiPostForm, isRecord, isStringOrNull, type ApiSubmitResult } from "./client";
 import type { ApiResult, CommitteeCorrectionInfo, CommitteePositionOption, CommitteeRegistrationLinkInfo } from "./types";
 
 // Never cached — a token's validity (unused, unexpired, unrevoked) can
@@ -54,6 +54,28 @@ function isCorrectionResponse(json: unknown): json is { data: CommitteeCorrectio
     Array.isArray(d.positions) &&
     d.positions.every(isPositionOption)
   );
+}
+
+function isSubmissionIdResponse(v: unknown): v is { data: { id: number } } {
+  return isRecord(v) && isRecord(v.data) && typeof v.data.id === "number";
+}
+
+/**
+ * §22-25/§41: a nominee's registration. The token is the one in the URL the nominee was sent — set here, from the
+ * caller's argument, over whatever the browser's form may have carried: a submission can only ever be filed
+ * against the link that was actually opened. Shared by the form's route handler and its no-JavaScript Server Action.
+ */
+export async function postCommitteeRegistration(token: string, formData: FormData): Promise<ApiSubmitResult<{ data: { id: number } }>> {
+  formData.set("registration_token", token);
+  return apiPostForm("/api/v1/public/committee-submissions", formData, { validate: isSubmissionIdResponse });
+}
+
+/**
+ * §27/§41: the single-use correction. Laravel refuses a spent or expired token (404), so a resubmission can only
+ * ever happen once per issued link — that is the idempotency here, not anything this layer adds.
+ */
+export async function postCommitteeCorrection(token: string, formData: FormData): Promise<ApiSubmitResult<{ data: { id: number } }>> {
+  return apiPostForm(`/api/v1/public/committee-submissions/correction/${encodeURIComponent(token)}`, formData, { validate: isSubmissionIdResponse });
 }
 
 export async function getCorrectionSubmission(token: string): Promise<ApiResult<CommitteeCorrectionInfo>> {

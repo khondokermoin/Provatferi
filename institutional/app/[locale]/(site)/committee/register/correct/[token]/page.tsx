@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getCorrectionSubmission } from "@/lib/api/committee-registration";
 import PageHeader from "@/components/PageHeader";
 import CommitteeCorrectionForm from "@/components/CommitteeCorrectionForm";
+import { submitCommitteeCorrection } from "./actions";
 import { isLocale } from "@/lib/i18n";
 
 // A correction link is single-use and shared privately — never indexed.
@@ -24,7 +25,9 @@ export default async function CommitteeCorrectPage({ params }: { params: Promise
       <PageHeader title={`${result.data.committee.name} — তথ্য সংশোধন`} description="আপনার জমাকৃত তথ্য পর্যালোচনা করে সংশোধন করুন।" />
 
       <section className="content-section">
-        <CommitteeCorrectionForm token={token} info={result.data} />
+        {/* Bound here, in the Server Component, never inside the client form: binding while rendering a form that uses
+            useActionState makes a no-JavaScript postback loop forever on the server (see ../[token]/page.tsx). */}
+        <CommitteeCorrectionForm token={token} info={result.data} action={submitCommitteeCorrection.bind(null, token)} />
       </section>
     </>
   );

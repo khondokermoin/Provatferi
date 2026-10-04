@@ -21,7 +21,8 @@ const read = (...parts: string[]) => readFileSync(join(ROOT, ...parts), "utf8");
 test("the volunteer form's JavaScript submit posts to the plain route, not to the Server Action", () => {
   const form = read("components", "VolunteerApplicationForm.tsx");
 
-  assert.match(form, /fetch\(`\/api\/recruitment\/\$\{encodeURIComponent\(slug\)\}\/apply`/, "handleSubmit must post to /api/recruitment/<slug>/apply");
+  // The form hands the shared hook its endpoint; the hook's plain fetch() is pinned in no-file-upload-server-actions.test.mts.
+  assert.match(form, /endpoint: `\/api\/recruitment\/\$\{encodeURIComponent\(slug\)\}\/apply`/, "the form must post to /api/recruitment/<slug>/apply");
   assert.doesNotMatch(
     form,
     /submitVolunteerApplication\(/,
