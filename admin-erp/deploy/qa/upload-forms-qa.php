@@ -6,8 +6,9 @@
  * through a one-shot cron, as the other one-shot scripts are).
  *
  *   setup [--local-admin]   creates the disposable fixtures every scenario needs and prints them as JSON:
- *                           a committee with two positions and a registration link, five correction submissions
- *                           (each with its own single-use token and a photo already on file), a membership type and an
+ *                           a committee with two positions and a registration link, seven correction submissions
+ *                           (A-E for upload-forms-qa.mjs, F for native-post-probe.mjs, G for upload-forms-nojs-qa.mjs; each with its
+ *                           own single-use token and a photo already on file), a membership type and an
  *                           open season (it closes itself after 45 minutes), a member with a known password and a
  *                           membership row so the admin screens list them. --local-admin also creates a staff
  *                           account with a random password — LOCAL ONLY; production QA uses the owner's own login.
@@ -77,6 +78,17 @@ if ($mode === 'setup') {
     $tag = TAG.$suffix;
     $state = ['suffix' => $suffix, 'createdAt' => now()->toIso8601String(), 'ids' => [], 'files' => []];
 
+    // A failed earlier setup rolls its rows back but cannot un-write the photo files it had already put on disk: sweep those
+    // (only this harness's own names, only when no row refers to them) before starting.
+    $swept = 0;
+    foreach (Storage::disk('uploads_private')->files('committee-submissions') as $file) {
+        if (preg_match('~^committee-submissions/qa-qa[0-9a-f]{6}-[a-g]\.png$~', $file) && !CommitteeSubmission::query()->where('photo_path', $file)->exists()) {
+            Storage::disk('uploads_private')->delete($file);
+            $swept++;
+        }
+    }
+
+    try {
     DB::transaction(function () use (&$state, $suffix, $tag, $argv) {
         // A committee needs an organisation unit; reuse one that exists, create (and later remove) one only when there is none.
         $unit = OrganizationalUnit::query()->orderBy('id')->first();
@@ -106,7 +118,7 @@ if ($mode === 'setup') {
 
         // Four correction submissions, one per scenario that consumes a single-use token; each already has a photo on file.
         $state['corrections'] = [];
-        foreach (['A', 'B', 'C', 'D', 'E'] as $label) {
+        foreach (['A', 'B', 'C', 'D', 'E', 'F', 'G'] as $label) {
             $path = 'committee-submissions/qa-'.$suffix.'-'.strtolower($label).'.png';
             Storage::disk('uploads_private')->put($path, base64_decode(TINY_PNG));
             $state['files'][] = ['disk' => 'uploads_private', 'path' => $path];
@@ -133,7 +145,7 @@ if ($mode === 'setup') {
 
         $password = bin2hex(random_bytes(9));
         $member = Member::query()->create([
-            'member_code' => 'QA-'.$suffix, 'name' => "QA Member $suffix", 'email' => "khondokermoin2k23+$suffix-m@gmail.com", 'phone' => '01700000000',
+            'member_code' => 'QA-'.$suffix, 'name' => "QA Member $suffix", 'email' => "khondokermoin2k23+$suffix-m@gmail.com", 'phone' => '0199'.str_pad((string) random_int(0, 9999999), 7, '0', STR_PAD_LEFT),
             'password' => $password, 'status' => 'active', 'public_profile_enabled' => false, 'public_profile_approved' => false,
         ]);
         $registry = Membership::query()->create(['member_id' => $member->id, 'membership_type_id' => $type->id, 'member_code' => 'QA-'.$suffix, 'start_date' => now()->toDateString(), 'status' => 'active']);
@@ -151,6 +163,13 @@ if ($mode === 'setup') {
         }
     });
 
+    } catch (Throwable $e) {
+        // The rows rolled back; take this run's files with them, then report the real error.
+        foreach ($state['files'] as $f) Storage::disk($f['disk'])->delete($f['path']);
+        throw $e;
+    }
+
+    $state['sweptOrphans'] = $swept;
     file_put_contents($STATE, json_encode($state, JSON_PRETTY_PRINT));
     out($state);
     exit(0);

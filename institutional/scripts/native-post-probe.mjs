@@ -5,7 +5,7 @@
 // Node worker spun at 100% CPU until it was killed — and nothing in a build, a unit test or a normal browser run shows it.
 //
 //   node scripts/native-post-probe.mjs --base http://127.0.0.1:3100 --state qa-state.json --fixtures <dir> [--slug qa-local-posting]
-//        [--cpu-pid <pid of the local next server>] [--allow-remote]
+//        [--cpu-pid <pid of the local next server>] [--allow-remote] [--pace-ms 12000] [--only "correction, native post, success"]
 //
 // LOCAL by default: against anything but 127.0.0.1/localhost it refuses to run unless --allow-remote is given, because on a
 // build that still has the bug a single one of these requests takes the site down. Each probe has a hard timeout and is never
@@ -28,6 +28,11 @@ const fixtures = arg("fixtures");
 const slug = arg("slug", "qa-local-posting");
 const cpuPid = arg("cpu-pid");
 const timeoutMs = Number(arg("timeout-ms", "10000"));
+// Laravel allows 5-6 of these a minute per IP (one counter shared with every visitor); against a real host pace the probes.
+const paceMs = Number(arg("pace-ms", "0"));
+let probed = 0;
+const only = arg("only"); // run just the probes whose label contains this text
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const local = /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(base);
 if (!local && !process.argv.includes("--allow-remote")) {
   console.error(`refusing to POST native Server Action forms to ${base}: on a build with the bound-action bug this takes the site down. Pass --allow-remote only after the fix is verified locally.`);
@@ -41,6 +46,8 @@ const results = [];
 const hiddenFields = (html) => [...html.matchAll(/<input type="hidden" name="(\$ACTION[^"]*)"(?: value="([^"]*)")?/g)].map((m) => [m[1], unesc(m[2] ?? "")]);
 
 async function probe(label, { url, cookie = "", fields, file = false, expect, unexpected = null, status = [200] }) {
+  if (only && !label.includes(only)) return;
+  if (probed++ > 0 && paceMs) await sleep(paceMs);
   const page = await fetch(url, { headers: cookie ? { cookie } : {}, signal: AbortSignal.timeout(timeoutMs) });
   const hidden = hiddenFields(await page.text());
   if (!hidden.length) return results.push({ label, ok: false, why: "the page rendered no $ACTION_* fields (is the QA data valid?)" }) && console.log(`FAIL  ${label}: no hidden action fields`);
@@ -52,8 +59,9 @@ async function probe(label, { url, cookie = "", fields, file = false, expect, un
   const res = await fetch(url, { method: "POST", body: form, redirect: "manual", headers: { Origin: new URL(url).origin, ...(cookie ? { cookie } : {}) }, signal: AbortSignal.timeout(timeoutMs) }).catch((e) => ({ hung: String(e).slice(0, 60) }));
   const ms = Date.now() - started;
   if (res.hung) {
-    results.push({ label, ok: false, why: `NO ANSWER within ${timeoutMs} ms (${res.hung}) — the server is probably looping` });
-    return console.log(`FAIL  ${label}: no answer in ${timeoutMs} ms — the server render is hanging`);
+    // Stop at once: every further probe against a looping server would start another spinner.
+    console.log(`FAIL  ${label}: no answer in ${timeoutMs} ms (${res.hung}) — the server render is hanging; ABORTING so nothing else is posted. The Node worker may now be spinning: check CPU and kill it (see memory note next-bound-action-mpa-loop).`);
+    process.exit(3);
   }
   const body = res.status >= 300 && res.status < 400 ? `redirect → ${res.headers.get("location")}` : await res.text();
   const ok = (status.includes(res.status) || (res.status >= 300 && res.status < 400)) && expect.test(body) && !(unexpected && unexpected.test(body));
@@ -67,11 +75,11 @@ const common = { committee_position_id: String(state.positions[0].id), full_name
 // bound actions (the pages that once looped): committee registration, committee correction, volunteer application
 await probe("registration, native post, validation error", { url: `${base}/committee/register/${state.registrationToken}`, fields: { ...common, email: "not-an-email" }, file: true, expect: /form-field-error/ });
 await probe("registration, native post, success", { url: `${base}/committee/register/${state.registrationToken}`, fields: { ...common, full_name: `QA-NR-${state.suffix}`, email: email("nr") }, file: true, expect: /সফলভাবে জমা হয়েছে/ });
-await probe("correction, native post, validation error", { url: `${base}/committee/register/correct/${state.corrections.E.token}`, fields: { ...common, email: "bad" }, expect: /form-field-error/ });
+await probe("correction, native post, validation error", { url: `${base}/committee/register/correct/${state.corrections.F.token}`, fields: { ...common, email: "bad" }, expect: /form-field-error/ });
 // After a SUCCESSFUL correction the single-use link is spent, so the page that is re-rendered around the answer finds no form to show and
 // is a 404 (the record IS saved; with JavaScript the form is replaced in place and never reloads). The answer itself still rides in the
 // page's flight payload, which is what is asserted here.
-await probe("correction, native post, success (the spent link then 404s)", { url: `${base}/committee/register/correct/${state.corrections.E.token}`, fields: { ...common, full_name: `QA-NC-${state.suffix}`, email: email("nc") }, expect: /{"status":"success"}|সংশোধিত তথ্য জমা হয়েছে/, status: [200, 404] });
+await probe("correction, native post, success (the spent link then 404s)", { url: `${base}/committee/register/correct/${state.corrections.F.token}`, fields: { ...common, full_name: `QA-NC-${state.suffix}`, email: email("nc") }, expect: /{"status":"success"}|সংশোধিত তথ্য জমা হয়েছে/, status: [200, 404] });
 await probe("volunteer, native post, validation error", { url: `${base}/recruitment/${slug}/apply`, fields: { applicant_name: "QA native", applicant_phone: "abc", applicant_email: "bad" }, expect: /form-summary|form-field-error/ });
 
 // unbound actions (never looped; the probe pins that they still answer)

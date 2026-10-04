@@ -1,7 +1,7 @@
 // The no-JavaScript path of the four upload forms: with scripting disabled in Chrome the form must still post natively to its
 // Server Action (a plain multipart form post — it carries no `Next-Action` header, which is why it is not exposed to the
 // Cloudflare rule) and the server must render the answer. Uses the same QA data as scripts/upload-forms-qa.mjs, so run it
-// against a FRESH `php deploy/qa/upload-forms-qa.php setup`, before or instead of that run: it consumes correction token D (scripts/native-post-probe.mjs uses E).
+// against a FRESH `php deploy/qa/upload-forms-qa.php setup`, before or instead of that run: it consumes correction token G (upload-forms-qa.mjs uses A-E, native-post-probe.mjs uses F).
 //
 //   node scripts/upload-forms-nojs-qa.mjs --base http://127.0.0.1:3100 --state qa-state.json --fixtures <dir> [--shots <dir>] [--report out.json]
 //
@@ -101,7 +101,7 @@ try {
   {
     const { page, seen } = await noJsPage(browser);
     await gate();
-    await page.goto(`${base}/committee/register/correct/${state.corrections.D.token}`, { waitUntil: "networkidle0", timeout: 90000 });
+    await page.goto(`${base}/committee/register/correct/${state.corrections.G.token}`, { waitUntil: "networkidle0", timeout: 90000 });
     await type(page, "#full_name", `QA-JC-${state.suffix}`);
     await gate();
     await submit(page, "correction");
@@ -109,7 +109,7 @@ try {
     // After a SUCCESSFUL correction the single-use link is spent, so the page re-rendered around the answer cannot show the form and
     // is the not-found page (the record IS saved — scripts/upload-forms-qa.php inspect shows it; with JavaScript the form is replaced
     // in place and never reloads). The answer still rides in that page's flight payload, which is what is asserted.
-    record("correction", [{ name: "the server answered: the confirmation, or the spent link's page carrying the success state", ok: /আপনার সংশোধিত তথ্য জমা হয়েছে/.test(body) || /\{"status":"success"\}/.test(body), detail: body.slice(0, 120) }], seen, { marker: `QA-JC-${state.suffix}`, token: "D" });
+    record("correction", [{ name: "the server answered: the confirmation, or the spent link's page carrying the success state", ok: /আপনার সংশোধিত তথ্য জমা হয়েছে/.test(body) || /\{"status":"success"\}/.test(body), detail: body.slice(0, 120) }], seen, { marker: `QA-JC-${state.suffix}`, token: "G" });
     await page.close();
   }
 
