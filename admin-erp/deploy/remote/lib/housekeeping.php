@@ -187,6 +187,22 @@ if (!function_exists('hkLiveHashes')) {
     }
 }
 
+if (!function_exists('hkHashRoots')) {
+    /**
+     * Where a retired copy's file counts as "not lost" if its bytes are found: the live
+     * app's storage, the public uploads root, and the byte-for-byte copies the uploads
+     * delta-sync preserves when two sides collided (<releases>/_upload-conflicts, see
+     * lib/uploads-sync.php) — those bytes are kept on purpose, so pruning the retired copy
+     * that also holds them loses nothing.
+     *
+     * @return string[]
+     */
+    function hkHashRoots(array $ctx): array
+    {
+        return [$ctx['liveApp'].'/storage/app', $ctx['publicUploadsRoot'], $ctx['releasesRoot'].'/_upload-conflicts'];
+    }
+}
+
 if (!function_exists('hkUniqueUserFiles')) {
     /**
      * Files under <candidate>/storage/app that the live app does not have.
@@ -387,7 +403,7 @@ if (!function_exists('hkApplyRetention')) {
 
         $deadline = microtime(true) + $policy['max_seconds'];
         $archiveDir = $releasesRoot.'/_archived-logs';
-        $liveHashes = fn () => hkLiveHashes([$ctx['liveApp'].'/storage/app', $ctx['publicUploadsRoot']]);
+        $liveHashes = fn () => hkLiveHashes(hkHashRoots($ctx));
 
         // Oldest first, so a time-boxed run leaves the newest candidates for next time.
         $retired = array_merge(array_reverse($plan['previous']), array_reverse($plan['rolled_back']));
@@ -474,7 +490,7 @@ if (!function_exists('hkSalvageUnique')) {
             return ['ok' => false, 'error' => "$name is not a retired-release directory"];
         }
 
-        $unique = hkUniqueUserFiles($dir, $ctx['liveApp'], $ctx['publicUploadsRoot'], fn () => hkLiveHashes([$ctx['liveApp'].'/storage/app', $ctx['publicUploadsRoot']]));
+        $unique = hkUniqueUserFiles($dir, $ctx['liveApp'], $ctx['publicUploadsRoot'], fn () => hkLiveHashes(hkHashRoots($ctx)));
         if (!$unique) return ['ok' => true, 'salvaged' => 0, 'files' => []];
 
         $dest = $releasesRoot.'/_salvaged-uploads/'.$name;

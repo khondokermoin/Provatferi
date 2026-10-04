@@ -61,7 +61,8 @@ needs a deliberate, separate step — see "index.php" below.
    - `deploy/remote/release-manager.php` → `release-manager.php`
    - every file in `deploy/remote/lib/` → `lib/<same name>`:
      `uploads-persistence.php` (2026-09-25), `public-uploads.php`
-     (2026-10-02), `housekeeping.php` and `disk-audit.php` (2026-10-03).
+     (2026-10-02), `housekeeping.php` and `disk-audit.php` (2026-10-03),
+     `uploads-sync.php` (2026-10-05, the stage→switch upload delta-sync).
      `release-manager.php` `require_once`s all of them unconditionally, on
      every action including `install` itself, so each must exist here before
      `install` ever runs or the script fatals before the switch statement
@@ -114,8 +115,9 @@ php release-manager.php smoke-test-isolated <releaseId>
 #    guard". Append `essential` to deploy anyway at >=80% inodes.)
 
 # 4. Only if every step above reported ok:true —
-php release-manager.php switch <releaseId>
-php release-manager.php smoke-test-live    # on success it also runs housekeeping apply
+php release-manager.php switch <releaseId>             # carries uploads made since `stage` (see "Uploads during a deploy")
+#    php release-manager.php switch <releaseId> keep-both   # only after a refusal over an upload collision
+php release-manager.php smoke-test-live    # also the third uploads sweep; on success it runs housekeeping apply
 
 # 5. Update the local pointer (see "Deployment manifest" below) and commit it.
 ```
@@ -301,21 +303,97 @@ ever comes up.
   used — `symlink()`/`link()` are confirmed disabled in `php.ini` on this
   host, not merely untested.
 
-### Known issue — NEXT TASK, deliberately not changed yet: uploads written between `stage` and `switch` are stranded
+## Uploads during a deploy (the stage → switch window)
 
-Found 2026-10-04 (two QA rows kept their data but lost their photo/CV, `photo=GONE`). `stage` copies the live
-uploads into the new release tree; `switch` renames that tree into place and does **not** copy anything again. A
-file uploaded by a visitor between the two steps therefore lands in the OLD tree, which the `switch` retires to
-`laravel-admin-releases/_previous-<ts>/` — the database row survives, the file does not follow it. The window is
-the whole gap between `stage` and `switch` (pipeline run + the operator's check ≈ 10 minutes), so on a busy day it
-is real, and the housekeeping guard later refuses to prune that `_previous-*` copy ("salvage first") because it
-still holds files the live tree lacks.
+**The race (found 2026-10-04, fixed 2026-10-05).** `stage` used to copy the live uploads tree
+(`laravel-admin/storage/app/private/uploads`) into the new release exactly once, when it ran, and
+checked only a file *count*. The live application keeps accepting uploads until `switch`
+(pipeline + the operator's review + a separate switch cron ≈ 10 minutes), and it writes them into the
+**old** tree. `switch` then renames `laravel-admin/` to `_previous-<ts>/` and the staged tree into
+its place and carried nothing over: every file created in between stayed only in `_previous-<ts>/`.
+The database row (shared MySQL) survived, the file did not — a broken admin photo, CV link or PDF
+image (`photo=GONE`). A request that was mid-write at the instant of the rename strands the same way
+(an open file handle follows its inode, which is now under the retired path), and `rollback` had the
+mirror-image hazard. Public uploads were never affected: that disk lives in the vhost docroot
+(`public_html/admin/storage`), outside every release directory, and the docroot sync is additive.
 
-Planned fix (its own task, its own release — not combined with anything else): at `switch`, delta-copy the files
-that exist in the live uploads tree but not in the staged one (compare by relative path, copy only missing ones)
-immediately before the atomic rename, and report the count in the switch output; then a post-switch check that no
-row in the upload-bearing tables points at a missing file. Until it ships: keep `stage` → `switch` short, and after
-every `switch` check for `GONE` rows and salvage them from the newest `_previous-*` tree.
+**What happens now** (`lib/uploads-sync.php`; the application code swap is still the same two atomic renames):
+
+1. **`stage` takes a verified snapshot.** Every file is copied with an atomic, hash-verified write (a hidden
+   `.usync-*.tmp` in the destination directory, verified by size and SHA-256, given the source's mtime and mode,
+   then renamed into place), and what was copied is recorded in `laravel-admin-releases/<releaseId>/uploads-base.json`.
+2. **`switch` reconciles before it renames.** A three-way merge of *snapshot / live / staged*, repeated until a
+   whole pass finds nothing left to do (up to 8 passes or 30 s):
+
+   | path is…                                                   | action |
+   |------------------------------------------------------------|--------|
+   | in live only (created since the snapshot)                  | **copy** into the staged tree |
+   | in both, staged still equals the snapshot, live changed    | **update** (a replaced photo wins over the stale snapshot) |
+   | in both, live still equals the snapshot, staged changed    | keep the staged file — never overwritten |
+   | in both, **neither** equals the snapshot, bytes differ     | **collision** — see below |
+   | in staged only, still equals the snapshot                  | **delete** (the app removed it after the snapshot) — only with proof, never in bulk |
+
+   Deletions are withheld, not forced, if they look like an accident (the live tree is missing/empty, or more
+   than 20 % of the snapshot, minimum 10): resurrecting a file is recoverable, deleting user data is not.
+   Symlinks are never followed or copied; manifest paths are validated against traversal; a stat-based hash
+   shortcut is used only for files untouched since the snapshot and older than it by 2 s.
+3. **The rename.** If a request lands in the ~0.4 ms between the two renames and creates a stray
+   `laravel-admin/` (Flysystem builds its root on demand) the second rename would fail and leave *no*
+   application; the stray is set aside as `_stray-<ts>-<id>` and the rename retried. If the new tree cannot be put
+   in place the old one is restored.
+4. **After the rename, sweeps.** Whatever the retired tree (or a stray) took after the last pre-rename pass is
+   copied into the live tree — additively, hash-verified, never resurrecting a file the new app removed and never
+   deleting anything — immediately, again after a 10 s pause (`RM_SWEEP_DELAY`, for requests still running at the
+   rename), and a third time in `smoke-test-live`. Each sweep proves "nothing left only in the retired tree";
+   a leftover makes `switch` / `smoke-test-live` report `ok:false` and keeps `housekeeping` from running.
+   `housekeeping` also still refuses to prune any retired tree that holds a file the live tree lacks.
+
+`switch` reports `uploads_reconcile` (counts, converged, base), `uploads_sweep`, `uploads_notes` and the retired tree's
+name in its JSON and in `<releaseDir>/status.json`; the full final file map is `<releaseDir>/uploads-final.json`.
+`switch` also refuses (touching nothing) if the release is not a built, staged application — e.g. a second `switch`
+of an already-switched release.
+
+### Collisions: same path, different bytes
+
+Neither side is ever silently overwritten.
+
+- **Default — fail safely.** `switch` stops **before any rename**, lists each colliding path with both hashes
+  (`uploads_reconcile.conflicts`), the live application is untouched and the release stays staged.
+- **`switch <releaseId> keep-both`** — proceeds. The **staged** file keeps the path; the **live** version is preserved
+  byte for byte at `laravel-admin-releases/_upload-conflicts/<releaseId>/files/<path>.source-<sha8>`, with a ledger at
+  `…/conflicts.json` (path, both hashes and sizes, where it was preserved). Later sweeps honour that decision.
+- **Recovering a preserved copy**: compare the two files, then copy the one you want over the other under
+  `laravel-admin/storage/app/private/uploads/<path>` (the path is what the database row's `photo_path`/`cv_path`
+  points at). Nothing in `_upload-conflicts/` is ever pruned automatically, and housekeeping counts its bytes as
+  "not lost" when judging a retired tree.
+- In practice a collision should not happen: every upload is written under a `Str::uuid()` name. It exists for
+  corruption, a restored backup, or a hand edit.
+
+### Recovering uploads an older release already stranded
+
+```
+php release-manager.php reconcile _previous-<ts>                 # dry run: lists what it would copy / refuse, changes nothing
+php release-manager.php reconcile _previous-<ts> apply           # copies files the retired tree has and live lacks
+php release-manager.php reconcile _previous-<ts> apply keep-both # also preserves (never overwrites) path collisions
+```
+
+Works on `_previous-*`, `_rolled-back-*` and `_stray-*`. Additive and hash-verified; it never deletes anything and never
+touches the retired tree. With no snapshot to compare against it cannot know what the app deleted on purpose after
+the switch, so a file removed since then comes back — read the dry run first.
+
+### What is guaranteed, and what is not
+
+- A file that existed when `stage` ran, or was created or changed before the final pre-rename pass, is in the new
+  tree before it becomes live.
+- A file written after that pass (a request in flight at the rename, ≤ a few hundred ms in practice) is carried by the
+  sweeps within seconds; for that short while the new tree can lack it (a broken image, then healed). It is never lost:
+  the retired tree is kept and housekeeping will not prune it while it holds a file live lacks.
+- Not covered by the timed sweeps: a request still executing more than ten seconds after the rename is caught by the
+  `smoke-test-live` sweep and, failing that, by `reconcile`.
+- Tests: `tests/Feature/Deploy/ReleaseSwitchUploadsTest.php` (the real `release-manager.php` stage → switch in a sandbox:
+  upload before stage, between stage and switch, immediately after switch, same filename, public, private),
+  `ReleaseSwitchUploadsEdgeCasesTest.php` (rollback, `reconcile`, sweeps, a writer that never stops, the stray directory),
+  `UploadsSyncTest.php` (the library). `deploy/qa/uploads-race-qa.php` is the production acceptance script.
 
 ## Rollback
 
@@ -328,7 +406,11 @@ successful `switch`) for the previous release's path, renames it back into
 `laravel-admin/` (the failed release is kept, not deleted, at
 `laravel-admin-releases/_rolled-back-<timestamp>/` for a post-mortem), and
 rebuilds config/view caches on the restored tree. Same atomicity guarantee
-as forward deploys, same direction in reverse.
+as forward deploys, same direction in reverse. Uploads accepted since the
+switch are carried back into the restored tree first (and swept after the
+rename), exactly as `switch` carries them forward — see "Uploads during a
+deploy"; a collision is preserved under `_upload-conflicts/rollback-<ts>/` and
+reported rather than refusing the rollback.
 
 **What rollback does not do**: undo a database migration. If a release
 that included a forward migration needs to be rolled back, the code

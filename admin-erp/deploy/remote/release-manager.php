@@ -29,17 +29,25 @@
  *   php release-manager.php contract-check <releaseId>
  *   php release-manager.php migrate-check <releaseId>
  *   php release-manager.php smoke-test-isolated <releaseId>
- *   php release-manager.php switch <releaseId>
+ *   php release-manager.php switch <releaseId> [keep-both]
  *   php release-manager.php smoke-test-live
  *   php release-manager.php rollback
  *   php release-manager.php status [<releaseId>]
  *   php release-manager.php housekeeping [apply] [<ack,list>]   (dry-run unless `apply`; `cleanup` is an alias)
  *   php release-manager.php salvage <_previous-…|_rolled-back-…>
+ *   php release-manager.php reconcile <_previous-…|_rolled-back-…|_stray-…> [apply] [keep-both]
  *   php release-manager.php usage
  *
  * `pipeline <releaseId> [essential]` first checks account capacity and refuses a
  * non-essential deploy at >=80% inodes; `smoke-test-live` runs `housekeeping
  * apply` itself once the live site has passed — see lib/housekeeping.php.
+ *
+ * Uploads written between `stage` and `switch` are carried into the new release by
+ * `switch` itself (a hash-verified three-way merge BEFORE the rename, an additive sweep
+ * AFTER it) — see lib/uploads-sync.php and deploy/README.md "Uploads during a deploy".
+ * `switch` refuses, before renaming anything, when the same path holds different bytes
+ * on both sides; `keep-both` proceeds and preserves the other copy under
+ * _upload-conflicts/. `reconcile` is the manual recovery for a retired tree.
  *
  * Every action writes <releaseDir>/status.json (merging into whatever is
  * already there — each stage adds its own key, none overwrite a prior
@@ -55,7 +63,7 @@ $action = $argv[1] ?? null;
 $arg2 = $argv[2] ?? null;
 
 if (!$action) {
-    fwrite(STDERR, "Usage: php release-manager.php <install|pipeline|stage|build|contract-check|migrate-check|smoke-test-isolated|switch|smoke-test-live|rollback|status|housekeeping|salvage|usage> [releaseId]\n");
+    fwrite(STDERR, "Usage: php release-manager.php <install|pipeline|stage|build|contract-check|migrate-check|smoke-test-isolated|switch|smoke-test-live|rollback|status|housekeeping|salvage|reconcile|usage> [releaseId]\n");
     exit(2);
 }
 
@@ -79,7 +87,8 @@ $PHP_BINARY = PHP_BINARY ?: '/usr/bin/php';
 
 function jout(array $data): void
 {
-    echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), "\n";
+    // A file name that is not valid UTF-8 must degrade a report, never blank it (json_encode would return false).
+    echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR), "\n";
 }
 
 function statusPath(string $releaseDir): string
@@ -93,7 +102,7 @@ function mergeStatus(string $releaseDir, string $key, array $value): void
     $existing = is_file($path) ? (json_decode(file_get_contents($path), true) ?: []) : [];
     $existing[$key] = $value;
     $existing['updated_at'] = date('c');
-    file_put_contents($path, json_encode($existing, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    file_put_contents($path, json_encode($existing, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR));
 }
 
 function readStatus(string $releaseDir): array
@@ -152,6 +161,12 @@ function extractTar(string $tarPath, string $destDir): void
 // 2026-09-25 into lib/uploads-persistence.php so the uploads-persistence
 // contract is directly unit-testable (see that file's own docblock).
 require_once __DIR__.'/lib/uploads-persistence.php';
+
+// usSnapshot(), usReconcile(), usSwapDirectories(), usSweepRetired() … — the
+// stage->switch upload race fix (2026-10-05): uploads the live app accepts after
+// `stage` are carried into the new release instead of being left in the retired
+// tree. Required unconditionally like every lib here, so `install` relocates it too.
+require_once __DIR__.'/lib/uploads-sync.php';
 
 // publicUploadsRoot(), ensurePublicUploadsRoot(), migrateLegacyPublicUploads(),
 // setEnvValue(), writePublicUploadsSentinel() — the PUBLIC-uploads half of the
@@ -234,8 +249,9 @@ case 'install':
     // must exist next to whichever copy is running or every action fatals
     // before dispatch. lib/public-uploads.php joined the list 2026-10-02;
     // lib/housekeeping.php and lib/disk-audit.php (which housekeeping requires)
-    // joined 2026-10-03.
-    foreach (['uploads-persistence.php', 'public-uploads.php', 'housekeeping.php', 'disk-audit.php'] as $libFile) {
+    // joined 2026-10-03; lib/uploads-sync.php (the stage->switch upload delta-sync)
+    // joined 2026-10-05.
+    foreach (['uploads-persistence.php', 'uploads-sync.php', 'public-uploads.php', 'housekeeping.php', 'disk-audit.php'] as $libFile) {
         $libSrc = $PUBLIC_DOCROOT.'/lib/'.$libFile;
         $libDest = $TOOLING_DIR.'/lib/'.$libFile;
         $resultKey = 'relocated_lib_'.str_replace(['-', '.php'], ['_', ''], $libFile);
@@ -362,9 +378,17 @@ case 'stage':
     // removed) fails the stage step instead of silently reopening the same
     // incident with ok:true. `switch` already refuses to proceed past a
     // failed stage (see $requiredStages there).
-    $liveUploads = $LIVE_APP.'/storage/app/private/uploads';
-    $uploadsDest = $releaseDir.'/app/storage/app/private/uploads';
-    $uploadsResult = syncUploadsAndVerify($liveUploads, $uploadsDest);
+    //
+    // 2026-10-05: this copy is a SNAPSHOT, not the last word. The live app keeps
+    // accepting uploads into the old tree until `switch`, which used to strand
+    // everything written in between. usSnapshot() copies each file with an atomic,
+    // hash-verified write that keeps mtime and mode, and records exactly what it copied
+    // in <releaseDir>/uploads-base.json — the base of the three-way merge `switch`
+    // runs just before the rename (lib/uploads-sync.php). It still reports the
+    // source_file_count / dest_file_count / ok keys this status always carried.
+    $liveUploads = usUploadsDir($LIVE_APP);
+    $uploadsDest = usUploadsDir($releaseDir.'/app');
+    $uploadsResult = usSnapshot($liveUploads, $uploadsDest, $releaseDir.'/uploads-base.json');
 
     // staging tars served their purpose — remove from the public docroot
     @unlink($stagingDir.'/private.tar');
@@ -400,7 +424,10 @@ case 'stage':
         'public_uploads' => $publicUploads,
     ];
     if (!$uploadsResult['ok']) {
-        $result['error'] = "uploads regression: {$uploadsResult['source_file_count']} file(s) existed on the live disk before staging, only {$uploadsResult['dest_file_count']} survived the copy into the new release — refusing to let switch proceed. Investigate copyRecursive/permissions before retrying; do not re-run switch against this releaseId until this passes.";
+        $result['error'] = "uploads regression: {$uploadsResult['source_file_count']} file(s) existed on the live disk before staging, only {$uploadsResult['dest_file_count']} survived the copy into the new release"
+            .(!empty($uploadsResult['failures']) ? ' ('.count($uploadsResult['failures']).' copy failure(s), first: '.($uploadsResult['failures'][0]['rel'] ?? '?').': '.($uploadsResult['failures'][0]['error'] ?? '?').')' : '')
+            .(!($uploadsResult['manifest_written'] ?? true) ? ' (the snapshot manifest could not be written)' : '')
+            .' — refusing to let switch proceed. Investigate the uploads tree/permissions before retrying; do not re-run switch against this releaseId until this passes.';
     } elseif (!$publicUploads['ok']) {
         $result['error'] = 'public uploads root unusable at '.$publicUploadsRoot.' — every approved photo would publish to a path no visitor can fetch. Refusing to let switch proceed.';
     }
@@ -615,6 +642,7 @@ case 'switch':
     $releaseId = $arg2;
     $releaseDir = $RELEASES_ROOT.'/'.$releaseId;
     $status = readStatus($releaseDir);
+    $keepBoth = in_array('keep-both', array_slice($argv, 3), true);
 
     $requiredStages = ['stage', 'build', 'contract_check', 'smoke_test_isolated'];
     $notPassed = array_filter($requiredStages, fn ($s) => !($status[$s]['ok'] ?? false));
@@ -651,18 +679,80 @@ case 'switch':
     $newRoutesHash = hashDir($releaseApp.'/routes');
     if ($liveRoutesHash !== null && $liveRoutesHash === $newRoutesHash) $routesChanged = false;
 
-    // 3. THE atomic step.
-    $t1 = microtime(true);
-    $renamedOld = @rename($LIVE_APP, $previousPath);
-    $renamedNew = $renamedOld && @rename($releaseApp, $LIVE_APP);
-    $switchMs = round((microtime(true) - $t1) * 1000, 3);
-
-    if (!$renamedNew) {
-        // Best-effort revert if the second rename failed after the first succeeded.
-        if ($renamedOld && !is_dir($LIVE_APP)) @rename($previousPath, $LIVE_APP);
-        jout(['ok' => false, 'error' => 'atomic rename failed', 'renamed_old' => $renamedOld, 'renamed_new' => $renamedNew]);
+    // 2b. THE UPLOADS DELTA-SYNC (the stage->switch race, fixed 2026-10-05).
+    //     Everything the live app accepted since `stage` snapshotted the uploads
+    //     tree is in the OLD tree only. Carry it into the staged tree NOW, while
+    //     the old tree is still live, with a three-way merge against the snapshot
+    //     manifest, repeated until a whole pass finds nothing left (lib/uploads-sync.php).
+    //     Done last before the rename on purpose: the public-asset sync above is
+    //     the slow part, and the window this leaves is the milliseconds the
+    //     post-rename sweep below exists for. A collision (same path, different
+    //     bytes, neither side the snapshot) is refused HERE — nothing renamed,
+    //     nothing overwritten — unless the caller said `keep-both`.
+    // The reconcile below writes into the staged tree, so it must really BE a staged application: a release that
+    // was already switched has no app/ any more, and a sync into a missing one would conjure a skeleton holding
+    // nothing but uploads — which the rename would then happily put live with no code in it.
+    if (!is_file($releaseApp.'/bootstrap/app.php') || !is_file($releaseApp.'/vendor/autoload.php')) {
+        jout(['ok' => false, 'error' => 'refusing to switch — '.$releaseApp.' is not a built, staged application (this release was already switched, or never staged/built)', 'live_application_untouched' => true]);
         exit(1);
     }
+
+    $uploadsLive = usUploadsDir($LIVE_APP);
+    $uploadsStaged = usUploadsDir($releaseApp);
+    $conflictDir = $RELEASES_ROOT.'/_upload-conflicts/'.preg_replace('/[^A-Za-z0-9._-]/', '_', $releaseId);
+    $baseManifest = usLoadManifest($releaseDir.'/uploads-base.json');
+    $tReconcile = microtime(true);
+    $reconcile = usReconcile($uploadsLive, $uploadsStaged, $baseManifest, [
+        'propagate_deletes' => true,
+        'restore_known' => true,
+        'on_conflict' => $keepBoth ? 'keep-both' : 'abort',
+        'conflict_dir' => $conflictDir,
+        // A tree that is being written to continuously may never show a pass with nothing to do. That is not a reason to
+        // block a deploy: everything copied is hash-verified and whatever arrives after the last pass is carried by the
+        // post-rename sweeps below. Persistent failures and collisions still stop the switch.
+        'max_passes' => 8,
+        'max_seconds' => 30,
+        'proceed_unconverged' => true,
+    ]);
+    $uploadsReconcile = usSummarize($reconcile);
+    $uploadsReconcile['base_manifest'] = $baseManifest !== null ? 'uploads-base.json' : 'MISSING — staged by tooling that predates the delta-sync; additive only, nothing deleted';
+    $uploadsReconcile['ms'] = round((microtime(true) - $tReconcile) * 1000, 1);
+    $finalManifestWritten = $reconcile['ok'] && isset($reconcile['final'])
+        && usWriteManifest($releaseDir.'/uploads-final.json', $reconcile['final']['files'], $reconcile['final']['taken_at_unix'], $uploadsStaged, 'switch-final');
+    if (!$reconcile['ok'] || !$finalManifestWritten) {
+        $why = $reconcile['aborted'] ?? 'the final uploads manifest could not be written';
+        mergeStatus($releaseDir, 'switch_refused', ['at' => date('c'), 'reason' => $why, 'uploads_reconcile' => $uploadsReconcile]);
+        jout([
+            'ok' => false,
+            'error' => 'refusing to switch — the uploads made since stage could not be carried into the new release safely: '.$why,
+            'live_application_untouched' => true,
+            'uploads_reconcile' => $uploadsReconcile,
+            'next' => !empty($reconcile['conflicts'])
+                ? 'inspect the conflicting paths above; to proceed anyway keeping the staged copy at each path and preserving the live copy under '.$conflictDir.', run: switch '.$releaseId.' keep-both'
+                : 'fix the cause above and run switch '.$releaseId.' again (the release stays staged); if the uploads tree itself looks wrong, re-run pipeline for a fresh release id',
+        ]);
+        exit(1);
+    }
+    $finalBase = ['files' => $reconcile['final']['files'], 'taken_at_unix' => $reconcile['final']['taken_at_unix'], 'authoritative' => true];
+
+    // 3. THE atomic step. Two renames; usSwapDirectories() also recovers when a
+    //    request lands in the ~0.4 ms between them and creates a stray laravel-admin/
+    //    (the second rename would otherwise fail and leave NO application).
+    $t1 = microtime(true);
+    $swap = usSwapDirectories($LIVE_APP, $previousPath, $releaseApp);
+    $switchMs = round((microtime(true) - $t1) * 1000, 3);
+
+    if (!$swap['ok']) {
+        jout(['ok' => false, 'error' => 'atomic rename failed', 'renamed_old' => $swap['renamed_old'], 'renamed_new' => $swap['renamed_new'], 'detail' => $swap['error'] ?? null]);
+        exit(1);
+    }
+
+    // 3b. POST-RENAME SWEEP #1: whatever the old tree (or a stray) took after the last
+    //     pre-rename pass — a request that was mid-write at the rename keeps writing
+    //     into the old inode, now under $previousPath. Additive only, hash-verified.
+    $retiredTrees = array_merge([$previousPath], $swap['strays']);
+    $sweepOptions = ['conflict_dir' => $conflictDir];
+    $uploadsSweep = usSweepRetired($retiredTrees, $LIVE_APP, $finalBase, $sweepOptions);
 
     // 4. Rebuild caches on the NOW-LIVE tree.
     $cacheResult = [];
@@ -710,22 +800,54 @@ case 'switch':
         ];
     }
 
+    // The sweeps' verdict: nothing left only in a retired tree, nothing failed, nothing in conflict.
+    $sweepClean = fn (array $sweep): bool => $sweep['ok'] && $sweep['remaining'] === 0 && $sweep['failed'] === 0 && $sweep['conflicts'] === 0;
+
+    // Things an operator should know about even when the switch succeeded.
+    $uploadsNotes = [];
+    if (($reconcile['counts']['conflicts'] ?? 0) > 0) $uploadsNotes[] = $reconcile['counts']['conflicts'].' upload collision(s) were kept apart under '.$conflictDir.' (keep-both): the staged copy holds each path, the live copy is preserved byte for byte';
+    if (isset($reconcile['unconverged'])) $uploadsNotes[] = 'uploads kept arriving while they were being copied ('.$reconcile['unconverged']['passes'].' passes); the post-rename sweeps carry whatever came after the last pass';
+    if (!empty($reconcile['withheld_reason'])) $uploadsNotes[] = 'deletions were withheld, the staged copies stay: '.$reconcile['withheld_reason'];
+    if ($swap['strays']) $uploadsNotes[] = 'a request created a stray application directory in the rename gap; it was set aside and swept: '.implode(', ', array_map('basename', $swap['strays']));
+    if ($uploadsSweep['carried'] + $uploadsSweep['updated'] > 0) $uploadsNotes[] = 'the post-rename sweep carried '.($uploadsSweep['carried'] + $uploadsSweep['updated']).' file(s) written after the last pre-rename pass';
+
     $result = [
-        'ok' => $sentinelCheck['ok'],
+        'ok' => $sentinelCheck['ok'] && $sweepClean($uploadsSweep),
         'previous_path' => $previousPath,
+        'strays' => $swap['strays'],
         'public_asset_sync_ms' => $publicSyncMs,
         'atomic_rename_ms' => $switchMs,
         'routes_changed' => $routesChanged,
         'cache_rebuild' => $cacheResult,
         'public_uploads_persisted' => $sentinelCheck,
+        'uploads_reconcile' => $uploadsReconcile,
+        'uploads_notes' => $uploadsNotes,
+        'uploads_sweep' => ['immediate' => $uploadsSweep],
         'switched_at' => date('c'),
     ];
     if (!$sentinelCheck['ok']) {
         $result['error'] = 'public uploads did not survive the switch byte-identically — approved photos are at risk of being erased or unreachable. The new release IS live (the rename already completed); verify '.$publicUploadsRoot.' before trusting any upload, and consider rollback.';
+    } elseif (!$sweepClean($uploadsSweep)) {
+        $result['error'] = 'the post-switch sweep found uploads that are only in the retired tree and could not carry them over cleanly (see uploads_sweep) — nothing was deleted; the retired tree '.$previousPath.' still holds them. The new release IS live. Run: reconcile '.basename($previousPath);
     }
     mergeStatus($releaseDir, 'switch', $result);
     file_put_contents($RELEASES_ROOT.'/CURRENT_RELEASE.json', json_encode(['release_id' => $releaseId, 'previous_path' => $previousPath, 'switched_at' => $result['switched_at']], JSON_PRETTY_PRINT));
+
+    // POST-RENAME SWEEP #2, after a pause: a request that was already running when the
+    // rename happened can still be writing; an upload takes well under a second, so ten
+    // seconds is a wide margin. smoke-test-live sweeps a third time, minutes later, and
+    // housekeeping refuses to prune a retired tree that still holds a file live lacks.
+    $sweepDelay = getenv('RM_SWEEP_DELAY') !== false ? max(0, min(60, (int) getenv('RM_SWEEP_DELAY'))) : 10;
+    if ($sweepDelay > 0) sleep($sweepDelay);
+    $uploadsSweepLate = usSweepRetired($retiredTrees, $LIVE_APP, $finalBase, $sweepOptions);
+    $result['uploads_sweep']['after_'.$sweepDelay.'s'] = $uploadsSweepLate;
+    if (!$sweepClean($uploadsSweepLate)) {
+        $result['ok'] = false;
+        $result['error'] = ($result['error'] ?? '').' The delayed sweep also reported leftovers (see uploads_sweep) — nothing was deleted; run: reconcile '.basename($previousPath);
+    }
+    mergeStatus($releaseDir, 'switch', $result);
     jout($result);
+    if (!$result['ok']) exit(1);
     break;
 
 case 'smoke-test-live':
@@ -734,6 +856,23 @@ case 'smoke-test-live':
     // visitor's perspective, not just "the files are in place".
     $paths = ['/login' => 200, '/forgot-password' => 200, '/admin' => 302];
     $result = ['ok' => true, 'routes' => []];
+
+    // Third and last uploads sweep (switch ran two): minutes after the swap, so even a
+    // request that was slow to finish has landed. Additive and hash-verified; a failure
+    // here keeps housekeeping from running, so the retired tree is never pruned while it
+    // still holds an upload the live tree lacks.
+    try {
+        $result['uploads_late_sweep'] = usSweepForCurrentRelease($RELEASES_ROOT, $LIVE_APP);
+        $late = $result['uploads_late_sweep'];
+        if (!($late['ok'] ?? true) || ($late['remaining'] ?? 0) > 0 || ($late['failed'] ?? 0) > 0 || ($late['conflicts'] ?? 0) > 0) {
+            $result['ok'] = false;
+            $result['uploads_error'] = 'the late uploads sweep found files only in a retired tree that it could not carry over cleanly — nothing was deleted. Run: reconcile <the retired directory named in CURRENT_RELEASE.json>';
+        }
+    } catch (\Throwable $e) {
+        $result['ok'] = false;
+        $result['uploads_late_sweep'] = ['ok' => false, 'error' => get_class($e).': '.$e->getMessage()];
+    }
+
     foreach ($paths as $path => $expected) {
         $ch = curl_init('https://admin.provatferi.org'.$path);
         curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_NOBODY => true, CURLOPT_TIMEOUT => 15, CURLOPT_FOLLOWLOCATION => false]);
@@ -877,9 +1016,32 @@ case 'rollback':
     if (!$previousPath || !is_dir($previousPath)) { jout(['ok' => false, 'error' => 'previous release path missing: '.$previousPath]); exit(1); }
 
     $failedPath = $RELEASES_ROOT.'/_rolled-back-'.date('Ymd-His');
-    $r1 = @rename($LIVE_APP, $failedPath);
-    $r2 = $r1 && @rename($previousPath, $LIVE_APP);
-    if (!$r2) { jout(['ok' => false, 'error' => 'rollback rename failed', 'r1' => $r1, 'r2' => $r2]); exit(1); }
+
+    // The mirror image of the stage->switch race: uploads accepted since `switch` live
+    // only in the tree about to be retired. Carry them back into the tree being restored
+    // first, then sweep after the rename. A rollback is the emergency path, so it is never
+    // refused over an uploads problem — a collision is preserved under _upload-conflicts/
+    // (keep-both) and reported loudly instead.
+    $rollbackFinal = usLoadManifest($RELEASES_ROOT.'/'.($current['release_id'] ?? '_none').'/uploads-final.json');
+    $rollbackConflictDir = $RELEASES_ROOT.'/_upload-conflicts/rollback-'.date('Ymd-His');
+    $rollbackReport = usReconcile(usUploadsDir($LIVE_APP), usUploadsDir($previousPath), $rollbackFinal, [
+        'propagate_deletes' => true,
+        'restore_known' => true,
+        'on_conflict' => 'keep-both',
+        'conflict_dir' => $rollbackConflictDir,
+    ]);
+    $rollbackSync = usSummarize($rollbackReport);
+
+    $swap = usSwapDirectories($LIVE_APP, $failedPath, $previousPath);
+    if (!$swap['ok']) { jout(['ok' => false, 'error' => 'rollback rename failed', 'renamed_old' => $swap['renamed_old'], 'renamed_new' => $swap['renamed_new'], 'detail' => $swap['error'] ?? null]); exit(1); }
+
+    // Anything the retired tree (or a stray) took after that last pass is swept back additively.
+    $rollbackSweepBase = isset($rollbackReport['final'])
+        ? ['files' => $rollbackReport['final']['files'], 'taken_at_unix' => $rollbackReport['final']['taken_at_unix'], 'authoritative' => true]
+        : null;
+    $rollbackSweep = usSweepRetired(array_merge([$failedPath], $swap['strays']), $LIVE_APP, $rollbackSweepBase, ['conflict_dir' => $rollbackConflictDir]);
+    $rollbackUploads = ['reconcile' => $rollbackSync, 'sweep' => $rollbackSweep];
+    $rollbackUploadsClean = $rollbackSync['ok'] && $rollbackSweep['ok'] && $rollbackSweep['remaining'] === 0 && $rollbackSweep['conflicts'] === 0 && $rollbackSync['counts']['conflicts'] === 0;
 
     try {
         $app = bootApp($LIVE_APP);
@@ -887,11 +1049,13 @@ case 'rollback':
             \Illuminate\Support\Facades\Artisan::call($cmd);
         }
     } catch (\Throwable $e) {
-        jout(['ok' => false, 'error' => 'rolled back but cache rebuild failed: '.$e->getMessage()]);
+        jout(['ok' => false, 'error' => 'rolled back but cache rebuild failed: '.$e->getMessage(), 'restored_from' => $previousPath, 'failed_release_kept_at' => $failedPath, 'uploads' => $rollbackUploads]);
         exit(1);
     }
 
-    jout(['ok' => true, 'restored_from' => $previousPath, 'failed_release_kept_at' => $failedPath]);
+    jout(['ok' => $rollbackUploadsClean, 'restored_from' => $previousPath, 'failed_release_kept_at' => $failedPath, 'uploads' => $rollbackUploads]
+        + ($rollbackUploadsClean ? [] : ['error' => 'rolled back, but not every upload made since the switch could be carried back cleanly (see uploads) — nothing was deleted; the rolled-back tree '.basename($failedPath).' still holds them. Run: reconcile '.basename($failedPath)]));
+    if (!$rollbackUploadsClean) exit(1);
     break;
 
 case 'status':
@@ -932,6 +1096,34 @@ case 'salvage':
     $result = hkSalvageUnique(hkContext(), $arg2);
     jout($result);
     if (!$result['ok']) exit(1);
+    break;
+
+case 'reconcile':
+    // Manual recovery for uploads stranded in a retired tree: copies every file that the
+    // named retired copy holds and the live app lacks into the live uploads tree
+    // (hash-verified, additive, never overwrites). Dry-run unless `apply`. With no
+    // snapshot to compare against, a path that exists on both sides with different bytes
+    // is a collision: refused by default, `keep-both` preserves the retired copy's version
+    // under _upload-conflicts/reconcile-<name>/. Heads-up for the operator: with no manifest
+    // it cannot know what the app deleted on purpose after the switch, so a file removed
+    // since then will come back — read the dry-run first.
+    $extra = array_slice($argv, 3);
+    $apply = in_array('apply', $extra, true);
+    if (!$arg2 || !preg_match('/^_(previous|rolled-back)-\d{8}-\d{6}$|^_stray-[A-Za-z0-9-]+$/', $arg2)) {
+        fwrite(STDERR, "reconcile requires a retired-release directory name (_previous-…, _rolled-back-… or _stray-…)\n");
+        exit(2);
+    }
+    $retiredDir = $RELEASES_ROOT.'/'.$arg2;
+    if (!is_dir($retiredDir) || is_link($retiredDir)) { jout(['ok' => false, 'error' => $arg2.' is not a directory under '.$RELEASES_ROOT]); exit(1); }
+    $report = usReconcile(usUploadsDir($retiredDir), usUploadsDir($LIVE_APP), null, [
+        'apply' => $apply,
+        'propagate_deletes' => false,
+        'restore_known' => true,
+        'on_conflict' => in_array('keep-both', $extra, true) ? 'keep-both' : 'abort',
+        'conflict_dir' => $RELEASES_ROOT.'/_upload-conflicts/reconcile-'.$arg2,
+    ]);
+    jout(['mode' => $apply ? 'apply' : 'dry-run', 'retired' => $arg2] + usSummarize($report));
+    if (!$report['ok']) exit(1);
     break;
 
 case 'usage':
