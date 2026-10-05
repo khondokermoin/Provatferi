@@ -13,6 +13,7 @@ use App\Models\OrganizationalUnit;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use Tests\Concerns\MakesMembershipTypes;
 use Tests\TestCase;
 
 /**
@@ -21,6 +22,7 @@ use Tests\TestCase;
  */
 class PublicMembershipCommitteeWriteApiTest extends TestCase
 {
+    use MakesMembershipTypes;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -32,9 +34,7 @@ class PublicMembershipCommitteeWriteApiTest extends TestCase
 
     private function membershipType(): MembershipType
     {
-        return MembershipType::query()->create([
-            'name' => 'সাধারণ সদস্য', 'slug' => 'general-'.uniqid(), 'fee' => 500, 'status' => 'active',
-        ]);
+        return $this->makeMembershipType(['name' => 'সাধারণ সদস্য', 'slug' => 'general-'.uniqid()], ['registration' => '500', 'monthly' => '0']);
     }
 
     /* ---------- Membership applications ---------- */
@@ -85,8 +85,8 @@ class PublicMembershipCommitteeWriteApiTest extends TestCase
         // enforced server-side, not just hidden from the campaign payload's
         // membership_types list, since the frontend filter alone would not
         // stop a direct POST that names the type's id explicitly.
-        $honorary = MembershipType::query()->create([
-            'name' => 'সাম্মানিক সদস্য', 'slug' => 'honorary-'.uniqid(), 'fee' => 0, 'status' => 'active',
+        $honorary = $this->makeMembershipType([
+            'name' => 'সাম্মানিক সদস্য', 'slug' => 'honorary-'.uniqid(),
             'is_public_self_apply' => false,
         ]);
 
@@ -102,8 +102,8 @@ class PublicMembershipCommitteeWriteApiTest extends TestCase
             'name' => 'সিজন', 'slug' => 'season-'.uniqid(), 'campaign_type' => 'regular', 'status' => 'open', 'display_order' => 0,
         ]);
         $regular = $this->membershipType();
-        $honorary = MembershipType::query()->create([
-            'name' => 'সাম্মানিক সদস্য', 'slug' => 'honorary-'.uniqid(), 'fee' => 0, 'status' => 'active',
+        $honorary = $this->makeMembershipType([
+            'name' => 'সাম্মানিক সদস্য', 'slug' => 'honorary-'.uniqid(),
             'is_public_self_apply' => false,
         ]);
         $season->membershipTypes()->attach([$regular->id, $honorary->id]);

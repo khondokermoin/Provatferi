@@ -252,7 +252,8 @@ class BilingualFieldsValidationTest extends AdminTestCase
         $admin = $this->superAdmin();
 
         $this->actingAs($admin)->post(route('admin.membership.types.store'), [
-            'name' => 'সাধারণ সদস্য', 'fee' => 0, 'status' => 'active', 'sort_order' => 1,
+            'name' => 'সাধারণ সদস্য', 'code' => 'GM', 'status' => 'active', 'sort_order' => 1,
+            'registration_fee' => '0', 'monthly_contribution' => '0', 'effective_from' => now()->toDateString(),
         ])->assertRedirect()->assertSessionHasNoErrors();
         $type = MembershipType::query()->firstOrFail();
         $this->assertNull($type->name_en);
@@ -261,7 +262,7 @@ class BilingualFieldsValidationTest extends AdminTestCase
         $this->actingAs($admin)->put(route('admin.membership.types.update', $type), [
             'name' => 'সাধারণ সদস্য', 'name_en' => 'General Member',
             'description' => 'বিবরণ', 'description_en' => 'Description',
-            'fee' => 0, 'status' => 'active', 'sort_order' => 1,
+            'status' => 'active', 'sort_order' => 1,
         ])->assertRedirect();
         $type->refresh();
         $this->assertSame('General Member', $type->name_en);

@@ -112,6 +112,14 @@ if (! function_exists('bn_month_year')) {
     }
 }
 
+/** "৳৫০০" / "৳500", "৳১,৫০০" / "৳1,500" — a membership fee. Locale-aware digits like every helper above; decimals only when present. */
+if (! function_exists('bn_money')) {
+    function bn_money(?string $amount): string
+    {
+        return bn_digits(\App\Support\Money::display($amount));
+    }
+}
+
 /*
  * ADM-002 status-label policy: every workflow-status slug used across the app
  * (activities, job postings, job applications, memberships, membership

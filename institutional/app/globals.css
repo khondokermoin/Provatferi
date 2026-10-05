@@ -573,6 +573,11 @@ h1, h2, h3, h4 { color: var(--heading); }
 .info-card h3 { font-size: 18px; font-weight: 650; margin: 0 0 10px; color: var(--heading); }
 .info-card p { font-size: 15px; line-height: 1.8; color: var(--muted); margin: 0; }
 .info-card .info-card-tag { display: inline-block; font-size: 13px; font-weight: 600; color: var(--trust-green); background: var(--trust-green-soft); padding: 4px 10px; border-radius: 999px; margin-bottom: 12px; }
+/* Membership fee quote — what a type costs under the fee policy in force today (type cards and the application form). */
+.fee-summary { display: grid; gap: 6px; margin: 14px 0 0; padding: 12px 14px; background: var(--soft); border: 1px solid var(--border); border-radius: 8px; }
+.fee-summary-row { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
+.fee-summary dt { font-size: 14px; color: var(--muted); }
+.fee-summary dd { margin: 0; font-size: 16px; font-weight: 650; color: var(--heading); font-variant-numeric: tabular-nums; }
 .callout { background: var(--soft); border-left: 4px solid var(--brand-orange); border-radius: 4px; padding: 22px 26px; }
 .callout p { font-size: 16px; line-height: 1.8; color: var(--body); margin: 0; }
 .callout a { color: var(--accent-text); font-weight: 600; }

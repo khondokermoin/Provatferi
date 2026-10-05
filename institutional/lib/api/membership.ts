@@ -6,6 +6,16 @@ const REVALIDATE_SECONDS = 300;
 // than the membership-types list, which barely ever changes.
 const CAMPAIGN_REVALIDATE_SECONDS = 60;
 
+/**
+ * The fee-policy fields (2026-10-05). Optional on purpose: a response cached from before the change has none of them and
+ * must still be accepted (it carries the deprecated `fee`). When one IS present it must be well formed — a malformed
+ * amount is rejected like any other malformed field rather than being rendered.
+ */
+function hasValidFeeFields(v: Record<string, unknown>): boolean {
+  const amount = (x: unknown) => x === undefined || (typeof x === "string" && /^\d{1,8}(\.\d{1,2})?$/.test(x));
+  return amount(v.registration_fee) && amount(v.monthly_contribution) && (v.fee_effective_from === undefined || typeof v.fee_effective_from === "string") && isOptionalString(v.code);
+}
+
 function isMembershipType(v: unknown): v is MembershipType {
   return (
     isRecord(v) &&
@@ -17,6 +27,7 @@ function isMembershipType(v: unknown): v is MembershipType {
     isOptionalString(v.description_en) &&
     isNumberOrNull(v.duration_months) &&
     typeof v.fee === "string" &&
+    hasValidFeeFields(v) &&
     typeof v.is_student === "boolean" &&
     typeof v.is_public_self_apply === "boolean"
   );
@@ -34,6 +45,7 @@ function isCampaignMembershipType(v: unknown): v is CampaignMembershipType {
     isOptionalString(v.description_en) &&
     isNumberOrNull(v.duration_months) &&
     typeof v.fee === "string" &&
+    hasValidFeeFields(v) &&
     typeof v.is_student === "boolean" &&
     (v.is_public_self_apply === undefined || typeof v.is_public_self_apply === "boolean")
   );

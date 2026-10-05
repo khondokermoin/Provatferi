@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\MembershipApplication;
 use App\Models\MembershipSeason;
 use App\Models\MembershipType;
+use App\Services\MembershipFeePolicyService;
 use App\Services\PhotoUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -30,7 +31,7 @@ class MembershipApplicationController extends Controller
             'applicant_name' => ['required', 'string', 'max:255'],
             'applicant_email' => ['required', 'email', 'max:255'],
             'applicant_phone' => ['required', 'string', 'max:30'],
-            'membership_type_id' => ['required', Rule::exists('membership_types', 'id')->where('status', 'active')->where('is_public_self_apply', true)],
+            'membership_type_id' => ['required', Rule::exists('membership_types', 'id')->where('status', 'active')->where('is_public_self_apply', true)->where('is_public_visible', true)],
             'membership_season_id' => ['nullable', Rule::exists('membership_seasons', 'id')],
             'photo' => ['nullable', 'file', 'max:5120'],
             'website' => ['prohibited'],
@@ -38,6 +39,13 @@ class MembershipApplicationController extends Controller
             'applicant_name' => 'নাম', 'applicant_email' => 'ই-মেইল', 'applicant_phone' => 'মোবাইল',
             'membership_type_id' => 'সদস্যপদের ধরন', 'membership_season_id' => 'নিবন্ধন সিজন',
         ]);
+
+        // Applying means accepting a quoted price, so a type with no fee policy in force today cannot be applied to (the
+        // public lists never offer one either). The quote itself is recorded on the application by
+        // MembershipApplication::booted() — the policy of the day it is submitted, copied into the row.
+        if (app(MembershipFeePolicyService::class)->effectiveFor((int) $data['membership_type_id']) === null) {
+            throw ValidationException::withMessages(['membership_type_id' => 'এই সদস্যপদের ধরনের জন্য বর্তমানে আবেদন গ্রহণ করা হচ্ছে না।']);
+        }
 
         if (!empty($data['membership_season_id'])) {
             $season = MembershipSeason::query()->find($data['membership_season_id']);

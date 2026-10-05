@@ -9,22 +9,104 @@
 @endsection
 
 @section('content')
+    {{--
+        What each type costs RIGHT NOW is the fee policy in force today (organisation calendar), not a stored column:
+        $current[type id] is that policy, $upcoming[type id] the next one that has not started. Fees are changed on the
+        type's own page, as a new dated version — never edited here.
+    --}}
     <x-admin.table :paginator="$types" caption="{{ __('admin.fields.membership_types_list') }}"
-        :headers="[__('admin.common.order'), __('admin.common.name'), __('admin.fields.fee'), __('admin.fields.applications'), __('admin.fields.member'), __('admin.common.status'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
+        :headers="[__('admin.common.order'), __('admin.fee_policy.type_column'), __('admin.fee_policy.registration_fee'), __('admin.fee_policy.monthly_contribution'), __('admin.fee_policy.in_force_since'), __('admin.common.status'), __('admin.fee_policy.usage'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
 
         @forelse ($types as $type)
+            @php
+                $policy = $current[$type->id] ?? null;
+                $next = $upcoming[$type->id] ?? null;
+                $isFirst = $types->firstItem() === 1 && $loop->first;
+                $isLast = $types->lastItem() === $types->total() && $loop->last;
+            @endphp
             <tr>
-                <td data-label="{{ __('admin.common.order') }}">{{ $type->sort_order }}</td>
-                <td data-label="{{ __('admin.common.name') }}">
-                    <span class="fw-semibold">{{ $type->name }}</span>
-                    @if ($type->is_student)
-                        <span class="badge bg-secondary-subtle text-secondary-emphasis fs-11 ms-1">{{ __('admin.fields.student_badge') }}</span>
+                <td data-label="{{ __('admin.common.order') }}">
+                    @can('membership.update')
+                        <div class="pf-reorder-group">
+                            <form method="POST" action="{{ route('admin.membership.types.move-up', $type) }}">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-light w-100 pf-reorder-btn"
+                                        @disabled($isFirst) aria-label="{{ __('admin.fields.move_up_in_list') }}" title="{{ __('admin.fields.move_up') }}">
+                                    <i class="ti ti-chevron-up" aria-hidden="true"></i>
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ route('admin.membership.types.move-down', $type) }}">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-light w-100 pf-reorder-btn"
+                                        @disabled($isLast) aria-label="{{ __('admin.fields.move_down_in_list') }}" title="{{ __('admin.fields.move_down') }}">
+                                    <i class="ti ti-chevron-down" aria-hidden="true"></i>
+                                </button>
+                            </form>
+                        </div>
+                    @else
+                        <span class="text-muted">{{ bn_number($type->sort_order) }}</span>
+                    @endcan
+                </td>
+                <td data-label="{{ __('admin.fee_policy.type_column') }}">
+                    <a href="{{ route('admin.membership.types.show', $type) }}" class="fw-semibold text-decoration-none">{{ $type->name }}</a>
+                    @if ($type->name_en)
+                        <span class="d-block text-muted fs-12">{{ $type->name_en }}</span>
+                    @endif
+                    <span class="d-flex flex-wrap gap-1 mt-1">
+                        @if ($type->code)
+                            <span class="badge bg-primary-subtle text-primary-emphasis fs-11" title="{{ __('admin.fee_policy.code') }}">{{ $type->code }}</span>
+                        @else
+                            <span class="badge bg-warning-subtle text-warning-emphasis fs-11">{{ __('admin.fee_policy.no_code') }}</span>
+                        @endif
+                        @if ($type->is_student)
+                            <span class="badge bg-secondary-subtle text-secondary-emphasis fs-11">{{ __('admin.fields.student_badge') }}</span>
+                        @endif
+                        @unless ($type->is_public_visible)
+                            <span class="badge bg-secondary-subtle text-secondary-emphasis fs-11">{{ __('admin.fee_policy.hidden_badge') }}</span>
+                        @endunless
+                        @unless ($type->is_public_self_apply)
+                            <span class="badge bg-secondary-subtle text-secondary-emphasis fs-11">{{ __('admin.fee_policy.no_self_apply_badge') }}</span>
+                        @endunless
+                    </span>
+                </td>
+                <td data-label="{{ __('admin.fee_policy.registration_fee') }}">
+                    @if ($policy)
+                        <span class="fw-semibold">{{ bn_money($policy->registration_fee) }}</span>
+                    @else
+                        <span class="badge bg-warning-subtle text-warning-emphasis d-inline-flex align-items-center gap-1">
+                            <i class="ti ti-alert-triangle" aria-hidden="true"></i>{{ __('admin.fee_policy.no_policy_in_force') }}
+                        </span>
                     @endif
                 </td>
-                <td data-label="{{ __('admin.fields.fee') }}">{{ $type->fee > 0 ? number_format((float) $type->fee, 2) : __('admin.fields.not_set') }}</td>
-                <td data-label="{{ __('admin.fields.applications') }}">{{ $type->applications_count }}</td>
-                <td data-label="{{ __('admin.fields.member') }}">{{ $type->memberships_count }}</td>
+                <td data-label="{{ __('admin.fee_policy.monthly_contribution') }}">
+                    @if ($policy)
+                        <span class="fw-semibold">{{ bn_money($policy->monthly_contribution) }}</span>
+                    @else
+                        <span class="text-muted">—</span>
+                    @endif
+                </td>
+                <td data-label="{{ __('admin.fee_policy.in_force_since') }}">
+                    @if ($policy)
+                        {{ bn_date($policy->fromDate()) }}
+                    @else
+                        <span class="text-muted">—</span>
+                    @endif
+                    @if ($next)
+                        <span class="d-block mt-1">
+                            <span class="badge bg-info-subtle text-info-emphasis d-inline-flex align-items-center gap-1">
+                                <i class="ti ti-calendar-event" aria-hidden="true"></i>{{ __('admin.fee_policy.scheduled_change') }}
+                            </span>
+                        </span>
+                        <span class="d-block text-muted fs-12">
+                            {{ __('admin.fee_policy.scheduled_detail', ['date' => bn_date($next->fromDate()), 'registration' => bn_money($next->registration_fee), 'monthly' => bn_money($next->monthly_contribution)]) }}
+                        </span>
+                    @endif
+                </td>
                 <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$type->status" /></td>
+                <td data-label="{{ __('admin.fee_policy.usage') }}" class="fs-13">
+                    {{ __('admin.fee_policy.usage_applications', ['count' => bn_number($type->applications_count)]) }}<br>
+                    {{ __('admin.fee_policy.usage_members', ['count' => bn_number($type->memberships_count)]) }}
+                </td>
                 <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">
                         <button class="btn btn-sm btn-light" data-bs-toggle="dropdown" aria-expanded="false"
@@ -32,10 +114,20 @@
                             <i class="ti ti-dots-vertical" aria-hidden="true"></i>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end">
+                            <a href="{{ route('admin.membership.types.show', $type) }}" class="dropdown-item">
+                                <i class="ti ti-cash me-1" aria-hidden="true"></i>{{ __('admin.fee_policy.manage_fees') }}
+                            </a>
                             @can('membership.update')
                                 <a href="{{ route('admin.membership.types.edit', $type) }}" class="dropdown-item">
                                     <i class="ti ti-pencil me-1" aria-hidden="true"></i>{{ __('admin.actions.edit') }}
                                 </a>
+                                <form method="POST" action="{{ route('admin.membership.types.toggle', $type) }}">
+                                    @csrf @method('PATCH')
+                                    <button type="submit" class="dropdown-item">
+                                        <i class="ti ti-toggle-left me-1" aria-hidden="true"></i>
+                                        {{ $type->isActive() ? __('admin.actions2.deactivate') : __('admin.actions2.activate') }}
+                                    </button>
+                                </form>
                             @endcan
                             @can('membership.delete')
                                 <div class="dropdown-divider"></div>
@@ -49,7 +141,7 @@
                 </td>
             </tr>
         @empty
-            <x-admin.empty-state colspan="7" icon="ti-id-badge-2" title="{{ __('admin.fields.no_membership_types_yet') }}" />
+            <x-admin.empty-state colspan="8" icon="ti-id-badge-2" title="{{ __('admin.fields.no_membership_types_yet') }}" />
         @endforelse
     </x-admin.table>
 

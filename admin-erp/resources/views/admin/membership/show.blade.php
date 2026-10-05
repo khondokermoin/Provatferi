@@ -30,6 +30,30 @@
                     <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.nav.membership_types') }}</dt>
                     <dd class="col-sm-8">{{ $application->membershipType->name ?? '—' }}</dd>
 
+                    {{-- What this application was QUOTED when it was submitted. It is its own record: a later fee change never alters it. --}}
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fee_policy.quoted_registration') }}</dt>
+                    <dd class="col-sm-8">
+                        @if ($application->quotedRegistrationFee() !== null)
+                            {{ bn_money($application->quotedRegistrationFee()) }}
+                        @else
+                            <span class="text-muted">{{ __('admin.fee_policy.no_quote') }}</span>
+                        @endif
+                    </dd>
+
+                    <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fee_policy.quoted_monthly') }}</dt>
+                    <dd class="col-sm-8">
+                        @if ($application->quotedMonthlyContribution() !== null)
+                            {{ bn_money($application->quotedMonthlyContribution()) }}
+                        @else
+                            <span class="text-muted">{{ __('admin.fee_policy.no_quote') }}</span>
+                        @endif
+                        @if ($application->fee_snapshot_source === 'legacy_flat_fee')
+                            <span class="d-block text-muted fs-12">{{ __('admin.fee_policy.quote_legacy_note') }}</span>
+                        @elseif ($application->fee_effective_on)
+                            <span class="d-block text-muted fs-12">{{ __('admin.fee_policy.quote_as_of', ['date' => bn_date($application->fee_effective_on)]) }}</span>
+                        @endif
+                    </dd>
+
                     <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.registration_season') }}</dt>
                     <dd class="col-sm-8">{{ $application->season?->name ?? '—' }}</dd>
 
@@ -78,7 +102,7 @@
                             <div class="row">
                                 <div class="col-6">
                                     <x-admin.form-input name="amount_expected" label="{{ __('admin.fields.expected_amount') }}" type="number" step="0.01" min="0"
-                                        :value="$application->membershipType->fee ?? 0" required />
+                                        :value="$application->quotedRegistrationFee() ?? 0" required />
                                 </div>
                                 <div class="col-6">
                                     <x-admin.form-input name="amount_received" label="{{ __('admin.fields.received_amount') }}" type="number" step="0.01" min="0" required />

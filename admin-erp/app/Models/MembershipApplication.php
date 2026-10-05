@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\MembershipFeePolicyService;
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -23,11 +25,57 @@ class MembershipApplication extends Model
         'application_no', 'user_id', 'membership_type_id', 'organization_unit_id', 'membership_season_id',
         'applicant_name', 'applicant_email', 'applicant_phone',
         'application_data', 'status', 'reviewed_by', 'reviewed_at', 'rejection_reason', 'review_notes',
+        // The fee quote this application was given — see booted() and the migration that added these columns.
+        'fee_policy_id', 'registration_fee_amount', 'monthly_contribution_amount', 'fee_snapshot_source', 'fee_effective_on',
     ];
 
     protected function casts(): array
     {
-        return ['application_data' => 'array', 'reviewed_at' => 'datetime'];
+        return [
+            'application_data' => 'array', 'reviewed_at' => 'datetime',
+            'registration_fee_amount' => 'decimal:2', 'monthly_contribution_amount' => 'decimal:2', 'fee_effective_on' => 'date',
+        ];
+    }
+
+    /**
+     * HISTORICAL FEE SAFETY. Every application is quoted the fee policy in force on the day it is created and stores
+     * that quote in its own columns, so changing a type's fees later can never change what THIS application owes. The
+     * hook covers every way a row can come into being (the public form, an admin tool, tinker, a test) and only fills
+     * what the caller did not supply, so an explicit snapshot (a backfill, a fixture) is respected. A type with no
+     * policy in force leaves the columns NULL — and an application with no recorded fee is never treated as free
+     * (MembershipController::paymentSatisfied()).
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (self $application): void {
+            if ($application->fee_snapshot_source !== null || $application->registration_fee_amount !== null || ! $application->membership_type_id) {
+                return;
+            }
+
+            $snapshot = app(MembershipFeePolicyService::class)->snapshotFor($application->membership_type_id, $application->created_at);
+            if ($snapshot !== null) {
+                $application->forceFill($snapshot);
+            }
+        });
+    }
+
+    public function feePolicy(): BelongsTo
+    {
+        return $this->belongsTo(MembershipFeePolicy::class, 'fee_policy_id');
+    }
+
+    /**
+     * The registration fee this application was quoted, as a two-decimal string, or null when none was recorded.
+     * Read THIS (never the type's current policy) for anything about what the application owes.
+     */
+    public function quotedRegistrationFee(): ?string
+    {
+        return $this->registration_fee_amount === null ? null : Money::parse($this->registration_fee_amount);
+    }
+
+    public function quotedMonthlyContribution(): ?string
+    {
+        return $this->monthly_contribution_amount === null ? null : Money::parse($this->monthly_contribution_amount);
     }
 
     public function user(): BelongsTo

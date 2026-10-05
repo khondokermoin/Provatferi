@@ -7,10 +7,12 @@ use App\Models\ActivityType;
 use App\Models\JobPosting;
 use App\Models\MembershipType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\MakesMembershipTypes;
 use Tests\TestCase;
 
 class PublicPhase1cApiTest extends TestCase
 {
+    use MakesMembershipTypes;
     use RefreshDatabase;
 
     /* ---------- Activities ---------- */
@@ -96,9 +98,9 @@ class PublicPhase1cApiTest extends TestCase
 
     public function test_membership_types_index_returns_active_only_in_sort_order(): void
     {
-        MembershipType::query()->create(['name' => 'Second', 'slug' => 'second', 'status' => 'active', 'sort_order' => 2, 'fee' => 0]);
-        MembershipType::query()->create(['name' => 'First', 'slug' => 'first', 'status' => 'active', 'sort_order' => 1, 'fee' => 0]);
-        MembershipType::query()->create(['name' => 'Hidden', 'slug' => 'hidden', 'status' => 'inactive', 'sort_order' => 0, 'fee' => 0]);
+        $this->makeMembershipType(['name' => 'Second', 'slug' => 'second', 'status' => 'active', 'sort_order' => 2]);
+        $this->makeMembershipType(['name' => 'First', 'slug' => 'first', 'status' => 'active', 'sort_order' => 1]);
+        $this->makeMembershipType(['name' => 'Hidden', 'slug' => 'hidden', 'status' => 'inactive', 'sort_order' => 0]);
 
         $response = $this->getJson('/api/v1/membership-types')->assertOk();
         $names = collect($response->json('data'))->pluck('name');

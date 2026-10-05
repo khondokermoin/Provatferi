@@ -12,6 +12,7 @@ use App\Models\Notice;
 use App\Models\Objective;
 use App\Models\OrganizationalUnit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\MakesMembershipTypes;
 use Tests\TestCase;
 
 /**
@@ -22,6 +23,7 @@ use Tests\TestCase;
  */
 class PublicApiBilingualFieldsTest extends TestCase
 {
+    use MakesMembershipTypes;
     use RefreshDatabase;
 
     private function unit(array $attributes = []): OrganizationalUnit
@@ -165,7 +167,7 @@ class PublicApiBilingualFieldsTest extends TestCase
 
     public function test_membership_type_and_organization_unit_expose_null_then_populated_en_fields(): void
     {
-        MembershipType::query()->create(['name' => 'সাধারণ সদস্য', 'slug' => 'general', 'fee' => 0, 'status' => 'active', 'sort_order' => 1]);
+        $this->makeMembershipType(['name' => 'সাধারণ সদস্য', 'slug' => 'general', 'status' => 'active', 'sort_order' => 1]);
         $unit = $this->unit(['name' => 'ঢাকা বিভাগ', 'name_en' => null]);
 
         $types = $this->getJson('/api/v1/membership-types')->assertOk()->json('data');

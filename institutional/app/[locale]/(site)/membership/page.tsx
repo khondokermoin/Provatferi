@@ -3,6 +3,7 @@ import { localizedMetadata } from "@/lib/social-meta";
 import { membershipTypes as fallbackMembershipTypes, org } from "@/lib/content";
 import { membershipTypes as fallbackMembershipTypesEn } from "@/lib/content.en";
 import { getCurrentCampaigns, getMembershipTypes } from "@/lib/api/membership";
+import { FEE_LABELS, feeQuote, formatTaka, type FeeQuote } from "@/lib/fees";
 import PageHeader from "@/components/PageHeader";
 import MembershipApplicationForm from "@/components/MembershipApplicationForm";
 import { isLocale, type Locale } from "@/lib/i18n";
@@ -44,10 +45,13 @@ export default async function MembershipPage({ params }: { params: Promise<{ loc
   // response falls back to the complete approved list rather than mixing
   // sources into a partial one.
   const result = await getMembershipTypes();
-  const types =
+  // `quote` is the fee policy in force today, straight from the API; the static fallback list carries no fees on purpose
+  // (a price that is not read from the live policy is never shown).
+  const types: { name: string; note: string; quote: FeeQuote | null }[] =
     result.ok && result.data.length > 0
-      ? result.data.map((t) => ({ name: pickText(locale, t.name, t.name_en).text, note: pickText(locale, t.description ?? "", t.description_en).text }))
-      : locale === "en" ? fallbackMembershipTypesEn : fallbackMembershipTypes;
+      ? result.data.map((t) => ({ name: pickText(locale, t.name, t.name_en).text, note: pickText(locale, t.description ?? "", t.description_en).text, quote: feeQuote(t) }))
+      : (locale === "en" ? fallbackMembershipTypesEn : fallbackMembershipTypes).map((t) => ({ ...t, quote: null }));
+  const feeLabels = FEE_LABELS[locale];
 
   // §42: a real application form only ever renders for a season that is
   // both open AND has at least one self-appliable type — a season open
@@ -78,6 +82,20 @@ export default async function MembershipPage({ params }: { params: Promise<{ loc
               <span className="info-card-tag">{locale === "en" ? "Membership" : "সদস্যপদ"}</span>
               <h3>{type.name}</h3>
               <p>{type.note}</p>
+              {type.quote && (
+                <dl className="fee-summary" data-testid="type-fees">
+                  <div className="fee-summary-row">
+                    <dt>{feeLabels.registration}</dt>
+                    <dd data-fee="registration">{formatTaka(type.quote.registration, locale)}</dd>
+                  </div>
+                  {type.quote.monthly !== null && (
+                    <div className="fee-summary-row">
+                      <dt>{feeLabels.monthly}</dt>
+                      <dd data-fee="monthly">{formatTaka(type.quote.monthly, locale)}</dd>
+                    </div>
+                  )}
+                </dl>
+              )}
             </div>
           ))}
         </div>

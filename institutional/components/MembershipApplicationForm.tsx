@@ -5,6 +5,7 @@ import { submitMembershipApplication, type MembershipApplicationState } from "@/
 import SubmitControl from "@/components/SubmitControl";
 import SuccessNote from "@/components/SuccessNote";
 import type { MembershipCampaign } from "@/lib/api/types";
+import { FEE_LABELS, feeQuote, formatTaka } from "@/lib/fees";
 import { MEMBERSHIP_FAILURE, MEMBERSHIP_FAILURE_EN, WAIT_HELPER } from "@/lib/form-messages";
 import { isMembershipFormState } from "@/lib/form-state";
 import type { Locale } from "@/lib/i18n";
@@ -46,6 +47,11 @@ export default function MembershipApplicationForm({ campaigns, locale = "bn" }: 
   const [campaignId, setCampaignId] = useState(String(campaigns[0]?.id ?? ""));
 
   const campaign = useMemo(() => campaigns.find((c) => String(c.id) === campaignId), [campaigns, campaignId]);
+  // The chosen type, looked up in the CURRENT season's list: switching season to one that does not offer it clears the choice.
+  const [typeId, setTypeId] = useState("");
+  const selectedType = campaign?.membership_types.find((t) => String(t.id) === typeId);
+  const quote = selectedType ? feeQuote(selectedType) : null;
+  const feeLabels = FEE_LABELS[locale];
   const errors = state.status === "validation" ? state.errors : undefined;
 
   if (state.status === "success") {
@@ -92,17 +98,40 @@ export default function MembershipApplicationForm({ campaigns, locale = "bn" }: 
 
         <div className="form-field">
           <label htmlFor="membership_type_id">{en ? "Membership Type" : "সদস্যপদের ধরন"}</label>
-          <select id="membership_type_id" name="membership_type_id" required defaultValue="">
+          <select
+            id="membership_type_id"
+            name="membership_type_id"
+            required
+            value={selectedType ? typeId : ""}
+            onChange={(e) => setTypeId(e.target.value)}
+            aria-describedby={quote ? "membership-fee-summary" : undefined}
+          >
             <option value="" disabled>
               {en ? "Select one" : "নির্বাচন করুন"}
             </option>
             {campaign?.membership_types.map((type) => (
               <option key={type.id} value={type.id}>
-                {pickText(locale, type.name, type.name_en).text} {Number(type.fee) > 0 ? `— ৳${type.fee}` : en ? "— Free" : "— বিনামূল্যে"}
+                {pickText(locale, type.name, type.name_en).text}
               </option>
             ))}
           </select>
           <FieldError errors={errors} name="membership_type_id" />
+          {/* What the chosen type costs under the fee policy in force today (admin-erp), straight from the API: a free tier
+              reads ৳0, never "Free" or blank. Display only — this is a quote, not a payment; nothing here collects money. */}
+          {quote && (
+            <dl id="membership-fee-summary" className="fee-summary" role="status" aria-live="polite" data-testid="fee-summary">
+              <div className="fee-summary-row">
+                <dt>{feeLabels.registration}</dt>
+                <dd data-fee="registration">{formatTaka(quote.registration, locale)}</dd>
+              </div>
+              {quote.monthly !== null && (
+                <div className="fee-summary-row">
+                  <dt>{feeLabels.monthly}</dt>
+                  <dd data-fee="monthly">{formatTaka(quote.monthly, locale)}</dd>
+                </div>
+              )}
+            </dl>
+          )}
         </div>
 
         <div className="form-field">

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api\V1\Public;
 
 use App\Http\Controllers\Controller;
+use App\Models\MembershipFeePolicy;
 use App\Models\MembershipSeason;
+use App\Services\MembershipFeePolicyService;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -16,21 +18,28 @@ use Illuminate\Http\JsonResponse;
  */
 class MembershipCampaignController extends Controller
 {
-    public function current(): JsonResponse
+    public function current(MembershipFeePolicyService $fees): JsonResponse
     {
         $seasons = MembershipSeason::query()
             ->where('status', 'open')
-            ->with(['membershipTypes' => fn ($q) => $q->where('status', 'active')->where('is_public_self_apply', true)->orderBy('sort_order')])
+            ->with(['membershipTypes' => fn ($q) => $q->where('status', 'active')->where('is_public_self_apply', true)->where('is_public_visible', true)->orderBy('sort_order')])
             ->orderBy('display_order')->orderBy('opens_at')
             ->get()
             ->filter(fn (MembershipSeason $season) => $season->acceptsApplicationsNow())
             ->values();
 
-        return response()->json(['data' => $seasons->map(fn (MembershipSeason $season) => $this->publicPayload($season))]);
+        // One query for the fee policy in force today of every type offered in any open season. A type with none in
+        // force is left out of the form: a price that does not exist cannot be quoted.
+        $policies = $fees->effectiveForMany($seasons->flatMap(fn (MembershipSeason $season) => $season->membershipTypes));
+
+        return response()->json(['data' => $seasons->map(fn (MembershipSeason $season) => $this->publicPayload($season, $policies))]);
     }
 
-    /** @return array<string, mixed> */
-    private function publicPayload(MembershipSeason $season): array
+    /**
+     * @param  array<int, MembershipFeePolicy>  $policies  fee policy in force today, keyed by membership type id
+     * @return array<string, mixed>
+     */
+    private function publicPayload(MembershipSeason $season, array $policies): array
     {
         return [
             'id' => $season->id,
@@ -43,15 +52,24 @@ class MembershipCampaignController extends Controller
             'description' => $season->description,
             'cash_payment_instructions' => $season->cash_payment_instructions,
             'public_profile_opt_in' => $season->public_profile_opt_in,
-            'membership_types' => $season->membershipTypes->map(fn ($type) => [
-                'id' => $type->id,
-                'name' => $type->name,
-                'slug' => $type->slug,
-                'description' => $type->description,
-                'duration_months' => $type->duration_months,
-                'fee' => $type->fee,
-                'is_student' => $type->is_student,
-            ])->values(),
+            // `fee` is the DEPRECATED alias of registration_fee (see Api\V1\MembershipTypeController) kept for pre-2026-10-05 builds of the public site.
+            'membership_types' => $season->membershipTypes
+                ->filter(fn ($type) => isset($policies[$type->id]))
+                ->map(fn ($type) => [
+                    'id' => $type->id,
+                    'name' => $type->name,
+                    'name_en' => $type->name_en,
+                    'slug' => $type->slug,
+                    'code' => $type->code,
+                    'description' => $type->description,
+                    'description_en' => $type->description_en,
+                    'duration_months' => $type->duration_months,
+                    'fee' => $policies[$type->id]->registration_fee,
+                    'registration_fee' => $policies[$type->id]->registration_fee,
+                    'monthly_contribution' => $policies[$type->id]->monthly_contribution,
+                    'fee_effective_from' => $policies[$type->id]->fromDate(),
+                    'is_student' => $type->is_student,
+                ])->values(),
         ];
     }
 }

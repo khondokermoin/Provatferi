@@ -121,8 +121,21 @@ export interface MembershipType {
   description: string | null;
   description_en: string | null;
   duration_months: number | null;
-  /** Decimal from Laravel, serialized as a string, e.g. "0.00". */
+  /**
+   * DEPRECATED alias of `registration_fee`, still sent so a build of this site from before fee policies existed keeps
+   * rendering. Decimal from Laravel, serialized as a string, e.g. "0.00". Read `registration_fee` (see lib/fees.ts).
+   */
   fee: string;
+  /**
+   * The fee policy IN FORCE TODAY (admin-erp's MembershipFeePolicyService), as decimal strings ("500.00") — never floats.
+   * Optional only because a response cached from before the change lacks them; a live response always carries all three.
+   */
+  registration_fee?: string;
+  monthly_contribution?: string;
+  /** The day ('Y-m-d') the quoted policy took effect. */
+  fee_effective_from?: string;
+  /** Short, permanent type identifier (LM, GM, ST …); null for a legacy type that has none. */
+  code?: string | null;
   is_student: boolean;
   is_public_self_apply: boolean;
 }

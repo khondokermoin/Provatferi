@@ -11,6 +11,7 @@ use App\Models\MembershipApplication;
 use App\Models\MembershipType;
 use App\Models\Payment;
 use App\Notifications\MembershipApplicationStatusChangedNotification;
+use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -200,7 +201,9 @@ class MembershipController extends Controller
 
         $membershipApplication->payments()->create([
             'membership_type_id' => $membershipApplication->membership_type_id,
-            'amount_expected' => $membershipApplication->membershipType?->fee ?? 0,
+            // The fee this application was QUOTED when it was submitted — never the type's current policy, which may
+            // have changed since (historical fee safety; see MembershipApplication::booted()).
+            'amount_expected' => $membershipApplication->quotedRegistrationFee() ?? 0,
             'method' => 'cash',
             'status' => 'waived',
             'waiver_reason' => $data['waiver_reason'],
@@ -213,17 +216,21 @@ class MembershipController extends Controller
     }
 
     /**
-     * §9: a free membership type (fee = 0, e.g. honorary) never required a
-     * payment in the first place — satisfied trivially. A fee-bearing type
-     * requires at least one recorded payment, and every recorded payment
-     * must be paid+verified or explicitly waived; a fee-bearing application
-     * with zero payment records yet is NOT satisfied (approval stays
-     * blocked until one exists), which an empty-collection check alone
+     * §9: an application quoted a ZERO registration fee (e.g. honorary, or a free student tier) never required a
+     * payment in the first place — satisfied trivially. A fee-bearing one requires at least one recorded payment, and
+     * every recorded payment must be paid+verified or explicitly waived; a fee-bearing application with zero payment
+     * records yet is NOT satisfied (approval stays blocked until one exists), which an empty-collection check alone
      * would have missed.
+     *
+     * "Fee-bearing" is decided by the fee the application was QUOTED at submission (its own snapshot), never by the
+     * type's current policy: raising the Student fee from 0 to 100 must not suddenly stop an application submitted
+     * under the free policy from being approved. An application with NO recorded fee (a type that had no policy in
+     * force that day) is never assumed to be free — it needs a verified payment or an explicit waiver like any other.
      */
     private function paymentSatisfied(MembershipApplication $application): bool
     {
-        if ((float) ($application->membershipType?->fee ?? 0) <= 0) {
+        $quoted = $application->quotedRegistrationFee();
+        if ($quoted !== null && ! Money::isPositive($quoted)) {
             return true;
         }
 

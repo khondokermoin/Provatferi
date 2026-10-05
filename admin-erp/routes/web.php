@@ -165,9 +165,17 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         Route::get('/', [MembershipTypeController::class, 'index'])->middleware('permission:membership.view')->name('index');
         Route::get('/create', [MembershipTypeController::class, 'create'])->middleware('permission:membership.create')->name('create');
         Route::post('/', [MembershipTypeController::class, 'store'])->middleware('permission:membership.create')->name('store');
+        // `/create` above must stay ahead of this wildcard or "create" would be read as a type id.
+        Route::get('/{membershipType}', [MembershipTypeController::class, 'show'])->middleware('permission:membership.view')->name('show');
         Route::get('/{membershipType}/edit', [MembershipTypeController::class, 'edit'])->middleware('permission:membership.update')->name('edit');
         Route::put('/{membershipType}', [MembershipTypeController::class, 'update'])->middleware('permission:membership.update')->name('update');
         Route::delete('/{membershipType}', [MembershipTypeController::class, 'destroy'])->middleware('permission:membership.delete')->name('destroy');
+        Route::patch('/{membershipType}/toggle', [MembershipTypeController::class, 'toggle'])->middleware('permission:membership.update')->name('toggle');
+        Route::post('/{membershipType}/move-up', [MembershipTypeController::class, 'moveUp'])->middleware('permission:membership.update')->name('move-up');
+        Route::post('/{membershipType}/move-down', [MembershipTypeController::class, 'moveDown'])->middleware('permission:membership.update')->name('move-down');
+        // Fee policies are append-only: a new version, or cancelling one that has not started. Never an edit.
+        Route::post('/{membershipType}/fee-policies', [MembershipTypeController::class, 'storeFeePolicy'])->middleware('permission:membership.update')->name('fee-policies.store');
+        Route::post('/{membershipType}/fee-policies/{feePolicy}/cancel', [MembershipTypeController::class, 'cancelFeePolicy'])->middleware('permission:membership.update')->name('fee-policies.cancel');
     });
 
     /*

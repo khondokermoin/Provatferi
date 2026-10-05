@@ -9,6 +9,7 @@ use App\Models\MembershipSeason;
 use App\Models\MembershipType;
 use App\Models\OrganizationalUnit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\MakesMembershipTypes;
 use Tests\TestCase;
 
 /**
@@ -17,13 +18,12 @@ use Tests\TestCase;
  */
 class PublicMembershipCommitteeApiTest extends TestCase
 {
+    use MakesMembershipTypes;
     use RefreshDatabase;
 
     private function membershipType(): MembershipType
     {
-        return MembershipType::query()->create([
-            'name' => 'সাধারণ সদস্য', 'slug' => 'general-'.uniqid(), 'fee' => 500, 'status' => 'active',
-        ]);
+        return $this->makeMembershipType(['name' => 'সাধারণ সদস্য', 'slug' => 'general-'.uniqid()], ['registration' => '500', 'monthly' => '0']);
     }
 
     /* ---------- Membership campaigns ---------- */

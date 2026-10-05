@@ -479,3 +479,20 @@ field on the *next* deploy) and commit it as its own small commit.
   `laravel-admin/`.
 - `deploy/build-release.sh` run end-to-end locally against the current
   commit (see the session's report for the exact run and result).
+
+## Membership fee policies — what a release that carries them needs
+
+(2026-10-05, Membership Registry task 1; the model and rules are in `docs/MEMBERSHIP_FEE_POLICIES.md`.)
+
+The release adds three **additive** migrations (two nullable columns + a new table + five nullable columns on
+`membership_applications`; nothing dropped, the old code ignores all of it) and a one-time data load:
+
+1. `pipeline <id>` as usual (its `migrate-check` shows the three pending migrations).
+2. `migrate-apply <id> --i-have-reviewed-the-pretend-output` — safe before the switch.
+3. **Load the owner-approved fee schedule from the STAGED release**, before the switch: a one-shot script that boots
+   `laravel-admin-releases/<id>/app` and runs `membership:load-initial-policies` (dry run first, read the plan, then
+   `--apply`). It is idempotent, so running it again changes nothing.
+4. `switch <id>`, `smoke-test-live`.
+
+Until step 3 has run, a membership type with no fee policy is simply not offered on the public site (a price that does
+not exist cannot be shown), so doing the load before the switch means the public list never goes empty.
