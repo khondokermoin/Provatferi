@@ -1333,16 +1333,17 @@ input[type="radio"]:disabled { cursor: not-allowed; opacity: .55; }
 
 /* ---------- Submit in flight (every upload form: volunteer, committee, membership, member profile) ----------
    A disabled, dimmer button alone read as a frozen form: at the bottom of a long page nothing else
-   moved. While a submission is working the button carries the brand loader and says so, a status
-   line under it (what assistive tech announces; after ~2 s also a visible helper sentence) repeats it
-   in words, and the fields are visibly parked — still on screen, still holding everything typed and
-   every file chosen. */
+   moved. While a submission is working the page shows the processing overlay (below, "Processing
+   overlay") — the primary feedback — the button carries the small brand loader and says so, a status
+   line under it (what assistive tech announces; its words are visually hidden because the overlay shows
+   them) keeps its reserved room, and the fields are visibly parked — still on screen, still holding
+   everything typed and every file chosen. */
 .application-form .form-body { display: flex; flex-direction: column; gap: inherit; min-width: 0; margin: 0; padding: 0; border: 0; transition: opacity .2s; }
 .application-form[aria-busy="true"] .form-body { opacity: .6; }
 /* A busy button is working, not unavailable: keep it legible. */
 .application-form .button:disabled[aria-busy="true"] { opacity: .92; cursor: progress; }
-/* Room for the helper sentence is reserved up front (two lines on a phone, one on a desktop), so it
-   appearing after ~2 s moves nothing below it. */
+/* The status line's room is reserved up front (two lines on a phone, one on a desktop) and kept: its words
+   are for assistive tech now (the overlay shows them), and the page under the button must not move at all. */
 .form-submit-status { min-height: 3em; margin: -8px 0 0; font-size: 14px; line-height: 1.5; color: var(--muted); outline: none; }
 @media (min-width: 640px) { .form-submit-status { min-height: 1.6em; } }
 .form-submit-helper { display: block; }
@@ -1384,3 +1385,45 @@ input[type="radio"]:disabled { cursor: not-allowed; opacity: .55; }
 }
 @keyframes pf-brand-orbit { to { transform: rotate(270deg); } }
 @keyframes pf-brand-breathe { 50% { transform: scale(.94); } }
+
+/* ---------- Processing overlay (components/ProcessingOverlay.tsx) ----------
+   While a submission works the whole page enters a calm processing state: the page's own background colour as a
+   translucent wash (the page stays faintly visible behind it) with a very light blur, and a centred card holding the
+   BrandLoader, the busy words and — once waiting is no longer instant — the helper sentence. Fixed to the viewport,
+   so it is in view even at the bottom of a long form, and outside the page's flow, so it moves nothing. The helper's
+   room is reserved, so its arrival at ~2 s does not resize the card. Light and dark are the theme's own tokens; motion
+   (a 160 ms fade and a slight rise of the card) only when the visitor has not asked for reduced motion. */
+.processing-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  display: grid; place-items: center; padding: 16px;
+  background: rgba(251, 249, 244, .62);
+  background: color-mix(in srgb, var(--bg) 62%, transparent);
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  cursor: progress;
+}
+:root[data-theme="dark"] .processing-overlay {
+  background: rgba(27, 30, 34, .7);
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+}
+.processing-overlay-card {
+  display: flex; flex-direction: column; align-items: center;
+  width: min(360px, 100%); padding: 30px 28px 24px;
+  background: var(--surface); color: var(--body);
+  border: 1px solid var(--border); border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(28, 36, 48, .06), 0 16px 40px rgba(28, 36, 48, .14);
+  text-align: center; cursor: default;
+}
+:root[data-theme="dark"] .processing-overlay-card { box-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 18px 44px rgba(0, 0, 0, .5); }
+.processing-overlay-card .brand-loader { margin-bottom: 18px; }
+.processing-overlay-title { margin: 0; font-size: 17px; font-weight: 600; line-height: 1.5; color: var(--heading); text-wrap: balance; }
+.processing-overlay-helper { min-height: 3em; max-width: 32ch; margin: 8px 0 0; font-size: 14px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
+.processing-overlay-helper-text { display: block; }
+.processing-overlay-actions { margin-top: 12px; font-size: 14px; }
+.processing-overlay-actions a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; }
+@media (prefers-reduced-motion: no-preference) {
+  .processing-overlay { animation: pf-overlay-in .16s ease-out both; }
+  .processing-overlay-card { animation: pf-overlay-card-in .24s cubic-bezier(.2, .8, .2, 1) both; }
+  .processing-overlay-helper-text { animation: pf-helper-in .3s ease-out both; }
+}
+@keyframes pf-overlay-in { from { opacity: 0; } }
+@keyframes pf-overlay-card-in { from { opacity: 0; transform: translateY(6px) scale(.985); } }

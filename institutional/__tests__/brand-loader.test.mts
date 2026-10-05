@@ -12,7 +12,9 @@ import test from "node:test";
  *   - the light and dark mark are swapped by [data-theme], like the logos;
  *   - no second loader / spinner exists anywhere to drift away from it;
  *   - every upload form shows it through ONE submit control (components/SubmitControl.tsx), with the exact wording
- *     and the ~2 s helper rule the owner specified.
+ *     and the ~2 s helper rule the owner specified;
+ *   - the page-level preloader is ONE processing overlay (components/ProcessingOverlay.tsx) that frames this same
+ *     loader, rendered by the submit control — so all five forms have it, and none draws its own.
  */
 
 const ROOT = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
@@ -69,7 +71,7 @@ test("inside the primary button the mark gets a chip and the ring takes the butt
 test("there is exactly one loader: no component draws its own spinner", () => {
   assert.ok(!existsSync(join(ROOT, "components", "SubmitSpinner.tsx")), "SubmitSpinner was replaced by BrandLoader");
   assert.equal((css.match(/^\.brand-loader \{/gm) ?? []).length, 1);
-  for (const file of [...UPLOAD_FORMS, "SubmitControl.tsx", "SuccessNote.tsx"]) {
+  for (const file of [...UPLOAD_FORMS, "SubmitControl.tsx", "ProcessingOverlay.tsx", "SuccessNote.tsx"]) {
     const source = read("components", file);
     assert.doesNotMatch(source, /pf-spin|submit-spinner|<svg[^>]*animate|animation:/i, `${file} draws its own spinner`);
   }
@@ -107,6 +109,46 @@ test("the owner's wording, in both languages, and the ~2 s helper rule", () => {
   assert.match(hook, /slowAfterMs \?\? 2000/);
   assert.match(hook, /setTimeout\(\(\) => setSlow\(true\), slowAfterMs\)/, "the helper sentence must wait for the slow threshold, not show at once");
   for (const file of UPLOAD_FORMS) assert.doesNotMatch(read("components", file), /%|progress=|<progress/i, `${file}: no fake percentage`);
+});
+
+test("there is ONE processing overlay; it frames the BrandLoader, and every upload form gets it from the submit control", () => {
+  const overlay = read("components", "ProcessingOverlay.tsx");
+  assert.match(overlay, /import BrandLoader from "@\/components\/BrandLoader"/, "the overlay reuses the one loader");
+  assert.match(overlay, /<BrandLoader size="lg" announce=\{false\} \/>/);
+  assert.match(overlay, /createPortal\([\s\S]*document\.body,?\s*\)/, "rendered into <body>: fixed to the viewport whatever its ancestors do");
+  assert.doesNotMatch(overlay, /role="dialog"|aria-modal|role=\{?"alertdialog"/, "it does not trap focus, so it must not claim to be a dialog");
+  assert.match(overlay, /aria-hidden=\{hideText\}[\s\S]*aria-hidden=\{hideText\}/, "with announce={false} the title and helper are visual only");
+  assert.match(control, /import ProcessingOverlay from "@\/components\/ProcessingOverlay"/);
+  assert.match(control, /<ProcessingOverlay active=\{busy\}[^>]*showHelper=\{overlayHelper !== undefined \|\| slow\} announce=\{false\}>/, "up exactly while busy, helper on the same ~2 s rule, silent (the status line speaks)");
+  assert.match(control, /className="form-submit-helper sr-only"/, "the status line's words are for assistive tech; the overlay shows them");
+  // Nobody else draws an overlay: the class and the component appear nowhere but in these two files.
+  for (const file of [...UPLOAD_FORMS, "SuccessNote.tsx", "BrandLoader.tsx"]) {
+    const source = read("components", file);
+    assert.doesNotMatch(source, /processing-overlay|<ProcessingOverlay|createPortal/, `${file} must not draw an overlay of its own`);
+  }
+  assert.equal((css.match(/^\.processing-overlay \{/gm) ?? []).length, 1);
+});
+
+test("the overlay: viewport-level, translucent theme tokens, motion only without reduced motion", () => {
+  const block = (selector: string) => css.match(new RegExp(`^${selector.replace(/[.[\]"=:()-]/g, "\\$&")} \\{([^}]*)\\}`, "m"))?.[1] ?? "";
+  const wash = block(".processing-overlay");
+  assert.match(wash, /position: fixed; inset: 0; z-index: 1000;/);
+  assert.match(wash, /color-mix\(in srgb, var\(--bg\) \d+%, transparent\)/, "the wash is the page's own background, translucent");
+  assert.match(wash, /backdrop-filter: blur\(2px\)/, "a very light blur, no more");
+  assert.match(block(':root[data-theme="dark"] .processing-overlay'), /color-mix\(in srgb, var\(--bg\) \d+%, transparent\)/, "dark uses the dark token, not an inverted light wash");
+  assert.match(block(".processing-overlay-card"), /background: var\(--surface\)/);
+  assert.match(block(".processing-overlay-helper"), /min-height: 3em/, "the helper's room is reserved, so the card does not grow at ~2 s");
+  const gated = css.match(/@media \(prefers-reduced-motion: no-preference\) \{\n  \.processing-overlay \{ animation: [^}]*\}\n  \.processing-overlay-card \{ animation: [^}]*\}\n  \.processing-overlay-helper-text \{ animation: [^}]*\}\n\}/);
+  assert.ok(gated, "the overlay's fade and rise must live in one no-preference block");
+  assert.doesNotMatch(css.replace(gated[0], ""), /\.processing-overlay[^{]*\{[^}]*animation\s*:/, "an overlay animation exists outside the no-preference block");
+});
+
+test("the volunteer form's 'confirmation is slow' link lives on the overlay, not under the covered button", () => {
+  assert.match(form, /overlayTitle=\{phase === "navigating" \? copy\.received : undefined\}/, "after success the overlay says the application was received");
+  assert.match(form, /overlayHelper=\{phase === "navigating" \? copy\.opening : undefined\}/, "...over 'opening the confirmation', the same two-line shape as while submitting");
+  for (const text of ["আবেদন গৃহীত হয়েছে", "নিশ্চিতকরণ পাতা খোলা হচ্ছে…", "Application received", "Opening the confirmation…"]) assert.ok(form.includes(`"${text}"`), `missing: ${text}`);
+  assert.match(form, /overlayFooter=\{phase === "navigating" && stuck \? <a href=\{successHref\}>\{copy\.fallback\}<\/a> : undefined\}/);
+  assert.equal((form.match(/copy\.fallback/g) ?? []).length, 1, "the fallback link is offered in one place only");
 });
 
 test("the idle label cannot flash back between a success and the confirmation page", () => {

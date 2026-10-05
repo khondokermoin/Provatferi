@@ -16,20 +16,25 @@ const initialState: VolunteerApplicationState = { status: "idle" };
 /** After a successful submit: how long the confirmation page may take before a plain link is offered. */
 const STUCK_AFTER_MS = 5000;
 
-/** Everything the submit control says, in both languages, in one place. */
+/** Everything the submit control says, in both languages, in one place. After a success the overlay shows `received`
+ * over `opening` (the same two-line shape as while submitting); assistive tech hears them as one sentence, `handOver`. */
 const COPY = {
   bn: {
     submit: "আবেদন জমা দিন",
     submitting: "আবেদন জমা হচ্ছে…",
     wait: "অনুগ্রহ করে অপেক্ষা করুন, আপনার তথ্য নিরাপদভাবে জমা হচ্ছে।",
-    received: "আবেদন গৃহীত হয়েছে — নিশ্চিতকরণ পাতা খোলা হচ্ছে…",
+    received: "আবেদন গৃহীত হয়েছে",
+    opening: "নিশ্চিতকরণ পাতা খোলা হচ্ছে…",
+    handOver: "আবেদন গৃহীত হয়েছে — নিশ্চিতকরণ পাতা খোলা হচ্ছে…",
     fallback: "নিশ্চিতকরণ পাতা না খুললে এখানে চাপুন।",
   },
   en: {
     submit: "Submit Application",
     submitting: "Submitting application…",
     wait: "Please wait while your application is being submitted securely.",
-    received: "Application received — opening the confirmation…",
+    received: "Application received",
+    opening: "Opening the confirmation…",
+    handOver: "Application received — opening the confirmation…",
     fallback: "If the confirmation does not open, tap here.",
   },
 } as const;
@@ -616,24 +621,24 @@ export default function VolunteerApplicationForm({
       </fieldset>
 
       {/* §7: disabled the instant it is clicked (the hook also holds a synchronous lock, so a double click or
-          a second Enter cannot reach the server twice). While it works the button holds the brand loader and
-          the words — and stays that way through the hand-over to the confirmation page, so the idle label
-          never flashes back between success and navigation. The status line under it is the one live
-          region; after success it says the confirmation is opening. */}
+          a second Enter cannot reach the server twice). While it works the page shows the processing overlay
+          and the button holds the brand loader and the words — both stay that way through the hand-over to
+          the confirmation page, so nothing idle flashes back between success and navigation. After success the
+          overlay says the application was received; if the confirmation is slow to open, the plain link is
+          offered on the overlay itself (the page under it cannot be clicked). The status line under the button
+          is the one live region. */}
       <SubmitControl
         busy={busy}
         slow={slow}
         idleLabel={copy.submit}
         busyLabel={copy.submitting}
-        helper={phase === "navigating" ? copy.received : copy.wait}
-        spokenWhileBusy={phase === "navigating" ? copy.received : copy.submitting}
+        helper={phase === "navigating" ? copy.handOver : copy.wait}
+        spokenWhileBusy={phase === "navigating" ? copy.handOver : copy.submitting}
         statusRef={statusRef}
+        overlayTitle={phase === "navigating" ? copy.received : undefined}
+        overlayHelper={phase === "navigating" ? copy.opening : undefined}
+        overlayFooter={phase === "navigating" && stuck ? <a href={successHref}>{copy.fallback}</a> : undefined}
       />
-      {phase === "navigating" && stuck && (
-        <p className="form-field-help">
-          <a href={successHref}>{copy.fallback}</a>
-        </p>
-      )}
     </form>
   );
 }
