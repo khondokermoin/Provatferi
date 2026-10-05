@@ -94,6 +94,12 @@ body: {"tags": ["membership-fees", "membership-types"]}
   what people change and `valid_until` for what the clock changes.
 * `revalidateTag()` cannot be called while a page renders, so a page cannot "fix" an outdated cache entry itself — it can
   only refuse to use it (the `valid_until` guard). The entry is replaced when the 15-second window lapses.
+* In a route handler, Next (16.3) runs the collected revalidations as "pending work" while it builds the response; the
+  tag's expiry is stamped with `Date.now()` but judged against `performance.timeOrigin + performance.now()`. Measured on
+  production 2026-10-05 (`membership-cache-qa.mjs --mode timing`): 20 of 20 first requests sent 0-44 ms after the Admin's
+  response were already right. If a Next upgrade changes this, that same timing run is the check to repeat.
+* A disposable season left with dates from an earlier QA step can be open by status yet ended by date — the page then
+  rightly shows no form. Compare with Laravel's own answer before calling the site wrong (the timing mode does).
 * `Http::fake()` only appends stubs (the first match wins) but does clear the recorder. Tests now run with
   `Http::preventStrayRequests()` (`tests/TestCase.php`): until 2026-10-05 one carousel test flushed its revalidation
   before faking HTTP and sent a real request to production on every run of the suite.

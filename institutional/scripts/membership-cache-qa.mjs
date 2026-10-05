@@ -30,6 +30,13 @@
 //                Dhaka by itself: the FIRST request after it quotes the new fee
 //           Each step reports the time from the Admin's "saved" to the first public request, and whether it was right.
 //
+//   timing  [--delays 0,0,0] opens and closes the disposable season through the Admin's status dialog and, the instant
+//           each Admin response arrives (+delay), sends plain HTTP GETs of both pages — no browser start-up in the way —
+//           next to Laravel's own answer: how many ms after "saved" the public site already answers with the change.
+//
+//   carousel  regression for the homepage carousel (same signed call): one disposable slide created and deleted
+//           through the Admin; the FIRST homepage request after each must show / no longer show it.
+//
 // Nothing here prints or stores the credentials. Disposable rows carry the marker "QA CACHE TEST"; the server-side
 // script's `cleanup` removes exactly those.
 
@@ -255,17 +262,19 @@ class Admin {
    * Submits the form behind `selector` and resolves with the moment the Admin's POST (PUT/PATCH/DELETE are method-spoofed
    * POSTs) response ARRIVED — i.e. when the admin is told it worked. `js: true` clicks a button inside a closed dropdown.
    */
-  async submitAndTime(selector, urlPattern, { js = false } = {}) {
+  async submitAndTime(selector, urlPattern, { js = false, onResponse = null } = {}) {
     const { page } = this;
-    const responded = page.waitForResponse((r) => ["POST", "PUT", "PATCH", "DELETE"].includes(r.request().method()) && urlPattern.test(r.url()), { timeout: 90000 });
+    // `onResponse` starts the instant the Admin's response arrives — before the browser has even followed the redirect.
+    const responded = page
+      .waitForResponse((r) => ["POST", "PUT", "PATCH", "DELETE"].includes(r.request().method()) && urlPattern.test(r.url()), { timeout: 90000 })
+      .then((response) => { const doneAt = Date.now(); return { response, doneAt, probe: onResponse ? onResponse(doneAt) : null }; });
     const navigated = page.waitForNavigation({ waitUntil: "networkidle0", timeout: 90000 });
     if (js) await page.$eval(selector, (el) => el.click());
     else await page.click(selector);
-    const response = await responded;
-    const doneAt = Date.now();
+    const { response, doneAt, probe } = await responded;
     await navigated;
     const flash = await page.$eval(".alert-success", (el) => el.textContent.replace(/\s+/g, " ").trim()).catch(() => null);
-    return { doneAt, status: response.status(), flash };
+    return { doneAt, status: response.status(), flash, probe: probe ? await probe : null };
   }
 
   async setField(selector, value) {
@@ -326,13 +335,13 @@ class Admin {
   }
 
   /** The index page's "change status" dialog (PATCH /status) — what an admin does to open or close a season. */
-  async setSeasonStatus(id, status) {
+  async setSeasonStatus(id, status, { onResponse = null } = {}) {
     const { page } = this;
     await page.goto(`${adminBase}/admin/membership/seasons`, { waitUntil: "networkidle0", timeout: 90000 });
     await page.$eval(`button[data-bs-target="#status-${id}"]`, (el) => el.click());
     await page.waitForSelector(`#status-${id}.show`, { visible: true, timeout: 15000 });
     await page.select(`#status-form-${id} select[name="status"]`, status);
-    return this.submitAndTime(`button[type="submit"][form="status-form-${id}"]`, new RegExp(`/seasons/${id}/status$`));
+    return this.submitAndTime(`button[type="submit"][form="status-form-${id}"]`, new RegExp(`/seasons/${id}/status$`), { onResponse });
   }
 
   async deleteSeason(id) {
@@ -718,6 +727,134 @@ async function cases(browser, admin) {
   return out;
 }
 
+// ------------------------------------------------------------------------------------------------ timing
+
+/**
+ * How long from the Admin's "saved" until the public site answers with the change: the season is opened and closed
+ * three times through the Admin's status dialog, and the instant each Admin response arrives a plain HTTP GET of
+ * /membership and /en/membership goes out (no browser start-up in the way). Reports, per change, when those first
+ * requests were sent and answered (ms after "saved") and whether they were already right.
+ */
+async function timing(browser, admin) {
+  const seasonId = await admin.seasonIdByName(CASE_SEASON_NAME);
+  if (!seasonId) throw new Error("the disposable season does not exist — run phase core first");
+  // --delays 0,150,300: how long after the Admin's response the first request goes out (one open+close per delay)
+  const delays = (arg("delays", "0,0,0") ?? "0").split(",").map((d) => Number(d.trim()));
+  // A season left with dates from an earlier phase may be open by status yet ended by date: start from no dates at all,
+  // so "open" really means open — and still compare every probe with what Laravel itself says at that moment.
+  const reset = await admin.editSeason(seasonId, { status: "closed", opensAt: "", closesAt: "" });
+  if (reset.status !== 302) throw new Error(`could not reset the season's dates (HTTP ${reset.status})`);
+  const rows = [];
+  const runs = [];
+  for (let i = 0; i < delays.length; i += 1) {
+    const delay = delays[i];
+    for (const target of ["open", "closed"]) {
+      const saved = await admin.setSeasonStatus(seasonId, target, { onResponse: () => sleep(delay).then(() => Promise.all([httpProbe(pageUrl("bn")), httpProbe(pageUrl("en")), apiTruth()])) });
+      const [bn, en, truth] = saved.probe;
+      const want = target === "open";
+      const laravelOpen = truth.campaignsOpen.length > 0;
+      const run = {
+        change: `season ${target}`,
+        delayMs: delay,
+        laravelSaysOpen: laravelOpen,
+        bn: { sentMs: bn.sentAt - saved.doneAt, answeredMs: bn.doneAt - saved.doneAt, correct: readState(bn.body).hasForm === want && laravelOpen === want },
+        en: { sentMs: en.sentAt - saved.doneAt, answeredMs: en.doneAt - saved.doneAt, correct: readState(en.body).hasForm === want && laravelOpen === want },
+      };
+      runs.push(run);
+      say(`timing ${i + 1} (delay ${delay} ms) ${run.change}: bn sent +${run.bn.sentMs} ms answered +${run.bn.answeredMs} ms ${run.bn.correct ? "right" : "WRONG"} | en sent +${run.en.sentMs} ms answered +${run.en.answeredMs} ms ${run.en.correct ? "right" : "WRONG"}`);
+      for (const locale of ["bn", "en"]) rows.push({ group: `timing ${i + 1} ${run.change} [${locale}]`, name: "the first request, sent the instant the Admin answered, already shows the change", ok: run[locale].correct, detail: run[locale].correct ? "" : JSON.stringify(run[locale]) });
+    }
+  }
+  const answered = runs.flatMap((r) => [r.bn.answeredMs, r.en.answeredMs]);
+  return { runs, maxAnsweredMs: Math.max(...answered), checks: rows, passed: rows.filter((r) => r.ok).length, failed: rows.filter((r) => !r.ok).length };
+}
+
+// ------------------------------------------------------------------------------------------------ carousel (regression)
+
+/**
+ * The homepage carousel uses the same signed revalidation call (now v2). One disposable slide, created and deleted
+ * through the real Admin; the FIRST request to the homepage after each must show / no longer show it.
+ */
+async function carousel(browser, admin) {
+  const out = { startedAt: new Date().toISOString(), steps: [] };
+  const rows = [];
+  const expect = (group, name, ok, detail = "") => rows.push({ group, name, ok: Boolean(ok), detail: ok ? "" : String(detail).slice(0, 300) });
+  const tag = Math.random().toString(36).slice(2, 8);
+  const title = `QA CACHE TEST slide ${tag}`;
+  const home = async (label) => {
+    const [bn, en] = await Promise.all(["", "/en"].map(async (prefix) => {
+      const context = await browser.createBrowserContext();
+      try {
+        const page = await context.newPage();
+        trackPage(page, `home${prefix || "-bn"}`);
+        const t0 = Date.now();
+        const resp = await page.goto(`${siteBase}${prefix || "/"}`, { waitUntil: "domcontentloaded", timeout: 60000 });
+        const html = await page.content();
+        if (shotsDir) { await mkdir(shotsDir, { recursive: true }); await page.screenshot({ path: resolve(shotsDir, `carousel-${label}${prefix ? "-en" : "-bn"}.png`) }); }
+        return { sentAt: t0, status: resp?.status() ?? 0, has: html.includes(title) };
+      } finally {
+        await context.close();
+      }
+    }));
+    return { bn, en };
+  };
+
+  // a small, unique image made by the browser itself
+  const imagePath = resolve(shotsDir ?? ".", `qa-cache-slide-${tag}.png`);
+  {
+    const context = await browser.createBrowserContext();
+    const page = await context.newPage();
+    await page.setViewport({ width: 1200, height: 600 });
+    await page.setContent(`<body style="margin:0;background:#${Math.floor(Math.random() * 0xffffff).toString(16).padStart(6, "0")};font:48px sans-serif;color:#fff;display:grid;place-items:center;height:600px">${title}</body>`);
+    await mkdir(dirname(imagePath), { recursive: true });
+    await page.screenshot({ path: imagePath });
+    await context.close();
+  }
+
+  const before = await home("before");
+  expect("carousel before", "the disposable slide is not on the homepage yet", !before.bn.has && !before.en.has);
+
+  const { page } = admin;
+  await page.goto(`${adminBase}/admin/homepage-carousel/create`, { waitUntil: "networkidle0", timeout: 90000 });
+  const input = await page.$("#field-image");
+  await input.uploadFile(imagePath);
+  await admin.setField("#bf-title-bn", title);
+  await admin.setField("#bf-title-en", title);
+  await admin.setField("#bf-alt_text-bn", title);
+  await admin.setField("#field-status", "active");
+  await admin.setField("#field-sort_order", "99");
+  const created = await admin.submitAndTime('form[action$="/admin/homepage-carousel"] button[type="submit"]', /\/admin\/homepage-carousel$/);
+  expect("carousel create", "the Admin saved the slide", created.status === 302 && created.flash, JSON.stringify(created));
+  const afterCreate = await home("created");
+  for (const locale of ["bn", "en"]) expect(`carousel create [${locale}]`, "the FIRST homepage request after the save shows the slide", afterCreate[locale].status === 200 && afterCreate[locale].has, JSON.stringify(afterCreate[locale]));
+  out.steps.push({ step: "create", sinceAdminSaveS: { bn: Number(((afterCreate.bn.sentAt - created.doneAt) / 1000).toFixed(2)), en: Number(((afterCreate.en.sentAt - created.doneAt) / 1000).toFixed(2)) } });
+
+  await page.goto(`${adminBase}/admin/homepage-carousel`, { waitUntil: "networkidle0", timeout: 90000 });
+  const slideId = await page.$$eval("table tbody tr", (trs, wanted) => {
+    for (const tr of trs) {
+      if (!tr.textContent.includes(wanted)) continue;
+      const m = /homepage-carousel\/(\d+)\/edit/.exec(tr.querySelector('a[href*="/edit"]')?.getAttribute("href") ?? "");
+      if (m) return Number(m[1]);
+    }
+    return null;
+  }, title);
+  expect("carousel delete", "the slide is listed in the Admin", slideId, "not found in the list");
+  if (slideId) {
+    await page.$eval(`button[data-bs-target="#delete-slide-${slideId}"]`, (el) => el.click());
+    await page.waitForSelector(`#delete-slide-${slideId}.show`, { visible: true, timeout: 15000 });
+    const deleted = await admin.submitAndTime(`#delete-slide-${slideId} button[type="submit"]`, new RegExp(`/homepage-carousel/${slideId}$`));
+    const afterDelete = await home("deleted");
+    for (const locale of ["bn", "en"]) expect(`carousel delete [${locale}]`, "the FIRST homepage request after the delete no longer shows it", afterDelete[locale].status === 200 && !afterDelete[locale].has, JSON.stringify(afterDelete[locale]));
+    out.steps.push({ step: "delete", sinceAdminSaveS: { bn: Number(((afterDelete.bn.sentAt - deleted.doneAt) / 1000).toFixed(2)), en: Number(((afterDelete.en.sentAt - deleted.doneAt) / 1000).toFixed(2)) } });
+  }
+
+  expect("console", "no console error on the homepage", consoleErrors.length === 0, consoleErrors.join(" | "));
+  out.checks = rows;
+  out.passed = rows.filter((r) => r.ok).length;
+  out.failed = rows.filter((r) => !r.ok).length;
+  return out;
+}
+
 // ---- helpers for the form-driven steps
 
 /** Opens the public form in a fresh context and waits until it is interactive. The caller closes `.context`. */
@@ -792,6 +929,8 @@ try {
   await admin.login();
   if (mode === "repro") report = await repro(browser, admin);
   else if (mode === "cases") report = await cases(browser, admin);
+  else if (mode === "carousel") report = await carousel(browser, admin);
+  else if (mode === "timing") report = await timing(browser, admin);
   else throw new Error(`unknown mode ${mode}`);
 } catch (err) {
   failure = err;
