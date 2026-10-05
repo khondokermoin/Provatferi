@@ -489,9 +489,11 @@ The release adds three **additive** migrations (two nullable columns + a new tab
 
 1. `pipeline <id>` as usual (its `migrate-check` shows the three pending migrations).
 2. `migrate-apply <id> --i-have-reviewed-the-pretend-output` — safe before the switch.
-3. **Load the owner-approved fee schedule from the STAGED release**, before the switch: a one-shot script that boots
-   `laravel-admin-releases/<id>/app` and runs `membership:load-initial-policies` (dry run first, read the plan, then
-   `--apply`). It is idempotent, so running it again changes nothing.
+3. **Load the owner-approved fee schedule from the STAGED release**, before the switch: upload
+   `deploy/qa/membership-fees-load.php` to the admin docroot and run it from cron — `php …/public_html/admin/membership-fees-load.php <id>`
+   (a dry run that prints the plan and writes nothing), read the plan, then the same with `apply`. It boots
+   `laravel-admin-releases/<id>/app` and runs `membership:load-initial-policies`. It is idempotent, so running it again changes
+   nothing. Delete the script afterwards (a docroot script answers 404 to anything but the CLI, but there is no reason to leave it).
 4. `switch <id>`, `smoke-test-live`.
 
 Until step 3 has run, a membership type with no fee policy is simply not offered on the public site (a price that does

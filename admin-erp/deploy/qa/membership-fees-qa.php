@@ -97,8 +97,10 @@ if ($mode === 'snapshot') {
 // ------------------------------------------------------------------------------------------------ season-open
 if ($mode === 'season-open') {
     $minutes = max(5, min(60, (int) ($argv[2] ?? 20)));
-    if (MembershipSeason::withTrashed()->where('slug', QA_SEASON_SLUG)->exists()) {
-        out(['mode' => $mode, 'ok' => false, 'error' => 'the QA season already exists — run cleanup first'], 1);
+    // Idempotent, so it is safe from a `* * * * *` probe cron: a second run reports the season the first one made.
+    $existing = MembershipSeason::withTrashed()->where('slug', QA_SEASON_SLUG)->first();
+    if ($existing !== null) {
+        out(['mode' => $mode, 'ok' => true, 'already_open' => true, 'season_id' => $existing->id, 'closes_at' => $existing->closes_at?->toIso8601String(), 'types' => $existing->membershipTypes()->pluck('code')->all()]);
     }
     $ids = MembershipType::query()->whereIn('code', ['LM', 'GM', 'ST'])->pluck('id');
     if ($ids->count() !== 3) {
