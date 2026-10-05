@@ -59,6 +59,8 @@ const amountOf = (text) => {
   return m ? m[1].replace(/,/g, "") : null;
 };
 const same = (a, b) => a !== null && b !== null && Number(a) === Number(b) && !Number.isNaN(Number(a));
+/** A history row's period reads "<from> → <until>" or "<from> → ongoing" (or "→ চলমান"): an end DATE has a digit after the arrow, whatever the language. */
+const hasUntil = (periodText) => /→\s*[\d০-৯]/.test(String(periodText ?? ""));
 
 const browser = await puppeteer.launch({ executablePath: chrome, headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
 try {
@@ -218,7 +220,7 @@ try {
       expect("create", "the new row is Scheduled with the entered amounts and note", scheduled && same(amountOf(scheduled.cells[1]), QA_AMOUNTS.registration) && same(amountOf(scheduled.cells[2]), QA_AMOUNTS.monthly) && scheduled.text.includes("QA disposable fee policy"), JSON.stringify(scheduled));
       expect("create", "the type page announces a scheduled change", after.upcomingText, "no [data-testid=upcoming-policy]");
       expect("create", "today's CURRENT fee on the Admin page is unchanged (registration, monthly)", same(amountOf(after.registrationText), EXPECT.ST.registration) && same(amountOf(after.monthlyText), EXPECT.ST.monthly), `${after.registrationText} / ${after.monthlyText}`);
-      expect("create", "the earlier policy was closed the day before, not edited (its amounts are unchanged)", after.history.some((h) => h.state === "current" && same(amountOf(h.cells[1]), EXPECT.ST.registration) && same(amountOf(h.cells[2]), EXPECT.ST.monthly) && !/ongoing/i.test(h.cells[0])), JSON.stringify(after.history.map((h) => [h.state, h.cells.slice(0, 3)])));
+      expect("create", "the earlier policy was closed the day before, not edited (its amounts are unchanged)", after.history.some((h) => h.state === "current" && same(amountOf(h.cells[1]), EXPECT.ST.registration) && same(amountOf(h.cells[2]), EXPECT.ST.monthly) && hasUntil(h.cells[0])), JSON.stringify(after.history.map((h) => [h.state, h.cells.slice(0, 3)])));
       const listAfter = await readList();
       await shot("admin-types-list-with-scheduled");
       expect("create", "the list shows the scheduled-change indicator on Student only", listAfter.ST?.scheduled && !listAfter.LM?.scheduled && !listAfter.GM?.scheduled, JSON.stringify({ ST: listAfter.ST?.scheduled, LM: listAfter.LM?.scheduled, GM: listAfter.GM?.scheduled }));
@@ -255,7 +257,7 @@ try {
         expect("cancel", "the row is kept in the history, marked cancelled, with who/when/why", cancelled && /QA run finished/.test(cancelled.text), JSON.stringify(cancelled));
         expect("cancel", "the history still has every row (nothing was deleted)", after.history.length === before.history.length, `${before.history.length} -> ${after.history.length}`);
         expect("cancel", "no scheduled banner remains", after.upcomingText === null, after.upcomingText);
-        expect("cancel", "the original policy is open-ended again", after.history.some((h) => h.state === "current" && /ongoing/i.test(h.cells[0])), JSON.stringify(after.history.map((h) => [h.state, h.cells[0]])));
+        expect("cancel", "the original policy is open-ended again", after.history.some((h) => h.state === "current" && !hasUntil(h.cells[0])), JSON.stringify(after.history.map((h) => [h.state, h.cells[0]])));
         expect("cancel", "the current fee is still the original", same(amountOf(after.registrationText), EXPECT.ST.registration) && same(amountOf(after.monthlyText), EXPECT.ST.monthly), `${after.registrationText} / ${after.monthlyText}`);
         const listAfter = await readList();
         expect("cancel", "the list no longer shows a scheduled change", !listAfter.ST?.scheduled, "still shown");
