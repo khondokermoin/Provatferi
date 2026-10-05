@@ -10,13 +10,33 @@
  *                          live application would, and records bytes, size, mtime, mode and which application
  *                          directory (by inode) took the write. Run it before `stage` and again between `stage` and
  *                          `switch`.
+ *   put-once <label>       as put, but a label that was already written is reported, not written again — so it is safe
+ *                          to run from a `* * * * *` cron (fast feedback) and then delete the cron.
+ *   writer [seconds] [interval-ms] [max-files]
+ *                          behaves like the live application's upload path for a few minutes: through the app's own
+ *                          uploads_private disk it writes small random files (default one every 200 ms, 150 s, at most
+ *                          1000) and logs each successful write with the inode of the application directory that took
+ *                          it. Start it a minute before `switch`: it keeps writing across the stage -> switch window,
+ *                          the rename and the sweeps. Hard limits: 240 s, 1500 files, stops at once if
+ *                          <state dir>/writer.stop appears.
+ *   drill-setup            the recovery/collision drill, part 1: in the tree THIS deploy retired it plants one disposable
+ *                          file the live tree lacks (what the pre-fix tooling used to strand) and one path that holds
+ *                          different bytes on both sides (a collision). Then run, in this order:
+ *                          `release-manager.php reconcile <retired>` (dry run), `… apply` (must be REFUSED, changing nothing),
+ *                          `… apply keep-both` — and finally drill-verify.
+ *   drill-verify           the drill, part 2: the stranded file now exists in live with the same bytes; the collision kept
+ *                          the live version at its path; the other version is preserved byte for byte under
+ *                          _upload-conflicts/reconcile-<retired>/ with a ledger entry; the retired tree is untouched.
  *   register-application   records the volunteer applications a real browser just submitted (name starts with
  *                          "QA TIMING TEST"): their database row, photo and CV paths and the files' SHA-256.
  *   verify                 after `switch`: every recorded private file is in the LIVE tree with the recorded hash AND
  *                          readable through the app's own disk; every public file is in the docroot and answers HTTP
  *                          200 with the same bytes; mtime/mode survived; the registered applications still have their
  *                          files; and no retired tree (_previous-*, _rolled-back-*, _stray-*) holds an upload the
- *                          live tree lacks ("stranded"). Exit code 1 unless all of it holds.
+ *                          live tree lacks ("stranded") — that check covers the trees THIS deploy retired (CURRENT_RELEASE's
+ *                          previous_path and any stray); older retired trees are reported separately, with whether each
+ *                          missing file is referenced by a database row, because they predate the deploy being tested and
+ *                          are a warning, never a failure. Exit code 1 unless all of it holds.
  *   inspect                the same scan as verify, read-only, no pass/fail exit code.
  *   cleanup                deletes every file (live, public, every retired tree, _upload-conflicts), every registered
  *                          database row, then the state file, and proves nothing is left.
@@ -116,6 +136,45 @@ function stranded(string $appLive, array $retired): array
     return $out;
 }
 
+/** Deletes a directory tree — but only one that is our own marker directory, never anything else. */
+function removeMarkerTree(string $dir): int
+{
+    if (basename($dir) !== QA_DIR || !is_dir($dir) || is_link($dir)) return 0;
+    $count = 0;
+    $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+    foreach ($it as $item) {
+        if ($item->isLink() || $item->isFile()) { if (@unlink($item->getPathname())) $count++; }
+        else @rmdir($item->getPathname());
+    }
+    @rmdir($dir);
+
+    return $count;
+}
+
+/** The retired trees THIS deploy produced: CURRENT_RELEASE.json's previous_path, plus any stray its switch set aside. */
+function thisDeploysRetiredTrees(string $releases): array
+{
+    $record = is_file($releases.'/CURRENT_RELEASE.json') ? json_decode((string) file_get_contents($releases.'/CURRENT_RELEASE.json'), true) : null;
+    if (!is_array($record)) return [];
+    $trees = [];
+    if (!empty($record['previous_path']) && is_dir($record['previous_path'])) $trees[] = rtrim(str_replace('\\', '/', $record['previous_path']), '/');
+    $statusFile = $releases.'/'.($record['release_id'] ?? '_none').'/status.json';
+    $status = is_file($statusFile) ? json_decode((string) file_get_contents($statusFile), true) : null;
+    foreach (is_array($status) ? ($status['switch']['strays'] ?? []) : [] as $stray) {
+        if (is_string($stray) && is_dir($stray)) $trees[] = rtrim(str_replace('\\', '/', $stray), '/');
+    }
+
+    return $trees;
+}
+
+/** Whether a database row points at this upload path (only the job_applications columns are checked; other folders are not). */
+function referencedByRow(string $rel): ?bool
+{
+    if (!str_starts_with($rel, 'applications/')) return null;
+
+    return JobApplication::query()->where('photo_path', $rel)->orWhere('cv_path', $rel)->exists();
+}
+
 function currentRelease(string $releases): ?string
 {
     $file = $releases.'/CURRENT_RELEASE.json';
@@ -142,9 +201,14 @@ $publicDisk = Storage::disk('public');
 $privateRoot = uploadsOf($APP);
 $publicRoot = rtrim(str_replace('\\', '/', (string) config('filesystems.disks.public.root')), '/');
 
-// ---------------------------------------------------------------------------------------------- put
-if ($mode === 'put') {
+// ---------------------------------------------------------------------------------------------- put / put-once
+if ($mode === 'put' || $mode === 'put-once') {
     $label = preg_replace('/[^a-z0-9-]/i', '-', $argv[2] ?? 'upload');
+    if ($mode === 'put-once') {
+        foreach ($state['entries'] as $existing) {
+            if ($existing['label'] === $label) out(['mode' => 'put-once', 'ok' => true, 'already_written' => true, 'entry' => $existing, 'state_file' => $STATE]);
+        }
+    }
     $tag = 'qa-race-'.$label.'-'.bin2hex(random_bytes(4));
     $privRel = QA_DIR.'/'.$tag.'.bin';
     $pubRel = QA_DIR.'/'.$tag.'.txt';
@@ -172,6 +236,84 @@ if ($mode === 'put') {
     $state['entries'][] = $entry;
     saveState($STATE_DIR, $STATE, $state);
     out(['mode' => 'put', 'ok' => $privOk && $pubOk, 'entry' => $entry, 'state_file' => $STATE]);
+}
+
+// ---------------------------------------------------------------------------------------------- writer
+if ($mode === 'writer') {
+    $seconds = max(1, min(240, (int) ($argv[2] ?? 150)));
+    $intervalMs = max(20, (int) ($argv[3] ?? 200));
+    $maxFiles = max(1, min(1500, (int) ($argv[4] ?? 1000)));
+    $log = $STATE_DIR.'/writer.log';
+    $stop = $STATE_DIR.'/writer.stop';
+    if (!is_dir($STATE_DIR)) mkdir($STATE_DIR, 0755, true);
+    @unlink($stop);
+    $handle = fopen($log, 'ab');
+    $started = microtime(true);
+    $deadline = $started + $seconds;
+    $written = 0;
+    $failed = 0;
+    $firstInode = $lastInode = null;
+    while (microtime(true) < $deadline && $written + $failed < $maxFiles && !is_file($stop)) {
+        clearstatcache(true, $APP);
+        $rel = QA_DIR.'/stress/'.sprintf('%05d', $written + $failed + 1).'-'.bin2hex(random_bytes(3)).'.bin';
+        $bytes = random_bytes(random_int(300, 40000));
+        $inode = @fileinode($APP);
+        if ($disk->put($rel, $bytes)) { // the app's own disk; a failed write is a failed request, not an upload
+            fwrite($handle, $rel.' '.hash('sha256', $bytes).' '.$inode."\n");
+            fflush($handle);
+            $written++;
+            $firstInode ??= $inode;
+            $lastInode = $inode;
+        } else {
+            $failed++;
+        }
+        usleep($intervalMs * 1000);
+    }
+    fclose($handle);
+    out(['mode' => 'writer', 'ok' => true, 'written' => $written, 'failed_writes' => $failed, 'seconds' => round(microtime(true) - $started, 1), 'first_inode' => $firstInode, 'last_inode' => $lastInode, 'log' => $log]);
+}
+
+// ---------------------------------------------------------------------------------------------- drill-setup / drill-verify
+if ($mode === 'drill-setup' || $mode === 'drill-verify') {
+    $retiredOurs = thisDeploysRetiredTrees($RELEASES)[0] ?? null;
+    if ($retiredOurs === null) out(['mode' => $mode, 'ok' => false, 'error' => 'this deploy has no retired tree on record'], 1);
+    $retiredName = basename($retiredOurs);
+    $retiredUploads = uploadsOf($retiredOurs);
+    $dir = QA_DIR.'/drill';
+
+    if ($mode === 'drill-setup') {
+        if (isset($state['drill'])) out(['mode' => 'drill-setup', 'ok' => true, 'already_set_up' => true, 'drill' => $state['drill']]);
+        $strandedBytes = random_bytes(random_int(5000, 20000));
+        $retiredVersion = random_bytes(random_int(5000, 20000));
+        $liveVersion = random_bytes(random_int(21000, 30000)); // a different size AND different bytes
+        if (!is_dir($retiredUploads.'/'.$dir)) mkdir($retiredUploads.'/'.$dir, 0700, true);
+        file_put_contents($retiredUploads.'/'.$dir.'/stranded.bin', $strandedBytes);
+        file_put_contents($retiredUploads.'/'.$dir.'/collision.bin', $retiredVersion);
+        $disk->put($dir.'/collision.bin', $liveVersion);
+        $state['drill'] = [
+            'retired_tree' => $retiredName, 'created_at' => gmdate('c'),
+            'stranded' => ['rel' => $dir.'/stranded.bin', 'sha256' => hash('sha256', $strandedBytes), 'size' => strlen($strandedBytes)],
+            'collision' => ['rel' => $dir.'/collision.bin', 'retired_sha256' => hash('sha256', $retiredVersion), 'live_sha256' => hash('sha256', $liveVersion)],
+        ];
+        saveState($STATE_DIR, $STATE, $state);
+        out(['mode' => 'drill-setup', 'ok' => true, 'drill' => $state['drill'], 'run_next' => "reconcile $retiredName  /  reconcile $retiredName apply  /  reconcile $retiredName apply keep-both"]);
+    }
+
+    $d = $state['drill'] ?? null;
+    if ($d === null) out(['mode' => 'drill-verify', 'ok' => false, 'error' => 'run drill-setup first'], 1);
+    $conflictDir = $RELEASES.'/_upload-conflicts/reconcile-'.$d['retired_tree'];
+    $preserved = $conflictDir.'/files/'.$d['collision']['rel'].'.source-'.substr($d['collision']['retired_sha256'], 0, 8);
+    $ledger = is_file($conflictDir.'/conflicts.json') ? json_decode((string) file_get_contents($conflictDir.'/conflicts.json'), true) : null;
+    $ledgerRels = is_array($ledger) ? array_column($ledger['conflicts'] ?? [], 'rel') : [];
+    $checks = [
+        'stranded_file_recovered_into_live_with_same_bytes' => sha($privateRoot.'/'.$d['stranded']['rel']) === $d['stranded']['sha256'],
+        'collision_live_version_kept_at_its_path' => sha($privateRoot.'/'.$d['collision']['rel']) === $d['collision']['live_sha256'],
+        'collision_other_version_preserved_byte_for_byte' => sha($preserved) === $d['collision']['retired_sha256'],
+        'ledger_lists_the_collision' => in_array($d['collision']['rel'], $ledgerRels, true),
+        'retired_tree_untouched_stranded' => sha($retiredUploads.'/'.$d['stranded']['rel']) === $d['stranded']['sha256'],
+        'retired_tree_untouched_collision' => sha($retiredUploads.'/'.$d['collision']['rel']) === $d['collision']['retired_sha256'],
+    ];
+    out(['mode' => 'drill-verify', 'ok' => !in_array(false, $checks, true), 'checks' => $checks, 'preserved_as' => $preserved, 'ledger' => $ledger, 'drill' => $d], in_array(false, $checks, true) ? 1 : 0);
 }
 
 // ---------------------------------------------------------------------------------------------- register-application
@@ -268,8 +410,57 @@ if ($mode === 'verify' || $mode === 'inspect') {
         $report['applications'][] = $one;
     }
 
-    $report['stranded'] = stranded($APP, $retired);
+    $writerLog = $STATE_DIR.'/writer.log';
+    if (is_file($writerLog)) {
+        $lines = file($writerLog, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+        $byInode = [];
+        $missing = [];
+        $wrong = [];
+        foreach ($lines as $line) {
+            [$rel, $hash, $inode] = array_pad(explode(' ', $line), 3, null);
+            $byInode[$inode] = ($byInode[$inode] ?? 0) + 1;
+            $abs = $privateRoot.'/'.$rel;
+            clearstatcache(true, $abs);
+            if (!is_file($abs)) $missing[] = $rel;
+            elseif (hash_file('sha256', $abs) !== $hash) $wrong[] = $rel;
+        }
+        $report['writer'] = [
+            'files_logged' => count($lines), 'in_live_tree_with_same_bytes' => count($lines) - count($missing) - count($wrong), 'missing' => array_slice($missing, 0, 20), 'different_bytes' => array_slice($wrong, 0, 20),
+            'written_into_application_dir_by_inode' => $byInode, 'application_dir_inode_now' => @fileinode($APP),
+        ];
+        foreach ($missing as $rel) $failures[] = "writer file lost: $rel";
+        foreach ($wrong as $rel) $failures[] = "writer file changed: $rel";
+    }
+
+    $ours = thisDeploysRetiredTrees($RELEASES);
+    $report['this_deploys_retired_trees'] = array_map('basename', $ours);
+    $report['stranded'] = stranded($APP, $ours);
     foreach ($report['stranded'] as $s) $failures[] = "stranded in {$s['tree']}: {$s['path']} ({$s['in_live']})";
+
+    // Older retired trees predate the deploy under test. Not a failure — but say what is in them, and whether any row needs it.
+    $warnings = [];
+    $older = [];
+    foreach (array_diff($retired, $ours) as $tree) {
+        $missing = stranded($APP, [$tree]);
+        $referenced = [];
+        $unchecked = 0;
+        foreach ($missing as $m) {
+            $ref = referencedByRow($m['path']);
+            if ($ref === true) $referenced[] = $m['path'];
+            if ($ref === null) $unchecked++;
+        }
+        $older[basename($tree)] = [
+            'files_absent_from_live' => count($missing),
+            'referenced_by_a_database_row' => count($referenced),
+            'referenced_paths' => array_slice($referenced, 0, 10),
+            'folder_not_checked_against_the_database' => $unchecked,
+            'distinct_hashes' => count(array_unique(array_column($missing, 'sha256'))),
+            'folders' => array_values(array_unique(array_map(fn ($m) => explode('/', $m['path'])[0].'/'.(explode('/', $m['path'])[1] ?? ''), $missing))),
+        ];
+        if ($referenced) $warnings[] = basename($tree).': '.count($referenced).' file(s) absent from live ARE referenced by a database row — run reconcile on it';
+    }
+    $report['older_retired_trees'] = $older;
+    $report['warnings'] = $warnings;
     $report['failures'] = $failures;
     $report['ok'] = !$failures;
     out($report, $mode === 'verify' && $failures ? 1 : 0);
@@ -290,21 +481,38 @@ if ($mode === 'cleanup') {
             if ($registered[$column]) foreach ($trees as $tree) $paths[] = uploadsOf($tree).'/'.$registered[$column];
         }
     }
-    // whatever else sits in our own marker directory (a preserved collision copy, a stray), in every place it can be
-    foreach ($trees as $tree) {
-        foreach (glob(uploadsOf($tree).'/'.QA_DIR.'/*') ?: [] as $leftover) $paths[] = $leftover;
-    }
-    foreach (glob($publicRoot.'/'.QA_DIR.'/*') ?: [] as $leftover) $paths[] = $leftover;
-    foreach (glob($RELEASES.'/_upload-conflicts/*/files/'.QA_DIR.'/*') ?: [] as $leftover) $paths[] = $leftover;
-
     foreach (array_unique($paths) as $path) {
         if (is_file($path) && !is_link($path) && @unlink($path)) $removed['files'][] = str_replace($RELEASES.'/', '', str_replace($APP.'/', 'LIVE/', $path));
     }
+    // everything else in our own marker directory (the writer's files, a preserved collision copy, a stray), wherever it is
     foreach ($trees as $tree) {
-        if (is_dir(uploadsOf($tree).'/'.QA_DIR) && @rmdir(uploadsOf($tree).'/'.QA_DIR)) $removed['dirs'][] = basename($tree).'/…/'.QA_DIR;
+        $n = removeMarkerTree(uploadsOf($tree).'/'.QA_DIR);
+        if ($n) $removed['dirs'][] = basename($tree).'/…/'.QA_DIR.": $n file(s)";
     }
-    if (is_dir($publicRoot.'/'.QA_DIR) && @rmdir($publicRoot.'/'.QA_DIR)) $removed['dirs'][] = 'public/'.QA_DIR;
-    foreach (glob($RELEASES.'/_upload-conflicts/*/files/'.QA_DIR) ?: [] as $dir) @rmdir($dir);
+    $n = removeMarkerTree($publicRoot.'/'.QA_DIR);
+    if ($n) $removed['dirs'][] = 'public/'.QA_DIR.": $n file(s)";
+    foreach (glob($RELEASES.'/_upload-conflicts/*/files/'.QA_DIR) ?: [] as $dir) {
+        $n = removeMarkerTree($dir);
+        if ($n) $removed['dirs'][] = 'conflicts/…/'.QA_DIR.": $n file(s)";
+    }
+
+    // _upload-conflicts directories whose every ledger entry is one of our own marker files (the drill's), ledger included
+    foreach (glob($RELEASES.'/_upload-conflicts/*', GLOB_ONLYDIR) ?: [] as $conflictDir) {
+        $ledger = is_file($conflictDir.'/conflicts.json') ? json_decode((string) file_get_contents($conflictDir.'/conflicts.json'), true) : null;
+        $rels = is_array($ledger) ? array_column($ledger['conflicts'] ?? [], 'rel') : [];
+        if ($rels && count(array_filter($rels, fn ($r) => str_starts_with((string) $r, QA_DIR.'/'))) === count($rels)) {
+            $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($conflictDir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+            $n = 0;
+            foreach ($it as $item) {
+                if ($item->isDir() && !$item->isLink()) @rmdir($item->getPathname());
+                elseif (@unlink($item->getPathname())) $n++;
+            }
+            @rmdir($conflictDir);
+            $removed['dirs'][] = 'conflicts/'.basename($conflictDir).": $n file(s) (ledger + preserved copy)";
+        }
+    }
+
+    @rmdir($RELEASES.'/_upload-conflicts'); // only succeeds when nothing else lives there
 
     $ids = array_column($state['applications'], 'id');
     if ($ids) {
@@ -315,9 +523,10 @@ if ($mode === 'cleanup') {
     // prove it: nothing of ours is left anywhere
     $left = [];
     foreach ($trees as $tree) {
-        foreach (glob(uploadsOf($tree).'/'.QA_DIR.'/*') ?: [] as $f) $left[] = $f;
+        if (is_dir(uploadsOf($tree).'/'.QA_DIR)) $left[] = uploadsOf($tree).'/'.QA_DIR.' (directory still exists)';
     }
-    foreach (glob($publicRoot.'/'.QA_DIR.'/*') ?: [] as $f) $left[] = $f;
+    if (is_dir($publicRoot.'/'.QA_DIR)) $left[] = $publicRoot.'/'.QA_DIR.' (directory still exists)';
+    foreach (glob($RELEASES.'/_upload-conflicts/*/files/'.QA_DIR) ?: [] as $dir) $left[] = $dir.' (directory still exists)';
     foreach ($state['applications'] as $registered) {
         foreach (['photo_path', 'cv_path'] as $column) {
             if ($registered[$column]) foreach ($trees as $tree) if (is_file(uploadsOf($tree).'/'.$registered[$column])) $left[] = uploadsOf($tree).'/'.$registered[$column];
@@ -328,11 +537,16 @@ if ($mode === 'cleanup') {
 
     $clean = !$left && $rowsLeft === 0;
     if ($clean && is_file($STATE)) {
+        foreach (['writer.log', 'writer.stop'] as $extra) @unlink($STATE_DIR.'/'.$extra);
         @unlink($STATE);
         @rmdir($STATE_DIR);
     }
-    out(['mode' => 'cleanup', 'ok' => $clean, 'removed' => $removed, 'files_left' => $left, 'registered_rows_left' => $rowsLeft, 'other_qa_timing_rows_in_db' => $qaRowsAnywhere, 'state_file_removed' => !is_file($STATE)], $clean ? 0 : 1);
+    // A one-shot copy uploaded into the web docroot removes itself once everything else is gone (a docroot script
+    // is reachable over HTTP; this one answers 404 to anything but the CLI, but there is no reason to leave it).
+    $selfRemoved = false;
+    if ($clean && str_contains(str_replace('\\', '/', __FILE__), '/public_html/')) $selfRemoved = @unlink(__FILE__);
+    out(['mode' => 'cleanup', 'ok' => $clean, 'script_removed_itself' => $selfRemoved, 'removed' => $removed, 'files_left' => $left, 'registered_rows_left' => $rowsLeft, 'other_qa_timing_rows_in_db' => $qaRowsAnywhere, 'state_file_removed' => !is_file($STATE)], $clean ? 0 : 1);
 }
 
-fwrite(STDERR, "usage: uploads-race-qa.php put <label> | register-application | verify | inspect | cleanup\n");
+fwrite(STDERR, "usage: uploads-race-qa.php put <label> | put-once <label> | writer [seconds] [interval-ms] [max-files] | drill-setup | drill-verify | register-application | verify | inspect | cleanup\n");
 exit(2);

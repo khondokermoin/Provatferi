@@ -395,6 +395,29 @@ the switch, so a file removed since then comes back — read the dry run first.
   `ReleaseSwitchUploadsEdgeCasesTest.php` (rollback, `reconcile`, sweeps, a writer that never stops, the stray directory),
   `UploadsSyncTest.php` (the library). `deploy/qa/uploads-race-qa.php` is the production acceptance script.
 
+### Proving it on production (acceptance, repeatable)
+
+Upload `deploy/qa/uploads-race-qa.php` to the admin docroot as `_qa_race.php` (it answers 404 to anything but the CLI and
+removes itself after a clean `cleanup`), then, one cron per step (`* * * * *` is safe for the idempotent ones: create,
+read the output after ~70 s, delete):
+
+1. `_qa_race.php put-once before-stage` — a disposable private upload (random bytes, through the app's own disk) and a
+   public file, with the application directory's inode recorded.
+2. Deploy as usual: upload the release, `pipeline <id>`.
+3. **Between stage and switch:** `_qa_race.php put-once between-stage-and-switch`; submit one real volunteer application
+   in a browser (`institutional/scripts/submit-qa.mjs --scenarios C`) and `_qa_race.php register-application`;
+   optionally `_qa_race.php writer 150 200 1000` one minute before the switch cron (a writer that never stops).
+4. `switch <id>` — read `uploads_reconcile` (what was carried before the rename) and `uploads_sweep` (what arrived after).
+5. `_qa_race.php verify` — every private file in the live tree with the recorded SHA-256, readable through the app's own
+   disk, mtime and mode kept; every public file answering HTTP 200 with the same bytes; the registered application's
+   photo and CV intact; nothing stranded in the tree this deploy retired (older retired trees are reported, with whether a
+   database row needs each file). Then `smoke-test-live` and, in Chrome, `institutional/scripts/admin-upload-check.mjs`
+   (the application page's photo decodes, the photo/CV/PDF routes return the same bytes).
+6. Optional recovery/collision drill: `_qa_race.php drill-setup`, then `reconcile <retired>` (dry run),
+   `reconcile <retired> apply` (refused), `reconcile <retired> apply keep-both`, `_qa_race.php drill-verify`.
+7. `_qa_race.php cleanup` (a one-shot cron) removes every file in the live tree, the docroot, every retired tree and
+   `_upload-conflicts/`, the registered application rows, the state directory and itself, and proves nothing is left.
+
 ## Rollback
 
 ```
