@@ -57,18 +57,21 @@ class PublicMembershipCommitteeApiTest extends TestCase
     {
         $response = $this->getJson('/api/v1/public/membership/campaigns/current')->assertOk();
 
-        $response->assertExactJson(['data' => []]);
+        // `meta` rides along on every answer (the public site's cache reads it); with nothing scheduled it names no instant
+        $response->assertJsonPath('data', [])->assertJsonPath('meta.valid_until', null);
     }
 
     public function test_a_season_outside_its_open_close_window_is_excluded_even_if_marked_open(): void
     {
-        MembershipSeason::query()->create([
+        $future = MembershipSeason::query()->create([
             'name' => 'ভবিষ্যতের সিজন', 'slug' => 'future-'.uniqid(), 'campaign_type' => 'regular',
             'status' => 'open', 'opens_at' => now()->addDays(10), 'display_order' => 0,
         ]);
 
+        // Excluded now — and the answer says WHEN that changes by itself: the instant the season starts accepting.
         $this->getJson('/api/v1/public/membership/campaigns/current')->assertOk()
-            ->assertExactJson(['data' => []]);
+            ->assertJsonPath('data', [])
+            ->assertJsonPath('meta.valid_until', $future->fresh()->opens_at->utc()->toIso8601String());
     }
 
     /* ---------- Committees ---------- */

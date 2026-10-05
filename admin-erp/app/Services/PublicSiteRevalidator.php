@@ -2,51 +2,74 @@
 
 namespace App\Services;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
- * Tells the public Next.js site to drop cached data the moment an admin
- * changes it, so a carousel edit shows on the live homepage in seconds rather
- * than after the fetch cache's 120-second window.
+ * Tells the public Next.js site to drop cached data the moment an admin changes it, so a change shows on the live site
+ * in seconds rather than after the fetch cache's window (the homepage carousel since 2026-10-02, the membership page
+ * since 2026-10-05).
  *
- * The call is a signed POST to {PUBLIC_SITE_URL}/api/revalidate. The body
- * carries only the cache tag; the secret itself is never transmitted — only an
- * HMAC-SHA256 over "<unix-timestamp>.<tag>", which the Next.js side
- * (lib/revalidate-auth.ts) recomputes and compares in constant time. A
- * captured request is therefore useless as a credential and is replayable only
- * inside a 5-minute window, for the one tag it was signed for.
+ * The call is a signed POST to {PUBLIC_SITE_URL}/api/revalidate carrying EVERY pending tag at once:
  *
- * Two properties matter more than the mechanics:
+ *     X-Revalidate-Timestamp: <unix seconds>
+ *     X-Revalidate-Nonce:     <random, different for every call>
+ *     X-Revalidate-Signature: HMAC-SHA256( "v2.<timestamp>.<nonce>.<tag1,tag2,…>" ) with the shared secret
+ *     body: {"tags": ["membership-seasons", …]}
  *
- *  1. It must NEVER break or slow an admin's save. Calls are queued and sent
- *     from a terminating callback, i.e. after the response has gone out, with
- *     tight timeouts, and every failure is caught and logged. The 120-second
- *     fetch window on the Next.js side remains as the safety net, so a lost
- *     call degrades to "updates within two minutes", not to a stale site.
+ * The secret itself is never transmitted. The Next.js side (lib/revalidate-auth.ts, lib/revalidate-request.ts)
+ * recomputes the HMAC in constant time, accepts only tags on its allow-list, and remembers every nonce it has accepted,
+ * so a captured request is useless as a credential, is replayable neither inside the 5-minute timestamp window nor
+ * after it, and can only ever purge the tags it was signed for.
  *
- *  2. Several model saves in one request (a reorder is two saves) must cost
- *     one HTTP call, not N — hence the per-request de-duplication, which only
- *     works because this is bound as a singleton in AppServiceProvider.
+ * Properties that matter more than the mechanics:
+ *
+ *  1. A failure NEVER breaks or rolls back an admin's save. Every failure is caught and logged (tags, status, URL —
+ *     never the secret), with tight timeouts. The cache's short time-to-live and the data's own `valid_until` remain as
+ *     safety nets, so a lost call degrades to "updates within seconds to a minute", not to a stale site.
+ *
+ *  2. Several model saves in one request (a reorder is two, a new type plus its first fee policy is two) cost ONE HTTP
+ *     call — hence the per-request de-duplication, which only works because this is bound as a singleton in
+ *     AppServiceProvider.
+ *
+ *  3. WHEN the call is made. queue() only records the tag; the call goes out either from
+ *     App\Http\Middleware\FlushPublicSiteRevalidations (membership screens: BEFORE the admin's browser is told the save
+ *     worked, so the first public request after the admin sees "saved" can never beat the invalidation) or, for
+ *     everything else, from a terminating callback (after the response has gone out, so it adds no latency at all).
  */
 class PublicSiteRevalidator
 {
     /** The Next.js fetch-cache tag for the homepage carousel (lib/api/carousel.ts). */
     public const CAROUSEL_TAG = 'homepage-carousel';
 
+    /** Every membership lookup carries this tag as well: "purge all membership data". Not sent by any observer. */
+    public const MEMBERSHIP_TAG = 'membership';
+
+    /** Season created / edited / opened / closed / deleted, or the types it offers changed. */
+    public const MEMBERSHIP_SEASONS_TAG = 'membership-seasons';
+
+    /** A membership type created / edited / enabled / hidden / reordered / deleted. */
+    public const MEMBERSHIP_TYPES_TAG = 'membership-types';
+
+    /** A fee policy created or cancelled (or its end date re-derived). */
+    public const MEMBERSHIP_FEES_TAG = 'membership-fees';
+
     /** @var array<string, true> */
     private array $pending = [];
 
     private bool $flushRegistered = false;
 
-    public function queue(string $tag): void
+    public function queue(string ...$tags): void
     {
         if ($this->secret() === null) {
             return;
         }
 
-        $this->pending[$tag] = true;
+        foreach ($tags as $tag) {
+            $this->pending[$tag] = true;
+        }
 
         if (! $this->flushRegistered) {
             $this->flushRegistered = true;
@@ -54,41 +77,77 @@ class PublicSiteRevalidator
         }
     }
 
+    /** Sends everything queued so far as ONE call. Safe to call at any time; does nothing when nothing is pending. */
     public function flush(): void
     {
         $tags = array_keys($this->pending);
         $this->pending = [];
 
-        foreach ($tags as $tag) {
-            $this->send($tag);
+        if ($tags === []) {
+            return;
         }
+
+        sort($tags);
+        $this->send($tags);
     }
 
-    private function send(string $tag): void
+    /** @param  list<string>  $tags */
+    private function send(array $tags): void
     {
         $secret = $this->secret();
         if ($secret === null) {
             return;
         }
 
-        $timestamp = (string) time();
         $url = rtrim((string) config('services.public_site.url'), '/').'/api/revalidate';
 
-        try {
-            $response = Http::timeout(5)
-                ->connectTimeout(3)
-                ->acceptJson()
-                ->withHeaders([
-                    'X-Revalidate-Timestamp' => $timestamp,
-                    'X-Revalidate-Signature' => hash_hmac('sha256', $timestamp.'.'.$tag, $secret),
-                ])
-                ->post($url, ['tag' => $tag]);
+        // Two attempts at most, and only when the first one failed FAST (connection refused or reset): a timeout means
+        // the site is slow, not absent, and doubling the wait would stall the admin's save. Each attempt has its own
+        // nonce, so a retry after a lost response is never mistaken for a replay.
+        for ($attempt = 1; $attempt <= 2; $attempt++) {
+            $started = microtime(true);
+            $timestamp = (string) time();
+            $nonce = bin2hex(random_bytes(16));
 
-            if (! $response->successful()) {
-                Log::warning('Public-site revalidation was rejected.', ['tag' => $tag, 'status' => $response->status(), 'url' => $url]);
+            try {
+                $response = Http::timeout(3)
+                    ->connectTimeout(2)
+                    ->acceptJson()
+                    ->withHeaders([
+                        'X-Revalidate-Timestamp' => $timestamp,
+                        'X-Revalidate-Nonce' => $nonce,
+                        'X-Revalidate-Signature' => hash_hmac('sha256', 'v2.'.$timestamp.'.'.$nonce.'.'.implode(',', $tags), $secret),
+                    ])
+                    ->post($url, ['tags' => $tags]);
+
+                if ($response->successful()) {
+                    return;
+                }
+
+                if ($attempt === 1 && in_array($response->status(), [502, 503, 504], true)) {
+                    usleep(250_000);
+
+                    continue;
+                }
+
+                Log::warning('Public-site revalidation was rejected.', ['tags' => $tags, 'status' => $response->status(), 'url' => $url]);
+
+                return;
+            } catch (ConnectionException $e) {
+                if ($attempt === 1 && (microtime(true) - $started) < 1.0) {
+                    usleep(250_000);
+
+                    continue;
+                }
+
+                Log::warning('Public-site revalidation failed to send.', ['tags' => $tags, 'url' => $url, 'error' => $e->getMessage()]);
+
+                return;
+            } catch (Throwable $e) {
+                Log::warning('Public-site revalidation failed to send.', ['tags' => $tags, 'url' => $url, 'error' => $e->getMessage()]);
+
+                return;
             }
-        } catch (Throwable $e) {
-            Log::warning('Public-site revalidation failed to send.', ['tag' => $tag, 'url' => $url, 'error' => $e->getMessage()]);
         }
     }
 

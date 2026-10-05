@@ -57,7 +57,7 @@ class MembershipSeasonController extends Controller
         unset($data['membership_type_ids']);
 
         $season = MembershipSeason::query()->create($data);
-        $season->membershipTypes()->sync($typeIds);
+        $season->syncTypes($typeIds);
 
         return redirect()->route('admin.membership.seasons.index')->with('success', __('admin.flash.season_created', ['name' => $season->name]));
     }
@@ -83,7 +83,7 @@ class MembershipSeasonController extends Controller
         unset($data['membership_type_ids']);
 
         $season->update($data);
-        $season->membershipTypes()->sync($typeIds);
+        $season->syncTypes($typeIds);
 
         return redirect()->route('admin.membership.seasons.index')->with('success', __('admin.flash.season_updated', ['name' => $season->name]));
     }

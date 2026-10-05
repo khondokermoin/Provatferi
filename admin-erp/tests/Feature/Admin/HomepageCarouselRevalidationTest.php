@@ -72,15 +72,17 @@ class HomepageCarouselRevalidationTest extends AdminTestCase
         Http::assertSentCount(1);
         Http::assertSent(function (Request $request) {
             $timestamp = $request->header('X-Revalidate-Timestamp')[0] ?? '';
+            $nonce = $request->header('X-Revalidate-Nonce')[0] ?? '';
             $signature = $request->header('X-Revalidate-Signature')[0] ?? '';
 
             return $request->url() === self::URL
                 && $request->method() === 'POST'
-                && $request['tag'] === 'homepage-carousel'
+                && $request['tags'] === ['homepage-carousel']
                 && ctype_digit($timestamp)
                 && abs(time() - (int) $timestamp) < 60
-                // The exact algorithm lib/revalidate-auth.ts verifies.
-                && hash_equals(hash_hmac('sha256', $timestamp.'.homepage-carousel', self::SECRET), $signature);
+                && preg_match('/^[a-f0-9]{32}$/', $nonce) === 1
+                // The exact algorithm lib/revalidate-auth.ts verifies (v2: the nonce is signed too, and the site refuses a nonce twice).
+                && hash_equals(hash_hmac('sha256', 'v2.'.$timestamp.'.'.$nonce.'.homepage-carousel', self::SECRET), $signature);
         });
     }
 
@@ -138,6 +140,8 @@ class HomepageCarouselRevalidationTest extends AdminTestCase
     public function test_reordering_swaps_two_rows_but_sends_a_single_revalidation(): void
     {
         $this->configureSecret();
+        // Faked BEFORE the setup saves flush: otherwise their revalidation goes out for real (it did, until 2026-10-05).
+        Http::fake([self::URL => Http::response(['ok' => true])]);
         $first = $this->slide(['sort_order' => 1]);
         $second = $this->slide(['sort_order' => 2]);
         app()->terminate();

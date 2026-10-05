@@ -98,7 +98,7 @@ class MembershipFeePolicyTest extends AdminTestCase
     {
         $response = $this->postJson('/api/v1/public/membership/applications', [
             'applicant_name' => 'রহিমা খাতুন', 'applicant_email' => $email, 'applicant_phone' => '01712345678',
-            'membership_type_id' => $type->id,
+            'membership_type_id' => $type->id, 'membership_season_id' => $this->openSeasonOffering($type)->id,
         ]);
         $response->assertCreated();
 
@@ -537,6 +537,7 @@ class MembershipFeePolicyTest extends AdminTestCase
 
         $this->postJson('/api/v1/public/membership/applications', [
             'applicant_name' => 'ক', 'applicant_email' => 'k@example.com', 'applicant_phone' => '0171', 'membership_type_id' => $student->id,
+            'membership_season_id' => $this->openSeasonOffering($student)->id,
         ])->assertUnprocessable()->assertJsonValidationErrors('membership_type_id');
 
         $this->assertSame(0, MembershipApplication::query()->count());
@@ -573,6 +574,7 @@ class MembershipFeePolicyTest extends AdminTestCase
         $this->assertSame([], $this->getJson('/api/v1/membership-types')->assertOk()->json('data'));
         $this->postJson('/api/v1/public/membership/applications', [
             'applicant_name' => 'ক', 'applicant_email' => 'k@example.com', 'applicant_phone' => '0171', 'membership_type_id' => $bare->id,
+            'membership_season_id' => $this->openSeasonOffering($bare)->id,
         ])->assertUnprocessable()->assertJsonValidationErrors('membership_type_id');
 
         Carbon::setTestNow('2026-12-01 10:00:00'); // and it is offered the day the policy starts
@@ -586,7 +588,8 @@ class MembershipFeePolicyTest extends AdminTestCase
         $this->assertSame([], $this->getJson('/api/v1/membership-types')->json('data'));
         $this->postJson('/api/v1/public/membership/applications', [
             'applicant_name' => 'ক', 'applicant_email' => 'k@example.com', 'applicant_phone' => '0171', 'membership_type_id' => $type->id,
-        ])->assertUnprocessable();
+            'membership_season_id' => $this->openSeasonOffering($type)->id,
+        ])->assertUnprocessable()->assertJsonValidationErrors('membership_type_id');
     }
 
     public function test_the_campaign_payload_carries_the_quoted_fees_and_english_names(): void

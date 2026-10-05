@@ -85,6 +85,31 @@ test("apiGet returns timeout when the request is aborted — the ERP hangs rathe
   if (!result.ok) assert.equal(result.error, "timeout");
 });
 
+type FetchInit = RequestInit & { next?: { revalidate?: number; tags?: string[] } };
+const initOf = (fetchMock: { mock: { calls: { arguments: unknown[] }[] } }, call = 0): FetchInit => fetchMock.mock.calls[call].arguments[1] as FetchInit;
+
+test("apiGet is cached by default: it hands Next the window and the tags, and never asks for no-store", async () => {
+  const fetchMock = mock.fn(async () => jsonResponse({ n: 1 }));
+  globalThis.fetch = fetchMock;
+  await apiGet("/api/v1/whatever", { validate: isNumber, revalidateSeconds: 60, tags: ["a", "b"] });
+
+  const init = initOf(fetchMock);
+  assert.equal(init.next?.revalidate, 60);
+  assert.deepEqual(init.next?.tags, ["a", "b"]);
+  assert.equal(init.cache, undefined);
+});
+
+test("apiGet with live:true skips the data cache entirely — no-store, and no window or tags to leak into it", async () => {
+  const fetchMock = mock.fn(async () => jsonResponse({ n: 2 }));
+  globalThis.fetch = fetchMock;
+  const result = await apiGet("/api/v1/whatever", { validate: isNumber, revalidateSeconds: 60, tags: ["a"], live: true });
+
+  assert.equal(result.ok, true);
+  const init = initOf(fetchMock);
+  assert.equal(init.cache, "no-store");
+  assert.equal(init.next, undefined, "a no-store fetch must not also carry a revalidate window or tags");
+});
+
 test("isStringOrNull / isNumberOrNull accept null and the matching primitive, reject everything else", () => {
   assert.equal(isStringOrNull(null), true);
   assert.equal(isStringOrNull("x"), true);

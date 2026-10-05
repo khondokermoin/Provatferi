@@ -12,6 +12,15 @@ export const MEMBERSHIP_FAILURE = "আবেদন জমা দেওয়া 
 export const MEMBERSHIP_FAILURE_EN = "The application could not be submitted — please try again in a moment, or contact us directly.";
 export const MEMBER_PROFILE_FAILURE = "সংরক্ষণ করা যায়নি — একটু পরে আবার চেষ্টা করুন।";
 
+/**
+ * The visitor opened the application form while a season was open, and by the time they sent it Laravel — the only
+ * authority on whether anyone may apply — said the season is not accepting applications (it closed, or an admin changed
+ * it). Laravel's own message for this is Bangla-only and keyed to a field the form has no input for, so without this
+ * the visitor would see nothing at all. Shown at the top of the form; the visitor's language wins.
+ */
+export const MEMBERSHIP_SEASON_CLOSED = "এই মুহূর্তে এই সিজনে আবেদন গ্রহণ করা হচ্ছে না। আবেদনের বর্তমান অবস্থা দেখতে পৃষ্ঠাটি নতুন করে লোড করুন।";
+export const MEMBERSHIP_SEASON_CLOSED_EN = "Applications are not being accepted for this season right now. Reload the page to see the current status.";
+
 /** Under the button after ~2 s of waiting — plain words, never a fake percentage. */
 export const WAIT_HELPER = {
   bn: "অনুগ্রহ করে অপেক্ষা করুন, আপনার তথ্য নিরাপদভাবে জমা হচ্ছে।",

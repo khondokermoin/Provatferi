@@ -6,7 +6,7 @@ import SubmitControl from "@/components/SubmitControl";
 import SuccessNote from "@/components/SuccessNote";
 import type { MembershipCampaign } from "@/lib/api/types";
 import { FEE_LABELS, feeQuote, formatTaka } from "@/lib/fees";
-import { MEMBERSHIP_FAILURE, MEMBERSHIP_FAILURE_EN, WAIT_HELPER } from "@/lib/form-messages";
+import { MEMBERSHIP_FAILURE, MEMBERSHIP_FAILURE_EN, MEMBERSHIP_SEASON_CLOSED, MEMBERSHIP_SEASON_CLOSED_EN, WAIT_HELPER } from "@/lib/form-messages";
 import { isMembershipFormState } from "@/lib/form-state";
 import type { Locale } from "@/lib/i18n";
 import { pickText } from "@/lib/i18n/pick";
@@ -78,6 +78,14 @@ export default function MembershipApplicationForm({ campaigns, locale = "bn" }: 
 
   return (
     <form ref={formRef} action={formAction} onSubmit={onSubmit} className="application-form" noValidate encType="multipart/form-data" aria-busy={busy || undefined}>
+      {/* Laravel decides whether anyone may apply. If the season closed (or was changed) after this page was built, its
+          answer is keyed to the hidden season field, which has nothing to show an error next to — so say it here. */}
+      {errors?.membership_season_id && (
+        <p className="form-field-error" role="alert" data-testid="season-closed">
+          {en ? MEMBERSHIP_SEASON_CLOSED_EN : MEMBERSHIP_SEASON_CLOSED}
+        </p>
+      )}
+
       {/* While a submission works the fields are parked (disabled) but stay on screen, holding what was typed and the
           photo that was chosen; a failed attempt simply enables them again. */}
       <fieldset className="form-body" disabled={busy}>

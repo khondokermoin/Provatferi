@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\MembershipFeePolicy;
 use App\Models\MembershipSeason;
 use App\Services\MembershipFeePolicyService;
+use App\Services\MembershipPublicState;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -15,10 +16,15 @@ use Illuminate\Http\JsonResponse;
  * more than one season at once (a regular season and a special one-off
  * drive running in parallel, §2-4), hence `data` is always an array, never
  * a single nullable object.
+ *
+ * Whether a season is open is decided HERE, per request, against the clock: that is the only authority the public site
+ * and the application endpoint (MembershipApplicationController::store) both answer to. `meta.valid_until` is the first
+ * instant that answer can change by itself (a season's opens_at / closes_at, a fee policy's start or end), so the public
+ * site's cache never serves it past then — see App\Services\MembershipPublicState.
  */
 class MembershipCampaignController extends Controller
 {
-    public function current(MembershipFeePolicyService $fees): JsonResponse
+    public function current(MembershipFeePolicyService $fees, MembershipPublicState $state): JsonResponse
     {
         $seasons = MembershipSeason::query()
             ->where('status', 'open')
@@ -32,7 +38,10 @@ class MembershipCampaignController extends Controller
         // force is left out of the form: a price that does not exist cannot be quoted.
         $policies = $fees->effectiveForMany($seasons->flatMap(fn (MembershipSeason $season) => $season->membershipTypes));
 
-        return response()->json(['data' => $seasons->map(fn (MembershipSeason $season) => $this->publicPayload($season, $policies))]);
+        return response()->json([
+            'data' => $seasons->map(fn (MembershipSeason $season) => $this->publicPayload($season, $policies)),
+            'meta' => $state->meta(seasons: true),
+        ]);
     }
 
     /**

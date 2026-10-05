@@ -37,6 +37,10 @@ export interface ApiGetOptions<T> {
    *  (see app/api/revalidate) instead of waiting out `revalidateSeconds`. */
   tags?: string[];
   timeoutMs?: number;
+  /** Skip Next's data cache entirely and ask Laravel now (`cache: "no-store"`); `revalidateSeconds` and `tags` are
+   *  ignored. For the one case a cached copy is known to be out of date (see lib/api/membership.ts) — never a default:
+   *  every call costs a round trip to Laravel. */
+  live?: boolean;
 }
 
 export async function apiGet<T>(path: string, opts: ApiGetOptions<T>): Promise<ApiResult<T>> {
@@ -54,7 +58,9 @@ export async function apiGet<T>(path: string, opts: ApiGetOptions<T>): Promise<A
     response = await fetch(`${base}${path}`, {
       signal: controller.signal,
       headers: { Accept: "application/json" },
-      next: { revalidate: opts.revalidateSeconds, ...(opts.tags ? { tags: opts.tags } : {}) },
+      ...(opts.live
+        ? { cache: "no-store" as const }
+        : { next: { revalidate: opts.revalidateSeconds, ...(opts.tags ? { tags: opts.tags } : {}) } }),
     });
   } catch (err) {
     const reason: ApiErrorReason = err instanceof DOMException && err.name === "AbortError" ? "timeout" : "network_error";

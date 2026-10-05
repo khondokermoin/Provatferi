@@ -36,6 +36,8 @@ $app = Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'permission' => \App\Http\Middleware\EnsurePermission::class,
             'member.auth' => \App\Http\Middleware\EnsureMemberAuthenticated::class,
+            // Sends queued public-site invalidations before the admin sees "saved" (see the class docblock).
+            'revalidate.public' => \App\Http\Middleware\FlushPublicSiteRevalidations::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

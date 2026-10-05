@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Observers\MembershipPublicSiteObserver;
 use App\Services\MembershipFeePolicyService;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -17,7 +19,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * FEES are NOT stored here. The old flat `fee` column is LEGACY: it is kept (no destructive migration) but nothing
  * reads or writes it any more, which is why it is no longer fillable. What a type costs on a given day is answered by
  * its effective-dated policies — see MembershipFeePolicy / MembershipFeePolicyService.
+ *
+ * Every save or delete tells the public site to drop its cached membership lookups (MembershipPublicSiteObserver).
  */
+#[ObservedBy([MembershipPublicSiteObserver::class])]
 class MembershipType extends Model
 {
     protected $fillable = [

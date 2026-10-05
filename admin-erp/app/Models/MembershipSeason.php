@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use App\Observers\MembershipPublicSiteObserver;
+use App\Services\PublicSiteRevalidator;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+#[ObservedBy([MembershipPublicSiteObserver::class])]
 class MembershipSeason extends Model
 {
     use SoftDeletes;
@@ -41,6 +45,19 @@ class MembershipSeason extends Model
     public function membershipTypes(): BelongsToMany
     {
         return $this->belongsToMany(MembershipType::class, 'membership_season_types');
+    }
+
+    /**
+     * Replaces the types this season offers. A pivot sync fires no model event, so the public site is told here that
+     * the season's offering changed (the same tag the observer queues for a season save).
+     *
+     * @param  array<int, int|string>  $typeIds
+     */
+    public function syncTypes(array $typeIds): void
+    {
+        $this->membershipTypes()->sync($typeIds);
+
+        app(PublicSiteRevalidator::class)->queue(PublicSiteRevalidator::MEMBERSHIP_SEASONS_TAG);
     }
 
     public function applications(): HasMany

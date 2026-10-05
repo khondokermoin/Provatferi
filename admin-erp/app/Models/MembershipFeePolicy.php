@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Observers\MembershipPublicSiteObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -15,7 +17,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * Amounts are decimal(10,2) strings ("500.00"); see App\Support\Money. Dates are plain Y-m-d days in
  * config('membership.timezone'); compare them as strings via fromDate()/untilDate(), never by converting timezones.
+ *
+ * Every save or delete tells the public site to drop its cached membership lookups (MembershipPublicSiteObserver).
  */
+#[ObservedBy([MembershipPublicSiteObserver::class])]
 class MembershipFeePolicy extends Model
 {
     protected $fillable = [

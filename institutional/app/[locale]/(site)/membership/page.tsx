@@ -40,11 +40,15 @@ export default async function MembershipPage({ params }: { params: Promise<{ loc
   const { locale: rawLocale } = await params;
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "bn";
 
+  // Both lookups are asked for together, so the cards, the form and the "season is open" message are built from the same
+  // moment (and the page waits for one round trip, not two). Each is dropped from the site's cache the instant an admin
+  // changes anything it holds and is never used past the `valid_until` Laravel names — see lib/api/membership.ts.
+  const [result, campaignsResult] = await Promise.all([getMembershipTypes(), getCurrentCampaigns()]);
+
   // Whole-list fallback here, not field-by-field: a membership type list is
   // one coherent set, not independent facts, so a malformed or empty API
   // response falls back to the complete approved list rather than mixing
   // sources into a partial one.
-  const result = await getMembershipTypes();
   // `quote` is the fee policy in force today, straight from the API; the static fallback list carries no fees on purpose
   // (a price that is not read from the live policy is never shown).
   const types: { name: string; note: string; quote: FeeQuote | null }[] =
@@ -57,7 +61,6 @@ export default async function MembershipPage({ params }: { params: Promise<{ loc
   // both open AND has at least one self-appliable type — a season open
   // exclusively for an honorary/invite-only type must still show the
   // "contact us directly" fallback, not a form with an empty dropdown.
-  const campaignsResult = await getCurrentCampaigns();
   const applicableCampaigns = campaignsResult.ok
     ? campaignsResult.data.filter((c) => c.membership_types.length > 0)
     : [];

@@ -3,6 +3,7 @@
 namespace Tests\Concerns;
 
 use App\Models\MembershipFeePolicy;
+use App\Models\MembershipSeason;
 use App\Models\MembershipType;
 
 /**
@@ -32,6 +33,20 @@ trait MakesMembershipTypes
         }
 
         return $type;
+    }
+
+    /**
+     * An open season (status open, no dates) offering the given types — what a public application must name now that a
+     * season is required. Reuses the season already open in the test, so several calls share one.
+     */
+    protected function openSeasonOffering(MembershipType ...$types): MembershipSeason
+    {
+        $season = MembershipSeason::query()->where('status', 'open')->first() ?? MembershipSeason::query()->create([
+            'name' => 'চলমান সিজন', 'slug' => 'season-'.uniqid(), 'campaign_type' => 'regular', 'status' => 'open', 'display_order' => 0,
+        ]);
+        $season->membershipTypes()->syncWithoutDetaching(array_map(fn (MembershipType $type) => $type->id, $types));
+
+        return $season;
     }
 
     /** An open-ended active policy for a type, in force from long ago unless a start date is given. */

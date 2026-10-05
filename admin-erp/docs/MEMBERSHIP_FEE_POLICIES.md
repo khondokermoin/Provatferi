@@ -70,6 +70,10 @@ The public site shows the two figures on every type card and, in the application
 (`lib/fees.ts`): "৳500" / "৳০" — Bengali digits on the Bangla site, "Registration fee" / "Monthly contribution" ("নিবন্ধন ফি" /
 "মাসিক চাঁদা"), a free tier reads ৳0, never "Free". It is a quote only; nothing collects money.
 
+Both responses also carry `meta.valid_until` — the first instant the answer can change by itself (a fee policy starting
+or ending at midnight in Dhaka, a season opening or closing) — and every fee-policy, type and season change tells the
+public site to drop its cached copy. See [PUBLIC_SITE_CACHE.md](PUBLIC_SITE_CACHE.md).
+
 ## The one-time load of the owner-approved schedule
 
 `php artisan membership:load-initial-policies` (a **dry run** unless `--apply`; idempotent; all-or-nothing) —

@@ -160,8 +160,14 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::delete('/activities/{activity}', [ActivityController::class, 'destroy'])
         ->middleware('permission:activities.delete')->name('activities.destroy');
 
+    /*
+     * Membership Types and Seasons feed the public membership page, which the public site caches. The
+     * `revalidate.public` middleware tells it to drop the affected cache entries before the admin is told the save worked
+     * (App\Http\Middleware\FlushPublicSiteRevalidations); the model observers decide WHICH entries.
+     */
+
     /* Membership Types */
-    Route::prefix('membership/types')->name('membership.types.')->group(function () {
+    Route::prefix('membership/types')->name('membership.types.')->middleware('revalidate.public')->group(function () {
         Route::get('/', [MembershipTypeController::class, 'index'])->middleware('permission:membership.view')->name('index');
         Route::get('/create', [MembershipTypeController::class, 'create'])->middleware('permission:membership.create')->name('create');
         Route::post('/', [MembershipTypeController::class, 'store'])->middleware('permission:membership.create')->name('store');
@@ -182,7 +188,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
      * Membership Seasons — also registered before the wildcard below, same
      * reasoning as Members immediately after this block.
      */
-    Route::prefix('membership/seasons')->name('membership.seasons.')->group(function () {
+    Route::prefix('membership/seasons')->name('membership.seasons.')->middleware('revalidate.public')->group(function () {
         Route::get('/', [MembershipSeasonController::class, 'index'])->middleware('permission:membership.view')->name('index');
         Route::get('/create', [MembershipSeasonController::class, 'create'])->middleware('permission:membership.create')->name('create');
         Route::post('/', [MembershipSeasonController::class, 'store'])->middleware('permission:membership.create')->name('store');

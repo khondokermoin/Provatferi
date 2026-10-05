@@ -42,15 +42,70 @@ class PublicMembershipCommitteeWriteApiTest extends TestCase
     public function test_a_valid_application_is_accepted_and_generates_an_application_no(): void
     {
         $type = $this->membershipType();
+        $season = $this->openSeasonOffering($type);
 
         $response = $this->postJson('/api/v1/public/membership/applications', [
             'applicant_name' => 'জাহিদ হাসান', 'applicant_email' => 'jahid@example.com', 'applicant_phone' => '01700000000',
-            'membership_type_id' => $type->id,
+            'membership_type_id' => $type->id, 'membership_season_id' => $season->id,
         ])->assertCreated();
 
         $applicationNo = $response->json('data.application_no');
         $this->assertStringStartsWith('APP-', $applicationNo);
-        $this->assertDatabaseHas('membership_applications', ['application_no' => $applicationNo, 'status' => 'pending']);
+        $this->assertDatabaseHas('membership_applications', ['application_no' => $applicationNo, 'status' => 'pending', 'membership_season_id' => $season->id]);
+    }
+
+    public function test_an_application_that_names_no_season_is_refused_so_the_endpoint_and_the_page_cannot_disagree(): void
+    {
+        // The page shows the form only for a season Laravel lists as open. An endpoint that also accepted a season-less
+        // application would accept applicants while the page says "no season is open" — Laravel must be the authority.
+        $type = $this->membershipType();
+        $this->openSeasonOffering($type); // even with a season open, naming none is not a way in
+
+        $this->postJson('/api/v1/public/membership/applications', [
+            'applicant_name' => 'ক', 'applicant_email' => 'k@example.com', 'applicant_phone' => '01700000000',
+            'membership_type_id' => $type->id,
+        ])->assertUnprocessable()->assertJsonValidationErrors('membership_season_id');
+
+        $this->assertSame(0, MembershipApplication::query()->count());
+    }
+
+    public function test_the_season_decides_by_the_clock_at_the_moment_of_the_request(): void
+    {
+        // open by status, but only inside its window: not yet -> refused, inside -> accepted, after -> refused again
+        $type = $this->membershipType();
+        $season = MembershipSeason::query()->create([
+            'name' => 'সময়সীমার সিজন', 'slug' => 'windowed-'.uniqid(), 'campaign_type' => 'regular', 'status' => 'open', 'display_order' => 0,
+            'opens_at' => '2026-10-05 10:00:00', 'closes_at' => '2026-10-05 11:00:00',
+        ]);
+        $season->membershipTypes()->attach($type->id);
+        $post = fn () => $this->postJson('/api/v1/public/membership/applications', [
+            'applicant_name' => 'ক', 'applicant_email' => 'k@example.com', 'applicant_phone' => '01700000000',
+            'membership_type_id' => $type->id, 'membership_season_id' => $season->id,
+        ]);
+
+        \Illuminate\Support\Carbon::setTestNow('2026-10-05 09:59:59');
+        $post()->assertUnprocessable()->assertJsonValidationErrors('membership_season_id');
+        \Illuminate\Support\Carbon::setTestNow('2026-10-05 10:00:00');
+        $post()->assertCreated();
+        \Illuminate\Support\Carbon::setTestNow('2026-10-05 11:00:00');
+        $post()->assertCreated(); // the closing instant itself is still inside
+        \Illuminate\Support\Carbon::setTestNow('2026-10-05 11:00:01');
+        $post()->assertUnprocessable()->assertJsonValidationErrors('membership_season_id');
+        \Illuminate\Support\Carbon::setTestNow();
+
+        $this->assertSame(2, MembershipApplication::query()->count());
+    }
+
+    public function test_a_type_the_season_does_not_offer_is_refused(): void
+    {
+        $offered = $this->membershipType();
+        $other = $this->makeMembershipType(['name' => 'অন্য', 'slug' => 'other-'.uniqid()]);
+        $season = $this->openSeasonOffering($offered);
+
+        $this->postJson('/api/v1/public/membership/applications', [
+            'applicant_name' => 'ক', 'applicant_email' => 'k@example.com', 'applicant_phone' => '01700000000',
+            'membership_type_id' => $other->id, 'membership_season_id' => $season->id,
+        ])->assertUnprocessable()->assertJsonValidationErrors('membership_type_id');
     }
 
     public function test_a_filled_honeypot_field_is_rejected(): void
@@ -92,7 +147,7 @@ class PublicMembershipCommitteeWriteApiTest extends TestCase
 
         $this->postJson('/api/v1/public/membership/applications', [
             'applicant_name' => 'ক', 'applicant_email' => 'k@example.com', 'applicant_phone' => '01700000000',
-            'membership_type_id' => $honorary->id,
+            'membership_type_id' => $honorary->id, 'membership_season_id' => $this->openSeasonOffering($honorary)->id,
         ])->assertUnprocessable()->assertJsonValidationErrors('membership_type_id');
     }
 
@@ -123,7 +178,7 @@ class PublicMembershipCommitteeWriteApiTest extends TestCase
         $type = $this->membershipType();
         $payload = [
             'applicant_name' => 'ক', 'applicant_email' => 'rate-limit@example.com', 'applicant_phone' => '01700000000',
-            'membership_type_id' => $type->id,
+            'membership_type_id' => $type->id, 'membership_season_id' => $this->openSeasonOffering($type)->id,
         ];
 
         for ($i = 0; $i < 6; $i++) {
@@ -140,7 +195,7 @@ class PublicMembershipCommitteeWriteApiTest extends TestCase
 
         $this->postJson('/api/v1/public/membership/applications', [
             'applicant_name' => 'নাসরিন', 'applicant_email' => 'nasrin@example.com', 'applicant_phone' => '01711111111',
-            'membership_type_id' => $type->id, 'photo' => $photo,
+            'membership_type_id' => $type->id, 'membership_season_id' => $this->openSeasonOffering($type)->id, 'photo' => $photo,
         ])->assertCreated();
 
         $application = MembershipApplication::query()->firstOrFail();

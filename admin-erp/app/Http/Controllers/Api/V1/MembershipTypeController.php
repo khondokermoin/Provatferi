@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\MembershipType;
 use App\Services\MembershipFeePolicyService;
+use App\Services\MembershipPublicState;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -20,10 +21,13 @@ use Illuminate\Http\JsonResponse;
  *                                            before this change (whose response check requires `fee`) keeps rendering
  * A type is listed only if it is active, public_visible AND has a policy in force: a price that does not exist cannot
  * be shown, so such a type is simply not offered until its policy begins.
+ *
+ * 2026-10-05 (public cache): `meta.valid_until` says when a fee policy will start or end by itself — the first instant
+ * the public site must stop trusting a cached copy of this answer (see App\Services\MembershipPublicState).
  */
 class MembershipTypeController extends Controller
 {
-    public function index(MembershipFeePolicyService $fees): JsonResponse
+    public function index(MembershipFeePolicyService $fees, MembershipPublicState $state): JsonResponse
     {
         $types = MembershipType::query()
             ->where('status', 'active')
@@ -53,6 +57,6 @@ class MembershipTypeController extends Controller
             ])
             ->values();
 
-        return response()->json(['data' => $data]);
+        return response()->json(['data' => $data, 'meta' => $state->meta(seasons: false)]);
     }
 }
