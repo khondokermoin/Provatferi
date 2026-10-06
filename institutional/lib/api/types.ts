@@ -446,6 +446,13 @@ export interface MemberMembershipSummary {
   start_date: string | null;
   expiry_date: string | null;
   membership_type: string | null;
+  /** The registration fee the membership's application was quoted (decimal string). Absent from older ERP builds. */
+  registration_fee?: string | null;
+  /**
+   * Where that fee stands (admin-erp App\Support\MembershipPaymentState): not_required (a zero fee — nothing is owed),
+   * paid, waived, awaiting_verification, unpaid or no_quote. Absent from older ERP builds.
+   */
+  payment_state?: string;
 }
 
 export interface MemberSeasonHistoryEntry {
@@ -454,7 +461,8 @@ export interface MemberSeasonHistoryEntry {
 }
 
 export interface MemberPaymentSummary {
-  amount_received: string;
+  /** Null for a waiver (nothing was received). */
+  amount_received: string | null;
   method: string | null;
   status: string;
   received_at: string | null;

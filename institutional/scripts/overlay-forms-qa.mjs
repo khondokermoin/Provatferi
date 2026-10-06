@@ -94,7 +94,6 @@ for (const form of FORMS) {
     check("the field to type into exists", typed !== null, form.field);
     await page.evaluate(() => document.querySelector('form.application-form button[type="submit"]').scrollIntoView({ block: "center", behavior: "instant" }));
     await sleep(400);
-    const idleScroll = await page.evaluate(() => Math.round(scrollY));
     await page.evaluate(() => {
       const btn = document.querySelector('form.application-form button[type="submit"]');
       // Success messages are SuccessNote callouts (role=status); count the ones already on the page (a notice, say).

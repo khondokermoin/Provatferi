@@ -4,10 +4,31 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * A row of the member registry: one person's membership, created only by approving a MembershipApplication
+ * (App\Services\MembershipApprovalService). The person — contact details, portal account, public profile — is the
+ * linked Member; this row carries the membership itself: its number, type, joining date and registry status.
+ */
 class Membership extends Model
 {
-    public const STATUSES = ['active' => 'সক্রিয়', 'inactive' => 'নিষ্ক্রিয়', 'suspended' => 'স্থগিত', 'expired' => 'মেয়াদোত্তীর্ণ'];
+    public const STATUSES = [
+        'active' => 'সক্রিয়', 'inactive' => 'নিষ্ক্রিয়', 'suspended' => 'স্থগিত', 'expired' => 'মেয়াদোত্তীর্ণ', 'archived' => 'সংরক্ষিত',
+    ];
+
+    /**
+     * The registry's status actions — the ONLY way a membership's status changes after approval (each one is recorded
+     * in the history with who, when and why: `event` is its approval_history action). `from`: the statuses it may be
+     * taken from; `reason`: whether a reason is required. Nothing ever deletes a membership: "archived" keeps the row
+     * and its whole history, and can be reactivated.
+     */
+    public const STATUS_ACTIONS = [
+        'activate' => ['from' => ['inactive', 'expired'], 'to' => 'active', 'reason' => false, 'event' => 'activated'],
+        'suspend' => ['from' => ['active'], 'to' => 'suspended', 'reason' => true, 'event' => 'suspended'],
+        'reactivate' => ['from' => ['suspended', 'archived'], 'to' => 'active', 'reason' => false, 'event' => 'reactivated'],
+        'archive' => ['from' => ['active', 'suspended', 'inactive', 'expired'], 'to' => 'archived', 'reason' => true, 'event' => 'archived'],
+    ];
 
     protected $fillable = [
         'membership_application_id', 'user_id', 'member_id', 'membership_type_id', 'member_code', 'start_date', 'expiry_date',
@@ -48,5 +69,22 @@ class Membership extends Model
     public function application(): BelongsTo
     {
         return $this->belongsTo(MembershipApplication::class, 'membership_application_id');
+    }
+
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    /** Status actions and edits of this registry row (never shown publicly). */
+    public function history(): HasMany
+    {
+        return $this->hasMany(ApprovalHistory::class, 'subject_id')->where('subject_type', self::class);
+    }
+
+    /** @return array<int, string> the status actions this membership's current status allows */
+    public function availableStatusActions(): array
+    {
+        return array_keys(array_filter(self::STATUS_ACTIONS, fn (array $rule) => in_array($this->status, $rule['from'], true)));
     }
 }

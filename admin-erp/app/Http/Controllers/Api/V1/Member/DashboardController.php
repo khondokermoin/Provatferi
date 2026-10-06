@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Member;
 
 use App\Http\Controllers\Controller;
 use App\Models\Member;
+use App\Support\MembershipPaymentState;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -45,6 +46,10 @@ class DashboardController extends Controller
                 'start_date' => $m->start_date,
                 'expiry_date' => $m->expiry_date,
                 'membership_type' => $m->membershipType?->name,
+                // The registration fee this membership's application was quoted, and where it stands
+                // (App\Support\MembershipPaymentState): a zero fee reads "not_required" — never an unpaid debt.
+                'registration_fee' => $m->application?->quotedRegistrationFee(),
+                'payment_state' => MembershipPaymentState::of($m->application),
             ])->values(),
             'season_history' => $member->seasonHistory->map(fn ($h) => [
                 'season' => $h->season?->name,

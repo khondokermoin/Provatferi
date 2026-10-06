@@ -40,11 +40,16 @@ class MembershipApplicationController extends Controller
             'applicant_phone' => ['required', 'string', 'max:30'],
             'membership_type_id' => ['required', Rule::exists('membership_types', 'id')->where('status', 'active')->where('is_public_self_apply', true)->where('is_public_visible', true)],
             'membership_season_id' => ['required', Rule::exists('membership_seasons', 'id')],
+            // Optional profile (Membership Registry task 2): carried onto the member at approval, correctable by an admin.
+            'address' => ['nullable', 'string', 'max:500'],
+            'profession' => ['nullable', 'string', 'max:255'],
+            'institution' => ['nullable', 'string', 'max:255'],
             'photo' => ['nullable', 'file', 'max:5120'],
             'website' => ['prohibited'],
         ], [], [
             'applicant_name' => 'নাম', 'applicant_email' => 'ই-মেইল', 'applicant_phone' => 'মোবাইল',
             'membership_type_id' => 'সদস্যপদের ধরন', 'membership_season_id' => 'নিবন্ধন সিজন',
+            'address' => 'ঠিকানা', 'profession' => 'পেশা / শিক্ষা', 'institution' => 'প্রতিষ্ঠান',
         ]);
 
         // First question: is registration open at all? (The same per-request clock check the public list is built from.)
@@ -65,6 +70,12 @@ class MembershipApplicationController extends Controller
         }
 
         $applicationData = [];
+        foreach (['address', 'profession', 'institution'] as $field) {
+            $value = trim((string) ($data[$field] ?? ''));
+            if ($value !== '') {
+                $applicationData[$field] = $value;
+            }
+        }
         if ($request->hasFile('photo')) {
             try {
                 $applicationData['photo_path'] = app(PhotoUploadService::class)

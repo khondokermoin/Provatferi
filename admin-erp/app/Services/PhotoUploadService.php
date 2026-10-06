@@ -107,6 +107,75 @@ class PhotoUploadService
         return $publicPath;
     }
 
+    /**
+     * A smaller PRIVATE copy of a private photo — the member's photo in the admin registry (Membership Registry task 2).
+     * The original stays with the application; the registry list shows many photos at once, so it gets a copy at most
+     * $maxEdge pixels on its longer side, re-encoded as JPEG (a decode + encode also drops whatever else rode along in
+     * the original file, EXIF location included). The phone's orientation tag is applied first, so a portrait shot is
+     * not shown lying on its side. Never public: it stays on the private disk under a new server-generated name.
+     *
+     * @throws RuntimeException when the original is missing or cannot be decoded
+     */
+    public function privateResizedCopy(string $privatePath, string $subfolder, int $maxEdge = 480): string
+    {
+        $disk = Storage::disk('uploads_private');
+        if (!$disk->exists($privatePath)) {
+            throw new RuntimeException('মূল ছবিটি খুঁজে পাওয়া যায়নি।');
+        }
+
+        $bytes = $disk->get($privatePath);
+        $image = @imagecreatefromstring((string) $bytes);
+        if ($image === false) {
+            throw new RuntimeException('ছবিটি ক্ষতিগ্রস্ত বা অসম্পূর্ণ।');
+        }
+
+        $image = $this->applyExifOrientation($image, (string) $bytes);
+        $width = imagesx($image);
+        $height = imagesy($image);
+        $scale = min(1, $maxEdge / max($width, $height));
+        $newWidth = max(1, (int) round($width * $scale));
+        $newHeight = max(1, (int) round($height * $scale));
+
+        // White underneath, so a transparent PNG does not turn black as a JPEG.
+        $canvas = imagecreatetruecolor($newWidth, $newHeight);
+        imagefill($canvas, 0, 0, imagecolorallocate($canvas, 255, 255, 255));
+        imagecopyresampled($canvas, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+
+        ob_start();
+        imagejpeg($canvas, null, 85);
+        $jpeg = (string) ob_get_clean();
+
+        $path = trim($subfolder, '/').'/'.Str::uuid()->toString().'.jpg';
+        if ($disk->put($path, $jpeg) === false) {
+            throw new RuntimeException('ছবি সংরক্ষণ করা যায়নি।');
+        }
+
+        return $path;
+    }
+
+    /** Rotates a decoded JPEG the way its EXIF Orientation tag says (phones store portrait shots sideways + a tag). */
+    private function applyExifOrientation(\GdImage $image, string $bytes): \GdImage
+    {
+        if (!function_exists('exif_read_data') || !str_starts_with($bytes, "\xFF\xD8")) {
+            return $image;
+        }
+
+        $exif = @exif_read_data('data://image/jpeg;base64,'.base64_encode($bytes));
+        $angle = match ((int) ($exif['Orientation'] ?? 1)) {
+            3 => 180,
+            6 => 270,
+            8 => 90,
+            default => 0,
+        };
+        if ($angle === 0) {
+            return $image;
+        }
+
+        $rotated = imagerotate($image, $angle, 0);
+
+        return $rotated === false ? $image : $rotated;
+    }
+
     public function deletePrivate(string $path): void
     {
         Storage::disk('uploads_private')->delete($path);

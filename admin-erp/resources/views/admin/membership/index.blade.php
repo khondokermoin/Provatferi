@@ -4,13 +4,13 @@
     @php $isFiltered = collect($filters)->filter(fn ($v) => $v !== '')->isNotEmpty(); @endphp
 
     <x-admin.table :paginator="$applications" caption="{{ __('admin.fields.membership_applications_list') }}"
-        :headers="[__('admin.fields.application_no'), __('admin.fields.applicant'), __('admin.common.type'), __('admin.common.status'), __('admin.fields.submitted_at')]">
+        :headers="[__('admin.fields.application_no'), __('admin.fields.applicant'), __('admin.common.type'), __('admin.registry.fields.registration_fee'), __('admin.common.status'), __('admin.fields.submitted_at')]">
 
         <x-slot:toolbar>
             <form method="GET" action="{{ route('admin.membership.index') }}" class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
                     <label for="f-search" class="form-label fs-13 mb-1">{{ __('admin.actions.search') }}</label>
-                    <input type="search" id="f-search" name="search" value="{{ $filters['search'] }}" class="form-control" placeholder="{{ __('admin.fields.search_application_placeholder') }}">
+                    <input type="search" id="f-search" name="search" value="{{ $filters['search'] }}" class="form-control" placeholder="{{ __('admin.registry.applications.search_placeholder') }}">
                 </div>
                 <div class="col-6 col-md-2">
                     <label for="f-status" class="form-label fs-13 mb-1">{{ __('admin.common.status') }}</label>
@@ -34,7 +34,7 @@
                     <label for="f-date" class="form-label fs-13 mb-1">{{ __('admin.common.date') }}</label>
                     <input type="date" id="f-date" name="date" value="{{ $filters['date'] }}" class="form-control">
                 </div>
-                <div class="col-12 col-md-2 d-flex gap-2">
+                <div class="col-6 col-md-2 d-flex gap-2">
                     <button type="submit" class="btn btn-light border w-100">
                         <i class="ti ti-filter me-1" aria-hidden="true"></i>{{ __('admin.actions.filter') }}
                     </button>
@@ -51,17 +51,24 @@
             <tr>
                 <td data-label="{{ __('admin.fields.application_no') }}">
                     <a href="{{ route('admin.membership.show', $application) }}" class="fw-semibold">{{ $application->application_no }}</a>
+                    @if ($application->membership)
+                        <span class="d-block text-muted fs-12">{{ $application->membership->member_code }}</span>
+                    @endif
                 </td>
                 <td data-label="{{ __('admin.fields.applicant') }}">
-                    <span class="d-block">{{ $application->user->name ?? '—' }}</span>
-                    <span class="text-muted fs-12">{{ $application->user->email ?? '' }}</span>
+                    <span class="d-block">{{ $application->applicantDisplayName() ?: '—' }}</span>
+                    <span class="text-muted fs-12">{{ $application->applicantDisplayEmail() }}@if ($application->applicant_phone) · {{ $application->applicant_phone }}@endif</span>
                 </td>
                 <td data-label="{{ __('admin.common.type') }}">{{ $application->membershipType->name ?? '—' }}</td>
+                <td data-label="{{ __('admin.registry.fields.registration_fee') }}">
+                    <span class="d-block">{{ bn_money($application->quotedRegistrationFee()) }}</span>
+                    <x-admin.payment-state :state="\App\Support\MembershipPaymentState::of($application)" class="fs-11" />
+                </td>
                 <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$application->status" /></td>
                 <td data-label="{{ __('admin.fields.submitted_at') }}">{{ bn_date($application->created_at) }}</td>
             </tr>
         @empty
-            <x-admin.empty-state colspan="5" icon="{{ $isFiltered ? 'ti-search-off' : 'ti-file-off' }}"
+            <x-admin.empty-state colspan="6" icon="{{ $isFiltered ? 'ti-search-off' : 'ti-file-off' }}"
                 :title="$isFiltered ? __('admin.filters.no_results') : __('admin.fields.no_membership_applications_yet')"
                 message="{{ __('admin.fields.applications_empty_hint') }}">
                 @if ($isFiltered)

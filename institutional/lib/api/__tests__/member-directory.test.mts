@@ -1,6 +1,6 @@
 import { test, before, after, mock } from "node:test";
 import assert from "node:assert/strict";
-import { getMemberDirectory, getMemberProfile } from "../member-directory.ts";
+import { getMemberDirectory, getMemberProfile, MEMBERS_CACHE_TAG } from "../member-directory.ts";
 
 before(() => {
   process.env.LARAVEL_API_URL = "https://admin.example.test";
@@ -45,6 +45,25 @@ test("getMemberProfile accepts a full detail payload with socials", async () => 
   const result = await getMemberProfile("nasrin-ab12cd");
   assert.equal(result.ok, true);
   if (result.ok) assert.equal(result.data.facebook_url, "https://facebook.com/example");
+});
+
+test("both directory lookups carry the members cache tag, so a registry action can drop them at once", async () => {
+  const inits: RequestInit[] = [];
+  globalThis.fetch = mock.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+    inits.push(init ?? {});
+    return jsonResponse({ data: [] });
+  });
+  await getMemberDirectory();
+  globalThis.fetch = mock.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+    inits.push(init ?? {});
+    return jsonResponse({ data: { public_slug: "x", name: "x", profession: null, photo_url: null, bio: null, facebook_url: null, linkedin_url: null, website_url: null } });
+  });
+  await getMemberProfile("x");
+
+  assert.equal(MEMBERS_CACHE_TAG, "members");
+  for (const init of inits) {
+    assert.deepEqual((init as RequestInit & { next?: { tags?: string[] } }).next?.tags, [MEMBERS_CACHE_TAG]);
+  }
 });
 
 test("getMemberProfile treats a 404 (unknown, unapproved, or opted-out member) as an error", async () => {

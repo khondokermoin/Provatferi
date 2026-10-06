@@ -7,11 +7,24 @@ use App\Support\Money;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class MembershipApplication extends Model
 {
-    /** Submitted -> pending; -> under_review; -> need_information (bounces back to under_review once answered); -> approved/rejected/cancelled. */
+    /**
+     * Submitted -> pending; -> under_review; -> need_information (bounces back to under_review once answered);
+     * -> approved/rejected/cancelled. The allowed moves are TRANSITIONS below; approved/rejected/cancelled are final.
+     */
+    public const TRANSITIONS = [
+        'pending' => ['under_review', 'cancelled'],
+        'under_review' => ['need_information', 'approved', 'rejected', 'cancelled'],
+        'need_information' => ['under_review', 'approved', 'rejected', 'cancelled'],
+        'approved' => [],
+        'rejected' => [],
+        'cancelled' => [],
+    ];
+
     public const STATUSES = [
         'pending' => 'পর্যালোচনার অপেক্ষায়',
         'under_review' => 'পর্যালোচনাধীন',
@@ -111,6 +124,34 @@ class MembershipApplication extends Model
     public function history(): HasMany
     {
         return $this->hasMany(ApprovalHistory::class, 'subject_id')->where('subject_type', self::class);
+    }
+
+    /** The membership this application produced on approval — at most one (a UNIQUE index guarantees it). */
+    public function membership(): HasOne
+    {
+        return $this->hasOne(Membership::class, 'membership_application_id');
+    }
+
+    /**
+     * What the applicant wrote about themselves on the public form, besides name / e-mail / mobile — kept in
+     * application_data, so an application is a complete record of what was submitted. Empty strings count as "not given".
+     *
+     * @return array{address: ?string, profession: ?string, institution: ?string}
+     */
+    public function applicantProfile(): array
+    {
+        $data = is_array($this->application_data) ? $this->application_data : [];
+        $value = fn (string $key) => is_string($data[$key] ?? null) && trim($data[$key]) !== '' ? trim($data[$key]) : null;
+
+        return ['address' => $value('address'), 'profession' => $value('profession'), 'institution' => $value('institution')];
+    }
+
+    /** The applicant's photo on the PRIVATE disk, if one was uploaded. Never a public path; shown to admins only. */
+    public function photoPath(): ?string
+    {
+        $path = is_array($this->application_data) ? ($this->application_data['photo_path'] ?? null) : null;
+
+        return is_string($path) && $path !== '' ? $path : null;
     }
 
     /** True for a public applicant with no ERP account (the new §0 path). */

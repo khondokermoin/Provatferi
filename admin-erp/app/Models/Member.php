@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Notifications\MemberSetPasswordNotification;
+use App\Observers\MemberPublicSiteObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -18,6 +20,7 @@ use Laravel\Sanctum\HasApiTokens;
  * and App\Http\Middleware\EnsureMemberAuthenticated for the route-level
  * separation that replaces it.
  */
+#[ObservedBy([MemberPublicSiteObserver::class])]
 class Member extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\MemberFactory> */
@@ -25,8 +28,12 @@ class Member extends Authenticatable
 
     public const STATUSES = ['pending' => 'অপেক্ষমাণ', 'active' => 'সক্রিয়', 'suspended' => 'স্থগিত', 'inactive' => 'নিষ্ক্রিয়'];
 
+    /** The profile fields the application collects and an admin may correct (Membership Registry task 2). */
+    public const PROFILE_FIELDS = ['address', 'profession', 'institution'];
+
     protected $fillable = [
         'member_code', 'name', 'email', 'phone', 'password', 'status',
+        'address', 'profession', 'institution', 'photo_path',
         'public_profile_enabled', 'public_profile_approved', 'public_slug',
     ];
 
@@ -73,6 +80,41 @@ class Member extends Authenticatable
     public function isPubliclyVisible(): bool
     {
         return $this->public_profile_enabled && $this->public_profile_approved && $this->status === 'active';
+    }
+
+    /**
+     * The portal account follows the registry. It is `active` — may sign in to the member portal and may appear in the
+     * public directory — only while at least one of its memberships is active; `suspended` when its best membership is
+     * suspended; otherwise `inactive` (archived, expired or never activated). Whenever it is not active, every portal
+     * session token is revoked, so a suspension takes effect immediately rather than when the member next signs in.
+     * A member without any membership row is left exactly as it is.
+     */
+    public function syncStatusFromMemberships(): void
+    {
+        $statuses = $this->memberships()->pluck('status');
+        if ($statuses->isEmpty()) {
+            return;
+        }
+
+        $status = match (true) {
+            $statuses->contains('active') => 'active',
+            $statuses->contains('suspended') => 'suspended',
+            default => 'inactive',
+        };
+
+        if ($this->status !== $status) {
+            $this->forceFill(['status' => $status])->save();
+        }
+
+        if ($status !== 'active') {
+            $this->tokens()->delete();
+        }
+    }
+
+    /** The registry's audit trail for this person's account (contact edits, account created/linked, invitation sent). */
+    public function history(): HasMany
+    {
+        return $this->hasMany(ApprovalHistory::class, 'subject_id')->where('subject_type', self::class);
     }
 
     /**

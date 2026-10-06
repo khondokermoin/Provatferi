@@ -160,6 +160,26 @@ export default function MembershipApplicationForm({ campaigns, locale = "bn" }: 
           <FieldError errors={errors} name="applicant_phone" />
         </div>
 
+        {/* Optional profile (Membership Registry task 2): carried onto the member record when the application is
+            approved, for the admin's Member Registry. Never shown publicly. */}
+        <div className="form-field">
+          <label htmlFor="address">{en ? "Address (optional)" : "ঠিকানা (ঐচ্ছিক)"}</label>
+          <textarea id="address" name="address" rows={2} maxLength={500} autoComplete="street-address" />
+          <FieldError errors={errors} name="address" />
+        </div>
+
+        <div className="form-field">
+          <label htmlFor="profession">{en ? "Profession / education (optional)" : "পেশা / শিক্ষা (ঐচ্ছিক)"}</label>
+          <input id="profession" name="profession" type="text" maxLength={255} autoComplete="organization-title" />
+          <FieldError errors={errors} name="profession" />
+        </div>
+
+        <div className="form-field">
+          <label htmlFor="institution">{en ? "Institution / organisation (optional)" : "প্রতিষ্ঠান / সংগঠন (ঐচ্ছিক)"}</label>
+          <input id="institution" name="institution" type="text" maxLength={255} autoComplete="organization" />
+          <FieldError errors={errors} name="institution" />
+        </div>
+
         <div className="form-field">
           <label htmlFor="photo">{en ? "Photo (optional)" : "ছবি (ঐচ্ছিক)"}</label>
           <input id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" />

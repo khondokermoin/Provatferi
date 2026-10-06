@@ -65,6 +65,30 @@ test("getMemberDashboard accepts a fully populated dashboard payload", async () 
   }
 });
 
+test("getMemberDashboard accepts a waived fee (no amount received) and the 2026-10-06 fee fields", async () => {
+  // Before 2026-10-06 a waiver's null amount failed the guard, and the member was sent back to the login page on every
+  // visit. The fee fields are optional: an ERP build that does not send them must still produce a dashboard.
+  const body = {
+    ...dashboardBody,
+    memberships: [
+      { ...dashboardBody.memberships[0], registration_fee: "500.00", payment_state: "waived" },
+      { member_code: "PF-2026-0002", status: "active", start_date: "2026-10-06T00:00:00.000000Z", expiry_date: null, membership_type: "শিক্ষার্থী", registration_fee: "0.00", payment_state: "not_required" },
+    ],
+    payments: [{ amount_received: null, method: "cash", status: "waived", received_at: null }],
+  };
+  globalThis.fetch = mock.fn(async () => jsonResponse({ data: body }));
+
+  const result = await getMemberDashboard("1|abcdef");
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.equal(result.data.memberships[1]?.payment_state, "not_required");
+    assert.equal(result.data.payments[0]?.amount_received, null);
+  }
+
+  globalThis.fetch = mock.fn(async () => jsonResponse({ data: { ...body, memberships: [{ ...body.memberships[1], payment_state: 7 }] } }));
+  assert.equal((await getMemberDashboard("1|abcdef")).ok, false, "a malformed payment_state is still refused");
+});
+
 test("getMemberDashboard treats an expired/revoked token (401) as an error, never as an empty dashboard", async () => {
   globalThis.fetch = mock.fn(async () => jsonResponse({ message: "Unauthenticated." }, 401));
 

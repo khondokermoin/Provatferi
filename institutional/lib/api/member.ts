@@ -76,7 +76,10 @@ function isMembershipSummary(v: unknown): v is MemberMembershipSummary {
     typeof v.status === "string" &&
     isStringOrNull(v.start_date) &&
     isStringOrNull(v.expiry_date) &&
-    isStringOrNull(v.membership_type)
+    isStringOrNull(v.membership_type) &&
+    // 2026-10-06 additions: optional, so this site works against an ERP build that does not send them yet.
+    (v.registration_fee === undefined || isStringOrNull(v.registration_fee)) &&
+    (v.payment_state === undefined || typeof v.payment_state === "string")
   );
 }
 
@@ -87,7 +90,9 @@ function isSeasonHistoryEntry(v: unknown): v is MemberSeasonHistoryEntry {
 function isPaymentSummary(v: unknown): v is MemberPaymentSummary {
   return (
     isRecord(v) &&
-    typeof v.amount_received === "string" &&
+    // A waiver records no amount received (null). Requiring a string here used to fail the whole dashboard for a
+    // member whose fee was waived — they were sent back to the login page on every visit.
+    isStringOrNull(v.amount_received) &&
     isStringOrNull(v.method) &&
     typeof v.status === "string" &&
     isStringOrNull(v.received_at)

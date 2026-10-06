@@ -205,11 +205,19 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
      * to bind "members" as an application id. Same reasoning as static
      * segments needing to precede {unit} elsewhere in this file.
      */
-    Route::prefix('membership/members')->name('membership.members.')->group(function () {
+    /*
+     * The Member Registry. `revalidate.public`: a status change, an edit of a name or a public-profile decision can
+     * change the public member directory, which the public site caches under the `members` tag
+     * (App\Observers\MemberPublicSiteObserver queues it; the middleware sends it before the admin's response).
+     */
+    Route::prefix('membership/members')->name('membership.members.')->middleware('revalidate.public')->group(function () {
         Route::get('/', [MemberController::class, 'index'])->middleware('permission:membership.view')->name('index');
         Route::get('/{membership}', [MemberController::class, 'show'])->middleware('permission:membership.view')->name('show');
+        Route::get('/{membership}/photo', [MemberController::class, 'photo'])->middleware('permission:membership.view')->name('photo');
         Route::get('/{membership}/edit', [MemberController::class, 'edit'])->middleware('permission:membership.update')->name('edit');
         Route::put('/{membership}', [MemberController::class, 'update'])->middleware('permission:membership.update')->name('update');
+        // activate / suspend / reactivate / archive — the only way a membership's status changes (audited).
+        Route::patch('/{membership}/status', [MemberController::class, 'changeStatus'])->middleware('permission:membership.approve')->name('status');
 
         Route::patch('/{membership}/profile/{version}/approve', [PublicMemberProfileController::class, 'approve'])
             ->middleware('permission:membership.approve')->name('profile.approve');
@@ -222,8 +230,13 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         ->middleware('permission:membership.view')->name('membership.index');
     Route::get('/membership/{membershipApplication}', [MembershipController::class, 'show'])
         ->middleware('permission:membership.view')->name('membership.show');
+    Route::get('/membership/{membershipApplication}/photo', [MembershipController::class, 'photo'])
+        ->middleware('permission:membership.view')->name('membership.photo');
+    // Approval creates the member: it may change the public member directory, hence revalidate.public.
     Route::patch('/membership/{membershipApplication}/status', [MembershipController::class, 'updateStatus'])
-        ->middleware('permission:membership.approve')->name('membership.status');
+        ->middleware(['permission:membership.approve', 'revalidate.public'])->name('membership.status');
+    Route::post('/membership/{membershipApplication}/notes', [MembershipController::class, 'addNote'])
+        ->middleware('permission:membership.approve')->name('membership.notes');
     Route::post('/membership/{membershipApplication}/payments', [MembershipController::class, 'recordPayment'])
         ->middleware('permission:payments.create')->name('membership.payments.store');
     Route::patch('/membership/payments/{payment}/verify', [MembershipController::class, 'verifyPayment'])

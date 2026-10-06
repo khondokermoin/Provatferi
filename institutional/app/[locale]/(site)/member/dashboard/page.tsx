@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "@/components/SiteLink";
 import { redirect } from "next/navigation";
 import { getMemberDashboard } from "@/lib/api/member";
-import { clearMemberSessionCookie, getMemberSessionToken } from "@/lib/member-session";
+import { FEE_LABELS, formatTaka } from "@/lib/fees";
+import { formatBnDate } from "@/lib/format";
+import { getMemberSessionToken } from "@/lib/member-session";
 import PageHeader from "@/components/PageHeader";
 import { logoutMember } from "./actions";
 
@@ -17,8 +19,22 @@ const STATUS_LABELS: Record<string, string> = {
   suspended: "স্থগিত",
   inactive: "নিষ্ক্রিয়",
   expired: "মেয়াদোত্তীর্ণ",
+  archived: "সংরক্ষিত",
   paid: "পরিশোধিত",
   waived: "মওকুফ",
+};
+
+/**
+ * Where a membership's registration fee stands (admin-erp App\Support\MembershipPaymentState). A zero fee says plainly
+ * that nothing is owed — never "unpaid", never an empty "no payments yet" that reads like something is missing.
+ */
+const PAYMENT_STATE_LABELS: Record<string, string> = {
+  not_required: "পরিশোধের প্রয়োজন নেই",
+  paid: "পরিশোধিত (যাচাইকৃত)",
+  waived: "মওকুফ",
+  awaiting_verification: "যাচাইয়ের অপেক্ষায়",
+  unpaid: "পরিশোধ বাকি",
+  no_quote: "ফি রেকর্ড নেই",
 };
 
 export default async function MemberDashboardPage() {
@@ -27,15 +43,16 @@ export default async function MemberDashboardPage() {
 
   const result = await getMemberDashboard(token);
   if (!result.ok) {
-    // An expired/revoked token looks the same as any other failure here —
-    // either way, this cookie can no longer authenticate anything, so
-    // there is nothing lost by clearing it before sending the member back
-    // to log in again.
-    await clearMemberSessionCookie();
+    // An expired or revoked token (the ERP revokes every portal token when a membership is suspended or archived)
+    // looks the same as any other failure here: back to the login page. The cookie is deliberately NOT cleared:
+    // a Server Component may not modify cookies — Next throws, and until 2026-10-06 the visitor got a 500 instead of
+    // the login page. The stale cookie authenticates nothing, and the next sign-in replaces it.
     redirect("/member/login");
   }
 
   const { profile, memberships, season_history: seasonHistory, payments } = result.data;
+  // A zero-fee membership owes nothing: "no payment records yet" would read as if something were still due.
+  const noFeeDue = memberships.length > 0 && memberships.every((m) => m.payment_state === "not_required");
 
   return (
     <>
@@ -73,13 +90,18 @@ export default async function MemberDashboardPage() {
         {memberships.length > 0 ? (
           <div className="card-grid cols-2">
             {memberships.map((m) => (
-              <div key={m.member_code} className="info-card">
+              <div key={m.member_code} className="info-card" data-testid="membership-card">
                 <span className="info-card-tag">{m.membership_type ?? "সদস্যপদ"}</span>
                 <h3>{m.member_code}</h3>
                 <p>
                   {STATUS_LABELS[m.status] ?? m.status}
-                  {m.start_date ? ` — ${m.start_date}` : ""}
+                  {m.start_date ? ` — যোগদান ${formatBnDate(m.start_date) ?? m.start_date}` : ""}
                 </p>
+                {m.payment_state && (
+                  <p data-testid="membership-fee" data-payment-state={m.payment_state}>
+                    {FEE_LABELS.bn.registration}: {formatTaka(m.registration_fee, "bn") ?? "—"} — {PAYMENT_STATE_LABELS[m.payment_state] ?? m.payment_state}
+                  </p>
+                )}
               </div>
             ))}
           </div>
@@ -94,7 +116,7 @@ export default async function MemberDashboardPage() {
           <ul className="ordered-list-grid">
             {seasonHistory.map((h, i) => (
               <li key={i}>
-                {h.season ?? "—"} {h.joined_at ? `(${h.joined_at})` : ""}
+                {h.season ?? "—"} {h.joined_at ? `(${formatBnDate(h.joined_at) ?? h.joined_at})` : ""}
               </li>
             ))}
           </ul>
@@ -107,12 +129,13 @@ export default async function MemberDashboardPage() {
           <ul className="ordered-list-grid">
             {payments.map((p, i) => (
               <li key={i}>
-                ৳{p.amount_received} — {STATUS_LABELS[p.status] ?? p.status} {p.received_at ? `(${p.received_at})` : ""}
+                {formatTaka(p.amount_received, "bn") ?? "—"} — {STATUS_LABELS[p.status] ?? p.status}{" "}
+                {p.received_at ? `(${formatBnDate(p.received_at) ?? p.received_at})` : ""}
               </li>
             ))}
           </ul>
         ) : (
-          <p>এখনো কোনো পরিশোধের রেকর্ড নেই।</p>
+          <p data-testid="payments-empty">{noFeeDue ? "আপনার সদস্যপদে কোনো নিবন্ধন ফি প্রযোজ্য নয় — পরিশোধের প্রয়োজন নেই।" : "এখনো কোনো পরিশোধের রেকর্ড নেই।"}</p>
         )}
       </section>
 

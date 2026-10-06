@@ -20,8 +20,16 @@ class EnsureMemberAuthenticated
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->user() instanceof Member) {
+        $user = $request->user();
+        if (! $user instanceof Member) {
             abort(403, 'Member authentication required.');
+        }
+
+        // Membership Registry task 2: a suspended or archived member loses portal access at once. Their tokens are
+        // revoked when the status changes (Member::syncStatusFromMemberships()); this also refuses any token that
+        // survived, exactly as login refuses an account that is not active.
+        if ($user->status !== 'active') {
+            abort(403, 'Member account is not active.');
         }
 
         return $next($request);

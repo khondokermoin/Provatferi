@@ -89,12 +89,25 @@ class MembershipManagementTest extends AdminTestCase
         $application = $this->application('under_review');
 
         $this->actingAs($this->superAdmin())->patch(route('admin.membership.status', $application), [
-            'status' => 'need_information', 'review_notes' => 'জন্মতারিখ যুক্ত করুন।',
+            'status' => 'need_information', 'applicant_message' => 'জন্মতারিখ যুক্ত করুন।', 'internal_note' => 'শুধু অফিসের জন্য।',
         ])->assertRedirect();
 
         $fresh = $application->fresh();
         $this->assertSame('need_information', $fresh->status);
-        $this->assertSame('জন্মতারিখ যুক্ত করুন।', $fresh->review_notes);
+        // The request (sent to the applicant) and the internal note are separate history entries — never confused.
+        $this->assertDatabaseHas('approval_history', ['subject_id' => $application->id, 'action' => 'need_information', 'note' => 'জন্মতারিখ যুক্ত করুন।']);
+        $this->assertDatabaseHas('approval_history', ['subject_id' => $application->id, 'action' => 'note', 'note' => 'শুধু অফিসের জন্য।']);
+    }
+
+    public function test_requesting_information_needs_a_message_for_the_applicant(): void
+    {
+        $application = $this->application('under_review');
+
+        $this->actingAs($this->superAdmin())->patch(route('admin.membership.status', $application), [
+            'status' => 'need_information', 'internal_note' => 'only internal',
+        ])->assertSessionHasErrors('applicant_message');
+
+        $this->assertSame('under_review', $application->fresh()->status);
     }
 
     public function test_need_information_can_return_to_under_review(): void
@@ -191,19 +204,24 @@ class MembershipManagementTest extends AdminTestCase
 
     /* ---------- Members ---------- */
 
-    public function test_member_status_can_be_updated(): void
+    public function test_member_status_changes_only_through_the_audited_actions(): void
     {
         $application = $this->application('under_review');
         $this->actingAs($this->superAdmin())->patch(route('admin.membership.status', $application), ['status' => 'approved']);
         $membership = Membership::query()->where('membership_application_id', $application->id)->firstOrFail();
 
+        // The edit form no longer carries a status: a status sent there is ignored.
         $this->actingAs($this->superAdmin())->put(route('admin.membership.members.update', $membership), [
             'status' => 'suspended', 'notes' => 'সাময়িক স্থগিত।',
         ])->assertRedirect();
+        $this->assertSame('active', $membership->fresh()->status);
+        $this->assertSame('সাময়িক স্থগিত।', $membership->fresh()->notes);
 
-        $fresh = $membership->fresh();
-        $this->assertSame('suspended', $fresh->status);
-        $this->assertSame('সাময়িক স্থগিত।', $fresh->notes);
+        $this->actingAs($this->superAdmin())->patch(route('admin.membership.members.status', $membership), [
+            'action' => 'suspend', 'reason' => 'বকেয়া চাঁদা।',
+        ])->assertRedirect();
+        $this->assertSame('suspended', $membership->fresh()->status);
+        $this->assertDatabaseHas('approval_history', ['subject_type' => Membership::class, 'subject_id' => $membership->id, 'action' => 'suspended', 'note' => 'বকেয়া চাঁদা।']);
     }
 
     public function test_members_list_shows_empty_state_when_none_exist(): void
@@ -350,7 +368,11 @@ class MembershipManagementTest extends AdminTestCase
             'applicant_phone' => '01711111111', 'membership_type_id' => $type->id, 'status' => 'under_review',
         ]);
         $this->actingAs($admin)->patch(route('admin.membership.status', $first), ['status' => 'approved']);
-        $firstMemberId = Membership::query()->where('membership_application_id', $first->id)->firstOrFail()->member_id;
+        $firstMembership = Membership::query()->where('membership_application_id', $first->id)->firstOrFail();
+        $firstMemberId = $firstMembership->member_id;
+        // A person holding an ACTIVE membership is not given a second one (MembershipApprovalServiceTest covers that
+        // conflict); one who left and re-applies is — on the same account.
+        $this->actingAs($admin)->patch(route('admin.membership.members.status', $firstMembership), ['action' => 'archive', 'reason' => 'ছেড়ে গেছেন।']);
 
         $second = MembershipApplication::query()->create([
             'application_no' => 'APP-B-'.uniqid(), 'applicant_name' => 'করিম', 'applicant_email' => 'karim@example.com',
@@ -405,7 +427,7 @@ class MembershipManagementTest extends AdminTestCase
 
         $needsInfo = $this->publicApplication($type, 'under_review');
         $this->actingAs($admin)->patch(route('admin.membership.status', $needsInfo), [
-            'status' => 'need_information', 'review_notes' => 'জাতীয় পরিচয়পত্রের কপি প্রয়োজন।',
+            'status' => 'need_information', 'applicant_message' => 'জাতীয় পরিচয়পত্রের কপি প্রয়োজন।',
         ]);
 
         Notification::assertSentOnDemand(

@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Observers\MemberPublicSiteObserver;
 use App\Services\PhotoUploadService;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +15,7 @@ use Illuminate\Support\Facades\DB;
  * marks the single row the public directory actually renders — it only
  * moves forward on admin approval, never on submission alone.
  */
+#[ObservedBy([MemberPublicSiteObserver::class])]
 class PublicMemberProfileVersion extends Model
 {
     public const STATUSES = ['pending' => 'পর্যালোচনার অপেক্ষায়', 'approved' => 'অনুমোদিত', 'rejected' => 'প্রত্যাখ্যাত'];

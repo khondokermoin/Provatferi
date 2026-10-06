@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { CAROUSEL_CACHE_TAG } from "../lib/api/carousel.ts";
+import { MEMBERS_CACHE_TAG } from "../lib/api/member-directory.ts";
 import { MEMBERSHIP_CACHE_TAGS } from "../lib/api/membership.ts";
 import {
   canonicalTags,
@@ -122,11 +123,21 @@ test("the memory is bounded: the oldest nonces go first", () => {
 // ---------------------------------------------------------------------------
 
 test("every tag on the allow-list is accepted, in one signed call, and comes back sorted", () => {
-  const everything = [CAROUSEL_CACHE_TAG, ...Object.values(MEMBERSHIP_CACHE_TAGS)];
-  assert.equal(everything.length, 5);
+  const everything = [CAROUSEL_CACHE_TAG, ...Object.values(MEMBERSHIP_CACHE_TAGS), MEMBERS_CACHE_TAG];
+  assert.equal(everything.length, 6);
+  assert.ok(everything.length <= MAX_TAGS_PER_REQUEST, "every allowed tag fits in one call");
   const result = decide(v2([...everything].reverse()));
   assert.deepEqual(result, { ok: true, tags: canonicalTags(everything), scheme: "v2" });
-  assert.deepEqual([...ALLOWED_REVALIDATE_TAGS].sort(), canonicalTags(everything), "the allow-list is exactly the carousel tag and the four membership tags");
+  assert.deepEqual(
+    [...ALLOWED_REVALIDATE_TAGS].sort(),
+    canonicalTags(everything),
+    "the allow-list is exactly the carousel tag, the four membership tags and the member-directory tag",
+  );
+});
+
+test("the member-directory tag (2026-10-06) is accepted on its own — a registry action sends only it", () => {
+  assert.equal(MEMBERS_CACHE_TAG, "members", "admin-erp's PublicSiteRevalidator::MEMBERS_TAG sends exactly this");
+  assert.deepEqual(decide(v2([MEMBERS_CACHE_TAG])), { ok: true, tags: ["members"], scheme: "v2" });
 });
 
 test("one tag the site does not know refuses the WHOLE request — nothing is half-applied", () => {

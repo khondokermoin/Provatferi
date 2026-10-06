@@ -56,6 +56,9 @@ class PublicSiteRevalidator
     /** A fee policy created or cancelled (or its end date re-derived). */
     public const MEMBERSHIP_FEES_TAG = 'membership-fees';
 
+    /** The public member directory: a member's visibility, status or name, or a profile version (2026-10-06). */
+    public const MEMBERS_TAG = 'members';
+
     /** @var array<string, true> */
     private array $pending = [];
 

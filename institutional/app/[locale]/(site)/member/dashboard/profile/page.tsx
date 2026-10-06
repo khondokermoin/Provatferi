@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "@/components/SiteLink";
 import { redirect } from "next/navigation";
 import { getMemberProfileState } from "@/lib/api/member";
-import { clearMemberSessionCookie, getMemberSessionToken } from "@/lib/member-session";
+import { getMemberSessionToken } from "@/lib/member-session";
 import PageHeader from "@/components/PageHeader";
 import MemberProfileEditForm from "@/components/MemberProfileEditForm";
 
@@ -17,7 +17,7 @@ export default async function MemberProfileEditPage() {
 
   const result = await getMemberProfileState(token);
   if (!result.ok) {
-    await clearMemberSessionCookie();
+    // Not cleared here: a Server Component may not modify cookies (that threw a 500 — see the dashboard page).
     redirect("/member/login");
   }
 
