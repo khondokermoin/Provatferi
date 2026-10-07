@@ -1257,6 +1257,44 @@ input[type="radio"]:disabled { cursor: not-allowed; opacity: .55; }
 .notice-list.is-compact .notice-row { padding-block: 14px; }
 .notice-list.is-compact .notice-row-title { font-size: 16px; }
 
+/* ---------- Member portal: monthly contribution (/member/dashboard) ----------
+   A ledger, so it reads like one: a ruled register of months with the figures
+   right-aligned in tabular digits. State is carried by a word in a chip whose
+   colour is the semantic token (--success / --warning / --danger), never by
+   colour alone. */
+/* minmax(0, 1fr): without it the table's nowrap width becomes the column's minimum and the card overflows the page. */
+.monthly-contribution-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 40px; }
+.monthly-contribution { max-width: 880px; }
+.monthly-contribution h3 { font-size: 18px; font-weight: 650; margin: 0 0 14px; color: var(--heading); }
+.monthly-notice { font-size: 16px; line-height: 1.8; color: var(--body); margin: 0 0 18px; max-width: 780px; }
+.monthly-note { margin-top: 12px; max-width: 780px; }
+.monthly-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px 28px; margin: 0 0 24px; }
+.monthly-summary dt { font-size: 13px; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+.monthly-summary dd { margin: 0; font-size: 18px; font-weight: 650; line-height: 1.5; color: var(--heading); font-variant-numeric: tabular-nums; }
+.dues-table-wrap { overflow-x: auto; border-top: 2px solid var(--heading); }
+.dues-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.dues-table th { text-align: left; font-size: 13px; font-weight: 600; color: var(--muted); padding: 10px 8px; border-bottom: 1px solid var(--border-strong); white-space: nowrap; }
+.dues-table td { padding: 12px 8px; border-bottom: 1px solid var(--border); color: var(--body); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dues-table .is-amount { text-align: right; }
+.due-chip { display: inline-flex; align-items: center; font-size: 12px; font-weight: 600; line-height: 1.2; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--soft); color: var(--body); }
+.due-chip[data-state="paid"] { color: var(--success); border-color: color-mix(in srgb, var(--success) 35%, transparent); background: color-mix(in srgb, var(--success) 9%, transparent); }
+.due-chip[data-state="due"],
+.due-chip[data-state="partially_paid"] { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 35%, transparent); background: color-mix(in srgb, var(--warning) 9%, transparent); }
+.due-chip[data-state="overdue"] { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, transparent); background: color-mix(in srgb, var(--danger) 9%, transparent); }
+.due-chip[data-state="waived"] { color: var(--muted); }
+/* Phones: one block per month — the month and its state on the first line, the four figures (each with its column's
+   label, from data-label) on the second. The header row stays in the accessibility tree, out of sight. */
+@media (max-width: 640px) {
+  .dues-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .dues-table tbody { display: block; }
+  .dues-table tr { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 8px; padding: 14px 2px; border-bottom: 1px solid var(--border); }
+  .dues-table td { display: block; padding: 0; border: 0; white-space: normal; }
+  .dues-table td.is-month { grid-column: 1 / 3; align-self: center; font-weight: 600; color: var(--heading); }
+  .dues-table td.is-state { grid-column: 3 / 5; justify-self: end; align-self: center; }
+  .dues-table td.is-amount { grid-row: 2; text-align: left; }
+  .dues-table td.is-amount::before { content: attr(data-label); display: block; margin-bottom: 2px; font-size: 12px; font-weight: 600; color: var(--muted); }
+}
+
 .notice-filters { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.3fr) minmax(0, 1fr) auto; gap: 16px; align-items: end; margin-bottom: 28px; padding: 20px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; }
 .notice-filters .form-field input,
 .notice-filters .form-field select { width: 100%; min-height: 46px; padding-block: 10px; }

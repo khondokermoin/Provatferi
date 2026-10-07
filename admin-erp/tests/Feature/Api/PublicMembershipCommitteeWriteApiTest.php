@@ -34,7 +34,8 @@ class PublicMembershipCommitteeWriteApiTest extends TestCase
 
     private function membershipType(): MembershipType
     {
-        return $this->makeMembershipType(['name' => 'সাধারণ সদস্য', 'slug' => 'general-'.uniqid()], ['registration' => '500', 'monthly' => '0']);
+        // A code is part of the configuration a type needs before it is offered for self-service applications.
+        return $this->makeMembershipType(['name' => 'সাধারণ সদস্য', 'slug' => 'general-'.uniqid(), 'code' => 'T'.strtoupper(substr(uniqid(), -7))], ['registration' => '500', 'monthly' => '0']);
     }
 
     /* ---------- Membership applications ---------- */

@@ -62,6 +62,7 @@ class MembershipApprovalService
         private readonly PhotoUploadService $photos,
         private readonly MembershipFeePolicyService $fees,
         private readonly MembershipNumbering $numbering,
+        private readonly MembershipDueLedger $dues,
     ) {
     }
 
@@ -124,8 +125,27 @@ class MembershipApprovalService
         if (! $result->alreadyApproved && $result->member !== null) {
             $this->attachPhoto($result->member, $application->fresh() ?? $application);
         }
+        if (! $result->alreadyApproved && $result->membership !== null) {
+            $this->createJoiningDue($result->membership, $admin);
+        }
 
         return $result;
+    }
+
+    /**
+     * After the approval has committed: the joining month's monthly due, when the type's policy charges one (Membership
+     * task 4). A failure never undoes an approval — the daily generation (membership:generate-dues) and the member page
+     * create it later, and the reason is logged.
+     */
+    private function createJoiningDue(Membership $membership, User $admin): void
+    {
+        try {
+            $this->dues->generateFor($membership, $admin);
+        } catch (Throwable $e) {
+            Log::error('The joining month due could not be created at approval.', [
+                'membership_id' => $membership->id, 'exception' => $e::class, 'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function approveOnce(MembershipApplication $application, User $admin, ?string $internalNote, ?int $confirmedMemberId): MembershipApprovalResult

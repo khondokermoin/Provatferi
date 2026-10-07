@@ -53,7 +53,9 @@ class MembershipTypeController extends Controller
                 'monthly_contribution' => $policies[$type->id]->monthly_contribution,
                 'fee_effective_from' => $policies[$type->id]->fromDate(),
                 'is_student' => $type->is_student,
-                'is_public_self_apply' => $type->is_public_self_apply,
+                // Offered for self-service applications: the switch AND complete configuration (a valid member-number
+                // code; the fee policy is guaranteed by the filter above) — MembershipType::offersSelfApply().
+                'is_public_self_apply' => $type->is_public_self_apply && $type->hasValidCode(),
             ])
             ->values();
 

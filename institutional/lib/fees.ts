@@ -31,6 +31,11 @@ export function formatTaka(amount: string | null | undefined, locale: Locale): s
   return `৳${locale === "bn" ? toBnDigits(text) : text}`;
 }
 
+/** True for a well-formed amount above zero ("200.00", "0.50"); false for "0.00", null or anything malformed. */
+export function isPositiveAmount(amount: string | null | undefined): boolean {
+  return typeof amount === "string" && formatTaka(amount, "en") !== null && /[1-9]/.test(amount);
+}
+
 /** The two figures of a type as the API delivers them (see Api\V1\MembershipTypeController). */
 export interface FeeSource {
   fee: string;

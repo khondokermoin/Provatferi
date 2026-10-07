@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "@/components/SiteLink";
 import { redirect } from "next/navigation";
 import { getMemberDashboard } from "@/lib/api/member";
-import { FEE_LABELS, formatTaka } from "@/lib/fees";
-import { formatBnDate } from "@/lib/format";
+import type { MemberMonthlyContribution } from "@/lib/api/types";
+import { FEE_LABELS, formatTaka, isPositiveAmount } from "@/lib/fees";
+import { formatBnDate, formatBnMonth, toBnDigits } from "@/lib/format";
 import { getMemberSessionToken } from "@/lib/member-session";
 import PageHeader from "@/components/PageHeader";
 import { logoutMember } from "./actions";
@@ -37,6 +38,105 @@ const PAYMENT_STATE_LABELS: Record<string, string> = {
   no_quote: "ফি রেকর্ড নেই",
 };
 
+/** One month of the monthly contribution (admin-erp MembershipDue::displayState). Overdue: a past month still owed. */
+const DUE_STATE_LABELS: Record<string, string> = {
+  due: "বকেয়া",
+  partially_paid: "আংশিক পরিশোধিত",
+  paid: "পরিশোধিত",
+  waived: "মওকুফ",
+  overdue: "মেয়াদোত্তীর্ণ",
+};
+
+/**
+ * The monthly contribution of one membership. Only verified payments count, so a payment handed over and not yet
+ * checked does not show here yet — the note under the table says so. A zero contribution says plainly that nothing is
+ * required: never "unpaid", never an empty table.
+ */
+function MonthlyContribution({ code, monthly, showCode }: { code: string; monthly: MemberMonthlyContribution; showCode: boolean }) {
+  const month = formatBnMonth(monthly.current_period) ?? monthly.current_period;
+  const owes = isPositiveAmount(monthly.outstanding);
+
+  if (!monthly.required && monthly.recent.length === 0 && !owes) {
+    return (
+      <div className="monthly-contribution" data-testid="monthly-card" data-member-code={code} data-required="false">
+        {showCode && <h3>{code}</h3>}
+        <p className="monthly-notice" data-testid="monthly-not-required">এই মুহূর্তে আপনার সদস্যপদে কোনো মাসিক চাঁদা প্রযোজ্য নয় — পরিশোধের প্রয়োজন নেই।</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="monthly-contribution" data-testid="monthly-card" data-member-code={code} data-required={monthly.required ? "true" : "false"}>
+      {showCode && <h3>{code}</h3>}
+      {!monthly.required && (
+        <p className="monthly-notice" data-testid="monthly-not-required">এই মুহূর্তে আপনার সদস্যপদে নতুন কোনো মাসিক চাঁদা যুক্ত হচ্ছে না। আগের মাসগুলোর হিসাব নিচে দেওয়া হলো।</p>
+      )}
+      <dl className="monthly-summary">
+        <div>
+          <dt>{FEE_LABELS.bn.monthly}</dt>
+          <dd data-testid="monthly-current-amount">{monthly.required ? (formatTaka(monthly.current_amount, "bn") ?? "—") : "প্রযোজ্য নয়"}</dd>
+        </div>
+        <div>
+          <dt>এই মাস ({month})</dt>
+          <dd data-testid="monthly-month-state" data-state={monthly.month_state}>
+            {monthly.month_state === "not_required" ? "এ মাসে চাঁদা প্রযোজ্য নয়" : (DUE_STATE_LABELS[monthly.month_state] ?? monthly.month_state)}
+          </dd>
+        </div>
+        <div>
+          <dt>মোট বকেয়া</dt>
+          <dd data-testid="monthly-outstanding" data-amount={monthly.outstanding}>{formatTaka(monthly.outstanding, "bn") ?? "—"}</dd>
+        </div>
+        <div>
+          <dt>মেয়াদোত্তীর্ণ মাস</dt>
+          <dd data-testid="monthly-overdue-count" data-count={monthly.overdue_count}>
+            {monthly.overdue_count > 0 ? `${toBnDigits(monthly.overdue_count)} মাস` : "নেই"}
+          </dd>
+        </div>
+        {isPositiveAmount(monthly.credit) && (
+          <div>
+            <dt>অগ্রিম জমা</dt>
+            <dd data-testid="monthly-credit">{formatTaka(monthly.credit, "bn")}</dd>
+          </div>
+        )}
+      </dl>
+
+      {monthly.recent.length > 0 && (
+        <div className="dues-table-wrap">
+          <table className="dues-table" data-testid="monthly-history">
+            <thead>
+              <tr>
+                <th scope="col">মাস</th>
+                <th scope="col" className="is-amount">নির্ধারিত</th>
+                <th scope="col" className="is-amount">পরিশোধিত</th>
+                <th scope="col" className="is-amount">মওকুফ</th>
+                <th scope="col" className="is-amount">বকেয়া</th>
+                <th scope="col">অবস্থা</th>
+              </tr>
+            </thead>
+            <tbody>
+              {monthly.recent.map((due) => (
+                <tr key={due.period} data-testid="monthly-due-row" data-period={due.period} data-state={due.state}>
+                  <td className="is-month">{formatBnMonth(due.period) ?? due.period}</td>
+                  <td className="is-amount" data-label="নির্ধারিত">{formatTaka(due.amount, "bn") ?? "—"}</td>
+                  <td className="is-amount" data-label="পরিশোধিত">{formatTaka(due.paid, "bn") ?? "—"}</td>
+                  <td className="is-amount" data-label="মওকুফ">{formatTaka(due.waived, "bn") ?? "—"}</td>
+                  <td className="is-amount" data-label="বকেয়া">{formatTaka(due.outstanding, "bn") ?? "—"}</td>
+                  <td className="is-state">
+                    <span className="due-chip" data-state={due.state}>{DUE_STATE_LABELS[due.state] ?? due.state}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <p className="form-field-help monthly-note" data-testid="monthly-note">
+        পরিশোধ যাচাই হওয়ার পরেই এখানে পরিশোধিত হিসেবে দেখায়। মাসের শেষ দিনের পরেও বাকি থাকলে মাসটি মেয়াদোত্তীর্ণ হয়।
+      </p>
+    </div>
+  );
+}
+
 export default async function MemberDashboardPage() {
   const token = await getMemberSessionToken();
   if (!token) redirect("/member/login");
@@ -53,6 +153,8 @@ export default async function MemberDashboardPage() {
   const { profile, memberships, season_history: seasonHistory, payments } = result.data;
   // A zero-fee membership owes nothing: "no payment records yet" would read as if something were still due.
   const noFeeDue = memberships.length > 0 && memberships.every((m) => m.payment_state === "not_required");
+  // Absent from an ERP build older than the monthly dues ledger: then the section is simply not shown.
+  const withMonthly = memberships.filter((m) => m.monthly !== undefined);
 
   return (
     <>
@@ -110,6 +212,17 @@ export default async function MemberDashboardPage() {
         )}
       </section>
 
+      {withMonthly.length > 0 && (
+        <section className="content-section" data-testid="monthly-contribution">
+          <h2>{FEE_LABELS.bn.monthly}</h2>
+          <div className="monthly-contribution-list">
+            {withMonthly.map((m) =>
+              m.monthly ? <MonthlyContribution key={m.member_code} code={m.member_code} monthly={m.monthly} showCode={withMonthly.length > 1} /> : null,
+            )}
+          </div>
+        </section>
+      )}
+
       {seasonHistory.length > 0 && (
         <section className="content-section">
           <h2>সিজন ইতিহাস</h2>
@@ -124,7 +237,7 @@ export default async function MemberDashboardPage() {
       )}
 
       <section className="content-section">
-        <h2>পরিশোধের তথ্য</h2>
+        <h2>নিবন্ধন ফি — পরিশোধের তথ্য</h2>
         {payments.length > 0 ? (
           <ul className="ordered-list-grid">
             {payments.map((p, i) => (

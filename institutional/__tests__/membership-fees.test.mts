@@ -1,7 +1,7 @@
 import { test, before, after, mock } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { feeQuote, formatTaka, FEE_LABELS } from "../lib/fees.ts";
+import { feeQuote, formatTaka, FEE_LABELS, isPositiveAmount } from "../lib/fees.ts";
 import { getCurrentCampaigns, getMembershipTypes } from "../lib/api/membership.ts";
 
 before(() => {
@@ -36,6 +36,16 @@ test("anything that is not a plain non-negative amount formats to null instead o
   for (const bad of ["-5", "5e2", "abc", "", " ", "1.234", "123456789", "5,00", "৳500", undefined, null]) {
     assert.equal(formatTaka(bad as string, "en"), null, String(bad));
   }
+});
+
+test("isPositiveAmount: above zero only, without turning the amount into a float", () => {
+  assert.equal(isPositiveAmount("200.00"), true);
+  assert.equal(isPositiveAmount("0.50"), true);
+  assert.equal(isPositiveAmount("0.00"), false);
+  assert.equal(isPositiveAmount("0"), false);
+  assert.equal(isPositiveAmount(null), false);
+  assert.equal(isPositiveAmount("-5.00"), false, "a malformed (negative) amount is never positive");
+  assert.equal(isPositiveAmount("abc1"), false);
 });
 
 test("the two fee labels exist in both languages", () => {

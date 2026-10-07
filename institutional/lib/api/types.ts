@@ -453,6 +453,35 @@ export interface MemberMembershipSummary {
    * paid, waived, awaiting_verification, unpaid or no_quote. Absent from older ERP builds.
    */
   payment_state?: string;
+  /** The monthly contribution ledger (admin-erp Membership task 4). Absent from older ERP builds. */
+  monthly?: MemberMonthlyContribution;
+}
+
+/** One month owed. Amounts are decimal strings ("200.00"); `period` is "2026-10". */
+export interface MemberMonthlyDue {
+  period: string;
+  amount: string;
+  paid: string;
+  waived: string;
+  outstanding: string;
+  /** due | partially_paid | paid | waived | overdue (a past month still owed) */
+  state: string;
+}
+
+export interface MemberMonthlyContribution {
+  current_period: string;
+  /** The monthly contribution charged for the current month; null when no fee policy is in force. */
+  current_amount: string | null;
+  /** A monthly contribution is charged now (above zero, membership active). False: nothing is required. */
+  required: boolean;
+  /** This month: paid | partially_paid | due | waived | not_required (no due this month). */
+  month_state: string;
+  outstanding: string;
+  overdue_count: number;
+  /** Verified money not yet applied to a month — applied to future months as they are created. */
+  credit: string;
+  /** The last 12 months owed, newest first. */
+  recent: MemberMonthlyDue[];
 }
 
 export interface MemberSeasonHistoryEntry {

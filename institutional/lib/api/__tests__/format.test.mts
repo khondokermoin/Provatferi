@@ -1,6 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { dhakaIsoDate, formatBnDate, formatFileSizeBn, toBnDigits } from "../../format.ts";
+import { dhakaIsoDate, formatBnDate, formatBnMonth, formatFileSizeBn, toBnDigits } from "../../format.ts";
+
+test("a dues period '2026-10' reads 'অক্টোবর ২০২৬'; anything else renders nothing", () => {
+  assert.equal(formatBnMonth("2026-10"), "অক্টোবর ২০২৬");
+  assert.equal(formatBnMonth("2027-01"), "জানুয়ারি ২০২৭");
+  assert.equal(formatBnMonth("2026-13"), null);
+  assert.equal(formatBnMonth("2026-1"), null);
+  assert.equal(formatBnMonth(null), null);
+});
 
 test("an evening UTC timestamp is already the next day in Bangladesh", () => {
   assert.equal(formatBnDate("2026-09-14T19:30:00+00:00"), "১৫ সেপ্টেম্বর ২০২৬");

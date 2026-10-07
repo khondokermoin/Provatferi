@@ -4,7 +4,12 @@ namespace App\Http\Controllers\Api\V1\Member;
 
 use App\Http\Controllers\Controller;
 use App\Models\Member;
+use App\Models\Membership;
+use App\Models\MembershipDue;
+use App\Services\MembershipDueLedger;
+use App\Services\MembershipDueSchedule;
 use App\Support\MembershipPaymentState;
+use App\Support\Money;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -17,10 +22,15 @@ use Illuminate\Http\Request;
  */
 class DashboardController extends Controller
 {
-    public function me(Request $request): JsonResponse
+    public function me(Request $request, MembershipDueLedger $ledger): JsonResponse
     {
         /** @var Member $member */
         $member = $request->user();
+
+        // Any monthly due owed and not created yet (the daily run has not reached it) is created first — idempotent.
+        foreach ($member->memberships()->pluck('id') as $membershipId) {
+            $ledger->generateFor((int) $membershipId);
+        }
 
         $member->load([
             'memberships' => fn ($q) => $q->latest('start_date'),
@@ -50,6 +60,7 @@ class DashboardController extends Controller
                 // (App\Support\MembershipPaymentState): a zero fee reads "not_required" — never an unpaid debt.
                 'registration_fee' => $m->application?->quotedRegistrationFee(),
                 'payment_state' => MembershipPaymentState::of($m->application),
+                'monthly' => $this->monthly($ledger, $m),
             ])->values(),
             'season_history' => $member->seasonHistory->map(fn ($h) => [
                 'season' => $h->season?->name,
@@ -66,5 +77,38 @@ class DashboardController extends Controller
                 ->values(),
             'library' => ['transactions' => []],
         ]]);
+    }
+
+    /**
+     * The member's own view of their monthly contribution (Membership task 4): amounts as decimal strings, months as
+     * "2026-10", states as words the site translates. Never an internal note, a verifier or a reference.
+     *
+     * required        a monthly contribution is charged now (the policy's amount is above zero and the membership active)
+     * month_state     this month: paid | partially_paid | due | waived | not_required (no due this month)
+     * recent          the last 12 months owed, newest first; `state` adds "overdue" for a past month still owed
+     *
+     * @return array<string, mixed>
+     */
+    private function monthly(MembershipDueLedger $ledger, Membership $membership): array
+    {
+        $summary = $ledger->summary($membership);
+
+        return [
+            'current_period' => MembershipDueSchedule::key(...$summary['current_period']),
+            'current_amount' => $summary['current_amount'],
+            'required' => $summary['accruing'] && $summary['current_amount'] !== null && Money::isPositive($summary['current_amount']),
+            'month_state' => $summary['month_state'],
+            'outstanding' => $summary['outstanding'],
+            'overdue_count' => $summary['overdue_count'],
+            'credit' => $summary['credit'],
+            'recent' => $summary['dues']->take(12)->map(fn (MembershipDue $due) => [
+                'period' => $due->period(),
+                'amount' => Money::parse((string) $due->amount),
+                'paid' => Money::parse((string) $due->paid_amount),
+                'waived' => Money::parse((string) $due->waived_amount),
+                'outstanding' => $due->outstanding(),
+                'state' => $due->displayState($summary['today']),
+            ])->values(),
+        ];
     }
 }

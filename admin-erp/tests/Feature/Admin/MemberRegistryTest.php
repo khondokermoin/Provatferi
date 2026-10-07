@@ -213,7 +213,13 @@ class MemberRegistryTest extends AdminTestCase
 
         $this->assertNotNull(Membership::query()->find($membership->id), 'nothing is ever deleted');
         $this->assertSame(['activated', 'archived', 'created', 'reactivated'], ApprovalHistory::query()
-            ->where('subject_type', Membership::class)->where('subject_id', $membership->id)->orderBy('action')->pluck('action')->all());
+            ->where('subject_type', Membership::class)->where('subject_id', $membership->id)->where('action', 'not like', 'dues_%')
+            ->orderBy('action')->pluck('action')->all());
+        // Each change also records its effect on the monthly dues (Membership task 4): archiving an active membership
+        // pauses them; reactivating and activating resume them.
+        $this->assertSame(['dues_paused', 'dues_resumed', 'dues_resumed'], ApprovalHistory::query()
+            ->where('subject_type', Membership::class)->where('subject_id', $membership->id)->where('action', 'like', 'dues_%')
+            ->orderBy('action')->pluck('action')->all());
     }
 
     public function test_a_repeated_status_action_is_recorded_once(): void

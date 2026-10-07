@@ -112,7 +112,13 @@ directory under the `members` tag; a suspension, archive, profile decision or na
 sweep) and `institutional/scripts/membership-registry-qa.mjs` (phases apply · review · registry · portal). QA rows are
 marked "QA REGISTRY TEST" / `khondokermoin2k23+qareg…`; `cleanup` removes them and nothing else.
 
+## Monthly dues
+
+Task 4 added the monthly contribution ledger: a "Monthly contribution" column and filter in the registry, a Monthly
+contributions card on the member page, and dues pausing / resuming with every status action — see
+`docs/MEMBERSHIP_DUES.md`.
+
 ## Not built (by design, later tasks)
 
-Monthly dues, receipts, membership type change, an applicant-side correction form for "information needed", online
-payment. (The member-number redesign was task 3 — `docs/MEMBERSHIP_NUMBERING.md`.)
+Receipts, membership type change, an applicant-side correction form for "information needed", online payment. (The
+member-number redesign was task 3 — `docs/MEMBERSHIP_NUMBERING.md`; monthly dues task 4 — `docs/MEMBERSHIP_DUES.md`.)

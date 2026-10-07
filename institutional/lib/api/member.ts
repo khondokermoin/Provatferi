@@ -4,6 +4,8 @@ import type {
   ApiResult,
   MemberDashboard,
   MemberMembershipSummary,
+  MemberMonthlyContribution,
+  MemberMonthlyDue,
   MemberPaymentSummary,
   MemberProfile,
   MemberProfileState,
@@ -79,7 +81,36 @@ function isMembershipSummary(v: unknown): v is MemberMembershipSummary {
     isStringOrNull(v.membership_type) &&
     // 2026-10-06 additions: optional, so this site works against an ERP build that does not send them yet.
     (v.registration_fee === undefined || isStringOrNull(v.registration_fee)) &&
-    (v.payment_state === undefined || typeof v.payment_state === "string")
+    (v.payment_state === undefined || typeof v.payment_state === "string") &&
+    // 2026-10-08 (monthly dues): optional for the same reason.
+    (v.monthly === undefined || isMonthlyContribution(v.monthly))
+  );
+}
+
+function isMonthlyDue(v: unknown): v is MemberMonthlyDue {
+  return (
+    isRecord(v) &&
+    typeof v.period === "string" &&
+    typeof v.amount === "string" &&
+    typeof v.paid === "string" &&
+    typeof v.waived === "string" &&
+    typeof v.outstanding === "string" &&
+    typeof v.state === "string"
+  );
+}
+
+function isMonthlyContribution(v: unknown): v is MemberMonthlyContribution {
+  return (
+    isRecord(v) &&
+    typeof v.current_period === "string" &&
+    isStringOrNull(v.current_amount) &&
+    typeof v.required === "boolean" &&
+    typeof v.month_state === "string" &&
+    typeof v.outstanding === "string" &&
+    typeof v.overdue_count === "number" &&
+    typeof v.credit === "string" &&
+    Array.isArray(v.recent) &&
+    v.recent.every(isMonthlyDue)
   );
 }
 

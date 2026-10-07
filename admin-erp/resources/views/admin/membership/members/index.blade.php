@@ -1,5 +1,17 @@
 @extends('layouts.admin')
 
+@section('page-actions')
+    @can('membership.update')
+        {{-- Creates every monthly due owed and missing, for every member (the daily run does the same). --}}
+        <form method="POST" action="{{ route('admin.membership.members.dues.generate-all') }}" class="d-inline" data-testid="generate-all-dues">
+            @csrf
+            <button type="submit" class="btn btn-outline-primary">
+                <i class="ti ti-refresh me-1" aria-hidden="true"></i>{{ __('admin.dues.generate_all') }}
+            </button>
+        </form>
+    @endcan
+@endsection
+
 @section('content')
     @php
         $isFiltered = collect($filters)->filter(fn ($v) => $v !== '')->isNotEmpty();
@@ -18,7 +30,7 @@
     </div>
 
     <x-admin.table :paginator="$members" caption="{{ __('admin.registry.title') }}"
-        :headers="[__('admin.registry.columns.member'), __('admin.registry.columns.contact'), __('admin.common.type'), __('admin.registry.columns.joined'), __('admin.registry.columns.profession'), __('admin.registry.fields.registration_fee'), __('admin.registry.columns.public_profile'), __('admin.common.status')]">
+        :headers="[__('admin.registry.columns.member'), __('admin.registry.columns.contact'), __('admin.common.type'), __('admin.registry.columns.joined'), __('admin.registry.columns.profession'), __('admin.registry.fields.registration_fee'), __('admin.dues.column'), __('admin.registry.columns.public_profile'), __('admin.common.status')]">
 
         <x-slot:toolbar>
             <form method="GET" action="{{ route('admin.membership.members.index') }}" class="row g-2 align-items-end" data-testid="registry-filters">
@@ -50,6 +62,15 @@
                         <option value="">{{ __('admin.common.all') }}</option>
                         @foreach ($paymentStates as $v => $l)
                             <option value="{{ $v }}" @selected($filters['payment'] === $v)>{{ $l }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
+                    <label for="f-monthly" class="form-label fs-13 mb-1">{{ __('admin.dues.column') }}</label>
+                    <select id="f-monthly" name="monthly" class="form-select">
+                        <option value="">{{ __('admin.common.all') }}</option>
+                        @foreach ($monthlyStandings as $v => $l)
+                            <option value="{{ $v }}" @selected($filters['monthly'] === $v)>{{ $l }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -119,6 +140,20 @@
                     <span class="d-block">{{ bn_money($member->application?->quotedRegistrationFee()) }}</span>
                     <x-admin.payment-state :state="\App\Support\MembershipPaymentState::of($member->application)" class="fs-11" />
                 </td>
+                @php
+                    $standing = \App\Services\MembershipDueLedger::standing($member->dues, $today, $currentPeriod);
+                    $owed = (int) $member->dues->sum(fn ($d) => $d->outstandingPaisa());
+                    $late = $member->dues->filter(fn ($d) => $d->isOverdue($today))->count();
+                @endphp
+                <td data-label="{{ __('admin.dues.column') }}" data-testid="monthly-cell" data-standing="{{ $standing }}">
+                    <x-admin.due-state :state="$standing" :standing="true" class="fs-11" />
+                    @if ($owed > 0)
+                        <span class="d-block fs-12 text-muted mt-1">{{ __('admin.dues.outstanding_short', ['amount' => bn_money(\App\Support\Money::fromPaisa($owed))]) }}</span>
+                    @endif
+                    @if ($late > 0)
+                        <span class="d-block fs-12 text-danger-emphasis">{{ __('admin.dues.overdue_months', ['count' => bn_number($late)]) }}</span>
+                    @endif
+                </td>
                 <td data-label="{{ __('admin.registry.columns.public_profile') }}">
                     @if (! $person)
                         <span class="text-muted">—</span>
@@ -133,7 +168,7 @@
                 <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$member->status" /></td>
             </tr>
         @empty
-            <x-admin.empty-state colspan="8" icon="{{ $isFiltered ? 'ti-search-off' : 'ti-users' }}"
+            <x-admin.empty-state colspan="9" icon="{{ $isFiltered ? 'ti-search-off' : 'ti-users' }}"
                 :title="$isFiltered ? __('admin.filters.no_results') : __('admin.fields.no_members_yet')"
                 message="{{ $isFiltered ? __('admin.registry.empty_filtered_hint') : __('admin.fields.members_empty_hint') }}">
                 @if ($isFiltered)

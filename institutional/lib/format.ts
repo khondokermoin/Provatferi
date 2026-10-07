@@ -62,6 +62,15 @@ export function formatDate(value: string | null | undefined, locale: "bn" | "en"
   return locale === "en" ? formatEnDate(value) : formatBnDate(value);
 }
 
+/** "অক্টোবর ২০২৬" for a "2026-10" period — a calendar month, so no time zone is involved. Null for anything else. */
+export function formatBnMonth(period: string | null | undefined): string | null {
+  const match = /^(\d{4})-(\d{2})$/.exec(period ?? "");
+  if (!match) return null;
+  const month = Number(match[2]);
+  if (month < 1 || month > 12) return null;
+  return `${BN_MONTHS[month - 1]} ${toBnDigits(match[1])}`;
+}
+
 /** "2026-09-15" in Bangladesh time — for <time dateTime>. */
 export function dhakaIsoDate(value: string | null | undefined): string | null {
   if (!value) return null;

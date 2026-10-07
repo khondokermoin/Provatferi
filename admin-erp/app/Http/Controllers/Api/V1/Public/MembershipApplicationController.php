@@ -65,8 +65,10 @@ class MembershipApplicationController extends Controller
 
         // Applying means accepting a quoted price, so a type with no fee policy in force today cannot be applied to (the
         // public lists never offer one either). The quote itself is recorded on the application by
-        // MembershipApplication::booted() — the policy of the day it is submitted, copied into the row.
-        if (app(MembershipFeePolicyService::class)->effectiveFor((int) $data['membership_type_id']) === null) {
+        // MembershipApplication::booted() — the policy of the day it is submitted, copied into the row. Nor can a type
+        // whose configuration is otherwise incomplete — no valid member-number code: it could never be approved
+        // (MembershipType::offersSelfApply(), Membership task 4).
+        if (app(MembershipFeePolicyService::class)->effectiveFor((int) $data['membership_type_id']) === null || ($type && ! $type->hasValidCode())) {
             throw ValidationException::withMessages(['membership_type_id' => 'এই সদস্যপদের ধরনের জন্য বর্তমানে আবেদন গ্রহণ করা হচ্ছে না।']);
         }
 

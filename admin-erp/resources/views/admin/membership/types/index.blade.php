@@ -67,6 +67,11 @@
                         @unless ($type->is_public_self_apply)
                             <span class="badge bg-secondary-subtle text-secondary-emphasis fs-11">{{ __('admin.fee_policy.no_self_apply_badge') }}</span>
                         @endunless
+                        @if ($type->configurationProblems() !== [])
+                            <span class="badge bg-danger-subtle text-danger-emphasis fs-11" data-testid="type-config-incomplete">
+                                <i class="ti ti-alert-triangle" aria-hidden="true"></i> {{ __('admin.fee_policy.config_incomplete') }}
+                            </span>
+                        @endif
                     </span>
                 </td>
                 <td data-label="{{ __('admin.fee_policy.registration_fee') }}">

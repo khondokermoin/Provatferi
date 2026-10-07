@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use LogicException;
 
 /**
@@ -89,6 +90,18 @@ class Membership extends Model
     public function approver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    /** The monthly dues ledger of this membership, one row per month owed (Membership task 4). */
+    public function dues(): HasMany
+    {
+        return $this->hasMany(MembershipDue::class);
+    }
+
+    /** Money towards this membership itself: monthly contributions (and advances) and voluntary contributions. */
+    public function payments(): MorphMany
+    {
+        return $this->morphMany(Payment::class, 'payable');
     }
 
     /** Status actions and edits of this registry row (never shown publicly). */

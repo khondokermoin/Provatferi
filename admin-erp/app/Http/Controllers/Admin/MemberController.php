@@ -7,7 +7,11 @@ use App\Models\ApprovalHistory;
 use App\Models\Member;
 use App\Models\Membership;
 use App\Models\MembershipType;
+use App\Models\Payment;
 use App\Services\ApplicationDocumentService;
+use App\Services\MembershipDueLedger;
+use App\Services\MembershipDueSchedule;
+use App\Services\MembershipFeePolicyService;
 use App\Services\MembershipNumbering;
 use App\Services\PhotoUploadService;
 use App\Support\MembershipHistory;
@@ -37,6 +41,16 @@ class MemberController extends Controller
 {
     private const PER_PAGE = [15, 30, 50];
 
+    /** The registry's monthly-contribution filter: where a membership stands (MembershipDueLedger::standing()). */
+    private const MONTHLY_STANDINGS = ['not_required', 'current', 'due', 'partially_paid', 'overdue'];
+
+    public function __construct(
+        private readonly MembershipDueLedger $dues,
+        private readonly MembershipDueSchedule $schedule,
+        private readonly MembershipFeePolicyService $fees,
+    ) {
+    }
+
     public function index(Request $request): View
     {
         $filters = [
@@ -47,11 +61,13 @@ class MemberController extends Controller
             'joined_to' => $this->date($request->query('joined_to')),
             'payment' => in_array($request->query('payment'), MembershipPaymentState::ALL, true) ? (string) $request->query('payment') : '',
             'profile' => in_array($request->query('profile'), ['hidden', 'awaiting', 'public'], true) ? (string) $request->query('profile') : '',
+            'monthly' => in_array($request->query('monthly'), self::MONTHLY_STANDINGS, true) ? (string) $request->query('monthly') : '',
         ];
         $perPage = in_array((int) $request->query('per_page'), self::PER_PAGE, true) ? (int) $request->query('per_page') : self::PER_PAGE[0];
 
         $query = Membership::query()
-            ->with(['user', 'member', 'membershipType', 'application.payments', 'member.liveProfileVersion'])
+            ->with(['user', 'member', 'membershipType', 'application.payments', 'member.liveProfileVersion', 'dues'])
+            ->when($filters['monthly'] !== '', fn (Builder $q) => $this->monthlyFilter($q, $filters['monthly']))
             ->when($filters['search'] !== '', fn (Builder $q) => $this->search($q, $filters['search']))
             ->when($filters['status'] !== '', fn (Builder $q) => $q->where('status', $filters['status']))
             ->when($filters['type'] !== '', fn (Builder $q) => $q->where('membership_type_id', $filters['type']))
@@ -76,6 +92,9 @@ class MemberController extends Controller
             'statuses' => status_options(Membership::STATUSES),
             'types' => MembershipType::query()->orderBy('sort_order')->orderBy('name')->pluck('name', 'id'),
             'paymentStates' => collect(MembershipPaymentState::ALL)->mapWithKeys(fn ($s) => [$s => __("admin.registry.payment.{$s}")])->all(),
+            'monthlyStandings' => collect(self::MONTHLY_STANDINGS)->mapWithKeys(fn ($s) => [$s => __("admin.dues.standing.{$s}")])->all(),
+            'today' => $this->fees->today(),
+            'currentPeriod' => $this->schedule->currentPeriod(),
             'totals' => [
                 'all' => Membership::query()->count(),
                 'active' => Membership::query()->where('status', 'active')->count(),
@@ -87,6 +106,10 @@ class MemberController extends Controller
 
     public function show(Membership $membership): View
     {
+        // Any due this membership owes that does not exist yet (the daily run has not reached it) is created now — the
+        // same idempotent generation as everywhere else, so opening the page never creates anything twice.
+        $this->dues->generateFor($membership);
+
         $membership->load([
             'user', 'member.seasonHistory.season', 'membershipType', 'approver',
             'application.payments.receivedBy', 'application.payments.verifiedBy', 'application.payments.waivedBy',
@@ -110,6 +133,11 @@ class MemberController extends Controller
             'paymentState' => MembershipPaymentState::of($membership->application),
             'statusReason' => $statusReason,
             'availableActions' => $membership->availableStatusActions(),
+            'monthly' => $this->dues->summary($membership),
+            'monthlyPayments' => $membership->payments()
+                ->whereIn('category', [Payment::CATEGORY_MONTHLY, Payment::CATEGORY_VOLUNTARY])
+                ->with(['due', 'receivedBy', 'verifiedBy', 'canceller', 'allocations.due'])
+                ->orderByDesc('id')->get(),
             'history' => MembershipHistory::forMembership($membership),
             'otherMemberships' => $membership->member_id
                 ? Membership::query()->where('member_id', $membership->member_id)->whereKeyNot($membership->id)->with('membershipType')->orderByDesc('start_date')->get()
@@ -215,13 +243,28 @@ class MemberController extends Controller
                 return 'not_allowed';
             }
 
+            $from = $locked->status;
             $locked->forceFill(['status' => $rule['to']])->save();
             ApprovalHistory::record($locked, $rule['event'], $request->user(), $reason !== '' ? $reason : null);
             // The person's portal account follows (and is signed out everywhere when no longer active).
             $locked->member?->syncStatusFromMemberships();
 
+            // Monthly dues (Membership task 4) follow the status: a membership that stops being active accrues nothing
+            // from next month (this month was owed already); one that becomes active again owes from this month — the
+            // months in between are never back-charged. The effect is recorded with the month it starts.
+            [$year, $month] = $this->schedule->currentPeriod();
+            if ($from === 'active' && $rule['to'] !== 'active') {
+                ApprovalHistory::record($locked, 'dues_paused', $request->user(), json_encode(['from' => MembershipDueSchedule::key(...MembershipDueSchedule::next($year, $month))]));
+            } elseif ($from !== 'active' && $rule['to'] === 'active') {
+                ApprovalHistory::record($locked, 'dues_resumed', $request->user(), json_encode(['from' => MembershipDueSchedule::key($year, $month)]));
+            }
+
             return 'changed';
         });
+
+        if ($outcome === 'changed' && $rule['to'] === 'active') {
+            $this->dues->generateFor($membership, $request->user()); // the reactivation month's due, at once
+        }
 
         return match ($outcome) {
             'changed' => back()->with('success', __("admin.registry.flash.{$data['action']}", ['code' => $membership->member_code])),
@@ -271,6 +314,31 @@ class MemberController extends Controller
                 })
                 ->orWhereHas('user', fn (Builder $u) => $u->where('name', 'like', $term)->orWhere('email', 'like', $term));
         });
+    }
+
+    /**
+     * MembershipDueLedger::standing() as SQL over the dues table: overdue first (a past month still owed); otherwise this
+     * month's due decides (partially paid / due / current), and no due this month means no monthly contribution due.
+     */
+    private function monthlyFilter(Builder $query, string $standing): void
+    {
+        $today = $this->fees->today();
+        [$year, $month] = MembershipDueSchedule::periodOf($today);
+        $overdue = fn (Builder $d) => $d->where('outstanding_amount', '>', 0)->where('due_date', '<', $today);
+        $thisMonth = fn (Builder $d) => $d->where('period_year', $year)->where('period_month', $month);
+
+        if ($standing === 'overdue') {
+            $query->whereHas('dues', $overdue);
+
+            return;
+        }
+        $query->whereDoesntHave('dues', $overdue);
+        match ($standing) {
+            'not_required' => $query->whereDoesntHave('dues', $thisMonth),
+            'current' => $query->whereHas('dues', fn (Builder $d) => $thisMonth($d)->where('outstanding_amount', 0)),
+            'partially_paid' => $query->whereHas('dues', fn (Builder $d) => $thisMonth($d)->where('outstanding_amount', '>', 0)->where('paid_amount', '>', 0)),
+            default => $query->whereHas('dues', fn (Builder $d) => $thisMonth($d)->where('outstanding_amount', '>', 0)->where('paid_amount', 0)),
+        };
     }
 
     /** The same states as App\Support\MembershipPaymentState::of(), expressed as SQL over the source application. */

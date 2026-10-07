@@ -35,7 +35,9 @@ class MembershipCampaignController extends Controller
             ->values();
 
         // One query for the fee policy in force today of every type offered in any open season. A type with none in
-        // force is left out of the form: a price that does not exist cannot be quoted.
+        // force is left out of the form: a price that does not exist cannot be quoted. So is a type whose configuration
+        // is incomplete in any other way (no valid member-number code: it could never be approved) — see
+        // MembershipType::offersSelfApply().
         $policies = $fees->effectiveForMany($seasons->flatMap(fn (MembershipSeason $season) => $season->membershipTypes));
 
         return response()->json([
@@ -63,7 +65,7 @@ class MembershipCampaignController extends Controller
             'public_profile_opt_in' => $season->public_profile_opt_in,
             // `fee` is the DEPRECATED alias of registration_fee (see Api\V1\MembershipTypeController) kept for pre-2026-10-05 builds of the public site.
             'membership_types' => $season->membershipTypes
-                ->filter(fn ($type) => isset($policies[$type->id]))
+                ->filter(fn ($type) => isset($policies[$type->id]) && $type->hasValidCode())
                 ->map(fn ($type) => [
                     'id' => $type->id,
                     'name' => $type->name,

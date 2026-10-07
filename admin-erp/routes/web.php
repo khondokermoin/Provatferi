@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\HomepageCarouselController;
 use App\Http\Controllers\Admin\JobApplicationController;
 use App\Http\Controllers\Admin\MemberController;
+use App\Http\Controllers\Admin\MemberDuesController;
 use App\Http\Controllers\Admin\MembershipController;
 use App\Http\Controllers\Admin\MembershipSeasonController;
 use App\Http\Controllers\Admin\MembershipTypeController;
@@ -212,6 +213,13 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
      */
     Route::prefix('membership/members')->name('membership.members.')->middleware('revalidate.public')->group(function () {
         Route::get('/', [MemberController::class, 'index'])->middleware('permission:membership.view')->name('index');
+        // Monthly dues ledger (Membership task 4): generation, money received, its verification, waivers.
+        Route::post('/dues/generate', [MemberDuesController::class, 'generateAll'])->middleware('permission:membership.update')->name('dues.generate-all');
+        Route::post('/{membership}/dues/generate', [MemberDuesController::class, 'generate'])->middleware('permission:membership.update')->name('dues.generate');
+        Route::post('/{membership}/dues/payments', [MemberDuesController::class, 'storePayment'])->middleware('permission:payments.create')->name('dues.payments.store');
+        Route::patch('/{membership}/dues/payments/{payment}/verify', [MemberDuesController::class, 'verifyPayment'])->middleware('permission:payments.approve')->name('dues.payments.verify');
+        Route::patch('/{membership}/dues/payments/{payment}/cancel', [MemberDuesController::class, 'cancelPayment'])->middleware('permission:payments.approve')->name('dues.payments.cancel');
+        Route::post('/{membership}/dues/{due}/waive', [MemberDuesController::class, 'waive'])->middleware('permission:payments.approve')->name('dues.waive');
         Route::get('/{membership}', [MemberController::class, 'show'])->middleware('permission:membership.view')->name('show');
         Route::get('/{membership}/photo', [MemberController::class, 'photo'])->middleware('permission:membership.view')->name('photo');
         Route::get('/{membership}/edit', [MemberController::class, 'edit'])->middleware('permission:membership.update')->name('edit');

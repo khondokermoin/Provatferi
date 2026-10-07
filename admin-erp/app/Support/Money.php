@@ -6,9 +6,9 @@ namespace App\Support;
  * Money handled as DECIMAL STRINGS, never as floats.
  *
  * Fees are stored as decimal(10,2) and travel as strings ("500.00") from the database to the API to the page, so no
- * value is ever turned into a binary float on the way (0.1 + 0.2 is not 0.3 there). There is deliberately no
- * arithmetic here — nothing in the fee model adds or multiplies amounts; the only operations needed are "is this a
- * valid amount", "is it more than zero" and "are these two the same".
+ * value is ever turned into a binary float on the way (0.1 + 0.2 is not 0.3 there). Where amounts must be added or
+ * compared — the monthly dues ledger (Membership task 4) — they are turned into whole PAISA (integers: ৳1.00 = 100)
+ * with toPaisa(), computed exactly, and turned back with fromPaisa(). Never a float.
  */
 final class Money
 {
@@ -48,6 +48,28 @@ final class Money
         $normalised = $amount === null ? null : self::parse($amount);
 
         return $normalised !== null && preg_match('/[1-9]/', $normalised) === 1;
+    }
+
+    /** An amount as whole paisa ("200.50" → 20050) for exact arithmetic, or null when it is not a valid amount. */
+    public static function toPaisa(mixed $amount): ?int
+    {
+        $normalised = self::parse($amount);
+        if ($normalised === null) {
+            return null;
+        }
+        [$whole, $fraction] = explode('.', $normalised);
+
+        return (int) $whole * 100 + (int) $fraction;
+    }
+
+    /** Whole paisa back to a two-decimal string (20050 → "200.50"). Negative amounts do not exist here. */
+    public static function fromPaisa(int $paisa): string
+    {
+        if ($paisa < 0) {
+            throw new \InvalidArgumentException("A money amount cannot be negative ({$paisa} paisa).");
+        }
+
+        return intdiv($paisa, 100).'.'.str_pad((string) ($paisa % 100), 2, '0', STR_PAD_LEFT);
     }
 
     /** Value equality of two amounts however they were written ("5" equals "5.00"). */

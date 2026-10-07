@@ -162,6 +162,8 @@
                 @endif
             </x-admin.card>
 
+            @include('admin.membership.members.partials.monthly', ['member' => $member, 'monthly' => $monthly, 'payments' => $monthlyPayments])
+
             @if ($person)
                 <x-admin.card title="{{ __('admin.fields.public_profile') }}" data-testid="public-profile-card">
                     <ul class="pf-checklist mb-3">

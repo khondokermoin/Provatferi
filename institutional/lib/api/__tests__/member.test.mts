@@ -89,6 +89,32 @@ test("getMemberDashboard accepts a waived fee (no amount received) and the 2026-
   assert.equal((await getMemberDashboard("1|abcdef")).ok, false, "a malformed payment_state is still refused");
 });
 
+test("getMemberDashboard accepts the monthly contribution (2026-10-08) and refuses a malformed one", async () => {
+  const monthly = {
+    current_period: "2026-10", current_amount: "200.00", required: true, month_state: "partially_paid",
+    outstanding: "300.00", overdue_count: 1, credit: "0.00",
+    recent: [
+      { period: "2026-10", amount: "200.00", paid: "100.00", waived: "0.00", outstanding: "100.00", state: "partially_paid" },
+      { period: "2026-09", amount: "200.00", paid: "0.00", waived: "0.00", outstanding: "200.00", state: "overdue" },
+    ],
+  };
+  const zero = { current_period: "2026-10", current_amount: "0.00", required: false, month_state: "not_required", outstanding: "0.00", overdue_count: 0, credit: "0.00", recent: [] };
+  const body = { ...dashboardBody, memberships: [{ ...dashboardBody.memberships[0], monthly }, { ...dashboardBody.memberships[0], member_code: "PF-2026-0002", monthly: zero }] };
+  globalThis.fetch = mock.fn(async () => jsonResponse({ data: body }));
+
+  const result = await getMemberDashboard("1|abcdef");
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.equal(result.data.memberships[0]?.monthly?.recent[1]?.state, "overdue");
+    assert.equal(result.data.memberships[1]?.monthly?.required, false);
+  }
+
+  for (const broken of [{ ...monthly, overdue_count: "1" }, { ...monthly, required: "yes" }, { ...monthly, recent: [{ period: "2026-10", amount: 200 }] }, { ...monthly, recent: null }]) {
+    globalThis.fetch = mock.fn(async () => jsonResponse({ data: { ...dashboardBody, memberships: [{ ...dashboardBody.memberships[0], monthly: broken }] } }));
+    assert.equal((await getMemberDashboard("1|abcdef")).ok, false, `refused: ${JSON.stringify(broken).slice(0, 60)}`);
+  }
+});
+
 test("getMemberDashboard treats an expired/revoked token (401) as an error, never as an empty dashboard", async () => {
   globalThis.fetch = mock.fn(async () => jsonResponse({ message: "Unauthenticated." }, 401));
 

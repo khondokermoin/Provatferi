@@ -71,4 +71,40 @@ class MembershipType extends Model
     {
         return $this->status === 'active';
     }
+
+    /** A valid member-number code (unique among types by a database index): approval needs it for every member number. */
+    public function hasValidCode(): bool
+    {
+        return is_string($this->code) && preg_match(self::CODE_PATTERN, $this->code) === 1;
+    }
+
+    /**
+     * What a type still lacks before an application to it can be approved — 'code': no valid member-number code;
+     * 'fee_policy': no fee policy in force today (nothing could be quoted). An empty list: configuration complete.
+     * Generic for every type; nothing here knows any particular one.
+     *
+     * @return array<int, string>
+     */
+    public function configurationProblems(): array
+    {
+        $problems = [];
+        if (! $this->hasValidCode()) {
+            $problems[] = 'code';
+        }
+        if (app(MembershipFeePolicyService::class)->effectiveFor($this) === null) {
+            $problems[] = 'fee_policy';
+        }
+
+        return $problems;
+    }
+
+    /**
+     * Offered for self-service applications on the public site: active, public, self-apply switched on AND everything
+     * approval needs is configured (Membership task 4, readiness guard). An incomplete type keeps its settings — it is
+     * simply not offered until it is complete; the admin sees "Configuration incomplete" and why.
+     */
+    public function offersSelfApply(): bool
+    {
+        return $this->isActive() && $this->is_public_visible && $this->is_public_self_apply && $this->configurationProblems() === [];
+    }
 }

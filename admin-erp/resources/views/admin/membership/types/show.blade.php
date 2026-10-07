@@ -40,6 +40,22 @@
                     @endunless
                 </div>
 
+                @php $problems = $type->configurationProblems(); @endphp
+                @if ($problems !== [])
+                    <div class="alert alert-danger d-flex align-items-start gap-2" role="alert" data-testid="type-config-incomplete">
+                        <i class="ti ti-alert-triangle fs-18 mt-1" aria-hidden="true"></i>
+                        <div>
+                            <div class="fw-semibold">{{ __('admin.fee_policy.config_incomplete') }}</div>
+                            <div class="fs-13">{{ __('admin.fee_policy.config_incomplete_effect') }}</div>
+                            <ul class="fs-13 mb-0 mt-1 ps-3">
+                                @foreach ($problems as $problem)
+                                    <li data-testid="config-problem-{{ $problem }}">{{ __('admin.fee_policy.config_problem.'.$problem) }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                @endif
+
                 <p class="fs-13 mb-3" data-testid="member-number-format">
                     @if ($nextMemberNumber)
                         <i class="ti ti-id-badge-2 text-muted me-1" aria-hidden="true"></i>{{ __('admin.fee_policy.member_numbers_next', ['number' => $nextMemberNumber]) }}

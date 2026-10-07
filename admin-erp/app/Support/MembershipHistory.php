@@ -6,6 +6,7 @@ use App\Models\ApprovalHistory;
 use App\Models\Member;
 use App\Models\Membership;
 use App\Models\MembershipApplication;
+use App\Models\MembershipDue;
 use App\Models\PublicMemberProfileVersion;
 use Illuminate\Support\Collection;
 
@@ -25,6 +26,7 @@ final class MembershipHistory
         Membership::class => 'membership',
         Member::class => 'account',
         PublicMemberProfileVersion::class => 'profile',
+        MembershipDue::class => 'due',
     ];
 
     private const ICONS = [
@@ -33,6 +35,10 @@ final class MembershipHistory
         'payment_verified' => 'ti-check', 'payment_waived' => 'ti-cash', 'created' => 'ti-user-plus', 'activated' => 'ti-circle-check',
         'suspended' => 'ti-player-pause', 'reactivated' => 'ti-refresh', 'archived' => 'ti-archive', 'updated' => 'ti-pencil',
         'account_created' => 'ti-user-plus', 'account_linked' => 'ti-link', 'invitation_sent' => 'ti-mail',
+        // monthly dues (Membership task 4)
+        'dues_generated' => 'ti-calendar-event', 'dues_paused' => 'ti-player-pause', 'dues_resumed' => 'ti-refresh',
+        'monthly_payment_recorded' => 'ti-cash', 'monthly_payment_verified' => 'ti-check', 'monthly_payment_cancelled' => 'ti-ban',
+        'credit_applied' => 'ti-arrow-right', 'waived' => 'ti-badge',
     ];
 
     /** @return Collection<int, array<string, mixed>> */
@@ -45,6 +51,10 @@ final class MembershipHistory
     public static function forMembership(Membership $membership): Collection
     {
         $subjects = [[Membership::class, [$membership->id]]];
+        $dueIds = MembershipDue::query()->where('membership_id', $membership->id)->pluck('id')->all();
+        if ($dueIds !== []) {
+            $subjects[] = [MembershipDue::class, $dueIds];
+        }
         if ($membership->membership_application_id) {
             $subjects[] = [MembershipApplication::class, [$membership->membership_application_id]];
         }
@@ -124,7 +134,67 @@ final class MembershipHistory
             return [is_string($p['reference'] ?? null) && $p['reference'] !== '' ? $line.' — '.$p['reference'] : $line];
         }
 
-        return [$note];
+        return is_array($data) ? (self::dueLines($data) ?? [$note]) : [$note];
+    }
+
+    /**
+     * Monthly-dues events (Membership task 4), stored as data: the months a run created, credit applied month by month,
+     * one monthly payment, one waiver, or the month dues pause / resume from. Null when the note is none of these.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<int, string>|null
+     */
+    private static function dueLines(array $data): ?array
+    {
+        $pairs = fn (array $rows) => array_values(array_map(
+            fn ($row) => __('admin.dues.history.month_amount', ['month' => self::month((string) ($row[0] ?? '')), 'amount' => bn_money(is_string($row[1] ?? null) ? $row[1] : null)]),
+            array_filter($rows, 'is_array'),
+        ));
+
+        if (is_array($data['dues'] ?? null)) {
+            return $pairs($data['dues']);
+        }
+        if (is_array($data['credit'] ?? null)) {
+            return $pairs($data['credit']);
+        }
+        if (is_string($data['from'] ?? null)) {
+            return [__('admin.dues.history.from', ['month' => self::month($data['from'])])];
+        }
+        if (is_array($data['waiver'] ?? null)) {
+            $w = $data['waiver'];
+
+            return array_values(array_filter([
+                __('admin.dues.history.month_amount', ['month' => self::month((string) ($w['period'] ?? '')), 'amount' => bn_money(is_string($w['amount'] ?? null) ? $w['amount'] : null)]),
+                is_string($w['reason'] ?? null) ? __('admin.dues.history.reason', ['reason' => $w['reason']]) : null,
+            ]));
+        }
+        if (is_array($data['monthly_payment'] ?? null)) {
+            $p = $data['monthly_payment'];
+            $for = match ($p['purpose'] ?? null) {
+                'advance' => __('admin.dues.purpose.advance'),
+                'voluntary' => __('admin.dues.purpose.voluntary'),
+                default => is_string($p['period'] ?? null) ? self::month($p['period']) : '—',
+            };
+
+            return array_values(array_filter([
+                __('admin.dues.history.payment', ['amount' => bn_money(is_string($p['amount'] ?? null) ? $p['amount'] : null), 'for' => $for]),
+                is_string($p['applied'] ?? null) ? __('admin.dues.history.applied', ['amount' => bn_money($p['applied'])]) : null,
+                is_string($p['reference'] ?? null) && $p['reference'] !== '' ? __('admin.dues.history.reference', ['reference' => $p['reference']]) : null,
+                is_string($p['reason'] ?? null) ? __('admin.dues.history.reason', ['reason' => $p['reason']]) : null,
+            ]));
+        }
+
+        return null;
+    }
+
+    /** "2026-10" in the viewing admin's words: "অক্টোবর ২০২৬" / "October 2026". */
+    private static function month(string $period): string
+    {
+        if (preg_match('/^(\d{4})-(\d{2})$/', $period, $m) !== 1) {
+            return $period;
+        }
+
+        return bn_month_name((int) $m[2]).' '.bn_digits($m[1]);
     }
 
     private static function value(string $field, mixed $value): string
@@ -147,6 +217,7 @@ final class MembershipHistory
     private static function noteKind(string $scope, string $action): string
     {
         return match (true) {
+            $scope === 'due' || str_starts_with($action, 'dues_') || str_starts_with($action, 'monthly_payment_') || $action === 'credit_applied' => 'changes',
             $scope === 'application' && in_array($action, ['need_information', 'rejected'], true) => 'applicant',
             $scope === 'application' && str_starts_with($action, 'payment_') => 'ref',
             $scope === 'application' && $action === 'approved' => 'internal',
