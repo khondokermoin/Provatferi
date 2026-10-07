@@ -239,6 +239,25 @@
                         @if ($preview)
                             <h3 class="fs-14 mb-1">{{ __('admin.registry.review.approval_check') }}</h3>
                             <ul class="pf-checklist mb-3" data-testid="approval-checklist">
+                                <li data-testid="check-numbering" data-ok="{{ $preview->numberingReady ? '1' : '0' }}">
+                                    <i class="ti {{ $preview->numberingReady ? 'ti-circle-check text-success' : 'ti-circle-x text-danger' }}" aria-hidden="true"></i>
+                                    <div>
+                                        <div class="fw-semibold fs-13">{{ __('admin.registry.review.check_numbering') }}</div>
+                                        <div class="text-muted fs-13">
+                                            @if ($preview->numberingReady)
+                                                {{ __('admin.registry.review.numbering_ok', ['number' => $preview->nextMemberNumber]) }}
+                                            @else
+                                                {{ __('admin.registry.review.numbering_missing', ['type' => $application->membershipType?->name ?? '—']) }}
+                                                @if ($application->membershipType)
+                                                    @can('membership.update')
+                                                        <a href="{{ route('admin.membership.types.edit', $application->membershipType) }}" class="d-inline-block mt-1">{{ __('admin.registry.review.set_type_code') }}</a>
+                                                    @endcan
+                                                @endif
+                                            @endif
+                                        </div>
+                                    </div>
+                                </li>
+
                                 <li data-testid="check-payment" data-ok="{{ $preview->paymentSettled ? '1' : '0' }}">
                                     <i class="ti {{ $preview->paymentSettled ? 'ti-circle-check text-success' : 'ti-alert-triangle text-warning' }}" aria-hidden="true"></i>
                                     <div>

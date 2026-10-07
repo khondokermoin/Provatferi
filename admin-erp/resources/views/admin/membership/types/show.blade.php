@@ -40,6 +40,14 @@
                     @endunless
                 </div>
 
+                <p class="fs-13 mb-3" data-testid="member-number-format">
+                    @if ($nextMemberNumber)
+                        <i class="ti ti-id-badge-2 text-muted me-1" aria-hidden="true"></i>{{ __('admin.fee_policy.member_numbers_next', ['number' => $nextMemberNumber]) }}
+                    @else
+                        <span class="text-warning-emphasis"><i class="ti ti-alert-triangle me-1" aria-hidden="true"></i>{{ __('admin.fee_policy.member_numbers_need_code') }}</span>
+                    @endif
+                </p>
+
                 @if ($current)
                     <div class="row g-3 mb-2">
                         <div class="col-sm-6">

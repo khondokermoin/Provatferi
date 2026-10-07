@@ -978,6 +978,8 @@ return [
         'code_help' => 'A short, permanent identifier — capital letters and digits, 2 to 10 characters (for example LM, GM, ST). It cannot be changed once saved, so choose it carefully.',
         'code_locked_help' => 'The code is permanent and cannot be changed.',
         'no_code' => 'No code',
+        'member_numbers_next' => 'Member numbers of this type: the next one issued will be :number.',
+        'member_numbers_need_code' => 'This type has no code, so no member number can be issued for it and its applications cannot be approved. Set a code with "Edit details".',
         'type_column' => 'Membership type',
         'in_force_since' => 'In force since',
         'in_force_since_date' => 'In force since :date',
@@ -1110,6 +1112,7 @@ return [
         ],
         'blocked' => [
             'status' => 'This application cannot be approved in its current status.',
+            'numbering' => 'Not approved: the membership type ":type" has no code, so no member number can be issued for it. Set the type\'s code under Membership → Membership Types first.',
             'payment' => 'Not approved: the registration fee is not settled yet. Record the cash payment and verify it (or waive it with a reason) first.',
             'conflict' => 'Not approved: this applicant matches existing member records in a way that cannot be resolved by approving. See the approval check on this page.',
             'confirmation_required' => 'Not approved: this applicant matches one existing member account on a single detail. Confirm that it is the same person, then approve again.',
@@ -1150,6 +1153,10 @@ return [
             'start_review' => 'Start review',
             'resume_review' => 'Information received — resume review',
             'approval_check' => 'Approval check',
+            'check_numbering' => 'Member number',
+            'numbering_ok' => 'Issued at approval from this type\'s own sequence — next: :number.',
+            'numbering_missing' => 'The membership type ":type" has no code, so no member number can be issued for it. The type needs a code before this application can be approved.',
+            'set_type_code' => 'Set the type\'s code',
             'check_payment' => 'Registration fee',
             'payment_ok' => [
                 'not_required' => 'No payment needed — the quoted registration fee is ৳0.',

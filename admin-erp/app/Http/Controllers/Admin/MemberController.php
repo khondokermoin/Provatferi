@@ -8,6 +8,7 @@ use App\Models\Member;
 use App\Models\Membership;
 use App\Models\MembershipType;
 use App\Services\ApplicationDocumentService;
+use App\Services\MembershipNumbering;
 use App\Services\PhotoUploadService;
 use App\Support\MembershipHistory;
 use App\Support\MembershipPaymentState;
@@ -245,14 +246,20 @@ class MemberController extends Controller
         return $response;
     }
 
+    /**
+     * Name, e-mail, mobile (any spelling) or member number. A number matches in part ("LM-2026", "0007", "plcc-st") or
+     * whole, also written without its leading zeros ("ST-2026-7" finds PLCC-ST-2026-0007).
+     */
     private function search(Builder $query, string $search): void
     {
         $term = '%'.$search.'%';
         $digits = preg_replace('/\D+/', '', $search) ?? '';
         $phone = PhoneNumber::normalize($search);
+        $numbers = app(MembershipNumbering::class)->searchVariants($search);
 
-        $query->where(function (Builder $w) use ($term, $digits, $phone) {
+        $query->where(function (Builder $w) use ($term, $digits, $phone, $numbers) {
             $w->where('member_code', 'like', $term)
+                ->when($numbers !== [], fn (Builder $n) => $n->orWhereIn('member_code', $numbers))
                 ->orWhereHas('member', function (Builder $m) use ($term, $digits, $phone) {
                     $m->where('name', 'like', $term)->orWhere('email', 'like', $term)->orWhere('phone', 'like', $term);
                     if (strlen($digits) >= 4) {

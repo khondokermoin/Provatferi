@@ -25,6 +25,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[ObservedBy([MembershipPublicSiteObserver::class])]
 class MembershipType extends Model
 {
+    /**
+     * A type's code: short, upper-case, starting with a letter — LM, GM, ST, HONOR2 … It is set once and never changed
+     * (MembershipTypeController), and it is part of every member number issued for the type (PLCC-LM-2026-0001,
+     * App\Services\MembershipNumbering) — so a type without one cannot have applications approved.
+     */
+    public const CODE_PATTERN = '/^[A-Z][A-Z0-9]{1,9}$/';
+
     protected $fillable = [
         'name', 'name_en', 'slug', 'code', 'description', 'description_en', 'duration_months',
         'is_student', 'is_public_self_apply', 'is_public_visible', 'status', 'sort_order',

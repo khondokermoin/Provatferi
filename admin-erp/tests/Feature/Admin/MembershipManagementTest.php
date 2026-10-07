@@ -19,7 +19,13 @@ class MembershipManagementTest extends AdminTestCase
 
     private function type(): MembershipType
     {
-        return $this->makeMembershipType(['name' => 'সাধারণ সদস্য', 'slug' => 'general-'.uniqid(), 'sort_order' => 1]);
+        return $this->makeMembershipType(['name' => 'সাধারণ সদস্য', 'slug' => 'general-'.uniqid(), 'sort_order' => 1, 'code' => $this->uniqueCode()]);
+    }
+
+    /** Every type that can have applications approved needs a code — it is part of each member number (task 3). */
+    private function uniqueCode(): string
+    {
+        return 'T'.strtoupper(substr(uniqid(), -7));
     }
 
     private function application(string $status = 'pending'): MembershipApplication
@@ -38,7 +44,9 @@ class MembershipManagementTest extends AdminTestCase
     {
         $this->actingAs($this->superAdmin())->post(route('admin.membership.types.store'), [
             'name' => 'আজীবন সদস্য', 'code' => 'lm', 'status' => 'active', 'sort_order' => 3,
-            'registration_fee' => '0', 'monthly_contribution' => '0', 'effective_from' => now()->toDateString(),
+            // "today" on the organisation's calendar: a fee policy may not start in the past, and between 18:00 and 24:00
+            // UTC the UTC date is already yesterday in Dhaka.
+            'registration_fee' => '0', 'monthly_contribution' => '0', 'effective_from' => app(\App\Services\MembershipFeePolicyService::class)->today(),
         ])->assertRedirect();
 
         $this->assertDatabaseHas('membership_types', ['name' => 'আজীবন সদস্য', 'code' => 'LM']);
@@ -279,7 +287,7 @@ class MembershipManagementTest extends AdminTestCase
 
     private function paidType(): MembershipType
     {
-        return $this->makeMembershipType(['name' => 'সাধারণ (ফি সহ)', 'slug' => 'general-paid-'.uniqid(), 'sort_order' => 2], ['registration' => '500', 'monthly' => '0']);
+        return $this->makeMembershipType(['name' => 'সাধারণ (ফি সহ)', 'slug' => 'general-paid-'.uniqid(), 'sort_order' => 2, 'code' => $this->uniqueCode()], ['registration' => '500', 'monthly' => '0']);
     }
 
     private function publicApplication(MembershipType $type, string $status = 'under_review'): MembershipApplication
@@ -361,7 +369,7 @@ class MembershipManagementTest extends AdminTestCase
     public function test_a_repeat_applicant_reuses_the_existing_member_rather_than_duplicating(): void
     {
         $admin = $this->superAdmin();
-        $type = $this->makeMembershipType(['name' => 'ফ্রি টাইপ', 'slug' => 'free-'.uniqid()]);
+        $type = $this->makeMembershipType(['name' => 'ফ্রি টাইপ', 'slug' => 'free-'.uniqid(), 'code' => $this->uniqueCode()]);
 
         $first = MembershipApplication::query()->create([
             'application_no' => 'APP-A-'.uniqid(), 'applicant_name' => 'করিম', 'applicant_email' => 'karim@example.com',

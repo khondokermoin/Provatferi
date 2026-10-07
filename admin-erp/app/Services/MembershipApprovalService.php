@@ -42,8 +42,11 @@ use Throwable;
  *                                           (two people can share a family e-mail address or a phone);
  *       two different accounts, a removed account, or a person who already holds an active or suspended membership
  *                                         → blocked, with the conflict explained; nothing is merged.
- *  5. The member number keeps the existing "PF-{year}-{4 digits}" format, now taken from the membership row's own id
- *     inside the transaction (it used to be max(id)+1 read beforehand, which two approvals could both read).
+ *  5. The member number is "PLCC-{type code}-{year}-{nnnn}" — PLCC-LM-2026-0001 — from the counter of the
+ *     application's type for the year of approval (Membership task 3, App\Services\MembershipNumbering), taken inside
+ *     this transaction: never a table id, never reused, unchanged forever after. A type without a code cannot issue
+ *     one, so its applications are refused with an explanation until an admin sets the code. A retried approval returns
+ *     the number already issued and takes nothing from the counter; a refused or failed one gives its number back.
  *  6. What the applicant gave carries onto the member: address, profession, institution, and — after the transaction —
  *     a resized PRIVATE copy of the application photo (never public; the public profile has its own moderated photo).
  *     A linked account only has EMPTY fields filled in: nothing an admin or the member already recorded is overwritten.
@@ -58,12 +61,13 @@ class MembershipApprovalService
     public function __construct(
         private readonly PhotoUploadService $photos,
         private readonly MembershipFeePolicyService $fees,
+        private readonly MembershipNumbering $numbering,
     ) {
     }
 
     public function preview(MembershipApplication $application): MembershipApprovalPreview
     {
-        $application->loadMissing('payments');
+        $application->loadMissing(['payments', 'membershipType']);
         $paymentState = MembershipPaymentState::of($application);
         $statusAllows = in_array('approved', MembershipApplication::TRANSITIONS[$application->status] ?? [], true);
         $common = [
@@ -71,6 +75,8 @@ class MembershipApprovalService
             'paymentState' => $paymentState,
             'paymentSettled' => MembershipPaymentState::isSettled($paymentState),
             'shortPaid' => MembershipPaymentState::isShortPaid($application),
+            'numberingReady' => $this->numbering->typeCode($application->membershipType) !== null,
+            'nextMemberNumber' => $this->numbering->nextMemberNumber($application->membershipType),
         ];
 
         if (! $application->isPublicApplicant()) {
@@ -124,6 +130,8 @@ class MembershipApprovalService
 
     private function approveOnce(MembershipApplication $application, User $admin, ?string $internalNote, ?int $confirmedMemberId): MembershipApprovalResult
     {
+        // Three attempts: a deadlock between two approvals waiting on the same counter is resolved by the database
+        // rolling one back, and that one simply runs again (nothing it did was kept).
         return DB::transaction(function () use ($application, $admin, $internalNote, $confirmedMemberId): MembershipApprovalResult {
             /** @var MembershipApplication $locked */
             $locked = MembershipApplication::query()->whereKey($application->getKey())->lockForUpdate()->firstOrFail();
@@ -137,6 +145,9 @@ class MembershipApprovalService
             $preview = $this->preview($locked);
             if (! $preview->statusAllowsApproval) {
                 throw new MembershipApprovalBlocked('status', $locked->status);
+            }
+            if (! $preview->numberingReady) {
+                throw new MembershipApprovalBlocked('numbering', $locked->membershipType?->name);
             }
             if (! $preview->paymentSettled) {
                 throw new MembershipApprovalBlocked('payment', $preview->paymentState);
@@ -163,17 +174,13 @@ class MembershipApprovalService
                 'user_id' => $locked->user_id,
                 'member_id' => $member?->id,
                 'membership_type_id' => $locked->membership_type_id,
-                // A unique placeholder for the instant between the insert and the next statement, which derives the real
-                // number from the row's own id. Both happen inside this transaction, so no one ever reads the placeholder.
-                'member_code' => 'PF-PENDING-'.Str::uuid()->toString(),
+                // Taken from the type's counter for this year, inside this transaction (see rule 5).
+                'member_code' => $this->numbering->issueMemberNumber($locked->membershipType, $today),
                 'start_date' => $today,
                 'status' => 'active',
                 'approved_by' => $admin->id,
                 'approved_at' => now(),
             ]);
-            $membership->forceFill([
-                'member_code' => 'PF-'.substr($today, 0, 4).'-'.str_pad((string) $membership->id, 4, '0', STR_PAD_LEFT),
-            ])->save();
 
             if ($member !== null) {
                 $this->carryProfileOnto($member, $locked, $membership);
@@ -195,7 +202,7 @@ class MembershipApprovalService
             }
 
             return new MembershipApprovalResult($membership, $member, $created);
-        });
+        }, 3);
     }
 
     /**

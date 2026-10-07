@@ -21,4 +21,20 @@ return [
 
     'timezone' => env('MEMBERSHIP_TIMEZONE', 'Asia/Dhaka'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Member numbers (Membership task 3, 2026-10-07)
+    |--------------------------------------------------------------------------
+    |
+    | A member number is "{prefix}-{type code}-{year}-{sequence}", e.g.
+    | PLCC-LM-2026-0001: the prefix below, the membership type's own code
+    | (membership_types.code), the year of approval on the calendar above, and
+    | a counter of its own for that type and year (App\Services\NumberSequence).
+    | Application numbers are "APP-{year}-{sequence}" with one counter per year.
+    | See docs/MEMBERSHIP_NUMBERING.md.
+    |
+    */
+
+    'number_prefix' => 'PLCC',
+
 ];

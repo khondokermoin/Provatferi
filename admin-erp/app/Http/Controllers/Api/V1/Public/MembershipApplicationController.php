@@ -10,6 +10,7 @@ use App\Services\MembershipFeePolicyService;
 use App\Services\PhotoUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
@@ -85,8 +86,11 @@ class MembershipApplicationController extends Controller
             }
         }
 
-        $application = MembershipApplication::query()->create([
-            'application_no' => MembershipApplication::generateApplicationNo(),
+        // The application number (APP-{year}-{nnnn}) comes from the application counter, taken inside this transaction
+        // (MembershipApplication::booted): it is issued only when the row is stored — a request refused above never took
+        // one, and an insert that fails gives its number back. Two simultaneous submissions wait for each other on the
+        // counter's row, so they can never receive the same number. Retried on a deadlock, like every number-taking write.
+        $application = DB::transaction(fn () => MembershipApplication::query()->create([
             'membership_type_id' => $data['membership_type_id'],
             'membership_season_id' => $season->id,
             'applicant_name' => $data['applicant_name'],
@@ -94,7 +98,7 @@ class MembershipApplicationController extends Controller
             'applicant_phone' => $data['applicant_phone'],
             'application_data' => $applicationData !== [] ? $applicationData : null,
             'status' => 'pending',
-        ]);
+        ]), 3);
 
         return response()->json(['data' => ['application_no' => $application->application_no]], 201);
     }

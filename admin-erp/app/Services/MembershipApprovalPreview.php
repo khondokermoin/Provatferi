@@ -21,6 +21,9 @@ use App\Models\Membership;
  *   two_members     the e-mail belongs to one member account and the mobile to another
  *   removed_account the matching account was removed (soft-deleted)
  *   already_member  the person already holds an active or suspended membership
+ *
+ * numberingReady: the application's type has a code, so a member number can be issued for it (Membership task 3);
+ * nextMemberNumber: the number the approval would most likely receive (display only — another approval may come first).
  */
 final class MembershipApprovalPreview
 {
@@ -39,12 +42,14 @@ final class MembershipApprovalPreview
         public readonly ?Member $otherMember = null,
         public readonly ?Membership $existingMembership = null,
         public readonly bool $nameDiffers = false,
+        public readonly bool $numberingReady = false,
+        public readonly ?string $nextMemberNumber = null,
     ) {
     }
 
     public function canApprove(): bool
     {
-        return $this->statusAllowsApproval && $this->paymentSettled && $this->identity !== 'conflict';
+        return $this->statusAllowsApproval && $this->numberingReady && $this->paymentSettled && $this->identity !== 'conflict';
     }
 
     public function needsConfirmation(): bool

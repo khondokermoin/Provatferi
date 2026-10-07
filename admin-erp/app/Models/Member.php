@@ -50,6 +50,20 @@ class Member extends Authenticatable
         ];
     }
 
+    /**
+     * The member's own number — the number of their first membership, given to the account at approval — is permanent
+     * like the membership's (Membership task 3): set once when the account has none, never changed by a profile edit.
+     */
+    protected static function booted(): void
+    {
+        static::updating(function (self $member): void {
+            $issued = $member->getOriginal('member_code');
+            if ($member->isDirty('member_code') && is_string($issued) && $issued !== '') {
+                throw new \LogicException("A member number is permanent once issued ({$issued}).");
+            }
+        });
+    }
+
     public function memberships(): HasMany
     {
         return $this->hasMany(Membership::class);

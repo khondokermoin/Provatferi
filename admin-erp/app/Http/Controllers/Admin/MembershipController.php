@@ -11,6 +11,7 @@ use App\Models\MembershipType;
 use App\Models\Payment;
 use App\Services\ApplicationDocumentService;
 use App\Services\MembershipApprovalService;
+use App\Services\MembershipNumbering;
 use App\Support\MembershipHistory;
 use App\Support\MembershipPaymentState;
 use App\Support\Money;
@@ -35,6 +36,7 @@ class MembershipController extends Controller
     public function __construct(
         private readonly MembershipApprovalService $approvals,
         private readonly ApplicationDocumentService $documents,
+        private readonly MembershipNumbering $numbering,
     ) {
     }
 
@@ -51,7 +53,10 @@ class MembershipController extends Controller
             ->with(['user', 'membershipType', 'season', 'payments', 'membership'])
             ->when($filters['search'] !== '', function ($q) use ($filters) {
                 $term = '%'.$filters['search'].'%';
+                // An application number also matches written without its leading zeros: "2026-7" finds APP-2026-0007.
+                $numbers = $this->numbering->searchVariants($filters['search']);
                 $q->where(fn ($w) => $w->where('application_no', 'like', $term)
+                    ->when($numbers !== [], fn ($n) => $n->orWhereIn('application_no', $numbers))
                     ->orWhere('applicant_name', 'like', $term)
                     ->orWhere('applicant_email', 'like', $term)
                     ->orWhere('applicant_phone', 'like', $term)

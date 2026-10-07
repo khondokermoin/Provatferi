@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use LogicException;
 
 /**
  * A row of the member registry: one person's membership, created only by approving a MembershipApplication
@@ -38,6 +39,20 @@ class Membership extends Model
     protected function casts(): array
     {
         return ['approved_at' => 'datetime', 'start_date' => 'date', 'expiry_date' => 'date'];
+    }
+
+    /**
+     * A member number is issued once, at approval (App\Services\MembershipNumbering), and never changes afterwards —
+     * not with an edit, a status change, a profile change or anything else. Changing it is refused here.
+     */
+    protected static function booted(): void
+    {
+        static::updating(function (self $membership): void {
+            $issued = $membership->getOriginal('member_code');
+            if ($membership->isDirty('member_code') && is_string($issued) && $issued !== '') {
+                throw new LogicException("A member number is permanent once issued ({$issued}).");
+            }
+        });
     }
 
     public function user(): BelongsTo

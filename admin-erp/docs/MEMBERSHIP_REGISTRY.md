@@ -58,9 +58,11 @@ Approval runs in one database transaction with the application row locked (`SELE
 
    A conflict is explained on the review page with the details side by side; the way forward is to ask for
    information, reject or cancel.
-5. **Member number**: the existing format `PF-{year}-{4+ digits}`, taken from the membership row's own id inside the
-   transaction (the year and the joining date use the organisation's calendar, Asia/Dhaka). A new account also gets it
-   as its own `members.member_code`.
+5. **Member number** (since task 3, `docs/MEMBERSHIP_NUMBERING.md`): `PLCC-{type code}-{year}-{nnnn}`, e.g.
+   `PLCC-LM-2026-0001`, from the counter of the type for the year of approval, taken inside the transaction — never a
+   table id, never reused, never changed (the year and the joining date use the organisation's calendar, Asia/Dhaka). A
+   type without a code cannot be approved until it has one. A new account also gets the number as its own
+   `members.member_code`.
 6. **Carried onto the member**: address, profession/education and institution (optional fields of the public form);
    for a linked account only **empty** fields are filled — nothing already recorded is overwritten. After the
    transaction the application photo is copied as a resized **private** JPEG (`uploads_private/members/…`, ≤ 480 px).
@@ -112,5 +114,5 @@ marked "QA REGISTRY TEST" / `khondokermoin2k23+qareg…`; `cleanup` removes them
 
 ## Not built (by design, later tasks)
 
-Monthly dues, receipts, member-number redesign, membership type change, an applicant-side correction form for
-"information needed", online payment.
+Monthly dues, receipts, membership type change, an applicant-side correction form for "information needed", online
+payment. (The member-number redesign was task 3 — `docs/MEMBERSHIP_NUMBERING.md`.)

@@ -3,12 +3,14 @@
 namespace App\Models;
 
 use App\Services\MembershipFeePolicyService;
+use App\Services\MembershipNumbering;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use LogicException;
 
 class MembershipApplication extends Model
 {
@@ -51,6 +53,11 @@ class MembershipApplication extends Model
     }
 
     /**
+     * THE APPLICATION NUMBER (Membership task 3). A new application without one gets the next "APP-{year}-{nnnn}" from
+     * the application counter (App\Services\MembershipNumbering) — never from table ids. Create it inside a transaction
+     * (the public intake does): the number is then issued only if the row is stored, and given back if the insert fails.
+     * Once stored, the number is permanent: changing it is refused below.
+     *
      * HISTORICAL FEE SAFETY. Every application is quoted the fee policy in force on the day it is created and stores
      * that quote in its own columns, so changing a type's fees later can never change what THIS application owes. The
      * hook covers every way a row can come into being (the public form, an admin tool, tinker, a test) and only fills
@@ -61,6 +68,10 @@ class MembershipApplication extends Model
     protected static function booted(): void
     {
         static::creating(function (self $application): void {
+            if (trim((string) $application->application_no) === '') {
+                $application->application_no = app(MembershipNumbering::class)->issueApplicationNumber();
+            }
+
             if ($application->fee_snapshot_source !== null || $application->registration_fee_amount !== null || ! $application->membership_type_id) {
                 return;
             }
@@ -68,6 +79,13 @@ class MembershipApplication extends Model
             $snapshot = app(MembershipFeePolicyService::class)->snapshotFor($application->membership_type_id, $application->created_at);
             if ($snapshot !== null) {
                 $application->forceFill($snapshot);
+            }
+        });
+
+        static::updating(function (self $application): void {
+            $issued = $application->getOriginal('application_no');
+            if ($application->isDirty('application_no') && is_string($issued) && $issued !== '') {
+                throw new LogicException("An application number is permanent once issued ({$issued}).");
             }
         });
     }
@@ -169,21 +187,5 @@ class MembershipApplication extends Model
     public function applicantDisplayEmail(): string
     {
         return $this->applicant_email ?? $this->user?->email ?? '';
-    }
-
-    /**
-     * No admin-side "create application" form has ever existed — every row
-     * so far came from a test or tinker with an arbitrary application_no —
-     * so this is the first real generator, not a reuse of an existing one.
-     * Mirrors the exact "{prefix}-{year}-{4-digit-of-max-id}" shape already
-     * established for Member::member_code / Membership::member_code (§10)
-     * for visual and mechanical consistency across this app's identifiers,
-     * global running counter included (not year-scoped, matching that code).
-     */
-    public static function generateApplicationNo(): string
-    {
-        $next = (self::query()->max('id') ?? 0) + 1;
-
-        return 'APP-'.now()->format('Y').'-'.str_pad((string) $next, 4, '0', STR_PAD_LEFT);
     }
 }

@@ -300,9 +300,10 @@ async function reviewPhase() {
     const status = await page.$eval('[data-testid="application-status"]', (b) => b.textContent.trim());
     const memberLink = await page.$eval('[data-testid="open-member"]', (a) => ({ href: a.href, text: a.textContent.trim() })).catch(() => null);
     check(`review ${key}: approved, and the page links to the new member`, status.includes("অনুমোদিত") && memberLink !== null, { status, memberLink });
-    app.member_code = memberLink?.text.match(/PF-\d{4}-\d{4,}/)?.[0] ?? null;
+    app.member_code = memberLink?.text.match(/PLCC-[A-Z][A-Z0-9]{1,9}-\d{4}-\d{4,}/)?.[0] ?? null;
     app.member_url = memberLink?.href ?? null;
-    check(`review ${key}: member number in the existing PF-YYYY-NNNN format`, /^PF-\d{4}-\d{4,}$/.test(app.member_code ?? ""), app.member_code);
+    // Membership task 3 (2026-10-07): PLCC-{type code}-{year}-{nnnn}, from the type's own counter.
+    check(`review ${key}: member number in the PLCC-{code}-YYYY-NNNN format`, /^PLCC-[A-Z][A-Z0-9]{1,9}-\d{4}-\d{4,}$/.test(app.member_code ?? ""), app.member_code);
     await shotFull(page, `I-review-${key}-approved`);
     await saveState();
   }

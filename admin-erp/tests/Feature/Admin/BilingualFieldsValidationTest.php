@@ -253,7 +253,8 @@ class BilingualFieldsValidationTest extends AdminTestCase
 
         $this->actingAs($admin)->post(route('admin.membership.types.store'), [
             'name' => 'সাধারণ সদস্য', 'code' => 'GM', 'status' => 'active', 'sort_order' => 1,
-            'registration_fee' => '0', 'monthly_contribution' => '0', 'effective_from' => now()->toDateString(),
+            // the organisation's today (Dhaka): between 18:00 and 24:00 UTC the UTC date is already yesterday there
+            'registration_fee' => '0', 'monthly_contribution' => '0', 'effective_from' => app(\App\Services\MembershipFeePolicyService::class)->today(),
         ])->assertRedirect()->assertSessionHasNoErrors();
         $type = MembershipType::query()->firstOrFail();
         $this->assertNull($type->name_en);

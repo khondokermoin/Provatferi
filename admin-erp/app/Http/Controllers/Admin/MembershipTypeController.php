@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\MembershipFeePolicy;
 use App\Models\MembershipType;
 use App\Services\MembershipFeePolicyService;
+use App\Services\MembershipNumbering;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -25,10 +26,10 @@ class MembershipTypeController extends Controller
 {
     public const STATUSES = ['active' => 'সক্রিয়', 'inactive' => 'নিষ্ক্রিয়'];
 
-    /** A code is short, upper-case, starts with a letter: LM, GM, ST, HONOR2 … Stable once set. */
-    private const CODE_PATTERN = '/^[A-Z][A-Z0-9]{1,9}$/';
-
-    public function __construct(private readonly MembershipFeePolicyService $fees) {}
+    public function __construct(
+        private readonly MembershipFeePolicyService $fees,
+        private readonly MembershipNumbering $numbering,
+    ) {}
 
     public function index(): View
     {
@@ -106,6 +107,7 @@ class MembershipTypeController extends Controller
             'current' => $this->fees->effectiveFor($membershipType),
             'upcoming' => $this->fees->upcomingFor($membershipType),
             'history' => $this->fees->history($membershipType),
+            'nextMemberNumber' => $this->numbering->nextMemberNumber($membershipType),
             'today' => $today,
             'defaultFrom' => Carbon::parse($today)->addDay()->toDateString(),
         ]);
@@ -255,7 +257,7 @@ class MembershipTypeController extends Controller
     private function rules(?MembershipType $existing): array
     {
         $codeRules = [
-            $existing === null ? 'required' : 'nullable', 'string', 'regex:'.self::CODE_PATTERN,
+            $existing === null ? 'required' : 'nullable', 'string', 'regex:'.MembershipType::CODE_PATTERN,
             Rule::unique('membership_types', 'code')->ignore($existing?->id),
         ];
 

@@ -82,7 +82,7 @@ class MembershipApprovalFlowTest extends AdminTestCase
         $this->assertNotNull($member, 'approval must create the person, not only flip a status');
         $this->assertSame('approved', $application->fresh()->status);
         $this->assertSame('active', $membership->status);
-        $this->assertMatchesRegularExpression('/^PF-\d{4}-\d{4,}$/', $membership->member_code);
+        $this->assertMatchesRegularExpression('/^PLCC-ST-\d{4}-0001$/', $membership->member_code, 'the first Student number of the year (Membership task 3)');
         $this->assertSame($membership->member_code, $member->member_code);
         $this->assertSame('active', $member->status);
         $this->assertSame(mb_strtolower($application->applicant_email), $member->email);
