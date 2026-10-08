@@ -203,7 +203,7 @@ final class MembershipHistory
             return '—';
         }
 
-        return $field === 'expiry_date' ? bn_date((string) $value) : (string) $value;
+        return $field === 'expiry_date' ? calendar_date((string) $value) : (string) $value; // a calendar DATE: never shifted
     }
 
     public static function label(string $scope, string $action): string

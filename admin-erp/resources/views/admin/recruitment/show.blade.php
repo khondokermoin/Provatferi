@@ -32,7 +32,7 @@
             <x-admin.card title="{{ __('admin.common.status') }}">
                 <x-admin.status-badge :status="$jobPosting->status" class="mb-3" />
                 @if ($jobPosting->published_at)
-                    <p class="fs-12 text-muted mb-0">{{ __('admin.fields.published_label') }}: {{ bn_datetime($jobPosting->published_at) }}</p>
+                    <p class="fs-12 text-muted mb-0">{{ __('admin.fields.published_label') }}: {{ admin_datetime($jobPosting->published_at) }}</p>
                 @endif
             </x-admin.card>
 
@@ -53,13 +53,13 @@
                         @endif
                     </dd>
                     <dt class="fs-13 text-muted">{{ __('admin.fields.application_opens') }}</dt>
-                    <dd>{{ $jobPosting->opening_date ? bn_date($jobPosting->opening_date) : '—' }}</dd>
+                    <dd>{{ $jobPosting->opening_date ? calendar_date($jobPosting->opening_date) : '—' }}</dd>
                     <dt class="fs-13 text-muted">{{ __('admin.fields.application_deadline_label') }}</dt>
                     <dd class="mb-0">
                         @if ($jobPosting->isRolling())
                             {{ __('admin.fields.applications_rolling') }}
                         @else
-                            {{ $jobPosting->application_deadline ? bn_date($jobPosting->application_deadline) : '—' }}
+                            {{ $jobPosting->application_deadline ? calendar_date($jobPosting->application_deadline) : '—' }}
                         @endif
                     </dd>
                 </dl>

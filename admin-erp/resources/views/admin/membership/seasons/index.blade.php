@@ -25,7 +25,7 @@
                 <td data-label="{{ __('admin.common.type') }}">{{ \App\Models\MembershipSeason::CAMPAIGN_TYPES[$season->campaign_type] ?? $season->campaign_type }}</td>
                 <td data-label="{{ __('admin.fields.term') }}">
                     @if ($season->opens_at || $season->closes_at)
-                        {{ $season->opens_at?->format('d M Y') ?? '—' }} – {{ $season->closes_at?->format('d M Y') ?? '—' }}
+                        <span data-testid="season-window">{{ $season->opens_at ? admin_datetime($season->opens_at) : '—' }} – {{ $season->closes_at ? admin_datetime($season->closes_at) : '—' }}</span>
                     @else
                         <span class="text-muted">{{ __('admin.fields.not_scheduled') }}</span>
                     @endif

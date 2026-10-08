@@ -129,7 +129,7 @@
                     <span class="text-muted fs-12 text-break">{{ $member->holderEmail() ?: '—' }}</span>
                 </td>
                 <td data-label="{{ __('admin.common.type') }}">{{ $member->membershipType->name ?? '—' }}</td>
-                <td data-label="{{ __('admin.registry.columns.joined') }}">{{ $member->start_date ? bn_date($member->start_date) : '—' }}</td>
+                <td data-label="{{ __('admin.registry.columns.joined') }}">{{ $member->start_date ? calendar_date($member->start_date) : '—' }}</td>
                 <td data-label="{{ __('admin.registry.columns.profession') }}">
                     <span class="d-block">{{ $person?->profession ?: '—' }}</span>
                     @if ($person?->institution)

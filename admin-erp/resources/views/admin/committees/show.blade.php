@@ -37,8 +37,8 @@
 
                     <dt class="col-5 fs-13 text-muted">{{ __('admin.fields.term') }}</dt>
                     <dd class="col-7">
-                        {{ $committee->term_start ? bn_date($committee->term_start) : '—' }}<br>
-                        {{ $committee->term_end ? bn_date($committee->term_end) : __('admin.fields.ongoing') }}
+                        {{ $committee->term_start ? calendar_date($committee->term_start) : '—' }}<br>
+                        {{ $committee->term_end ? calendar_date($committee->term_end) : __('admin.fields.ongoing') }}
                     </dd>
 
                     <dt class="col-5 fs-13 text-muted">{{ __('admin.common.status') }}</dt>
@@ -123,7 +123,7 @@
                 @forelse ($committee->registrationLinks as $link)
                     <div class="d-flex justify-content-between align-items-center border-bottom py-2">
                         <div>
-                            <span class="fs-13">{{ bn_datetime($link->created_at) }}</span>
+                            <span class="fs-13">{{ admin_datetime($link->created_at) }}</span>
                             @if ($link->revoked_at)
                                 <span class="badge bg-secondary-subtle text-secondary-emphasis fs-11 ms-1">{{ __('admin.actions.cancel') }}</span>
                             @elseif ($link->expires_at && $link->expires_at->isPast())
@@ -132,7 +132,7 @@
                                 <span class="badge bg-success-subtle text-success-emphasis fs-11 ms-1">{{ __('admin.common.active') }}</span>
                             @endif
                             @if ($link->expires_at)
-                                <span class="d-block text-muted fs-12">{{ __('admin.fields.term_end') }}: {{ bn_datetime($link->expires_at) }}</span>
+                                <span class="d-block text-muted fs-12">{{ __('admin.fields.term_end') }}: {{ admin_datetime($link->expires_at) }}</span>
                             @endif
                         </div>
                         @can('organization.update')
@@ -154,7 +154,7 @@
                         <summary class="fs-13 text-primary" style="cursor:pointer">+ {{ __('admin.fields.create_new_link') }}</summary>
                         <form method="POST" action="{{ route('admin.committees.registration-links.store', $committee) }}" class="mt-2">
                             @csrf
-                            <x-admin.form-input name="expires_at" label="{{ __('admin.fields.term_end') }} ({{ __('admin.common.optional') }})" type="datetime-local" />
+                            <x-admin.form-input name="expires_at" label="{{ __('admin.fields.term_end') }} ({{ __('admin.common.optional') }})" type="datetime-local" :help="__('admin.fields.local_time_help')" />
                             <button type="submit" class="btn btn-sm btn-primary">{{ __('admin.actions.create') }}</button>
                         </form>
                     </details>
@@ -178,7 +178,7 @@
                         </td>
                         <td data-label="{{ __('admin.fields.position') }}">{{ $member->positionTitle() ?: '—' }}</td>
                         <td data-label="{{ __('admin.fields.term') }}">
-                            {{ $member->start_date ? bn_month_year($member->start_date) : '—' }} – {{ $member->end_date ? bn_month_year($member->end_date) : __('admin.fields.ongoing') }}
+                            {{ $member->start_date ? calendar_month_year($member->start_date) : '—' }} – {{ $member->end_date ? calendar_month_year($member->end_date) : __('admin.fields.ongoing') }}
                         </td>
                         <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$member->status" /></td>
                         <td data-label="{{ __('admin.actions.actions') }}" class="text-end">

@@ -5,9 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Committee;
 use App\Models\CommitteeRegistrationLink;
-use Carbon\Carbon;
+use App\Support\AdminTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 /**
  * §22: issues/revokes the public link a committee nominee registers through.
@@ -24,13 +25,16 @@ class CommitteeRegistrationLinkController extends Controller
 {
     public function store(Request $request, Committee $committee): RedirectResponse
     {
-        $data = $request->validate(['expires_at' => ['nullable', 'date', 'after:now']]);
+        $data = $request->validate(['expires_at' => ['nullable', 'date']]);
+        // Typed in Bangladesh time (the form says so) and stored as the UTC instant the link is checked against.
+        // Until 2026-10-08 the typed value was stored as if it were UTC: a link set to expire at 18:00 lasted until
+        // midnight in Dhaka.
+        $expiresAt = AdminTime::fromInput($data['expires_at'] ?? null);
+        if ($expiresAt !== null && ! $expiresAt->isFuture()) {
+            throw ValidationException::withMessages(['expires_at' => __('admin.fields.expiry_must_be_future')]);
+        }
 
-        [, $raw] = CommitteeRegistrationLink::issue(
-            $committee,
-            isset($data['expires_at']) ? Carbon::parse($data['expires_at']) : null,
-            $request->user(),
-        );
+        [, $raw] = CommitteeRegistrationLink::issue($committee, $expiresAt, $request->user());
 
         $url = rtrim(config('services.public_site.url'), '/').'/committee/register/'.$raw;
 

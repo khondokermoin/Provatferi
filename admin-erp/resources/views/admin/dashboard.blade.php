@@ -61,7 +61,7 @@
                             <div>
                                 <p class="mb-0 fw-semibold fs-14">{{ $activity->title }}</p>
                                 <p class="text-muted fs-12 mb-0">
-                                    {{ $activity->start_datetime ? bn_date($activity->start_datetime) : __('admin.dashboard.no_date') }}
+                                    {{ $activity->start_datetime ? wallclock_date($activity->start_datetime) : __('admin.dashboard.no_date') }}
                                 </p>
                             </div>
                             <x-admin.status-badge :status="$activity->status" class="fs-11 flex-shrink-0" />

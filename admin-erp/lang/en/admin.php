@@ -796,6 +796,8 @@ return [
         'publish_permission_help' => 'Publishing or scheduling needs publish permission; archiving needs archive permission.',
         'published_at_datetime_label' => 'Publish date & time',
         'published_at_help' => 'Bangladesh time. If Published and left empty, the current time is used; if Scheduled, provide a future time.',
+        'local_time_help' => 'Bangladesh time (UTC+6).',
+        'expiry_must_be_future' => 'The expiry must be in the future (Bangladesh time).',
         'expiry_date_label' => 'Expiry date',
         'expiry_help' => "The notice isn't deleted when it expires — it stays on the site, gets marked Expired, and loses its pin.",
         'pin_to_top_label' => 'Pin to the top of the list as important',

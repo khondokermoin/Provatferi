@@ -60,7 +60,7 @@
                     @endif
                 </td>
                 <td data-label="{{ __('admin.common.type') }}">{{ $activity->type?->name ?? '—' }}</td>
-                <td data-label="{{ __('admin.fields.start') }}">{{ $activity->start_datetime ? bn_date($activity->start_datetime) : '—' }}</td>
+                <td data-label="{{ __('admin.fields.start') }}">{{ $activity->start_datetime ? wallclock_date($activity->start_datetime) : '—' }}</td>
                 <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$activity->status" /></td>
                 <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">

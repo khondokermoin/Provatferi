@@ -79,7 +79,7 @@
                                 <dt class="col-7 fs-13 text-muted">{{ __('admin.fee_policy.monthly_contribution') }}</dt>
                                 <dd class="col-5 text-end fw-semibold mb-1">{{ bn_money($current->monthly_contribution) }}</dd>
                             </dl>
-                            <p class="fs-12 text-muted">{{ __('admin.fee_policy.in_force_since_date', ['date' => bn_date($current->fromDate())]) }}</p>
+                            <p class="fs-12 text-muted">{{ __('admin.fee_policy.in_force_since_date', ['date' => calendar_date($current->fromDate())]) }}</p>
                         @else
                             <p class="text-warning-emphasis fs-13"><i class="ti ti-alert-triangle" aria-hidden="true"></i> {{ __('admin.fee_policy.no_policy_in_force') }}</p>
                         @endif

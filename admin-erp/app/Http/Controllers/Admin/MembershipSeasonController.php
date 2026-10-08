@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\MembershipSeason;
 use App\Models\MembershipType;
+use App\Support\AdminTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -49,7 +50,7 @@ class MembershipSeasonController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $request->validate($this->rules(), [], $this->attributes());
+        $data = $this->localTimesToUtc($request->validate($this->rules(), [], $this->attributes()));
         $data['slug'] = $this->uniqueSlug($data['name']);
         $data['public_profile_opt_in'] = $request->boolean('public_profile_opt_in');
         $data['created_by'] = $request->user()->id;
@@ -77,7 +78,7 @@ class MembershipSeasonController extends Controller
 
     public function update(Request $request, MembershipSeason $season): RedirectResponse
     {
-        $data = $request->validate($this->rules($season), [], $this->attributes());
+        $data = $this->localTimesToUtc($request->validate($this->rules($season), [], $this->attributes()));
         $data['public_profile_opt_in'] = $request->boolean('public_profile_opt_in');
         $typeIds = $data['membership_type_ids'] ?? [];
         unset($data['membership_type_ids']);
@@ -117,6 +118,25 @@ class MembershipSeasonController extends Controller
         return redirect()->route('admin.membership.seasons.index')->with('success', __('admin.flash.season_deleted', ['name' => $name]));
     }
 
+    /**
+     * The window is typed in Bangladesh time (the form says so) and stored as the UTC instants the season is compared
+     * with (acceptsApplicationsNow(), the public cache's valid_until). Until 2026-10-08 the typed value was stored as
+     * if it were UTC, so a season set to open at 00:00 opened at 06:00 in Dhaka.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function localTimesToUtc(array $data): array
+    {
+        foreach (['opens_at', 'closes_at'] as $field) {
+            if (array_key_exists($field, $data)) {
+                $data[$field] = AdminTime::fromInput($data[$field]);
+            }
+        }
+
+        return $data;
+    }
+
     /** @return array<string, mixed> */
     private function rules(?MembershipSeason $season = null): array
     {
@@ -147,7 +167,7 @@ class MembershipSeasonController extends Controller
 
     private function uniqueSlug(string $name): string
     {
-        $base = Str::slug($name).'-'.now()->format('Y');
+        $base = Str::slug($name).'-'.AdminTime::year(); // the organisation's year, like every other admin "this year"
         $slug = $base;
         $suffix = 1;
         while (MembershipSeason::query()->where('slug', $slug)->exists()) {

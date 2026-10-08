@@ -14,12 +14,13 @@ return [
     | Without this an application submitted at 01:00 on 1 December in Dhaka (19:00
     | UTC on 30 November) would be quoted the old fee. Fee-policy dates use it,
     | and so does a membership's joining date (and the year in its member
-    | number) at approval (Membership Registry task 2); nothing else in the
-    | application changes timezone.
+    | number) at approval (Membership Registry task 2), and the monthly dues
+    | calendar (task 4). It is the same clock the admin shows every date and
+    | time on (config('app.display_timezone'), 2026-10-08) and defaults to it.
     |
     */
 
-    'timezone' => env('MEMBERSHIP_TIMEZONE', 'Asia/Dhaka'),
+    'timezone' => env('MEMBERSHIP_TIMEZONE', env('APP_DISPLAY_TIMEZONE', 'Asia/Dhaka')),
 
     /*
     |--------------------------------------------------------------------------

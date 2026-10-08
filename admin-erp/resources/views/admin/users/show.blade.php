@@ -42,10 +42,10 @@
                     <dd class="col-sm-8"><x-admin.status-badge :status="$user->status" /></dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.last_login') }}</dt>
-                    <dd class="col-sm-8">{{ $user->last_login_at ? bn_datetime($user->last_login_at) : '—' }}</dd>
+                    <dd class="col-sm-8">{{ $user->last_login_at ? admin_datetime($user->last_login_at) : '—' }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.created_at_label') }}</dt>
-                    <dd class="col-sm-8 mb-0">{{ $user->created_at ? bn_date($user->created_at) : '—' }}</dd>
+                    <dd class="col-sm-8 mb-0">{{ $user->created_at ? admin_date($user->created_at) : '—' }}</dd>
                 </dl>
             </x-admin.card>
         </div>

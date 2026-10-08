@@ -112,7 +112,7 @@
                     <x-admin.form-select name="status" label="{{ __('admin.common.status') }}" :options="$statuses"
                         :value="$jobPosting->status" :placeholder="null" required />
                     @if ($jobPosting->published_at)
-                        <p class="fs-12 text-muted mb-0">{{ __('admin.fields.first_published_label') }}: {{ bn_datetime($jobPosting->published_at) }}</p>
+                        <p class="fs-12 text-muted mb-0">{{ __('admin.fields.first_published_label') }}: {{ admin_datetime($jobPosting->published_at) }}</p>
                     @endif
 
                     @can('notices.create')

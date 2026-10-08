@@ -101,7 +101,7 @@
                        title="{{ $rowCv ? __('admin.fields.has_cv') : __('admin.fields.no_cv') }}" aria-label="{{ $rowCv ? __('admin.fields.has_cv') : __('admin.fields.no_cv') }}"></i>
                 </td>
                 <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$application->status" /></td>
-                <td data-label="{{ __('admin.fields.applied_at') }}">{{ bn_date($application->created_at) }}</td>
+                <td data-label="{{ __('admin.fields.applied_at') }}">{{ admin_date($application->created_at) }}</td>
             </tr>
         @empty
             <x-admin.empty-state colspan="7" icon="{{ $isFiltered ? 'ti-search-off' : 'ti-user-off' }}"

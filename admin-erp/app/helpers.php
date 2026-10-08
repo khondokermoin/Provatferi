@@ -1,7 +1,5 @@
 <?php
 
-use Illuminate\Support\Carbon;
-
 /*
  * CROSS-004/ADM-013 date policy: admin's chrome is Bengali-first (see the
  * Phase 1 language pass), so admin's own date displays should be too, rather
@@ -21,6 +19,9 @@ use Illuminate\Support\Carbon;
  * month names only while the admin UI locale is `bn`, and Western digits with
  * English month names under `en`. The policy above is unchanged; it simply
  * now has a second language.
+ *
+ * 2026-10-08: the DATE helpers were replaced (bn_date/bn_datetime/bn_month_year → admin_datetime, calendar_date …),
+ * because the old names did not say whether a value is a UTC timestamp or a calendar date — see the block below.
  */
 
 if (! function_exists('admin_locale_is_bn')) {
@@ -73,42 +74,79 @@ if (! function_exists('bn_month_name')) {
     }
 }
 
-/** "৫ সেপ্টেম্বর ২০২৬" / "5 September 2026" — date only, no time. */
-if (! function_exists('bn_date')) {
-    function bn_date(Carbon|string|null $value): string
-    {
-        if (! $value) {
-            return '—';
-        }
-        $date = $value instanceof Carbon ? $value : Carbon::parse($value);
+/*
+ * DATES AND TIMES (2026-10-08, docs/DATES_AND_TIMES.md). The database keeps UTC; an admin reads Asia/Dhaka. Every
+ * value shown is one of three kinds, and the helper names say which — the old bn_date()/bn_datetime() said nothing,
+ * so timestamps were shown as UTC dates (an approval at 01:00 in Dhaka read as the previous day). All of them are thin
+ * wrappers around App\Support\AdminTime:
+ *
+ *   TIMESTAMP (an instant in UTC: *_at)  admin_datetime() "৮ অক্টোবর ২০২৬, ০০:৩০" · admin_date() · admin_time() · admin_relative()
+ *   DATE (a calendar day, never moved)   calendar_date() "৮ অক্টোবর ২০২৬" · calendar_month_year() "অক্টোবর ২০২৬"
+ *   WALL CLOCK (typed Dhaka time, as     wallclock_datetime() · wallclock_date()   — an activity's start and end
+ *   stored)
+ */
 
-        return bn_digits((string) $date->day).' '.bn_month_name($date->month).' '.bn_digits((string) $date->year);
+/** A TIMESTAMP on the organisation's clock, date and 24-hour time: "৮ অক্টোবর ২০২৬, ০০:৩০" / "8 October 2026, 00:30". */
+if (! function_exists('admin_datetime')) {
+    function admin_datetime(\DateTimeInterface|string|null $timestamp): string
+    {
+        return \App\Support\AdminTime::dateTime($timestamp);
     }
 }
 
-/** "৫ সেপ্টেম্বর ২০২৬, ১৪:৩০" / "5 September 2026, 14:30" — date plus 24-hour time. */
-if (! function_exists('bn_datetime')) {
-    function bn_datetime(Carbon|string|null $value): string
+/** The organisation's calendar day of a TIMESTAMP: "৮ অক্টোবর ২০২৬" / "8 October 2026". */
+if (! function_exists('admin_date')) {
+    function admin_date(\DateTimeInterface|string|null $timestamp): string
     {
-        if (! $value) {
-            return '—';
-        }
-        $date = $value instanceof Carbon ? $value : Carbon::parse($value);
-
-        return bn_date($date).', '.bn_digits($date->format('H:i'));
+        return \App\Support\AdminTime::date($timestamp);
     }
 }
 
-/** "সেপ্টেম্বর ২০২৬" / "September 2026" — used for committee/membership term ranges. */
-if (! function_exists('bn_month_year')) {
-    function bn_month_year(Carbon|string|null $value): string
+/** The organisation's 24-hour time of a TIMESTAMP: "০০:৩০" / "00:30". */
+if (! function_exists('admin_time')) {
+    function admin_time(\DateTimeInterface|string|null $timestamp): string
     {
-        if (! $value) {
-            return '—';
-        }
-        $date = $value instanceof Carbon ? $value : Carbon::parse($value);
+        return \App\Support\AdminTime::time($timestamp);
+    }
+}
 
-        return bn_month_name($date->month).' '.bn_digits((string) $date->year);
+/** A TIMESTAMP relative to now: "৩ মিনিট আগে" / "3 minutes ago". */
+if (! function_exists('admin_relative')) {
+    function admin_relative(\DateTimeInterface|string|null $timestamp): string
+    {
+        return \App\Support\AdminTime::relative($timestamp);
+    }
+}
+
+/** A calendar DATE exactly as stored, never converted: "৮ অক্টোবর ২০২৬" / "8 October 2026". */
+if (! function_exists('calendar_date')) {
+    function calendar_date(\DateTimeInterface|string|null $date): string
+    {
+        return \App\Support\AdminTime::calendarDate($date);
+    }
+}
+
+/** A calendar DATE's month and year, as stored: "অক্টোবর ২০২৬" / "October 2026" — committee and membership terms. */
+if (! function_exists('calendar_month_year')) {
+    function calendar_month_year(\DateTimeInterface|string|null $date): string
+    {
+        return \App\Support\AdminTime::calendarMonthYear($date);
+    }
+}
+
+/** A WALL-CLOCK date-time typed in Dhaka time and stored as typed (an activity), with its time, never converted. */
+if (! function_exists('wallclock_datetime')) {
+    function wallclock_datetime(\DateTimeInterface|string|null $value): string
+    {
+        return \App\Support\AdminTime::wallClockDateTime($value);
+    }
+}
+
+/** The day of a WALL-CLOCK date-time, never converted. */
+if (! function_exists('wallclock_date')) {
+    function wallclock_date(\DateTimeInterface|string|null $value): string
+    {
+        return \App\Support\AdminTime::wallClockDate($value);
     }
 }
 

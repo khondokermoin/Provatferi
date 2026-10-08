@@ -56,6 +56,15 @@
  *   `cleanup` also removes the QA memberships' dues, allocations, monthly payments and due history, then the QA types with
  *   all their policies (the ones made in the browser too). `snapshot` fingerprints the dues tables, policies and types.
  *
+ * ADMIN DATES AND TIMES (2026-10-08, docs/DATES_AND_TIMES.md):
+ *   time-setup            idempotent: ONE QA Lifetime application ("QA REGISTRY TEST time A"), under review, whose created_at
+ *                         is set to 2026-10-07 18:30:00 UTC — the owner's example, 00:30 on 8 October in Dhaka.
+ *   time-probe            READ-ONLY. The RAW stored values (exactly as in the database, UTC) behind the admin screens the
+ *                         browser compares: the QA application, its payments, membership, dues payments and history; and,
+ *                         without names or contact details, the latest real recruitment applications, committee
+ *                         submissions and registration links, notices, activities, seasons, fee policies and admin
+ *                         users. The browser converts them itself and compares with what each page shows.
+ *
  * QA rows are recognised ONLY by their markers: applicant_name starting "QA REGISTRY TEST", member e-mail starting
  * "khondokermoin2k23+qareg", the season slug "qa-registry-test-season", the type slug starting "qa-dues-test-".
  *
@@ -627,6 +636,62 @@ if ($mode === 'dues-inspect') {
     ]);
 }
 
+// ------------------------------------------------------------------------------------------------ time-setup
+if ($mode === 'time-setup') {
+    $type = MembershipType::query()->where('code', 'LM')->first();
+    if ($type === null) {
+        out(['mode' => $mode, 'ok' => false, 'error' => 'needs the LM type'], 1);
+    }
+    $email = QA_EMAIL.'-time-a@gmail.com';
+    $application = MembershipApplication::query()->where('applicant_email', $email)->where('applicant_name', 'like', QA_NAME.'%')->first()
+        ?? DB::transaction(fn () => MembershipApplication::query()->create([
+            'applicant_name' => QA_NAME.' time A (LM)', 'applicant_email' => $email, 'applicant_phone' => '01999700001',
+            'membership_type_id' => $type->id, 'application_data' => ['profession' => 'QA', 'institution' => 'QA'], 'status' => 'under_review',
+        ]), 3);
+    // The owner's example instant, written straight to the row (no model event): 00:30 on 8 October in Dhaka.
+    DB::table('membership_applications')->where('id', $application->id)->update(['created_at' => '2026-10-07 18:30:00', 'updated_at' => '2026-10-07 18:30:00']);
+    out(['mode' => $mode, 'ok' => true, 'application_id' => $application->id, 'application_no' => $application->application_no,
+        'created_at_raw' => DB::table('membership_applications')->where('id', $application->id)->value('created_at'), 'sequences' => sequences()]);
+}
+
+// ------------------------------------------------------------------------------------------------ time-probe
+if ($mode === 'time-probe') {
+    $raw = fn (string $table, int $id, array $columns) => (array) DB::table($table)->where('id', $id)->first($columns);
+    $application = MembershipApplication::query()->where('applicant_email', QA_EMAIL.'-time-a@gmail.com')->first();
+    $membership = $application ? Membership::query()->where('membership_application_id', $application->id)->first() : null;
+    $history = fn (string $type, array $ids) => DB::table('approval_history')->where('subject_type', $type)->whereIn('subject_id', $ids)
+        ->orderBy('id')->get(['id', 'action', 'created_at'])->map(fn ($r) => (array) $r)->all();
+
+    out([
+        'mode' => $mode,
+        'utc_now' => gmdate('Y-m-d H:i:s'),
+        'qa' => $application === null ? null : [
+            'application' => $raw('membership_applications', $application->id, ['id', 'application_no', 'created_at', 'reviewed_at', 'fee_effective_on']),
+            'registration_payments' => DB::table('payments')->where('payable_type', MembershipApplication::class)->where('payable_id', $application->id)
+                ->orderBy('id')->get(['id', 'received_at', 'verified_at'])->map(fn ($r) => (array) $r)->all(),
+            'membership' => $membership === null ? null : $raw('memberships', $membership->id, ['id', 'member_code', 'start_date', 'approved_at']),
+            'monthly_payments' => $membership === null ? [] : DB::table('payments')->where('payable_type', Membership::class)->where('payable_id', $membership->id)
+                ->orderBy('id')->get(['id', 'received_at', 'verified_at'])->map(fn ($r) => (array) $r)->all(),
+            // everything the member page's timeline shows: application, membership, the member account, the dues
+            'history' => [
+                ...$history(MembershipApplication::class, [$application->id]),
+                ...($membership ? $history(Membership::class, [$membership->id]) : []),
+                ...($membership?->member_id ? $history(Member::class, [$membership->member_id]) : []),
+                ...($membership ? $history(MembershipDue::class, $membership->dues()->pluck('id')->all()) : []),
+            ],
+        ],
+        // Real rows, read only: ids and stored values, never a name, e-mail or phone.
+        'recruitment_applications' => DB::table('job_applications')->orderByDesc('id')->limit(3)->get(['id', 'application_no', 'created_at', 'submitted_at'])->map(fn ($r) => (array) $r)->all(),
+        'committee_submissions' => DB::table('committee_submissions')->orderByDesc('id')->limit(3)->get(['id', 'committee_id', 'submitted_at', 'reviewed_at'])->map(fn ($r) => (array) $r)->all(),
+        'registration_links' => DB::table('committee_registration_links')->orderByDesc('id')->limit(3)->get(['id', 'committee_id', 'created_at', 'expires_at', 'revoked_at'])->map(fn ($r) => (array) $r)->all(),
+        'notices' => DB::table('notices')->whereNull('deleted_at')->orderByDesc('id')->limit(3)->get(['id', 'published_at', 'expires_at', 'updated_at'])->map(fn ($r) => (array) $r)->all(),
+        'activities' => DB::table('activities')->orderByDesc('id')->limit(3)->get(['id', 'start_datetime', 'end_datetime', 'published_at'])->map(fn ($r) => (array) $r)->all(),
+        'seasons' => DB::table('membership_seasons')->whereNull('deleted_at')->orderByDesc('id')->get(['id', 'status', 'opens_at', 'closes_at'])->map(fn ($r) => (array) $r)->all(),
+        'fee_policies' => DB::table('membership_fee_policies')->orderBy('id')->get(['id', 'membership_type_id', 'effective_from', 'created_at', 'cancelled_at'])->map(fn ($r) => (array) $r)->all(),
+        'users' => DB::table('users')->orderBy('id')->get(['id', 'created_at', 'last_login_at'])->map(fn ($r) => (array) $r)->all(),
+    ]);
+}
+
 // ------------------------------------------------------------------------------------------------ cleanup
 if ($mode === 'cleanup') {
     $removed = ['applications' => 0, 'application_photos' => 0, 'payments' => 0, 'memberships' => 0, 'members' => 0, 'member_photos' => 0,
@@ -795,5 +860,5 @@ if ($mode === 'sweep') {
         'sequences' => sequences()]);
 }
 
-fwrite(STDERR, "usage: membership-registry-qa.php audit | snapshot | season-open [min] | season-close | inspect | invite-link <application-no> | mail-preview <application-no> | seed <n> | dues-setup | dues-invites | dues-inspect | cleanup | sweep\n");
+fwrite(STDERR, "usage: membership-registry-qa.php audit | snapshot | season-open [min] | season-close | inspect | invite-link <application-no> | mail-preview <application-no> | seed <n> | dues-setup | dues-invites | dues-inspect | time-setup | time-probe | cleanup | sweep\n");
 exit(2);

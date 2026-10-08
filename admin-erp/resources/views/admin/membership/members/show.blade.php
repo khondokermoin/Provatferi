@@ -29,7 +29,7 @@
                     <span aria-hidden="true">·</span>
                     <span>{{ $member->membershipType->name ?? '—' }}</span>
                     <span aria-hidden="true">·</span>
-                    <span>{{ __('admin.registry.joined_on', ['date' => $member->start_date ? bn_date($member->start_date) : '—']) }}</span>
+                    <span>{{ __('admin.registry.joined_on', ['date' => $member->start_date ? calendar_date($member->start_date) : '—']) }}</span>
                 </div>
             </div>
             <div class="text-sm-end">
@@ -37,7 +37,7 @@
                 @if ($statusReason)
                     <p class="fs-12 text-muted mb-0 mt-1" data-testid="status-reason">
                         {{ __('admin.registry.status_reason', ['reason' => $statusReason->note ?? '—']) }}<br>
-                        {{ $statusReason->actor?->name ?? __('admin.registry.history.system') }} · {{ bn_datetime($statusReason->created_at) }}
+                        {{ $statusReason->actor?->name ?? __('admin.registry.history.system') }} · {{ admin_datetime($statusReason->created_at) }}
                     </p>
                 @endif
             </div>
@@ -75,14 +75,14 @@
                     <dd class="col-sm-8">{{ $member->membershipType->name ?? '—' }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.registry.columns.joined') }}</dt>
-                    <dd class="col-sm-8">{{ $member->start_date ? bn_date($member->start_date) : '—' }}</dd>
+                    <dd class="col-sm-8">{{ $member->start_date ? calendar_date($member->start_date) : '—' }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.term_end') }}</dt>
-                    <dd class="col-sm-8">{{ $member->expiry_date ? bn_date($member->expiry_date) : __('admin.fields.not_scheduled') }}</dd>
+                    <dd class="col-sm-8">{{ $member->expiry_date ? calendar_date($member->expiry_date) : __('admin.fields.not_scheduled') }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.approved_at_label') }}</dt>
                     <dd class="col-sm-8">
-                        {{ $member->approved_at ? bn_datetime($member->approved_at) : '—' }}
+                        <span data-testid="member-approved-at">{{ $member->approved_at ? admin_datetime($member->approved_at) : '—' }}</span>
                         @if ($member->approver) <span class="text-muted fs-12">— {{ $member->approver->name }}</span> @endif
                     </dd>
 
@@ -106,7 +106,7 @@
                             {{ __('admin.fee_policy.registration_fee') }}: {{ bn_money($application->quotedRegistrationFee()) }}
                             · {{ __('admin.fee_policy.monthly_contribution') }}: {{ bn_money($application->quotedMonthlyContribution()) }}
                             @if ($application->fee_effective_on)
-                                <span class="d-block text-muted fs-12">{{ __('admin.fee_policy.quote_as_of', ['date' => bn_date($application->fee_effective_on)]) }}</span>
+                                <span class="d-block text-muted fs-12">{{ __('admin.fee_policy.quote_as_of', ['date' => calendar_date($application->fee_effective_on)]) }}</span>
                             @endif
                         @else
                             <span class="text-muted">{{ __('admin.fee_policy.no_quote') }}</span>
@@ -123,7 +123,7 @@
                                     <li class="border-top py-1">
                                         <x-admin.status-badge :status="$payment->status" class="fs-11" />
                                         {{ $money($payment->amount_received) }} <span class="text-muted">/ {{ $money($payment->amount_expected) }}</span>
-                                        @if ($payment->received_at) <span class="text-muted fs-12">· {{ bn_date($payment->received_at) }}</span> @endif
+                                        @if ($payment->received_at) <span class="text-muted fs-12">· {{ calendar_date($payment->received_at) }}</span> @endif
                                         @if ($payment->verified_at) <span class="text-success fs-12">· <i class="ti ti-check" aria-hidden="true"></i> {{ __('admin.fields.verified_badge') }}</span> @endif
                                     </li>
                                 @endforeach
@@ -138,7 +138,7 @@
                         @foreach ($person->seasonHistory as $seasonEntry)
                             <li class="d-flex justify-content-between border-bottom py-2">
                                 <span>{{ $seasonEntry->season->name ?? '—' }}</span>
-                                <span class="text-muted fs-12">{{ $seasonEntry->joined_at ? bn_date($seasonEntry->joined_at) : '—' }}</span>
+                                <span class="text-muted fs-12">{{ $seasonEntry->joined_at ? calendar_date($seasonEntry->joined_at) : '—' }}</span>
                             </li>
                         @endforeach
                     </ul>
@@ -186,14 +186,14 @@
                     </ul>
 
                     @if ($liveProfileVersion)
-                        <p class="fs-13 text-muted mb-3">{{ __('admin.fields.last_published_version_label') }}: {{ bn_datetime($liveProfileVersion->reviewed_at) }}</p>
+                        <p class="fs-13 text-muted mb-3">{{ __('admin.fields.last_published_version_label') }}: {{ admin_datetime($liveProfileVersion->reviewed_at) }}</p>
                     @else
                         <p class="fs-13 text-muted mb-3">{{ __('admin.fields.no_version_published_yet') }}</p>
                     @endif
 
                     @if ($pendingProfileVersion)
                         <div class="border-top pt-3">
-                            <p class="fw-semibold fs-13 mb-2">{{ __('admin.fields.pending_review_since') }} — {{ bn_datetime($pendingProfileVersion->submitted_at) }}</p>
+                            <p class="fw-semibold fs-13 mb-2">{{ __('admin.fields.pending_review_since') }} — {{ admin_datetime($pendingProfileVersion->submitted_at) }}</p>
                             <dl class="row mb-3">
                                 @if ($pendingProfileVersion->profession)
                                     <dt class="col-4 fs-12 text-muted">{{ __('admin.fields.profession') }}</dt>
@@ -264,9 +264,9 @@
                             @endif
                         </dd>
                         <dt class="col-6 text-muted">{{ __('admin.registry.detail.last_sign_in') }}</dt>
-                        <dd class="col-6">{{ $person->last_login_at ? bn_datetime($person->last_login_at) : __('admin.registry.detail.never') }}</dd>
+                        <dd class="col-6">{{ $person->last_login_at ? admin_datetime($person->last_login_at) : __('admin.registry.detail.never') }}</dd>
                         <dt class="col-6 text-muted">{{ __('admin.registry.detail.invitation') }}</dt>
-                        <dd class="col-6 mb-0">{{ $invitation ? bn_datetime($invitation->created_at) : '—' }}</dd>
+                        <dd class="col-6 mb-0">{{ $invitation ? admin_datetime($invitation->created_at) : '—' }}</dd>
                     </dl>
                     <p class="text-muted fs-12 mt-3 mb-0">{{ __('admin.registry.detail.portal_help') }}</p>
                 </x-admin.card>

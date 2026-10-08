@@ -39,13 +39,15 @@
 
                 <x-admin.card title="{{ __('admin.fields.time_and_venue') }}">
                     <div class="row">
+                        {{-- An activity's times are WALL-CLOCK Bangladesh times, stored as typed and shown as stored (here, in the
+                             admin lists and on the public site) — never converted. See App\Support\AdminTime. --}}
                         <div class="col-md-6">
                             <x-admin.form-input name="start_datetime" label="{{ __('admin.fields.opens_at_label') }}" type="datetime-local"
-                                :value="$activity->start_datetime?->format('Y-m-d\TH:i')" />
+                                :value="$activity->start_datetime?->format('Y-m-d\TH:i')" :help="__('admin.fields.local_time_help')" />
                         </div>
                         <div class="col-md-6">
                             <x-admin.form-input name="end_datetime" label="{{ __('admin.fields.closes_at_label') }}" type="datetime-local"
-                                :value="$activity->end_datetime?->format('Y-m-d\TH:i')" />
+                                :value="$activity->end_datetime?->format('Y-m-d\TH:i')" :help="__('admin.fields.local_time_help')" />
                         </div>
                     </div>
                     <div class="row">
@@ -85,7 +87,7 @@
                     </div>
 
                     @if ($activity->published_at)
-                        <p class="fs-12 text-muted mt-3 mb-0">{{ __('admin.fields.first_published_label') }}: {{ bn_datetime($activity->published_at) }}</p>
+                        <p class="fs-12 text-muted mt-3 mb-0">{{ __('admin.fields.first_published_label') }}: {{ admin_datetime($activity->published_at) }}</p>
                     @endif
                 </x-admin.card>
 

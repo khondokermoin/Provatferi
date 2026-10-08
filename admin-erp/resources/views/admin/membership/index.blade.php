@@ -65,7 +65,7 @@
                     <x-admin.payment-state :state="\App\Support\MembershipPaymentState::of($application)" class="fs-11" />
                 </td>
                 <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$application->status" /></td>
-                <td data-label="{{ __('admin.fields.submitted_at') }}">{{ bn_date($application->created_at) }}</td>
+                <td data-label="{{ __('admin.fields.submitted_at') }}">{{ admin_date($application->created_at) }}</td>
             </tr>
         @empty
             <x-admin.empty-state colspan="6" icon="{{ $isFiltered ? 'ti-search-off' : 'ti-file-off' }}"

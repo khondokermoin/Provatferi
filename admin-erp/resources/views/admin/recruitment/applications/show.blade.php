@@ -80,7 +80,7 @@
                         </dd>
 
                         <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.applied_at') }}</dt>
-                        <dd class="col-sm-8 mb-0">{{ bn_datetime($application->submitted_at ?? $application->created_at) }}</dd>
+                        <dd class="col-sm-8 mb-0" data-testid="applied-at">{{ admin_datetime($application->submitted_at ?? $application->created_at) }}</dd>
                     </dl>
                 </div>
             </x-admin.card>

@@ -55,7 +55,7 @@
                     @endif
 
                     <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.submitted_at') }}</dt>
-                    <dd class="col-sm-8 mb-0">{{ $submission->submitted_at ? bn_datetime($submission->submitted_at) : '—' }}</dd>
+                    <dd class="col-sm-8 mb-0">{{ $submission->submitted_at ? admin_datetime($submission->submitted_at) : '—' }}</dd>
                 </dl>
             </x-admin.card>
 
@@ -89,7 +89,7 @@
                             <li class="border-bottom pb-2 mb-2">
                                 <span class="fw-semibold">{{ $statuses[$entry->action] ?? $entry->action }}</span>
                                 — {{ $entry->actor?->name ?? __('admin.nav.groups.system') }}
-                                <span class="text-muted d-block fs-12">{{ bn_datetime($entry->created_at) }}</span>
+                                <span class="text-muted d-block fs-12">{{ admin_datetime($entry->created_at) }}</span>
                                 @if ($entry->note)
                                     <span class="d-block">{{ $entry->note }}</span>
                                 @endif
@@ -105,7 +105,7 @@
                 <x-admin.status-badge :status="$submission->status" class="mb-2" />
                 @if ($submission->reviewer)
                     <p class="fs-13 text-muted mb-0">
-                        {{ __('admin.fields.last_review_label') }}: {{ $submission->reviewer->name }} — {{ $submission->reviewed_at ? bn_datetime($submission->reviewed_at) : '—' }}
+                        {{ __('admin.fields.last_review_label') }}: {{ $submission->reviewer->name }} — {{ $submission->reviewed_at ? admin_datetime($submission->reviewed_at) : '—' }}
                     </p>
                 @endif
             </x-admin.card>

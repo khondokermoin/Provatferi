@@ -198,7 +198,7 @@
                     @foreach ($payments as $payment)
                         @php $paymentState = $payment->status === 'cancelled' ? 'cancelled' : ($payment->verified_at ? 'verified' : 'awaiting'); @endphp
                         <tr data-testid="monthly-payment-row" data-payment-id="{{ $payment->id }}" data-state="{{ $paymentState }}">
-                            <td class="text-nowrap" data-label="{{ __('admin.dues.fields.received_at') }}">{{ bn_date($payment->received_at) }}</td>
+                            <td class="text-nowrap" data-label="{{ __('admin.dues.fields.received_at') }}">{{ calendar_date($payment->received_at) }}</td>
                             <td class="text-end text-nowrap fw-semibold" data-label="{{ __('admin.dues.fields.amount') }}">{{ bn_money((string) $payment->amount_received) }}</td>
                             {{-- One wrapper per multi-part cell: on a phone (pf-table-stack) a cell is a label/value pair. --}}
                             <td data-label="{{ __('admin.dues.fields.purpose') }}">
@@ -228,8 +228,7 @@
                                 <div>
                                     @if ($paymentState === 'verified')
                                         <span class="badge bg-success-subtle text-success-emphasis"><i class="ti ti-check" aria-hidden="true"></i> {{ __('admin.dues.payment_state.verified') }}</span>
-                                        {{-- verified_at is a moment (stored in UTC); the day is the organisation's, like the received day beside it --}}
-                                        <span class="d-block text-muted fs-12">{{ $payment->verifiedBy?->name }} · {{ bn_date($payment->verified_at?->copy()->setTimezone(config('membership.timezone'))) }}</span>
+                                        <span class="d-block text-muted fs-12" data-testid="monthly-verified-at">{{ $payment->verifiedBy?->name }} · {{ admin_datetime($payment->verified_at) }}</span>
                                     @elseif ($paymentState === 'cancelled')
                                         <span class="badge bg-secondary-subtle text-secondary-emphasis"><i class="ti ti-ban" aria-hidden="true"></i> {{ __('admin.dues.payment_state.cancelled') }}</span>
                                         <span class="d-block text-muted fs-12">{{ $payment->cancellation_reason }}</span>

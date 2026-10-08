@@ -15,7 +15,8 @@
                         @endif
                     </div>
                     <div class="text-muted fs-12">
-                        {{ $entry['actor'] ?? __('admin.registry.history.system') }} · <time datetime="{{ $entry['at']?->toIso8601String() }}">{{ bn_datetime($entry['at']) }}</time>
+                        {{-- datetime: the stored UTC instant (machine-readable); the text: the same instant on the organisation's clock --}}
+                        {{ $entry['actor'] ?? __('admin.registry.history.system') }} · <time datetime="{{ $entry['at']?->copy()->utc()->toIso8601String() }}">{{ admin_datetime($entry['at']) }}</time>
                     </div>
                     @if ($entry['lines'] !== [])
                         <div class="pf-history-note pf-history-note--{{ $entry['note_kind'] }} fs-13">

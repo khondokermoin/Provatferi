@@ -59,7 +59,8 @@ Admin's login screen (`auth.blade.php`) previously had no dark-mode background a
 **Decision:** Public and admin are allowed to differ in *detail* (admin needs timestamps for audit trails; public only ever shows a date), but both must be Bengali-localized and human-readable — neither may show raw Latin-digit, English-month dates like "05 Sep 2026" in a Bengali-first interface.
 
 - **Public** (unchanged): compact `YYYY-MM-DD` with Bengali digits, e.g. `২০২৬-০৯-০৫` — `lib/api/activities.ts`'s `toDisplayDate()`.
-- **Admin** (new): human-readable Bengali date, e.g. `৫ সেপ্টেম্বর ২০২৬`, with time where needed: `৫ সেপ্টেম্বর ২০২৬, ১৪:৩০` — `app/helpers.php`'s `bn_date()` / `bn_datetime()` / `bn_month_year()`. Chosen over matching public's compact style because admin's tables and detail screens are read by trained staff who need month/day clarity at a glance, not a sortable-looking numeric string.
+- **Admin** (new): human-readable Bengali date, e.g. `৫ সেপ্টেম্বর ২০২৬`, with time where needed: `৫ সেপ্টেম্বর ২০২৬, ১৪:৩০`. Chosen over matching public's compact style because admin's tables and detail screens are read by trained staff who need month/day clarity at a glance, not a sortable-looking numeric string.
+- **Admin clock (2026-10-08):** every admin date and time is on Asia/Dhaka while the database stays UTC — `App\Support\AdminTime` and its helpers in `app/helpers.php`: `admin_datetime()` / `admin_date()` / `admin_time()` for UTC timestamps (converted), `calendar_date()` / `calendar_month_year()` for calendar dates (never converted), `wallclock_*()` for an activity's typed times. They replaced `bn_date()` / `bn_datetime()` / `bn_month_year()`, whose names did not say which kind a value was. See `admin-erp/docs/DATES_AND_TIMES.md`.
 
 Both are pure display transforms — **no stored date, no `<input type="date">` value, and no database column changed**. The `Y-m-d` values bound to native date pickers are untouched.
 

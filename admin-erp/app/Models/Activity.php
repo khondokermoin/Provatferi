@@ -27,6 +27,8 @@ class Activity extends Model
     protected function casts(): array
     {
         return [
+            // WALL-CLOCK Bangladesh times, stored as the admin typed them and shown as stored (admin and public site):
+            // never converted (App\Support\AdminTime::wallClockDateTime()). published_at, by contrast, is a UTC instant.
             'start_datetime' => 'datetime',
             'end_datetime' => 'datetime',
             'published_at' => 'datetime',

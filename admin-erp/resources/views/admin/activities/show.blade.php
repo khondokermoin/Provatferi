@@ -23,10 +23,10 @@
                     <dd class="col-sm-9">{{ $activity->type?->name ?? '—' }}</dd>
 
                     <dt class="col-sm-3 fs-13 text-muted">{{ __('admin.fields.start') }}</dt>
-                    <dd class="col-sm-9">{{ $activity->start_datetime ? bn_datetime($activity->start_datetime) : '—' }}</dd>
+                    <dd class="col-sm-9">{{ $activity->start_datetime ? wallclock_datetime($activity->start_datetime) : '—' }}</dd>
 
                     <dt class="col-sm-3 fs-13 text-muted">{{ __('admin.fields.end') }}</dt>
-                    <dd class="col-sm-9">{{ $activity->end_datetime ? bn_datetime($activity->end_datetime) : '—' }}</dd>
+                    <dd class="col-sm-9">{{ $activity->end_datetime ? wallclock_datetime($activity->end_datetime) : '—' }}</dd>
 
                     <dt class="col-sm-3 fs-13 text-muted">{{ __('admin.fields.venue') }}</dt>
                     <dd class="col-sm-9">{{ $activity->venue ?: '—' }}</dd>
@@ -68,7 +68,7 @@
                     <p class="fs-13 mb-2"><i class="ti ti-star me-1 text-warning" aria-hidden="true"></i>{{ __('admin.fields.featured') }}</p>
                 @endif
                 @if ($activity->published_at)
-                    <p class="fs-12 text-muted mb-0">{{ __('admin.fields.published_label') }}: {{ bn_datetime($activity->published_at) }}</p>
+                    <p class="fs-12 text-muted mb-0">{{ __('admin.fields.published_label') }}: {{ admin_datetime($activity->published_at) }}</p>
                 @endif
             </x-admin.card>
 

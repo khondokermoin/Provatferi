@@ -92,7 +92,7 @@
             <div class="page-container">
                 <div class="row">
                     <div class="col-12 text-center text-muted">
-                        &copy; {{ bn_number(date('Y')) }} {{ __('admin.brand.footer') }}
+                        &copy; {{ bn_number(\App\Support\AdminTime::year()) }} {{ __('admin.brand.footer') }}
                     </div>
                 </div>
             </div>

@@ -69,6 +69,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Display timezone (2026-10-08)
+    |--------------------------------------------------------------------------
+    |
+    | The application RUNS and STORES in UTC ('timezone' above — keep it: every
+    | timestamp column holds UTC, and Eloquent, the queue and the validators
+    | assume it). Everything an admin READS, and every "today" of the
+    | organisation's calendar, is on this clock instead (App\Support\AdminTime;
+    | docs/DATES_AND_TIMES.md). config('membership.timezone') defaults to the
+    | same value, and a test keeps the two equal.
+    |
+    */
+
+    'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'Asia/Dhaka'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

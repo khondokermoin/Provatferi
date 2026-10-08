@@ -231,7 +231,7 @@ class MembershipTypeController extends Controller
         $policy = $this->fees->create($membershipType, $data, $request->user());
 
         return redirect()->route('admin.membership.types.show', $membershipType)->with('success', __('admin.fee_policy.flash.created', [
-            'name' => $membershipType->name, 'date' => bn_date($policy->fromDate()),
+            'name' => $membershipType->name, 'date' => calendar_date($policy->fromDate()),
         ]));
     }
 

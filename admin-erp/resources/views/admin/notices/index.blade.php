@@ -81,10 +81,10 @@
                     </div>
                 </td>
                 <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$notice->effectiveStatus()" /></td>
-                <td data-label="{{ __('admin.fields.published_at') }}">{{ $notice->published_at ? bn_datetime($notice->localPublishedAt()) : '—' }}</td>
+                <td data-label="{{ __('admin.fields.published_at') }}">{{ $notice->published_at ? admin_datetime($notice->published_at) : '—' }}</td>
                 <td data-label="{{ __('admin.fields.term') }}">
                     @if ($notice->expires_at)
-                        {{ bn_date($notice->localExpiresAt()) }}
+                        {{ admin_date($notice->expires_at) }}
                         @if ($notice->isExpired())
                             <span class="badge bg-danger-subtle text-danger-emphasis ms-1">{{ __('admin.fields.expired') }}</span>
                         @endif

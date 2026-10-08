@@ -76,9 +76,9 @@
                         </div>
                     </div>
                     <p class="fs-13 text-muted mb-0">
-                        {{ __('admin.fee_policy.in_force_since_date', ['date' => bn_date($current->fromDate())]) }}
+                        {{ __('admin.fee_policy.in_force_since_date', ['date' => calendar_date($current->fromDate())]) }}
                         @if ($current->untilDate())
-                            · {{ __('admin.fee_policy.until_date', ['date' => bn_date($current->untilDate())]) }}
+                            · {{ __('admin.fee_policy.until_date', ['date' => calendar_date($current->untilDate())]) }}
                         @endif
                     </p>
                 @else
@@ -93,7 +93,7 @@
                         <i class="ti ti-calendar-event fs-18 mt-1" aria-hidden="true"></i>
                         <div>
                             <strong>{{ __('admin.fee_policy.scheduled_change') }}</strong> —
-                            {{ __('admin.fee_policy.scheduled_detail', ['date' => bn_date($upcoming->fromDate()), 'registration' => bn_money($upcoming->registration_fee), 'monthly' => bn_money($upcoming->monthly_contribution)]) }}
+                            {{ __('admin.fee_policy.scheduled_detail', ['date' => calendar_date($upcoming->fromDate()), 'registration' => bn_money($upcoming->registration_fee), 'monthly' => bn_money($upcoming->monthly_contribution)]) }}
                         </div>
                     </div>
                 @endif
@@ -167,10 +167,10 @@
                         @endphp
                         <tr data-policy-state="{{ $state }}">
                             <td data-label="{{ __('admin.fee_policy.effective_period') }}">
-                                <span class="fw-semibold">{{ bn_date($policy->fromDate()) }}</span>
+                                <span class="fw-semibold">{{ calendar_date($policy->fromDate()) }}</span>
                                 <span class="text-muted">→</span>
                                 @if ($policy->untilDate())
-                                    {{ bn_date($policy->untilDate()) }}
+                                    {{ calendar_date($policy->untilDate()) }}
                                 @elseif ($policy->active)
                                     <span class="text-muted">{{ __('admin.fee_policy.ongoing') }}</span>
                                 @else
@@ -186,13 +186,13 @@
                             </td>
                             <td data-label="{{ __('admin.fee_policy.created_by') }}" class="fs-13">
                                 {{ $policy->creator?->name ?? __('admin.fee_policy.system_actor') }}
-                                <span class="d-block text-muted fs-12">{{ bn_datetime($policy->created_at) }}</span>
+                                <span class="d-block text-muted fs-12">{{ admin_datetime($policy->created_at) }}</span>
                             </td>
                             <td data-label="{{ __('admin.fee_policy.reason') }}" class="fs-13">
                                 {{ $policy->note ?: '—' }}
                                 @unless ($policy->active)
                                     <span class="d-block text-danger-emphasis fs-12">
-                                        {{ __('admin.fee_policy.cancelled_detail', ['name' => $policy->canceller?->name ?? __('admin.fee_policy.system_actor'), 'date' => bn_date($policy->cancelled_at), 'reason' => $policy->cancellation_reason]) }}
+                                        {{ __('admin.fee_policy.cancelled_detail', ['name' => $policy->canceller?->name ?? __('admin.fee_policy.system_actor'), 'date' => admin_date($policy->cancelled_at), 'reason' => $policy->cancellation_reason]) }}
                                     </span>
                                 @endunless
                             </td>
@@ -221,7 +221,7 @@
         @foreach ($history as $policy)
             @if ($policy->statusOn($today) === 'scheduled')
                 <x-admin.modal :id="'cancel-policy-'.$policy->id" title="{{ __('admin.fee_policy.cancel_policy_title') }}">
-                    <p>{{ __('admin.fee_policy.cancel_policy_body', ['date' => bn_date($policy->fromDate())]) }}</p>
+                    <p>{{ __('admin.fee_policy.cancel_policy_body', ['date' => calendar_date($policy->fromDate())]) }}</p>
                     {{-- Outside the <form> only because the modal's footer slot owns the form; `form=` associates it. --}}
                     <label class="form-label" for="cancel-reason-{{ $policy->id }}">{{ __('admin.fee_policy.cancel_reason') }}</label>
                     <textarea id="cancel-reason-{{ $policy->id }}" name="cancellation_reason" form="cancel-form-{{ $policy->id }}"

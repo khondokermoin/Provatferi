@@ -48,7 +48,7 @@
                     <a href="{{ route('admin.recruitment.show', $job) }}" class="fw-semibold">{{ $job->title }}</a>
                 </td>
                 <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$job->status" /></td>
-                <td data-label="{{ __('admin.fields.deadline') }}">{{ $job->isRolling() ? __('admin.fields.ongoing') : ($job->application_deadline ? bn_date($job->application_deadline) : '—') }}</td>
+                <td data-label="{{ __('admin.fields.deadline') }}">{{ $job->isRolling() ? __('admin.fields.ongoing') : ($job->application_deadline ? calendar_date($job->application_deadline) : '—') }}</td>
                 <td data-label="{{ __('admin.fields.applications') }}">{{ $job->applications_count }}</td>
                 <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
                     <div class="dropdown">

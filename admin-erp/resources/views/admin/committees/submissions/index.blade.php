@@ -37,7 +37,7 @@
                     </a>
                 </td>
                 <td data-label="{{ __('admin.fields.position') }}">{{ $submission->position?->name ?? '—' }}</td>
-                <td data-label="{{ __('admin.fields.submitted_at') }}">{{ $submission->submitted_at ? bn_datetime($submission->submitted_at) : '—' }}</td>
+                <td data-label="{{ __('admin.fields.submitted_at') }}">{{ $submission->submitted_at ? admin_datetime($submission->submitted_at) : '—' }}</td>
                 <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$submission->status" /></td>
             </tr>
         @empty

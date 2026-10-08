@@ -60,10 +60,10 @@
                 <x-admin.status-badge :status="$notice->effectiveStatus()" class="mb-3" />
                 <dl class="mb-0">
                     <dt class="fs-13 text-muted">{{ __('admin.fields.published_at') }}</dt>
-                    <dd>{{ $notice->published_at ? bn_datetime($notice->localPublishedAt()) : '—' }}</dd>
+                    <dd>{{ $notice->published_at ? admin_datetime($notice->published_at) : '—' }}</dd>
                     <dt class="fs-13 text-muted">{{ __('admin.fields.term_end') }}</dt>
                     <dd>
-                        {{ $notice->expires_at ? bn_datetime($notice->localExpiresAt()) : __('admin.fields.not_scheduled') }}
+                        {{ $notice->expires_at ? admin_datetime($notice->expires_at) : __('admin.fields.not_scheduled') }}
                         @if ($notice->isExpired())
                             <span class="badge bg-danger-subtle text-danger-emphasis ms-1">{{ __('admin.fields.expired') }}</span>
                         @endif
@@ -82,7 +82,7 @@
                     <dt class="fs-13 text-muted">{{ __('admin.fields.created_by_last_updated') }}</dt>
                     <dd class="mb-0 fs-13">
                         {{ $notice->creator?->name ?? '—' }} / {{ $notice->updater?->name ?? '—' }}
-                        <span class="d-block text-muted">{{ bn_datetime($notice->updated_at?->copy()->timezone(\App\Models\Notice::DISPLAY_TIMEZONE)) }}</span>
+                        <span class="d-block text-muted">{{ admin_datetime($notice->updated_at) }}</span>
                     </dd>
                 </dl>
             </x-admin.card>

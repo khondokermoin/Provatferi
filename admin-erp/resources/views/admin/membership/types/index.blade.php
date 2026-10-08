@@ -92,7 +92,7 @@
                 </td>
                 <td data-label="{{ __('admin.fee_policy.in_force_since') }}">
                     @if ($policy)
-                        {{ bn_date($policy->fromDate()) }}
+                        {{ calendar_date($policy->fromDate()) }}
                     @else
                         <span class="text-muted">—</span>
                     @endif
@@ -103,7 +103,7 @@
                             </span>
                         </span>
                         <span class="d-block text-muted fs-12">
-                            {{ __('admin.fee_policy.scheduled_detail', ['date' => bn_date($next->fromDate()), 'registration' => bn_money($next->registration_fee), 'monthly' => bn_money($next->monthly_contribution)]) }}
+                            {{ __('admin.fee_policy.scheduled_detail', ['date' => calendar_date($next->fromDate()), 'registration' => bn_money($next->registration_fee), 'monthly' => bn_money($next->monthly_contribution)]) }}
                         </span>
                     @endif
                 </td>

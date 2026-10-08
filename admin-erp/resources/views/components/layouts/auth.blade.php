@@ -99,7 +99,7 @@
     </div>
 
     <p class="text-center text-muted fs-12 pf-footer-note">
-        &copy; {{ bn_number(date('Y')) }} {{ __('admin.brand.org_full') }}
+        &copy; {{ bn_number(\App\Support\AdminTime::year()) }} {{ __('admin.brand.org_full') }}
     </p>
 </div>
 

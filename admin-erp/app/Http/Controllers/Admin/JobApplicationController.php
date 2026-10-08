@@ -10,6 +10,7 @@ use App\Services\ApplicationDocumentService;
 use App\Services\NoticeFileService;
 use App\Services\RecruitmentPdfService;
 use App\Support\AdminLocale;
+use App\Support\AdminTime;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -63,8 +64,9 @@ class JobApplicationController extends Controller
             ->when($filters['posting'] !== '', fn ($q) => $q->where('job_posting_id', $filters['posting']))
             ->when($filters['skill'] !== '', fn ($q) => $q->whereJsonContains('skills', $filters['skill']))
             ->when($filters['district'] !== '', fn ($q) => $q->where('district', $filters['district']))
-            ->when($filters['from'] !== '', fn ($q) => $q->whereDate('created_at', '>=', $filters['from']))
-            ->when($filters['to'] !== '', fn ($q) => $q->whereDate('created_at', '<=', $filters['to']))
+            // From / to are days on the organisation's (Dhaka) calendar, not UTC days.
+            ->when(AdminTime::day($filters['from']) !== null, fn ($q) => $q->where('created_at', '>=', AdminTime::startOfDayUtc($filters['from'])))
+            ->when(AdminTime::day($filters['to']) !== null, fn ($q) => $q->where('created_at', '<', AdminTime::endOfDayUtc($filters['to'])))
             ->latest()
             ->paginate(15)
             ->withQueryString();

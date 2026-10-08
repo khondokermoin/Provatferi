@@ -72,7 +72,7 @@
                     @endif
 
                     <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.submission_date') }}</dt>
-                    <dd class="col-sm-8 mb-0">{{ bn_datetime($application->created_at) }}</dd>
+                    <dd class="col-sm-8 mb-0" data-testid="application-submitted-at">{{ admin_datetime($application->created_at) }}</dd>
                 </dl>
             </x-admin.card>
 
@@ -100,7 +100,7 @@
                         @if ($application->fee_snapshot_source === 'legacy_flat_fee')
                             <span class="d-block text-muted fs-12">{{ __('admin.fee_policy.quote_legacy_note') }}</span>
                         @elseif ($application->fee_effective_on)
-                            <span class="d-block text-muted fs-12">{{ __('admin.fee_policy.quote_as_of', ['date' => bn_date($application->fee_effective_on)]) }}</span>
+                            <span class="d-block text-muted fs-12">{{ __('admin.fee_policy.quote_as_of', ['date' => calendar_date($application->fee_effective_on)]) }}</span>
                         @endif
                     </dd>
 
@@ -119,7 +119,7 @@
                                 <span class="fw-semibold">{{ $money($payment->amount_received) }}</span>
                                 <span class="text-muted fs-12">{{ __('admin.fields.expected_slash') }} {{ $money($payment->amount_expected) }}</span>
                                 <span class="d-block text-muted fs-12">
-                                    {{ $payment->received_at ? bn_date($payment->received_at) : '—' }} — {{ $payment->reference ?: __('admin.fields.no_reference') }}
+                                    <span data-testid="payment-received-at">{{ $payment->received_at ? calendar_date($payment->received_at) : '—' }}</span> — {{ $payment->reference ?: __('admin.fields.no_reference') }}
                                     @if ($payment->receivedBy) · {{ __('admin.registry.review.recorded_by', ['name' => $payment->receivedBy->name]) }} @endif
                                 </span>
                                 @if ($payment->status === 'waived')
@@ -132,6 +132,7 @@
                                     <span class="d-block text-success fs-11 mt-1">
                                         <i class="ti ti-check" aria-hidden="true"></i> {{ __('admin.fields.verified_badge') }}@if ($payment->verifiedBy && $payment->status === 'paid') · {{ $payment->verifiedBy->name }}@endif
                                     </span>
+                                    <span class="d-block text-muted fs-11" data-testid="payment-verified-at">{{ admin_datetime($payment->verified_at) }}</span>
                                 @elseif ($payment->status === 'paid')
                                     @can('payments.approve')
                                         <form method="POST" action="{{ route('admin.membership.payments.verify', $payment) }}" class="d-inline">
@@ -160,7 +161,8 @@
                                         <x-admin.form-input name="amount_received" label="{{ __('admin.fields.received_amount') }}" type="number" step="0.01" min="0" required />
                                     </div>
                                 </div>
-                                <x-admin.form-input name="received_at" label="{{ __('admin.fields.date_received') }}" type="date" :value="now()->toDateString()" required />
+                                {{-- Today on the organisation's calendar: the UTC date is still yesterday until 06:00 in Dhaka. --}}
+                                <x-admin.form-input name="received_at" label="{{ __('admin.fields.date_received') }}" type="date" :value="\App\Support\AdminTime::today()" required />
                                 <x-admin.form-input name="reference" label="{{ __('admin.fields.reference') }} ({{ __('admin.common.optional') }})" />
                                 <button type="submit" class="btn btn-sm btn-primary">{{ __('admin.fields.record_action') }}</button>
                             </form>
@@ -191,7 +193,7 @@
                 <x-admin.status-badge :status="$application->status" class="mb-2" data-testid="application-status" />
                 @if ($application->reviewer)
                     <p class="fs-13 text-muted mb-0">
-                        {{ __('admin.fields.last_review_label') }}: {{ $application->reviewer->name }} — {{ $application->reviewed_at ? bn_datetime($application->reviewed_at) : '—' }}
+                        {{ __('admin.fields.last_review_label') }}: {{ $application->reviewer->name }} — {{ $application->reviewed_at ? admin_datetime($application->reviewed_at) : '—' }}
                     </p>
                 @endif
 

@@ -22,12 +22,13 @@
                 <x-admin.card title="{{ __('admin.fields.timeline_and_term') }}">
                     <div class="row">
                         <div class="col-md-6">
+                            {{-- Stored in UTC; the admin types and reads Bangladesh time (MembershipSeasonController converts). --}}
                             <x-admin.form-input name="opens_at" label="{{ __('admin.fields.opens_at_label') }}" type="datetime-local"
-                                :value="$season->opens_at?->format('Y-m-d\TH:i')" />
+                                :value="\App\Support\AdminTime::toInput($season->opens_at)" :help="__('admin.fields.local_time_help')" />
                         </div>
                         <div class="col-md-6">
                             <x-admin.form-input name="closes_at" label="{{ __('admin.fields.closes_at_label') }}" type="datetime-local"
-                                :value="$season->closes_at?->format('Y-m-d\TH:i')" />
+                                :value="\App\Support\AdminTime::toInput($season->closes_at)" :help="__('admin.fields.local_time_help')" />
                         </div>
                     </div>
                     <x-admin.form-input name="membership_period_months" label="{{ __('admin.fields.membership_period_months') }}" type="number"

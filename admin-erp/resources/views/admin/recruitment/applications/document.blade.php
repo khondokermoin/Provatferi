@@ -23,7 +23,7 @@
     print()/pdf()) sets App::setLocale() to the requested document language
     (?doclang=bn|en, defaulting to the admin's own current locale) BEFORE
     building $contactLabels and rendering this view — every __()/option_label()
-    call below, and bn_datetime()'s digit/month-name choice, therefore follows
+    call below, and admin_datetime()'s digit/month-name choice, therefore follows
     that document language, completely independent of the admin's own UI
     locale for the rest of the panel. What must NEVER be translated stays
     untouched here: every literal $application->applicant_* / district /
@@ -102,7 +102,7 @@
     </tr>
     <tr>
         <td class="meta-label">{{ __('admin.fields.submitted_at') }}</td>
-        <td colspan="3">{{ bn_datetime($application->submitted_at ?? $application->created_at) }}</td>
+        <td colspan="3">{{ admin_datetime($application->submitted_at ?? $application->created_at) }}</td>
     </tr>
 </table>
 
@@ -171,5 +171,5 @@
 </ul>
 
 <div class="doc-footer">
-    {{ __('admin.document.generated_footer', ['datetime' => bn_datetime($generatedAt)]) }}
+    {{ __('admin.document.generated_footer', ['datetime' => admin_datetime($generatedAt)]) }}
 </div>

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\AdminTime;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,7 +14,11 @@ class Notice extends Model
 {
     use SoftDeletes;
 
-    /** The app stores UTC; every date an admin types or a visitor reads is Bangladesh time. */
+    /**
+     * The app stores UTC; every date an admin types or a visitor reads is Bangladesh time. The public notice API groups
+     * by year on this clock; the admin converts through App\Support\AdminTime (config('app.display_timezone'), the
+     * same Asia/Dhaka — a test keeps the two equal).
+     */
     public const DISPLAY_TIMEZONE = 'Asia/Dhaka';
 
     public const PUBLIC_SITE_URL = 'https://provatferi.org';
@@ -133,16 +138,6 @@ class Notice extends Model
         return self::TYPES[$this->notice_type] ?? self::TYPES['other'];
     }
 
-    public function localPublishedAt(): ?Carbon
-    {
-        return $this->published_at?->copy()->timezone(self::DISPLAY_TIMEZONE);
-    }
-
-    public function localExpiresAt(): ?Carbon
-    {
-        return $this->expires_at?->copy()->timezone(self::DISPLAY_TIMEZONE);
-    }
-
     public function publicUrl(): string
     {
         return self::PUBLIC_SITE_URL.'/notices/'.$this->slug;
@@ -170,14 +165,16 @@ class Notice extends Model
         return $slug;
     }
 
+    /** An admin's datetime-local input (Bangladesh time) as the UTC instant to store. */
     public static function toUtc(?string $localDateTime): ?Carbon
     {
-        return $localDateTime ? Carbon::parse($localDateTime, self::DISPLAY_TIMEZONE)->utc() : null;
+        return AdminTime::fromInput($localDateTime);
     }
 
+    /** A stored UTC instant as the value of a datetime-local input (Bangladesh time). */
     public static function toLocalInput(?Carbon $utc): ?string
     {
-        return $utc?->copy()->timezone(self::DISPLAY_TIMEZONE)->format('Y-m-d\TH:i');
+        return AdminTime::toInput($utc);
     }
 
     public static function bodyFromJobPosting(JobPosting $job): string

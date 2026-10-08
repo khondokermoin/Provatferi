@@ -35,7 +35,7 @@
 
 This is an automated message from Provatferi's official systems. For help, contact [{{ config('mail.reply_to.support') }}](mailto:{{ config('mail.reply_to.support') }}).
 
-© {{ date('Y') }} {{ config('mail.from.name') }}. {{ __('All rights reserved.') }}
+© {{ \App\Support\AdminTime::year() }} {{ config('mail.from.name') }}. {{ __('All rights reserved.') }}
 </x-mail::footer>
 </x-slot:footer>
 </x-mail::layout>

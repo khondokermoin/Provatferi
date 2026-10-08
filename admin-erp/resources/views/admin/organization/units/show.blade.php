@@ -37,7 +37,7 @@
                     <dd class="col-sm-8">{{ $unit->sort_order }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.fields.founding_date') }}</dt>
-                    <dd class="col-sm-8">{{ $unit->established_date ? bn_date($unit->established_date) : '—' }}</dd>
+                    <dd class="col-sm-8">{{ $unit->established_date ? calendar_date($unit->established_date) : '—' }}</dd>
 
                     <dt class="col-sm-4 fs-13 text-muted">{{ __('admin.common.description') }}</dt>
                     <dd class="col-sm-8 mb-0">{{ $unit->description ?: '—' }}</dd>

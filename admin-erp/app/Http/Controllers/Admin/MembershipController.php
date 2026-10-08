@@ -12,6 +12,7 @@ use App\Models\Payment;
 use App\Services\ApplicationDocumentService;
 use App\Services\MembershipApprovalService;
 use App\Services\MembershipNumbering;
+use App\Support\AdminTime;
 use App\Support\MembershipHistory;
 use App\Support\MembershipPaymentState;
 use App\Support\Money;
@@ -64,7 +65,11 @@ class MembershipController extends Controller
             })
             ->when($filters['status'] !== '', fn ($q) => $q->where('status', $filters['status']))
             ->when($filters['type'] !== '', fn ($q) => $q->where('membership_type_id', $filters['type']))
-            ->when($filters['date'] !== '', fn ($q) => $q->whereDate('created_at', $filters['date']))
+            // The day is the organisation's (Dhaka): an application sent at 01:00 on 8 October in Dhaka is stored as
+            // 19:00 UTC on 7 October, and belongs to 8 October.
+            ->when(AdminTime::day($filters['date']) !== null, fn ($q) => $q
+                ->where('created_at', '>=', AdminTime::startOfDayUtc($filters['date']))
+                ->where('created_at', '<', AdminTime::endOfDayUtc($filters['date'])))
             ->latest()
             ->paginate(15)
             ->withQueryString();

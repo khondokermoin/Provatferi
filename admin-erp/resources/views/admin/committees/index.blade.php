@@ -62,7 +62,7 @@
                 </td>
                 <td data-label="{{ __('admin.fields.unit_short') }}">{{ $committee->organizationUnit?->name ?? '—' }}</td>
                 <td data-label="{{ __('admin.fields.term') }}">
-                    {{ $committee->term_start ? bn_month_year($committee->term_start) : '—' }} – {{ $committee->term_end ? bn_month_year($committee->term_end) : __('admin.fields.ongoing') }}
+                    {{ $committee->term_start ? calendar_month_year($committee->term_start) : '—' }} – {{ $committee->term_end ? calendar_month_year($committee->term_end) : __('admin.fields.ongoing') }}
                 </td>
                 <td data-label="{{ __('admin.fields.member') }}">{{ $committee->members_count }}</td>
                 <td data-label="{{ __('admin.common.status') }}"><x-admin.status-badge :status="$committee->status" /></td>
