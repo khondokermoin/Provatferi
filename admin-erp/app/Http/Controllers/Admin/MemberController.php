@@ -112,7 +112,7 @@ class MemberController extends Controller
 
         $membership->load([
             'user', 'member.seasonHistory.season', 'membershipType', 'approver',
-            'application.payments.receivedBy', 'application.payments.verifiedBy', 'application.payments.waivedBy',
+            'application.payments.receivedBy', 'application.payments.verifiedBy', 'application.payments.waivedBy', 'application.payments.receipt',
             'application.feePolicy', 'application.season',
         ]);
 
@@ -136,7 +136,7 @@ class MemberController extends Controller
             'monthly' => $this->dues->summary($membership),
             'monthlyPayments' => $membership->payments()
                 ->whereIn('category', [Payment::CATEGORY_MONTHLY, Payment::CATEGORY_VOLUNTARY])
-                ->with(['due', 'receivedBy', 'verifiedBy', 'canceller', 'allocations.due'])
+                ->with(['due', 'receivedBy', 'verifiedBy', 'canceller', 'allocations.due', 'receipt'])
                 ->orderByDesc('id')->get(),
             'history' => MembershipHistory::forMembership($membership),
             'otherMemberships' => $membership->member_id

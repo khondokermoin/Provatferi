@@ -125,6 +125,7 @@
                                         {{ $money($payment->amount_received) }} <span class="text-muted">/ {{ $money($payment->amount_expected) }}</span>
                                         @if ($payment->received_at) <span class="text-muted fs-12">· {{ calendar_date($payment->received_at) }}</span> @endif
                                         @if ($payment->verified_at) <span class="text-success fs-12">· <i class="ti ti-check" aria-hidden="true"></i> {{ __('admin.fields.verified_badge') }}</span> @endif
+                                        <x-admin.receipt-links :payment="$payment" />
                                     </li>
                                 @endforeach
                             </ul>

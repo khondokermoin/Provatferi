@@ -39,6 +39,7 @@ final class MembershipDueLedger
     public function __construct(
         private readonly MembershipDueSchedule $schedule,
         private readonly MembershipFeePolicyService $fees,
+        private readonly PaymentReceiptService $receipts,
     ) {
     }
 
@@ -214,6 +215,11 @@ final class MembershipDueLedger
             if ($locked->category === Payment::CATEGORY_MONTHLY) {
                 $this->applyCredit($membership, $by);
             }
+
+            // The official receipt (Membership task 5), last: this payment's allocations are final now, so the receipt
+            // records exactly where its money went at the moment it was verified; and the counter row is locked only
+            // for the rest of this transaction. A failure above, or a rollback, issues nothing.
+            $this->receipts->issueFor($locked, $by);
 
             return 'verified';
         }, 3);

@@ -7,6 +7,7 @@ use App\Models\Member;
 use App\Models\Membership;
 use App\Models\MembershipApplication;
 use App\Models\MembershipDue;
+use App\Models\PaymentReceipt;
 use App\Models\PublicMemberProfileVersion;
 use Illuminate\Support\Collection;
 
@@ -39,6 +40,8 @@ final class MembershipHistory
         'dues_generated' => 'ti-calendar-event', 'dues_paused' => 'ti-player-pause', 'dues_resumed' => 'ti-refresh',
         'monthly_payment_recorded' => 'ti-cash', 'monthly_payment_verified' => 'ti-check', 'monthly_payment_cancelled' => 'ti-ban',
         'credit_applied' => 'ti-arrow-right', 'waived' => 'ti-badge',
+        // official receipts (Membership task 5)
+        'receipt_issued' => 'ti-receipt',
     ];
 
     /** @return Collection<int, array<string, mixed>> */
@@ -168,6 +171,15 @@ final class MembershipHistory
                 is_string($w['reason'] ?? null) ? __('admin.dues.history.reason', ['reason' => $w['reason']]) : null,
             ]));
         }
+        if (is_array($data['receipt'] ?? null)) {
+            $r = $data['receipt'];
+            $purpose = is_string($r['purpose'] ?? null) && in_array($r['purpose'], PaymentReceipt::PURPOSES, true) ? __('admin.receipt.purpose.'.$r['purpose']) : '—';
+
+            return array_values(array_filter([
+                is_string($r['no'] ?? null) ? $r['no'] : null, // an identifier: Latin in every language
+                __('admin.receipt.history.line', ['amount' => bn_money(is_string($r['amount'] ?? null) ? $r['amount'] : null), 'purpose' => $purpose]),
+            ]));
+        }
         if (is_array($data['monthly_payment'] ?? null)) {
             $p = $data['monthly_payment'];
             $for = match ($p['purpose'] ?? null) {
@@ -223,7 +235,7 @@ final class MembershipHistory
             $scope === 'application' && $action === 'approved' => 'internal',
             in_array($action, ['suspended', 'archived', 'activated', 'reactivated'], true) && $scope === 'membership' => 'reason',
             $action === 'updated' => 'changes',
-            in_array($action, ['created', 'account_created', 'account_linked', 'invitation_sent'], true) => 'ref',
+            in_array($action, ['created', 'account_created', 'account_linked', 'invitation_sent', 'receipt_issued'], true) => 'ref',
             $scope === 'profile' => 'reason',
             default => 'internal',
         };

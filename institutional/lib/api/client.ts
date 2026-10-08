@@ -308,6 +308,47 @@ export async function apiGetAuthenticated<T>(path: string, token: string, opts: 
   return { ok: true, data: json };
 }
 
+/** A PDF is built per request (Membership task 5: a receipt is never stored), so the wait is longer than for JSON. */
+const DEFAULT_FILE_TIMEOUT_MS = 30000;
+
+export type ApiFileResult = { ok: true; response: Response } | { ok: false; status: number | null; error: ApiErrorReason };
+
+/**
+ * Same Bearer-token GET as apiGetAuthenticated, for an answer that is a FILE (a member's receipt as a PDF): the Response
+ * is handed back unread so the caller can stream it on, and a refusal carries its HTTP status so the caller can tell a
+ * signed-out member (401/403) from a receipt that is not theirs or does not exist (404). Never throws, never cached.
+ */
+export async function apiGetAuthenticatedFile(path: string, token: string, opts: { accept: string; timeoutMs?: number }): Promise<ApiFileResult> {
+  const base = baseUrl();
+  if (!base) {
+    console.error(`[api] LARAVEL_API_URL is not configured; skipping fetch for ${path}`);
+    return { ok: false, status: null, error: "not_configured" };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), opts.timeoutMs ?? DEFAULT_FILE_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`${base}${path}`, {
+      signal: controller.signal,
+      headers: { Accept: opts.accept, Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      logFailure(path, "http_error", `HTTP ${response.status}`);
+      await response.body?.cancel();
+      return { ok: false, status: response.status, error: "http_error" };
+    }
+    return { ok: true, response };
+  } catch (err) {
+    const reason: ApiErrorReason = err instanceof DOMException && err.name === "AbortError" ? "timeout" : "network_error";
+    logFailure(path, reason, err);
+    return { ok: false, status: null, error: reason };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export interface ApiPostAuthenticatedOptions<T> {
   validate: (json: unknown) => json is T;
   timeoutMs?: number;

@@ -65,6 +65,27 @@
  *                         submissions and registration links, notices, activities, seasons, fee policies and admin
  *                         users. The browser converts them itself and compares with what each page shows.
  *
+ * OFFICIAL RECEIPTS (task 5, 2026-10-08, docs/MEMBERSHIP_RECEIPTS.md) — the people of the acceptance run:
+ *   r1 LM  under review for the browser: registration ৳500 recorded + verified (receipt A), approved, this month's ৳200
+ *          recorded + verified (receipt B), a voluntary ৳100 (receipt), signs in to the portal (J)
+ *   r2 LM  under review for the browser: the registration fee WAIVED (no receipt, H), approved, ৳100 of ৳200 verified
+ *          (partial receipt C), one ৳50 left awaiting (no receipt, F), one ৳70 recorded then cancelled (no receipt, G),
+ *          signs in and asks for r1's receipt (refused, J)
+ *   r3 QD  joined four months ago (five months owed at ৳200), approved here and dated back: one month waived (no payment, no
+ *          receipt, H), then ৳600 advance across three months (receipt D), then ৳500 advance = ৳200 applied + ৳300 credit (E)
+ *   The race (I) is two verifications of one more payment of r1, fired at the same instant from two browser tabs.
+ *
+ *   receipt-setup         idempotent: the disposable QD type, the r1/r2 applications (under review) and r3 (approved + dated back).
+ *   receipt-invites       a password-setup link for r1 and r2 (token-minting: delete the cron before it re-runs).
+ *   receipt-inspect       READ-ONLY. Every QA payment with its receipt (number, purpose, amount, applied, credit, lines, who
+ *                         issued it), the evidence of the rules (a receipt only for verified money above zero, one per payment,
+ *                         none for pending / cancelled / waived, the counter equals the number of receipts, no gaps), the audit
+ *                         rows, and the model's refusal to change or delete an issued receipt (probed inside a rolled-back
+ *                         transaction). Counts and numbers of QA rows only — never a real person.
+ *   `cleanup` also removes the QA receipts (straight from the database: the model refuses deletion on purpose) before their
+ *   payments, and gives the receipt numbers back by the same guarded rule as every other number. `audit` also reports the payments
+ *   and receipts that exist (real vs QA) — the "existing payments" evidence, with no names or amounts of a real person.
+ *
  * QA rows are recognised ONLY by their markers: applicant_name starting "QA REGISTRY TEST", member e-mail starting
  * "khondokermoin2k23+qareg", the season slug "qa-registry-test-season", the type slug starting "qa-dues-test-".
  *
@@ -101,6 +122,7 @@ use App\Models\MembershipFeePolicy;
 use App\Models\MembershipSeason;
 use App\Models\MembershipType;
 use App\Models\Payment;
+use App\Models\PaymentReceipt;
 use App\Models\PublicMemberProfileVersion;
 use App\Models\User;
 use App\Notifications\MemberInvitationNotification;
@@ -110,6 +132,7 @@ use App\Services\MembershipDueLedger;
 use App\Services\MembershipDueSchedule;
 use App\Services\MembershipFeePolicyService;
 use App\Support\MembershipPaymentState;
+use App\Support\Money;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -122,7 +145,7 @@ const QA_EMAIL = 'khondokermoin2k23+qareg';
 const QA_SEASON_SLUG = 'qa-registry-test-season';
 const QA_TYPE_SLUG = 'qa-dues-test-';
 const TABLES = ['membership_applications', 'memberships', 'members', 'payments', 'approval_history', 'member_season_history', 'public_member_profile_versions', 'number_sequences',
-    'membership_dues', 'membership_due_allocations', 'membership_fee_policies', 'membership_types'];
+    'membership_dues', 'membership_due_allocations', 'membership_fee_policies', 'membership_types', 'payment_receipts'];
 
 /** The disposable QA types: code => [monthly contribution, Bangla name, English name]. Registration ৳0 for both. */
 const QA_TYPES = [
@@ -138,6 +161,9 @@ const DUES_SCENARIOS = [
     'a' => ['LM', null, null], 'b' => ['LM', null, null], 'c' => ['GM', null, null], 'd' => ['ST', null, null],
     'e' => ['QD', 2, null], 'f' => ['QD', 4, 3], 'g' => ['QD', 2, null], 'z' => ['QZ', 2, null],
 ];
+
+/** The receipt scenarios (task 5): key => [type code, joined N months before this one (null: approved in the browser)]. */
+const RECEIPT_SCENARIOS = ['r1' => ['LM', null], 'r2' => ['LM', null], 'r3' => ['QD', 4]];
 
 function out(array $data, int $exit = 0): never
 {
@@ -170,6 +196,11 @@ function sequences(): array
 function numberKey(string $number): ?array
 {
     $prefix = preg_quote((string) config('membership.number_prefix', 'PLCC'), '/');
+    // A receipt number (PLCC-RCT-2026-000001) has the shape of a member number whose type code is "RCT" — the receipt format
+    // is checked FIRST, or its counter would be read as `member:RCT:2026`. (RCT is a reserved code: no type can carry it.)
+    if (preg_match('/^'.$prefix.'-RCT-(\d{4})-(\d{6,})$/', $number, $m) === 1) {
+        return ["receipt:{$m[1]}", (int) $m[2]];
+    }
     if (preg_match('/^'.$prefix.'-([A-Z][A-Z0-9]{1,9})-(\d{4})-(\d{4,})$/', $number, $m) === 1) {
         return ["member:{$m[1]}:{$m[2]}", (int) $m[3]];
     }
@@ -188,6 +219,7 @@ function numberKind(?string $number): string
 
     return match (true) {
         $number === '' => 'none',
+        preg_match('/^'.$prefix.'-RCT-\d{4}-\d{6,}$/', $number) === 1 => 'PLCC-RCT-{year}-{nnnnnn} (receipt)',
         preg_match('/^'.$prefix.'-[A-Z][A-Z0-9]{1,9}-\d{4}-\d{4,}$/', $number) === 1 => 'PLCC-{code}-{year}-{nnnn}',
         preg_match('/^PF-\d{4}-\d{4,}$/', $number) === 1 => 'PF-{year}-{nnnn} (old format)',
         preg_match('/^APP-\d{4}-\d{4,}$/', $number) === 1 => 'APP-{year}-{nnnn}',
@@ -215,11 +247,31 @@ function historyCounts(string $type, int $id): array
         ->selectRaw('action, count(*) as n')->groupBy('action')->pluck('n', 'action')->map(fn ($n) => (int) $n)->all();
 }
 
+/**
+ * The ids of every payment that belongs to a QA application or to a membership a QA application made — registration fees,
+ * monthly contributions, advances, gifts, waivers, cancelled entries alike. Nothing else is ever treated as QA.
+ *
+ * @return \Illuminate\Support\Collection<int, int>
+ */
+function qaPaymentIds()
+{
+    $applications = qaApplications()->pluck('id');
+    $memberships = Membership::query()->whereIn('membership_application_id', $applications)->pluck('id');
+
+    return Payment::query()->where(fn ($q) => $q
+        ->where(fn ($a) => $a->where('payable_type', MembershipApplication::class)->whereIn('payable_id', $applications))
+        ->orWhere(fn ($m) => $m->where('payable_type', Membership::class)->whereIn('payable_id', $memberships)))->pluck('id');
+}
+
 function leftovers(): array
 {
     $dues = Schema::hasTable('membership_dues');
+    $receipts = Schema::hasTable('payment_receipts');
 
     return [
+        // a receipt of a QA payment, or one whose payment no longer exists (the FK is restrict, so never possible)
+        'receipts' => $receipts ? DB::table('payment_receipts')->whereIn('payment_id', qaPaymentIds())->count() : 0,
+        'orphan_receipts' => $receipts ? DB::table('payment_receipts')->whereNotIn('payment_id', Payment::query()->select('id'))->count() : 0,
         'applications' => qaApplications()->count(),
         'members' => Member::withTrashed()->where('email', 'like', QA_EMAIL.'%')->count(),
         'memberships_of_qa_applications' => Membership::query()->whereIn('membership_application_id', qaApplications()->pluck('id'))->count(),
@@ -289,6 +341,70 @@ function backdate(Membership $membership, string $joined, ?string $suspendedOn, 
     }, 3);
 
     app(MembershipDueLedger::class)->generateFor($membership->id);
+}
+
+/**
+ * The disposable QA types (code => id), created when missing, each with its one policy starting 2026-01-01 (QA data, removed
+ * by cleanup). Refuses a code a non-QA type already uses.
+ *
+ * @param  list<string>  $codes
+ * @return array<string, int>
+ */
+function ensureQaTypes(array $codes, User $admin): array
+{
+    $types = [];
+    foreach ($codes as $code) {
+        [$monthly, $name, $nameEn] = QA_TYPES[$code];
+        $type = MembershipType::query()->where('code', $code)->first();
+        if ($type !== null && ! str_starts_with((string) $type->slug, QA_TYPE_SLUG)) {
+            throw new RuntimeException("a non-QA type already uses the code {$code} — refusing");
+        }
+        $type ??= MembershipType::query()->create([
+            'name' => $name, 'name_en' => $nameEn, 'slug' => QA_TYPE_SLUG.strtolower($code), 'code' => $code,
+            'description' => QA_NAME.' — ignore.', 'status' => 'active', 'is_public_visible' => false, 'is_public_self_apply' => false, 'sort_order' => 99,
+        ]);
+        if (! MembershipFeePolicy::query()->where('membership_type_id', $type->id)->exists()) {
+            MembershipFeePolicy::query()->create(['membership_type_id' => $type->id, 'registration_fee' => '0.00', 'monthly_contribution' => $monthly,
+                'effective_from' => '2026-01-01', 'effective_until' => null, 'active' => true, 'created_by' => $admin->id, 'note' => QA_NAME.' — QA data, removed by cleanup']);
+            app(MembershipFeePolicyService::class)->chain($type->id);
+        }
+        $types[$code] = $type->id;
+    }
+
+    return $types;
+}
+
+function receiptEmail(string $key): string
+{
+    return QA_EMAIL."-rcpt-{$key}@gmail.com";
+}
+
+function receiptApplication(string $key): ?MembershipApplication
+{
+    return MembershipApplication::query()->where('applicant_email', receiptEmail($key))->where('applicant_name', 'like', QA_NAME.'%')->first();
+}
+
+/** One QA payment with its receipt as evidence: numbers, kinds and amounts of QA rows only — never a name, e-mail or phone. */
+function receiptView(Payment $payment): array
+{
+    $receipt = Schema::hasTable('payment_receipts') ? PaymentReceipt::query()->where('payment_id', $payment->id)->first() : null;
+
+    return [
+        'payment_id' => $payment->id, 'payable' => $payment->payable_type === Membership::class ? 'membership' : 'application', 'category' => $payment->category,
+        'status' => $payment->status, 'received' => $payment->amount_received === null ? null : (string) $payment->amount_received,
+        'verified' => $payment->verified_at !== null, 'cancelled' => $payment->cancelled_at !== null, 'has_reference' => $payment->reference !== null,
+        'receipt' => $receipt === null ? null : [
+            'no' => $receipt->receipt_no, 'purpose' => $receipt->purpose, 'amount' => (string) $receipt->amount, 'applied' => (string) $receipt->applied_amount,
+            'credit' => (string) $receipt->credit_amount, 'lines' => $receipt->lines, 'payment_date' => $receipt->payment_date?->toDateString(),
+            'issued_at_utc' => $receipt->issued_at?->utc()->format('Y-m-d H:i:s'), 'issued_via' => $receipt->issued_via, 'issued_by_set' => $receipt->issued_by !== null,
+            'member_code_in_snapshot' => $receipt->member_code !== null, 'application_no_in_snapshot' => $receipt->application_no !== null,
+            'received_by_set' => $receipt->received_by_name !== null, 'verified_by_set' => $receipt->verified_by_name !== null,
+            'type' => $receipt->membership_type_name_en ?? $receipt->membership_type_name,
+            // integer paisa, never floats and never bcmath (not guaranteed on the host)
+            'reconciles' => Money::toPaisa((string) $receipt->applied_amount) + Money::toPaisa((string) $receipt->credit_amount) === Money::toPaisa((string) $receipt->amount),
+            'lines_add_up' => $receipt->lines === null ? null : array_sum(array_map(fn ($line) => Money::toPaisa((string) $line['amount']), $receipt->lines)) === Money::toPaisa((string) $receipt->applied_amount),
+        ],
+    ];
 }
 
 /** One QA membership's ledger as evidence: amounts as strings, never a person's name or e-mail. */
@@ -373,6 +489,28 @@ if ($mode === 'audit') {
             'payments_by_category' => DB::table('payments')->selectRaw('category, count(*) as n')->groupBy('category')->pluck('n', 'category')->map(fn ($n) => (int) $n)->all(),
             'payments_for_a_membership' => DB::table('payments')->where('payable_type', Membership::class)->count(),
         ] : 'tables absent (before task 4)',
+        'payments_and_receipts' => (function () {
+            // The "existing payments" evidence for the receipt task: counts only — never a name, an amount or a reference.
+            $qa = qaPaymentIds();
+            $real = Payment::query()->whereNotIn('id', $qa);
+            $verifiedMoney = fn ($query) => $query->where('status', 'paid')->whereNotNull('verified_at')->where('amount_received', '>', 0);
+            $hasReceipts = Schema::hasTable('payment_receipts');
+
+            return [
+                'payments_total' => Payment::query()->count(),
+                'payments_qa' => $qa->count(),
+                'payments_real' => (clone $real)->count(),
+                'real_by_status' => (clone $real)->selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status')->map(fn ($n) => (int) $n)->all(),
+                'real_by_payable' => (clone $real)->selectRaw('payable_type, count(*) as n')->groupBy('payable_type')->pluck('n', 'payable_type')->map(fn ($n) => (int) $n)->all(),
+                'real_verified_money' => $verifiedMoney(clone $real)->count(),
+                'real_waived_rows' => (clone $real)->where('status', 'waived')->count(),
+                'real_unverified' => (clone $real)->whereNull('verified_at')->count(),
+                'receipts_table' => $hasReceipts,
+                'receipts_total' => $hasReceipts ? DB::table('payment_receipts')->count() : null,
+                'receipts_real' => $hasReceipts ? DB::table('payment_receipts')->whereNotIn('payment_id', $qa)->count() : null,
+                'real_verified_money_without_a_receipt' => $hasReceipts ? $verifiedMoney(Payment::query()->whereNotIn('id', $qa))->whereNotIn('id', DB::table('payment_receipts')->select('payment_id'))->count() : null,
+            ];
+        })(),
         'open_seasons' => MembershipSeason::query()->where('status', 'open')->get()->filter->acceptsApplicationsNow()->map(fn ($s) => ['id' => $s->id, 'slug' => $s->slug])->values()->all(),
     ]);
 }
@@ -390,6 +528,7 @@ if ($mode === 'snapshot') {
             'members' => Member::withTrashed()->where('email', 'not like', QA_EMAIL.'%')->count(),
             'memberships' => Membership::query()->whereNotIn('membership_application_id', qaApplications()->pluck('id'))->orWhereNull('membership_application_id')->count(),
             'payments' => Payment::query()->count(),
+            'receipts' => Schema::hasTable('payment_receipts') ? DB::table('payment_receipts')->count() : null,
             'dues' => Schema::hasTable('membership_dues') ? DB::table('membership_dues')->count() : null,
             'membership_types' => MembershipType::query()->where('slug', 'not like', QA_TYPE_SLUG.'%')->count(),
             'fee_policies_of_real_types' => MembershipFeePolicy::query()->whereNotIn('membership_type_id', qaTypes()->pluck('id'))->count(),
@@ -542,22 +681,10 @@ if ($mode === 'dues-setup') {
 
     // 1. The disposable types and their policies — inserted as QA data, because the admin form (rightly) refuses a start
     //    date in the past, and a dated-back membership needs a policy in force on the day it joined.
-    $types = [];
-    foreach (QA_TYPES as $code => [$monthly, $name, $nameEn]) {
-        $type = MembershipType::query()->where('code', $code)->first();
-        if ($type !== null && ! str_starts_with((string) $type->slug, QA_TYPE_SLUG)) {
-            out(['mode' => $mode, 'ok' => false, 'error' => "a non-QA type already uses the code {$code} — refusing"], 1);
-        }
-        $type ??= MembershipType::query()->create([
-            'name' => $name, 'name_en' => $nameEn, 'slug' => QA_TYPE_SLUG.strtolower($code), 'code' => $code,
-            'description' => QA_NAME.' — ignore.', 'status' => 'active', 'is_public_visible' => false, 'is_public_self_apply' => false, 'sort_order' => 99,
-        ]);
-        if (! MembershipFeePolicy::query()->where('membership_type_id', $type->id)->exists()) {
-            MembershipFeePolicy::query()->create(['membership_type_id' => $type->id, 'registration_fee' => '0.00', 'monthly_contribution' => $monthly,
-                'effective_from' => '2026-01-01', 'effective_until' => null, 'active' => true, 'created_by' => $admin->id, 'note' => QA_NAME.' — QA data, removed by cleanup']);
-            app(MembershipFeePolicyService::class)->chain($type->id);
-        }
-        $types[$code] = $type->id;
+    try {
+        $types = ensureQaTypes(array_keys(QA_TYPES), $admin);
+    } catch (RuntimeException $e) {
+        out(['mode' => $mode, 'ok' => false, 'error' => $e->getMessage()], 1);
     }
     $typeIds = $realTypes->all() + $types;
 
@@ -636,6 +763,182 @@ if ($mode === 'dues-inspect') {
     ]);
 }
 
+// ------------------------------------------------------------------------------------------------ receipt-setup
+if ($mode === 'receipt-setup') {
+    $admin = User::query()->whereHas('roles', fn ($r) => $r->where('slug', 'super_admin'))->orderBy('id')->first();
+    $lifetime = MembershipType::query()->where('code', 'LM')->first();
+    if ($admin === null || $lifetime === null || ! Schema::hasTable('payment_receipts') || ! Schema::hasTable('membership_dues')) {
+        out(['mode' => $mode, 'ok' => false, 'error' => 'needs a super admin, the Lifetime type (LM), the dues tables and the receipts table'], 1);
+    }
+    try {
+        $types = ensureQaTypes(['QD'], $admin);
+    } catch (RuntimeException $e) {
+        out(['mode' => $mode, 'ok' => false, 'error' => $e->getMessage()], 1);
+    }
+    $typeIds = ['LM' => $lifetime->id] + $types;
+
+    $made = [];
+    $index = 0;
+    foreach (RECEIPT_SCENARIOS as $key => [$code, $joinedAgo]) {
+        $index++;
+        $application = receiptApplication($key) ?? DB::transaction(fn () => MembershipApplication::query()->create([
+            'applicant_name' => sprintf('%s receipt %s (%s)', QA_NAME, strtoupper($key), $code),
+            'applicant_email' => receiptEmail($key),
+            'applicant_phone' => sprintf('01999%06d', 600000 + $index),
+            'membership_type_id' => $typeIds[$code],
+            'application_data' => ['profession' => 'QA', 'institution' => 'QA'],
+            'status' => 'under_review',
+        ]), 3);
+        // r3 is approved here and dated back; r1 and r2 stay under review for the browser to take through the real screens.
+        if ($joinedAgo !== null && $application->status !== 'approved') {
+            $membership = app(MembershipApprovalService::class)->approve($application, $admin)->membership;
+            backdate($membership, monthsAgo($joinedAgo, 9), null, $admin);
+        }
+        $application->refresh();
+        $membership = Membership::query()->where('membership_application_id', $application->id)->first();
+        $made[$key] = ['type' => $code, 'application_no' => $application->application_no, 'application_status' => $application->status,
+            'quoted' => [$application->quotedRegistrationFee(), $application->quotedMonthlyContribution()],
+            'member_code' => $membership?->member_code, 'start_date' => $membership?->start_date?->toDateString(), 'membership_status' => $membership?->status,
+            'dues' => $membership ? $membership->dues()->orderBy('period_year')->orderBy('period_month')->get()->map(fn (MembershipDue $d) => [$d->period(), (string) $d->amount])->all() : []];
+    }
+    out(['mode' => $mode, 'ok' => true, 'today' => app(MembershipFeePolicyService::class)->today(), 'types' => $types, 'scenarios' => $made, 'sequences' => sequences()]);
+}
+
+// ------------------------------------------------------------------------------------------------ receipt-invites
+if ($mode === 'receipt-invites') {
+    $links = [];
+    foreach (['r1', 'r2'] as $key) {
+        $member = receiptApplication($key)?->membership?->member;
+        if ($member === null || ! str_starts_with($member->email, QA_EMAIL)) {
+            $links[$key] = null; // not approved yet
+
+            continue;
+        }
+        $links[$key] = ['member_code' => receiptApplication($key)->membership->member_code, 'account_status' => $member->status, 'email' => $member->email,
+            'url' => rtrim((string) config('services.public_site.url'), '/').'/member/reset-password?token='.Password::broker('members')->createToken($member).'&email='.urlencode($member->email)];
+    }
+    out(['mode' => $mode, 'ok' => true, 'links' => $links]);
+}
+
+// ------------------------------------------------------------------------------------------------ receipt-inspect
+if ($mode === 'receipt-inspect') {
+    if (! Schema::hasTable('payment_receipts')) {
+        out(['mode' => $mode, 'ok' => false, 'error' => 'the receipts table does not exist yet'], 1);
+    }
+    $qa = qaPaymentIds();
+    $people = [];
+    foreach (array_keys(RECEIPT_SCENARIOS) as $key) {
+        $application = receiptApplication($key);
+        $membership = $application ? Membership::query()->where('membership_application_id', $application->id)->first() : null;
+        $payments = Payment::query()->where(fn ($q) => $q
+            ->where(fn ($a) => $a->where('payable_type', MembershipApplication::class)->where('payable_id', $application?->id ?? 0))
+            ->orWhere(fn ($m) => $m->where('payable_type', Membership::class)->where('payable_id', $membership?->id ?? 0)))->orderBy('id')->get();
+        $people[$key] = ['application_no' => $application?->application_no, 'application_status' => $application?->status, 'member_code' => $membership?->member_code,
+            'payments' => $payments->map(fn (Payment $p) => receiptView($p))->all(),
+            'dues' => $membership ? duesView($membership)['dues'] : [], 'credit' => $membership ? duesView($membership)['summary']['credit'] : null];
+    }
+
+    $receipts = DB::table('payment_receipts')->whereIn('payment_id', $qa)->orderBy('id')->get();
+    $isReceiptable = fn ($query) => $query->where('status', 'paid')->whereNotNull('verified_at')->where('amount_received', '>', 0);
+    $allNumbers = DB::table('payment_receipts')->pluck('receipt_no');
+    $perYear = [];
+    foreach ($allNumbers as $number) {
+        $parsed = numberKey((string) $number);
+        if ($parsed !== null) {
+            $perYear[$parsed[0]][] = $parsed[1];
+        }
+    }
+    $sequenceChecks = [];
+    foreach ($perYear as $counter => $values) {
+        sort($values);
+        $max = max($values);
+        $sequenceChecks[$counter] = ['count' => count($values), 'highest' => $max, 'counter' => sequences()[$counter] ?? null,
+            'counter_equals_highest' => (sequences()[$counter] ?? null) === $max, 'gaps' => array_values(array_diff(range(1, $max), $values)), 'duplicates' => count($values) - count(array_unique($values))];
+    }
+    $historyRows = ApprovalHistory::query()->where('action', 'receipt_issued')->count();
+
+    // The model's refusals, probed inside a transaction that is always rolled back.
+    $probe = [];
+    $first = PaymentReceipt::query()->whereIn('payment_id', $qa)->orderBy('id')->first();
+    if ($first !== null) {
+        DB::beginTransaction();
+        try {
+            foreach (['amount' => '1.00', 'receipt_no' => 'PLCC-RCT-2026-999999', 'payer_name' => 'changed'] as $column => $value) {
+                try {
+                    $first->{$column} = $value;
+                    $first->save();
+                    $probe["update_{$column}"] = 'ALLOWED (a defect)';
+                } catch (LogicException) {
+                    $probe["update_{$column}"] = 'refused';
+                }
+                $first->refresh();
+            }
+            try {
+                $first->delete();
+                $probe['delete'] = 'ALLOWED (a defect)';
+            } catch (LogicException) {
+                $probe['delete'] = 'refused';
+            }
+            try {
+                $payment = Payment::query()->find($first->payment_id);
+                $payment->amount_received = '1.00';
+                $payment->save();
+                $probe['payment_amount_change_after_receipt'] = 'ALLOWED (a defect)';
+            } catch (LogicException) {
+                $probe['payment_amount_change_after_receipt'] = 'refused';
+            }
+            try {
+                DB::table('payment_receipts')->insert(['receipt_no' => 'PLCC-RCT-2026-999998', 'payment_id' => $first->payment_id, 'purpose' => 'other', 'amount' => '10.00', 'applied_amount' => '10.00',
+                    'credit_amount' => '0.00', 'payment_date' => '2026-10-08', 'method' => 'cash', 'payer_name' => 'x', 'membership_type_name' => 'x', 'institution' => '{}', 'issued_at' => now(), 'created_at' => now()]);
+                $probe['second_receipt_for_the_same_payment'] = 'ALLOWED (a defect)';
+            } catch (Throwable) {
+                $probe['second_receipt_for_the_same_payment'] = 'refused by the database';
+            }
+            // A payment with no receipt yet (an awaiting, cancelled or waived QA entry), so the only thing wrong is the arithmetic.
+            $bare = Payment::query()->whereIn('id', $qa)->whereNotIn('id', DB::table('payment_receipts')->select('payment_id'))->value('id');
+            if ($bare === null) {
+                $probe['receipt_that_does_not_reconcile'] = 'not probed (every QA payment has a receipt)';
+            } else {
+                try {
+                    DB::table('payment_receipts')->insert(['receipt_no' => 'PLCC-RCT-2026-999997', 'payment_id' => $bare, 'purpose' => 'other', 'amount' => '10.00', 'applied_amount' => '4.00',
+                        'credit_amount' => '1.00', 'payment_date' => '2026-10-08', 'method' => 'cash', 'payer_name' => 'x', 'membership_type_name' => 'x', 'institution' => '{}', 'issued_at' => now(), 'created_at' => now()]);
+                    $probe['receipt_that_does_not_reconcile'] = 'ALLOWED (a defect)';
+                } catch (Throwable $e) {
+                    $probe['receipt_that_does_not_reconcile'] = str_contains($e->getMessage(), 'CONSTRAINT') || str_contains(strtolower($e->getMessage()), 'check') ? 'refused by the database (CHECK)' : 'refused: '.substr($e->getMessage(), 0, 120);
+                }
+            }
+        } finally {
+            DB::rollBack();
+        }
+    }
+
+    out([
+        'mode' => $mode,
+        'utc_now' => gmdate('c'),
+        'people' => $people,
+        'checks' => [
+            'qa_payments' => $qa->count(),
+            'qa_receipts' => $receipts->count(),
+            'one_receipt_per_payment' => DB::table('payment_receipts')->selectRaw('payment_id, count(*) as n')->groupBy('payment_id')->having('n', '>', 1)->count() === 0,
+            'receipts_for_payments_that_are_not_verified_money' => DB::table('payment_receipts')->whereIn('payment_id', Payment::query()->where(fn ($q) => $q->where('status', '!=', 'paid')->orWhereNull('verified_at')->orWhere('amount_received', '<=', 0)->orWhereNull('amount_received'))->select('id'))->count(),
+            'verified_money_without_a_receipt' => $isReceiptable(Payment::query()->whereIn('id', $qa))->whereNotIn('id', DB::table('payment_receipts')->select('payment_id'))->count(),
+            'not_money_yet_by_state' => [
+                'awaiting_verification' => Payment::query()->whereIn('id', $qa)->where('status', '!=', 'cancelled')->whereNull('verified_at')->count(),
+                'cancelled' => Payment::query()->whereIn('id', $qa)->whereNotNull('cancelled_at')->count(),
+                'waived' => Payment::query()->whereIn('id', $qa)->where('status', 'waived')->count(),
+            ],
+            'receipts_on_those' => DB::table('payment_receipts')->whereIn('payment_id', Payment::query()->whereIn('id', $qa)->where(fn ($q) => $q->where('status', 'waived')->orWhereNotNull('cancelled_at')->orWhereNull('verified_at'))->select('id'))->count(),
+            'receipt_numbers_distinct' => $allNumbers->count() === $allNumbers->unique()->count(),
+            'numbers' => $receipts->pluck('receipt_no')->all(),
+            'counters' => $sequenceChecks,
+            'receipt_issued_history_rows' => $historyRows,
+            'history_rows_equal_receipts' => $historyRows === DB::table('payment_receipts')->count(),
+        ],
+        'immutability_probe_rolled_back' => $probe,
+        'sequences' => sequences(),
+    ]);
+}
+
 // ------------------------------------------------------------------------------------------------ time-setup
 if ($mode === 'time-setup') {
     $type = MembershipType::query()->where('code', 'LM')->first();
@@ -696,7 +999,7 @@ if ($mode === 'time-probe') {
 if ($mode === 'cleanup') {
     $removed = ['applications' => 0, 'application_photos' => 0, 'payments' => 0, 'memberships' => 0, 'members' => 0, 'member_photos' => 0,
         'profile_versions' => 0, 'tokens' => 0, 'reset_tokens' => 0, 'season_history' => 0, 'history' => 0, 'season' => false,
-        'dues' => 0, 'due_allocations' => 0, 'monthly_payments' => 0, 'due_history' => 0, 'qa_type_policies' => 0, 'qa_types' => 0];
+        'dues' => 0, 'due_allocations' => 0, 'monthly_payments' => 0, 'due_history' => 0, 'qa_type_policies' => 0, 'qa_types' => 0, 'receipts' => 0];
     $release = [];
     $problems = [];
     $private = Storage::disk('uploads_private');
@@ -730,6 +1033,16 @@ if ($mode === 'cleanup') {
         }
         foreach (DB::table('members')->select(['id', 'member_code'])->whereNotNull('member_code')->get() as $row) {
             $note($row->member_code, isset($qaMemberIds[$row->id]));
+        }
+        // Receipt numbers too (task 5): a receipt is QA's only if its PAYMENT is — every other receipt is a real one, and the
+        // top run of the receipt counter is released only through QA's. Taken before anything is deleted.
+        $qaPayments = qaPaymentIds()->flip();
+        if (Schema::hasTable('payment_receipts')) {
+            foreach (DB::table('payment_receipts')->select(['id', 'payment_id', 'receipt_no'])->get() as $row) {
+                $note($row->receipt_no, isset($qaPayments[$row->payment_id]));
+            }
+            // The receipts go FIRST: the model refuses deletion on purpose, so straight from the database, before their payments.
+            $removed['receipts'] += DB::table('payment_receipts')->whereIn('payment_id', $qaPayments->keys())->delete();
         }
 
         // 3. The QA rows go.
@@ -860,5 +1173,5 @@ if ($mode === 'sweep') {
         'sequences' => sequences()]);
 }
 
-fwrite(STDERR, "usage: membership-registry-qa.php audit | snapshot | season-open [min] | season-close | inspect | invite-link <application-no> | mail-preview <application-no> | seed <n> | dues-setup | dues-invites | dues-inspect | time-setup | time-probe | cleanup | sweep\n");
+fwrite(STDERR, "usage: membership-registry-qa.php audit | snapshot | season-open [min] | season-close | inspect | invite-link <application-no> | mail-preview <application-no> | seed <n> | dues-setup | dues-invites | dues-inspect | receipt-setup | receipt-invites | receipt-inspect | time-setup | time-probe | cleanup | sweep\n");
 exit(2);

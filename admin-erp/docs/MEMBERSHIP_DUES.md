@@ -1,7 +1,7 @@
 # Monthly membership dues
 
 Membership task 4 (2026-10-08). The monthly contribution ledger: which months a membership owes, the money received
-against them, waivers, and where it is shown. Receipts (PDF) are **not** built yet.
+against them, waivers, and where it is shown. Every verified payment now has an official receipt — `docs/MEMBERSHIP_RECEIPTS.md`.
 
 Code: `App\Services\MembershipDueSchedule` (which months, which amount), `App\Services\MembershipDueLedger` (generation,
 payments, credit, waivers, the summary), `App\Models\MembershipDue` / `MembershipDueAllocation`, the command
@@ -154,5 +154,5 @@ which cover the dues tables, policies and types) and `institutional/scripts/memb
 
 ## Not built
 
-Receipt PDFs; online payment; refunds of verified money; changing an existing due's amount (by design: a mistake is
+Online payment; refunds of verified money; changing an existing due's amount (by design: a mistake is
 waived and, if needed, a new payment recorded).

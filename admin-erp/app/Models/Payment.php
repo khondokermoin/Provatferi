@@ -5,7 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use LogicException;
 
 /**
  * Money received (or, for a registration fee only, waived), recorded by one admin and verified by another action.
@@ -39,6 +41,15 @@ class Payment extends Model
         'waiver_reason', 'waived_by', 'verified_at', 'verified_by', 'cancelled_at', 'cancelled_by', 'cancellation_reason',
     ];
 
+    /**
+     * What an issued receipt has fixed (Membership task 5): once a payment has a receipt, none of this can change —
+     * the receipt carries these facts, and the payment must not drift away from them.
+     */
+    public const RECEIPT_FROZEN = [
+        'payable_type', 'payable_id', 'category', 'membership_due_id', 'amount_received', 'received_at', 'method', 'reference',
+        'status', 'verified_at', 'verified_by',
+    ];
+
     protected function casts(): array
     {
         return [
@@ -48,6 +59,21 @@ class Payment extends Model
             'verified_at' => 'datetime',
             'cancelled_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::updating(function (self $payment): void {
+            if ($payment->isDirty(self::RECEIPT_FROZEN) && $payment->receipt()->exists()) {
+                throw new LogicException("Payment {$payment->id} has an official receipt: its amount, date, method, reference and status can no longer change.");
+            }
+        });
+    }
+
+    /** The official receipt issued when this payment was verified; null for a payment that is not (yet) verified money. */
+    public function receipt(): HasOne
+    {
+        return $this->hasOne(PaymentReceipt::class);
     }
 
     public function payable(): MorphTo

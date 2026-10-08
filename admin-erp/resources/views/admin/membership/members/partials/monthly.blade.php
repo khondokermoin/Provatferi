@@ -257,6 +257,9 @@
                                             </form>
                                         </details>
                                     @endcan
+                                @elseif ($paymentState === 'verified')
+                                    {{-- Verified money has an official receipt (Membership task 5); an awaiting or cancelled entry never does. --}}
+                                    <x-admin.receipt-links :payment="$payment" />
                                 @endif
                             </td>
                         </tr>

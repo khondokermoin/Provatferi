@@ -497,11 +497,32 @@ export interface MemberPaymentSummary {
   received_at: string | null;
 }
 
+/**
+ * One official receipt of the signed-in member (admin-erp Membership task 5). Everything the member should see and
+ * nothing else — never who received or verified the payment. The PDF is fetched through the site's own
+ * /api/member/receipts/{receipt_no} route, which only ever returns the member's own.
+ */
+export interface MemberReceiptSummary {
+  /** "PLCC-RCT-2026-000001" */
+  receipt_no: string;
+  /** registration | monthly | advance | voluntary | other — a word the page translates */
+  purpose: string;
+  amount: string;
+  /** Advance credit held when the receipt was issued ("0.00" when none). */
+  credit: string;
+  /** The calendar day the money was received, "2026-10-08". */
+  payment_date: string;
+  /** The months a monthly payment or an advance was applied to, "2026-10" each. */
+  periods: string[];
+}
+
 export interface MemberDashboard {
   profile: MemberProfile;
   memberships: MemberMembershipSummary[];
   season_history: MemberSeasonHistoryEntry[];
   payments: MemberPaymentSummary[];
+  /** Absent from ERP builds older than the receipts (2026-10-08). */
+  receipts?: MemberReceiptSummary[];
   library: { transactions: unknown[] };
 }
 

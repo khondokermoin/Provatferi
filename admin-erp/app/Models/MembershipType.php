@@ -32,6 +32,12 @@ class MembershipType extends Model
      */
     public const CODE_PATTERN = '/^[A-Z][A-Z0-9]{1,9}$/';
 
+    /**
+     * Codes no type may use: RCT is the middle of every receipt number (PLCC-RCT-2026-000001), so a type coded RCT
+     * would issue member numbers that read like receipts. A type that somehow holds one counts as having no valid code.
+     */
+    public const RESERVED_CODES = ['RCT'];
+
     protected $fillable = [
         'name', 'name_en', 'slug', 'code', 'description', 'description_en', 'duration_months',
         'is_student', 'is_public_self_apply', 'is_public_visible', 'status', 'sort_order',
@@ -75,7 +81,7 @@ class MembershipType extends Model
     /** A valid member-number code (unique among types by a database index): approval needs it for every member number. */
     public function hasValidCode(): bool
     {
-        return is_string($this->code) && preg_match(self::CODE_PATTERN, $this->code) === 1;
+        return is_string($this->code) && preg_match(self::CODE_PATTERN, $this->code) === 1 && ! in_array($this->code, self::RESERVED_CODES, true);
     }
 
     /**

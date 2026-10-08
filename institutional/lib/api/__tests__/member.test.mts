@@ -1,6 +1,6 @@
 import { test, before, after, mock } from "node:test";
 import assert from "node:assert/strict";
-import { getMemberDashboard, getMemberProfileState, memberLogin, memberRequestPasswordReset, updateMemberProfile } from "../member.ts";
+import { getMemberDashboard, getMemberProfileState, getMemberReceiptPdf, memberLogin, memberRequestPasswordReset, RECEIPT_NUMBER_PATTERN, updateMemberProfile } from "../member.ts";
 
 before(() => {
   process.env.LARAVEL_API_URL = "https://admin.example.test";
@@ -112,6 +112,69 @@ test("getMemberDashboard accepts the monthly contribution (2026-10-08) and refus
   for (const broken of [{ ...monthly, overdue_count: "1" }, { ...monthly, required: "yes" }, { ...monthly, recent: [{ period: "2026-10", amount: 200 }] }, { ...monthly, recent: null }]) {
     globalThis.fetch = mock.fn(async () => jsonResponse({ data: { ...dashboardBody, memberships: [{ ...dashboardBody.memberships[0], monthly: broken }] } }));
     assert.equal((await getMemberDashboard("1|abcdef")).ok, false, `refused: ${JSON.stringify(broken).slice(0, 60)}`);
+  }
+});
+
+test("getMemberDashboard accepts the member's receipts (2026-10-08) and refuses a malformed one", async () => {
+  const receipts = [
+    { receipt_no: "PLCC-RCT-2026-000002", purpose: "monthly_contribution", amount: "600.00", credit: "0.00", payment_date: "2026-10-08", periods: ["2026-01", "2026-02", "2026-03"] },
+    { receipt_no: "PLCC-RCT-2026-000001", purpose: "registration", amount: "500.00", credit: "0.00", payment_date: "2026-10-07", periods: [] },
+  ];
+  globalThis.fetch = mock.fn(async () => jsonResponse({ data: { ...dashboardBody, receipts } }));
+
+  const result = await getMemberDashboard("1|abcdef");
+  assert.equal(result.ok, true);
+  if (result.ok) {
+    assert.equal(result.data.receipts?.length, 2);
+    assert.deepEqual(result.data.receipts?.[0]?.periods, ["2026-01", "2026-02", "2026-03"]);
+  }
+
+  // An ERP build that does not send receipts yet still produces a dashboard (the section simply does not render).
+  globalThis.fetch = mock.fn(async () => jsonResponse({ data: dashboardBody }));
+  const without = await getMemberDashboard("1|abcdef");
+  assert.equal(without.ok, true);
+  if (without.ok) assert.equal(without.data.receipts, undefined);
+
+  // A receipt number that is not one of ours never reaches a link: the whole payload is refused.
+  const good = receipts[0];
+  const broken: unknown[] = [
+    { ...good, receipt_no: "PLCC-RCT-2026-1" },
+    { ...good, receipt_no: "../../etc/passwd" },
+    { ...good, receipt_no: "PLCC-RCT-2026-000001/../x" },
+    { ...good, amount: 600 },
+    { ...good, periods: "2026-01" },
+    { ...good, periods: [202601] },
+    { ...good, payment_date: null },
+  ];
+  for (const receipt of broken) {
+    globalThis.fetch = mock.fn(async () => jsonResponse({ data: { ...dashboardBody, receipts: [receipt] } }));
+    assert.equal((await getMemberDashboard("1|abcdef")).ok, false, `refused: ${JSON.stringify(receipt).slice(0, 70)}`);
+  }
+  globalThis.fetch = mock.fn(async () => jsonResponse({ data: { ...dashboardBody, receipts: "none" } }));
+  assert.equal((await getMemberDashboard("1|abcdef")).ok, false, "receipts must be a list");
+});
+
+test("getMemberReceiptPdf asks for exactly one PDF with the bearer token, never cached, number encoded", async () => {
+  let captured: { url: string; init: RequestInit | undefined } | undefined;
+  globalThis.fetch = mock.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
+    captured = { url: String(url), init };
+    return new Response("%PDF-1.7 test", { status: 200, headers: { "Content-Type": "application/pdf" } });
+  });
+
+  const result = await getMemberReceiptPdf("1|abcdef", "PLCC-RCT-2026-000001", { lang: "en", disposition: "inline" });
+  assert.equal(result.ok, true);
+  assert.equal(captured?.url, "https://admin.example.test/api/v1/member/receipts/PLCC-RCT-2026-000001/pdf?lang=en&disposition=inline");
+  assert.equal(captured?.init?.cache, "no-store");
+  const headers = new Headers(captured?.init?.headers);
+  assert.equal(headers.get("authorization"), "Bearer 1|abcdef");
+  assert.equal(headers.get("accept"), "application/pdf");
+  if (result.ok) assert.equal(await result.response.text(), "%PDF-1.7 test");
+});
+
+test("RECEIPT_NUMBER_PATTERN accepts only a real receipt number", () => {
+  for (const ok of ["PLCC-RCT-2026-000001", "PLCC-RCT-2027-123456", "PLCC-RCT-2026-1000000"]) assert.equal(RECEIPT_NUMBER_PATTERN.test(ok), true, ok);
+  for (const bad of ["", "PLCC-RCT-2026-0001", "PLCC-RCT-26-000001", "plcc-rct-2026-000001", "PLCC-RCT-2026-000001 ", " PLCC-RCT-2026-000001", "PLCC-RCT-2026-000001\n", "PLCC-LM-2026-0001", "PLCC-RCT-2026-00000a", "PLCC-RCT-2026-000001/pdf", "..%2F"]) {
+    assert.equal(RECEIPT_NUMBER_PATTERN.test(bad), false, JSON.stringify(bad));
   }
 });
 

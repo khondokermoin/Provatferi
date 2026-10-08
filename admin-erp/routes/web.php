@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\MissionController;
 use App\Http\Controllers\Admin\NoticeController;
 use App\Http\Controllers\Admin\ObjectiveController;
 use App\Http\Controllers\Admin\OrganizationUnitController;
+use App\Http\Controllers\Admin\PaymentReceiptController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\PositionController;
 use App\Http\Controllers\Admin\PublicMemberProfileController;
@@ -183,6 +184,16 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         // Fee policies are append-only: a new version, or cancelling one that has not started. Never an edit.
         Route::post('/{membershipType}/fee-policies', [MembershipTypeController::class, 'storeFeePolicy'])->middleware('permission:membership.update')->name('fee-policies.store');
         Route::post('/{membershipType}/fee-policies/{feePolicy}/cancel', [MembershipTypeController::class, 'cancelFeePolicy'])->middleware('permission:membership.update')->name('fee-policies.cancel');
+    });
+
+    /*
+     * Official payment receipts (Membership task 5) — read-only: the print view and the PDF of an issued receipt,
+     * addressed by receipt number (PLCC-RCT-2026-000001). Registered before the /membership/{membershipApplication}
+     * wildcard like the other static segments.
+     */
+    Route::prefix('membership/receipts')->name('membership.receipts.')->group(function () {
+        Route::get('/{receipt}', [PaymentReceiptController::class, 'show'])->middleware('permission:payments.view')->name('show');
+        Route::get('/{receipt}/pdf', [PaymentReceiptController::class, 'pdf'])->middleware('permission:payments.view')->name('pdf');
     });
 
     /*

@@ -8,9 +8,11 @@
 
     <style>
         /* Self-hosted — no fonts.googleapis.com/fonts.gstatic.com request.
-           Same TTF source as mPDF's own font (resources/fonts/), converted to
-           WOFF2 by deploy/build-print-font.mjs, so the print preview and the
-           PDF are set in the literal same typeface, not look-alikes. */
+           The same Noto Sans Bengali family as the PDF (resources/fonts/README.md),
+           converted to WOFF2 by deploy/build-print-font.mjs: the print preview
+           and the PDF are the same typeface — not look-alikes — though the PDF
+           takes its Bengali glyphs from the 2.001 release (mPDF cannot shape
+           3.x) and its Latin from this 3.011 one. */
         @font-face {
             font-family: 'Noto Sans Bengali';
             font-style: normal; font-weight: 400;
@@ -31,7 +33,7 @@
 
         .print-toolbar {
             position: sticky; top: 0; z-index: 10;
-            display: flex; justify-content: flex-end; gap: 8px;
+            display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px;
             padding: 10px 16px; background: #FFFFFF; border-bottom: 1px solid #E6DFD5;
         }
         .print-toolbar button, .print-toolbar a {
@@ -50,7 +52,7 @@
         /* notosansbengali is what document.blade.php's own inline <style>
            targets — mapped here to the self-hosted @font-face of the same
            family, so print preview and the mPDF-rendered PDF are set in the
-           literal same font file's glyphs, not merely similar-looking ones. */
+           same typeface, not merely similar-looking ones. */
         .print-page, .print-page * { font-family: 'Noto Sans Bengali', sans-serif; }
 
         @media print {
@@ -59,6 +61,7 @@
             .print-page { box-shadow: none; margin: 0; padding: 0; max-width: none; }
         }
     </style>
+    @stack('print_styles')
 </head>
 <body>
     <div class="print-toolbar no-print">
@@ -72,6 +75,7 @@
                 </a>
             @endforeach
         @endif
+        @stack('print_actions')
         <button type="button" class="primary" onclick="window.print()">{{ __('admin.document.print') }}</button>
         <button type="button" onclick="window.close()">{{ __('admin.document.close') }}</button>
     </div>

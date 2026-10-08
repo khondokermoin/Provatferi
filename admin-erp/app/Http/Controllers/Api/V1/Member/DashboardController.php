@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Member;
 use App\Models\Membership;
 use App\Models\MembershipDue;
+use App\Models\PaymentReceipt;
 use App\Services\MembershipDueLedger;
 use App\Services\MembershipDueSchedule;
+use App\Services\PaymentReceiptService;
 use App\Support\MembershipPaymentState;
 use App\Support\Money;
 use Illuminate\Http\JsonResponse;
@@ -22,7 +24,7 @@ use Illuminate\Http\Request;
  */
 class DashboardController extends Controller
 {
-    public function me(Request $request, MembershipDueLedger $ledger): JsonResponse
+    public function me(Request $request, MembershipDueLedger $ledger, PaymentReceiptService $receipts): JsonResponse
     {
         /** @var Member $member */
         $member = $request->user();
@@ -75,6 +77,18 @@ class DashboardController extends Controller
                     'received_at' => $p->received_at,
                 ])
                 ->values(),
+            // The member's official receipts (Membership task 5), newest first. Only what the member should see: the
+            // number, what it was for, the amount, the day, the months — never who received or verified it. The PDF
+            // itself is fetched through GET /member/receipts/{number}/pdf, found only among the member's own.
+            'receipts' => $receipts->forMember($member)->orderByDesc('issued_at')->orderByDesc('id')->limit(100)->get()
+                ->map(fn (PaymentReceipt $r) => [
+                    'receipt_no' => $r->receipt_no,
+                    'purpose' => $r->purpose,
+                    'amount' => Money::parse((string) $r->amount),
+                    'credit' => Money::parse((string) $r->credit_amount),
+                    'payment_date' => $r->payment_date->toDateString(),
+                    'periods' => $r->periods(),
+                ])->values(),
             'library' => ['transactions' => []],
         ]]);
     }

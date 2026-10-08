@@ -10,12 +10,12 @@ use App\Models\MembershipApplication;
 use App\Models\MembershipType;
 use App\Models\Payment;
 use App\Services\ApplicationDocumentService;
+use App\Services\ApplicationPaymentService;
 use App\Services\MembershipApprovalService;
 use App\Services\MembershipNumbering;
 use App\Support\AdminTime;
 use App\Support\MembershipHistory;
 use App\Support\MembershipPaymentState;
-use App\Support\Money;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -38,6 +38,7 @@ class MembershipController extends Controller
         private readonly MembershipApprovalService $approvals,
         private readonly ApplicationDocumentService $documents,
         private readonly MembershipNumbering $numbering,
+        private readonly ApplicationPaymentService $payments,
     ) {
     }
 
@@ -86,7 +87,7 @@ class MembershipController extends Controller
 
     public function show(MembershipApplication $membershipApplication): View
     {
-        $application = $membershipApplication->load(['user', 'membershipType', 'organizationUnit', 'reviewer', 'season', 'payments.receivedBy', 'payments.verifiedBy', 'payments.waivedBy', 'feePolicy', 'membership.member']);
+        $application = $membershipApplication->load(['user', 'membershipType', 'organizationUnit', 'reviewer', 'season', 'payments.receivedBy', 'payments.verifiedBy', 'payments.waivedBy', 'payments.receipt', 'feePolicy', 'membership.member']);
         $allowed = MembershipApplication::TRANSITIONS[$application->status] ?? [];
 
         return view('admin.membership.show', [
@@ -254,7 +255,7 @@ class MembershipController extends Controller
             'status' => 'paid',
         ]);
 
-        ApprovalHistory::record($membershipApplication, 'payment_recorded', $request->user(), $this->paymentSummary($payment));
+        ApprovalHistory::record($membershipApplication, 'payment_recorded', $request->user(), ApplicationPaymentService::summary($payment));
 
         return back()->with('success', __('admin.flash.cash_payment_recorded'));
     }
@@ -264,16 +265,9 @@ class MembershipController extends Controller
     {
         abort_unless($payment->payable_type === MembershipApplication::class, 404);
 
-        $verified = DB::transaction(function () use ($payment, $request): bool {
-            $locked = Payment::query()->whereKey($payment->id)->lockForUpdate()->firstOrFail();
-            if ($locked->verified_at !== null || $locked->status !== 'paid') {
-                return false; // already verified (a double click, a retried request) — verified once, recorded once
-            }
-            $locked->update(['verified_at' => now(), 'verified_by' => $request->user()->id]);
-            ApprovalHistory::record($locked->payable, 'payment_verified', $request->user(), $this->paymentSummary($locked));
-
-            return true;
-        });
+        // Verified once and recorded once — a double click or a retried request finds it verified. The official receipt
+        // is issued in the same transaction (Membership task 5).
+        $verified = $this->payments->verify($payment, $request->user());
 
         return back()->with($verified ? 'success' : 'status', $verified ? __('admin.flash.payment_verified') : __('admin.registry.flash.payment_already_verified'));
     }
@@ -308,19 +302,6 @@ class MembershipController extends Controller
         ApprovalHistory::record($membershipApplication, 'payment_waived', $request->user(), $data['waiver_reason']);
 
         return back()->with('success', __('admin.flash.payment_waived'));
-    }
-
-    /**
-     * What a payment history entry records — amounts and the reference as data (JSON), so the history shows them with
-     * the viewing admin's digits and words (App\Support\MembershipHistory), not the recording admin's.
-     */
-    private function paymentSummary(Payment $payment): string
-    {
-        return (string) json_encode(['payment' => [
-            'received' => Money::parse((string) $payment->amount_received),
-            'expected' => Money::parse((string) $payment->amount_expected),
-            'reference' => $payment->reference ?: null,
-        ]], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
     private function clean(?string $text): ?string

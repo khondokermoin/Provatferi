@@ -120,5 +120,5 @@ contributions card on the member page, and dues pausing / resuming with every st
 
 ## Not built (by design, later tasks)
 
-Receipts, membership type change, an applicant-side correction form for "information needed", online payment. (The
+Membership type change, an applicant-side correction form for "information needed", online payment. (Receipts are task 5 — `docs/MEMBERSHIP_RECEIPTS.md`. The
 member-number redesign was task 3 — `docs/MEMBERSHIP_NUMBERING.md`; monthly dues task 4 — `docs/MEMBERSHIP_DUES.md`.)

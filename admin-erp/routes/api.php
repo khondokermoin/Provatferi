@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Member\AuthController as MemberAuthController;
 use App\Http\Controllers\Api\V1\Member\DashboardController as MemberDashboardController;
 use App\Http\Controllers\Api\V1\Member\PasswordResetController as MemberPasswordResetController;
 use App\Http\Controllers\Api\V1\Member\ProfileController as MemberProfileController;
+use App\Http\Controllers\Api\V1\Member\ReceiptController as MemberReceiptController;
 use App\Http\Controllers\Api\V1\MembershipTypeController;
 use App\Http\Controllers\Api\V1\OrganizationUnitController;
 use App\Http\Controllers\Api\V1\Public\CommitteeController as PublicCommitteeController;
@@ -107,6 +108,9 @@ Route::prefix('v1')->group(function () {
             Route::get('/me', [MemberDashboardController::class, 'me']);
             Route::get('/profile', [MemberProfileController::class, 'show']);
             Route::post('/profile', [MemberProfileController::class, 'update']);
+            // The member's own official receipt as a PDF (Membership task 5): found only among their own receipts.
+            Route::get('/receipts/{receiptNo}/pdf', [MemberReceiptController::class, 'pdf'])
+                ->where('receiptNo', '[A-Z0-9-]{10,40}')->middleware('throttle:30,1');
         });
     });
 

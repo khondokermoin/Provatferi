@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "@/components/SiteLink";
 import { redirect } from "next/navigation";
 import { getMemberDashboard } from "@/lib/api/member";
-import type { MemberMonthlyContribution } from "@/lib/api/types";
+import type { MemberMonthlyContribution, MemberReceiptSummary } from "@/lib/api/types";
 import { FEE_LABELS, formatTaka, isPositiveAmount } from "@/lib/fees";
 import { formatBnDate, formatBnMonth, toBnDigits } from "@/lib/format";
 import { getMemberSessionToken } from "@/lib/member-session";
@@ -137,6 +137,55 @@ function MonthlyContribution({ code, monthly, showCode }: { code: string; monthl
   );
 }
 
+/** What a receipt was for, as the page words it (admin-erp PaymentReceipt::PURPOSES). */
+const RECEIPT_PURPOSE_LABELS: Record<string, string> = {
+  registration: "নিবন্ধন ফি",
+  monthly: "মাসিক চাঁদা",
+  advance: "অগ্রিম চাঁদা",
+  voluntary: "স্বেচ্ছা অনুদান",
+  other: "অন্যান্য পরিশোধ",
+};
+
+/** "অক্টোবর ২০২৬" for one month; "জানুয়ারি ২০২৬ থেকে মার্চ ২০২৬ (৩ মাস)" for more than three. */
+function receiptMonths(periods: string[]): string | null {
+  if (periods.length === 0) return null;
+  const label = (p: string) => formatBnMonth(p) ?? p;
+  if (periods.length <= 3) return periods.map(label).join(", ");
+  return `${label(periods[0])} থেকে ${label(periods[periods.length - 1])} (${toBnDigits(periods.length)} মাস)`;
+}
+
+/**
+ * One receipt of the member's own: its number, what it was for, the day, the amount — and the two ways to open it. The links
+ * go to THIS site's route (app/api/member/receipts), which fetches the PDF with the member's own session; plain anchors,
+ * never next/link, so nothing is prefetched. No verifier or receiver is named here.
+ */
+function ReceiptItem({ receipt }: { receipt: MemberReceiptSummary }) {
+  const base = `/api/member/receipts/${encodeURIComponent(receipt.receipt_no)}`;
+  const months = receiptMonths(receipt.periods);
+
+  return (
+    <li data-testid="receipt-row" data-receipt-no={receipt.receipt_no} data-purpose={receipt.purpose}>
+      <div className="receipt-main">
+        <span className="receipt-no" data-testid="receipt-no">{receipt.receipt_no}</span>
+        <span className="receipt-what">
+          {RECEIPT_PURPOSE_LABELS[receipt.purpose] ?? "অন্যান্য পরিশোধ"}
+          {months ? ` — ${months}` : ""}
+        </span>
+        <span className="receipt-meta">
+          পরিশোধের তারিখ: {formatBnDate(receipt.payment_date) ?? receipt.payment_date}
+          {isPositiveAmount(receipt.credit) ? ` · অগ্রিম জমা ${formatTaka(receipt.credit, "bn")}` : ""}
+        </span>
+      </div>
+      <span className="receipt-amount" data-testid="receipt-amount">{formatTaka(receipt.amount, "bn") ?? "—"}</span>
+      <div className="receipt-actions">
+        <a href={`${base}?lang=bn&disposition=inline`} target="_blank" rel="noopener noreferrer" data-testid="receipt-view">রসিদ দেখুন</a>
+        <a href={`${base}?lang=bn&disposition=attachment`} data-testid="receipt-download">ডাউনলোড (পিডিএফ)</a>
+        <a href={`${base}?lang=en&disposition=inline`} target="_blank" rel="noopener noreferrer" data-testid="receipt-view-en" lang="en">English</a>
+      </div>
+    </li>
+  );
+}
+
 export default async function MemberDashboardPage() {
   const token = await getMemberSessionToken();
   if (!token) redirect("/member/login");
@@ -151,6 +200,7 @@ export default async function MemberDashboardPage() {
   }
 
   const { profile, memberships, season_history: seasonHistory, payments } = result.data;
+  const receipts = result.data.receipts ?? [];
   // A zero-fee membership owes nothing: "no payment records yet" would read as if something were still due.
   const noFeeDue = memberships.length > 0 && memberships.every((m) => m.payment_state === "not_required");
   // Absent from an ERP build older than the monthly dues ledger: then the section is simply not shown.
@@ -251,6 +301,19 @@ export default async function MemberDashboardPage() {
           <p data-testid="payments-empty">{noFeeDue ? "আপনার সদস্যপদে কোনো নিবন্ধন ফি প্রযোজ্য নয় — পরিশোধের প্রয়োজন নেই।" : "এখনো কোনো পরিশোধের রেকর্ড নেই।"}</p>
         )}
       </section>
+
+      {/* Absent from an ERP build older than the receipts: then the section is simply not shown. */}
+      {receipts.length > 0 && (
+        <section className="content-section" data-testid="receipts">
+          <h2>পরিশোধের রসিদ</h2>
+          <p className="receipt-intro">যাচাই হওয়া প্রতিটি পরিশোধের একটি অফিসিয়াল রসিদ থাকে। অপেক্ষমাণ বা মওকুফ হওয়া কিছুর রসিদ হয় না।</p>
+          <ul className="receipt-list" data-testid="receipts-list">
+            {receipts.map((r) => (
+              <ReceiptItem key={r.receipt_no} receipt={r} />
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="content-section">
         <h2>লাইব্রেরি</h2>

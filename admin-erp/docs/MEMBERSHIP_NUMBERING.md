@@ -1,4 +1,4 @@
-# Member numbers and application numbers
+# Member numbers, application numbers and receipt numbers
 
 Membership task 3 (2026-10-07). Code: `App\Services\NumberSequence` (the counters), `App\Services\MembershipNumbering`
 (the formats), `App\Services\MembershipApprovalService` (approval), `Api\V1\Public\MembershipApplicationController` and
@@ -11,6 +11,7 @@ Membership task 3 (2026-10-07). Code: `App\Services\NumberSequence` (the counter
 |---|---|---|---|
 | Member number | `PLCC-{type code}-{year}-{nnnn}` | `PLCC-LM-2026-0001` | one per type and year: `member:LM:2026` |
 | Application number | `APP-{year}-{nnnn}` | `APP-2026-0001` | one per year: `application:2026` |
+| Receipt number (task 5) | `PLCC-RCT-{year}-{nnnnnn}` | `PLCC-RCT-2026-000001` | one per year: `receipt:2026` |
 
 - `PLCC` is `config('membership.number_prefix')`.
 - `{type code}` is the membership type's own code (`membership_types.code`): LM, GM, ST today, and whatever code an
@@ -18,7 +19,10 @@ Membership task 3 (2026-10-07). Code: `App\Services\NumberSequence` (the counter
 - `{year}` is the year on the organisation's calendar (Asia/Dhaka, `config('membership.timezone')`) of the day the
   number is issued — the approval for a member number, the submission for an application number. At 00:01 on
   1 January in Dhaka (18:01 UTC on 31 December) numbers already start again at 0001.
-- `{nnnn}` has at least four digits and simply grows past 9999.
+- `{nnnn}` has at least four digits and simply grows past 9999. A receipt number has at least **six** and is issued only when a
+  payment is verified, in that transaction (`docs/MEMBERSHIP_RECEIPTS.md`); its year is the Dhaka year of the verification.
+- **`RCT` is a reserved type code** (`MembershipType::RESERVED_CODES`): a membership type cannot be given it, so a receipt number
+  can never be read as a member number — and the QA kit's number mapper tests the receipt format first.
 
 ## The rules
 

@@ -1282,6 +1282,22 @@ input[type="radio"]:disabled { cursor: not-allowed; opacity: .55; }
 .due-chip[data-state="partially_paid"] { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 35%, transparent); background: color-mix(in srgb, var(--warning) 9%, transparent); }
 .due-chip[data-state="overdue"] { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, transparent); background: color-mix(in srgb, var(--danger) 9%, transparent); }
 .due-chip[data-state="waived"] { color: var(--muted); }
+
+/* ---------- Member portal: official receipts (/member/dashboard) ----------
+   A ruled register like the months above, one entry per receipt: the number, what it was for and when on the left, the amount
+   on the right, the ways to open it underneath. The same two-column grid on a phone as on a desktop — nothing to collapse. */
+.receipt-intro { font-size: 15px; line-height: 1.8; color: var(--muted); margin: 0 0 16px; max-width: 780px; }
+.receipt-list { list-style: none; margin: 0; padding: 0; max-width: 880px; border-top: 2px solid var(--heading); }
+.receipt-list > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 20px; align-items: start; padding: 16px 4px; border-bottom: 1px solid var(--border); }
+.receipt-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.receipt-no { font-size: 16px; font-weight: 650; color: var(--heading); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.receipt-what { font-size: 15px; color: var(--body); line-height: 1.6; }
+.receipt-meta { font-size: 13px; color: var(--muted); }
+.receipt-amount { font-size: 19px; font-weight: 650; color: var(--heading); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.receipt-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px 10px; }
+.receipt-actions a { font-size: 14px; font-weight: 600; line-height: 1.3; color: var(--accent-text); text-decoration: none; padding: 7px 14px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--card); }
+.receipt-actions a:hover { background: var(--soft); }
+.receipt-actions a:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
 /* Phones: one block per month — the month and its state on the first line, the four figures (each with its column's
    label, from data-label) on the second. The header row stays in the accessibility tree, out of sight. */
 @media (max-width: 640px) {

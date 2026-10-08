@@ -1,5 +1,5 @@
-import { apiGetAuthenticated, apiPostAuthenticated, apiPostForm, apiPostFormAuthenticated, isRecord, isStringOrNull } from "./client";
-import type { ApiSubmitResult } from "./client";
+import { apiGetAuthenticated, apiGetAuthenticatedFile, apiPostAuthenticated, apiPostForm, apiPostFormAuthenticated, isRecord, isStringOrNull } from "./client";
+import type { ApiFileResult, ApiSubmitResult } from "./client";
 import type {
   ApiResult,
   MemberDashboard,
@@ -7,6 +7,7 @@ import type {
   MemberMonthlyContribution,
   MemberMonthlyDue,
   MemberPaymentSummary,
+  MemberReceiptSummary,
   MemberProfile,
   MemberProfileState,
   MemberProfileVersionView,
@@ -130,6 +131,20 @@ function isPaymentSummary(v: unknown): v is MemberPaymentSummary {
   );
 }
 
+function isReceiptSummary(v: unknown): v is MemberReceiptSummary {
+  return (
+    isRecord(v) &&
+    typeof v.receipt_no === "string" &&
+    RECEIPT_NUMBER_PATTERN.test(v.receipt_no) &&
+    typeof v.purpose === "string" &&
+    typeof v.amount === "string" &&
+    typeof v.credit === "string" &&
+    typeof v.payment_date === "string" &&
+    Array.isArray(v.periods) &&
+    v.periods.every((p) => typeof p === "string")
+  );
+}
+
 function isMemberDashboard(v: unknown): v is MemberDashboard {
   return (
     isRecord(v) &&
@@ -140,6 +155,8 @@ function isMemberDashboard(v: unknown): v is MemberDashboard {
     v.season_history.every(isSeasonHistoryEntry) &&
     Array.isArray(v.payments) &&
     v.payments.every(isPaymentSummary) &&
+    // 2026-10-08 (official receipts): optional, so this site works against an ERP build that does not send them yet.
+    (v.receipts === undefined || (Array.isArray(v.receipts) && v.receipts.every(isReceiptSummary))) &&
     isRecord(v.library) &&
     Array.isArray(v.library.transactions)
   );
@@ -147,6 +164,17 @@ function isMemberDashboard(v: unknown): v is MemberDashboard {
 
 function isDashboardResponse(json: unknown): json is { data: MemberDashboard } {
   return isRecord(json) && isMemberDashboard(json.data);
+}
+
+/** A receipt number as admin-erp issues it: PLCC-RCT-{year}-{at least six digits}. Nothing else is ever sent upstream. */
+export const RECEIPT_NUMBER_PATTERN = /^PLCC-RCT-\d{4}-\d{6,}$/;
+
+/**
+ * The signed-in member's own receipt as a PDF, unread (see apiGetAuthenticatedFile). Laravel looks it up only among
+ * that member's receipts: someone else's receipt number is the same 404 as one that does not exist.
+ */
+export function getMemberReceiptPdf(token: string, receiptNo: string, options: { lang: "bn" | "en"; disposition: "inline" | "attachment" }): Promise<ApiFileResult> {
+  return apiGetAuthenticatedFile(`/api/v1/member/receipts/${encodeURIComponent(receiptNo)}/pdf?lang=${options.lang}&disposition=${options.disposition}`, token, { accept: "application/pdf" });
 }
 
 export async function getMemberDashboard(token: string): Promise<ApiResult<MemberDashboard>> {

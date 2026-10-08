@@ -63,7 +63,7 @@ class MembershipTypeController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $this->normaliseCode($request);
-        $data = $request->validate($this->rules(null) + $this->initialFeeRules(), [], $this->attributes());
+        $data = $request->validate($this->rules(null) + $this->initialFeeRules(), $this->messages(), $this->attributes());
 
         $type = DB::transaction(function () use ($request, $data) {
             $type = MembershipType::query()->create([
@@ -128,7 +128,7 @@ class MembershipTypeController extends Controller
     public function update(Request $request, MembershipType $membershipType): RedirectResponse
     {
         $this->normaliseCode($request);
-        $data = $request->validate($this->rules($membershipType), [], $this->attributes());
+        $data = $request->validate($this->rules($membershipType), $this->messages(), $this->attributes());
 
         $attributes = [
             'name' => $data['name'],
@@ -258,6 +258,8 @@ class MembershipTypeController extends Controller
     {
         $codeRules = [
             $existing === null ? 'required' : 'nullable', 'string', 'regex:'.MembershipType::CODE_PATTERN,
+            // Reserved words (RCT: the middle of every receipt number) can never be a type's code.
+            Rule::notIn(MembershipType::RESERVED_CODES),
             Rule::unique('membership_types', 'code')->ignore($existing?->id),
         ];
 
@@ -282,6 +284,12 @@ class MembershipTypeController extends Controller
             'effective_from' => ['required', 'date_format:Y-m-d'],
             'fee_note' => ['nullable', 'string', 'max:1000'],
         ];
+    }
+
+    /** @return array<string, string> */
+    private function messages(): array
+    {
+        return ['code.not_in' => __('admin.receipt.reserved_code', ['codes' => implode(', ', MembershipType::RESERVED_CODES)])];
     }
 
     /** @return array<string, string> */

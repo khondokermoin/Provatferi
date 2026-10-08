@@ -133,6 +133,8 @@
                                         <i class="ti ti-check" aria-hidden="true"></i> {{ __('admin.fields.verified_badge') }}@if ($payment->verifiedBy && $payment->status === 'paid') · {{ $payment->verifiedBy->name }}@endif
                                     </span>
                                     <span class="d-block text-muted fs-11" data-testid="payment-verified-at">{{ admin_datetime($payment->verified_at) }}</span>
+                                    {{-- The official receipt: only verified money has one; a waiver (verified, but not money) never does. --}}
+                                    <x-admin.receipt-links :payment="$payment" />
                                 @elseif ($payment->status === 'paid')
                                     @can('payments.approve')
                                         <form method="POST" action="{{ route('admin.membership.payments.verify', $payment) }}" class="d-inline">

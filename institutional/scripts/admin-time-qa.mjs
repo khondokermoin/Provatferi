@@ -314,13 +314,14 @@ async function verifyPhase() {
         check(`[${loc}] fee policy ${p.id}: effective from the calendar date ${p.effective_from}`, body.includes(calendar(p.effective_from, loc)));
       }
     }
-    for (const u of probe.users.filter((x) => x.last_login_at).slice(-3)) {
+    for (const u of probe.users.slice(-3)) {
       const res = await go(`/admin/system/users/${u.id}`);
       if (res?.status() !== 200) continue; // a removed account
       const body = await bodyText();
+      check(`[${loc}] user ${u.id}: created ${u.created_at} UTC (its Dhaka day)`, body.includes(stampDate(u.created_at, loc)), stampDate(u.created_at, loc));
+      note(`user ${u.id} created`, u.created_at);
       // The signed-in QA admin's own sign-in moved when this run signed in: then it is "just now".
-      check(`[${loc}] user ${u.id}: last sign-in ${u.last_login_at} UTC`, body.includes(stamp(u.last_login_at, loc)) || justNow(loc).some((t) => body.includes(t)), stamp(u.last_login_at, loc));
-      check(`[${loc}] user ${u.id}: created ${u.created_at} UTC (its Dhaka day)`, body.includes(stampDate(u.created_at, loc)));
+      if (u.last_login_at) check(`[${loc}] user ${u.id}: last sign-in ${u.last_login_at} UTC`, body.includes(stamp(u.last_login_at, loc)) || justNow(loc).some((t) => body.includes(t)), stamp(u.last_login_at, loc));
     }
   }
   state.crossing = crossing;

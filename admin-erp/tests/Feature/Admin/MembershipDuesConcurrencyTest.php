@@ -64,8 +64,13 @@ class MembershipDuesConcurrencyTest extends TestCase
     {
         try {
             $dueIds = MembershipDue::query()->where('membership_id', $this->membership->id)->pluck('id');
+            $paymentIds = Payment::query()->where('payable_type', Membership::class)->where('payable_id', $this->membership->id)->pluck('id');
+            // Verification now issues an official receipt (task 5); the model refuses to delete one on purpose, so the
+            // fixture goes straight through the query builder — receipts first (restrict FK), and the counter they advanced.
+            DB::table('payment_receipts')->whereIn('payment_id', $paymentIds)->delete();
+            DB::table('number_sequences')->where('sequence_key', 'like', 'receipt:%')->delete();
             MembershipDueAllocation::query()->where('membership_id', $this->membership->id)->delete();
-            Payment::query()->where('payable_type', Membership::class)->where('payable_id', $this->membership->id)->delete();
+            Payment::query()->whereIn('id', $paymentIds)->delete();
             ApprovalHistory::query()->where('subject_type', MembershipDue::class)->whereIn('subject_id', $dueIds)->delete();
             MembershipDue::query()->where('membership_id', $this->membership->id)->delete();
             ApprovalHistory::query()->where('subject_type', Membership::class)->where('subject_id', $this->membership->id)->delete();
