@@ -363,5 +363,12 @@
     "found_not_fixed": {
       "recruitment_pdf_with_a_large_photo": "On production, the recruitment application PDF of application 70 answers 500 in both languages (application 71's PDF is fine, 282 KB): mPDF refuses the document — 'The HTML code size is larger than pcre.backtrack_limit 1000000' (Mpdf.php:27018) — because the applicant photo is embedded in the HTML as a base64 data URI and a phone-camera photo alone passes 1 MB. The check runs on the HTML string before any font is touched, so it is independent of this release and was there before it; found while verifying (headers and bytes only, nothing saved or read) that the shared PDF engine still serves real recruitment applications. NOT fixed: out of this task's scope (receipt HTML is tens of KB). The fix is small and standard (resize the embedded photo for the document, or raise pcre.backtrack_limit / write the HTML in chunks) — the owner's call. Two ERROR lines from this check sit in storage/logs/laravel.log at 2026-10-09 06:58:26."
     }
+  },
+  "history_rewrite_2026_10_09": {
+    "note": "Git history was rewritten on 2026-10-09 to remove two secret-bearing paths (.claude/settings.local.json, cms/wp-config.php) — see docs/SECRETS.md. Every commit SHA recorded in this file, and in the release manifests on the server, is the PRE-rewrite SHA. The commits are unchanged apart from those two paths and map as below. build-release.sh only reads `commit` here as a string for the manifest and requires the commit being BUILT to be an ancestor of origin/main, so the next deploy is unaffected; the next deploy should record the new SHA as usual.",
+    "commit_map": {
+      "03e2e70391bc86706951bba515d13524e7ce8a3f": "bf731094b6f7f4e50662ab80909f0103da26c1e0",
+      "f8279064ac6f42a769e6ba56d1eff1fd1e0c1f1f": "3c23064a36760baba7bb5f5ee02a9eb9e2281a05"
+    }
   }
 }

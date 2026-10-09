@@ -1,0 +1,103 @@
+# Secret-scanning policy for the whole Provatferi monorepo.
+#
+# Scanner: gitleaks (https://github.com/gitleaks/gitleaks) — maintained, versioned, pinned by scripts/install-gitleaks.sh.
+# Used by:  .githooks/pre-commit (what you are about to commit), .github/workflows/secret-scan.yml (every push and pull request,
+#           the whole history), scripts/secret-scan.sh (the same checks by hand).
+# Rules:    gitleaks' own default rule set (API keys, tokens, JWTs, private keys, cloud and SaaS credentials …) PLUS the project rules
+#           below, which cover the shapes that actually leaked here or that the next integrations will introduce.
+#
+# HOW TO HANDLE A FINDING — read docs/SECRETS.md first:
+#   1. A real secret: ROTATE IT FIRST (it is compromised the moment it is committed), then remove it. Never allow-list a real secret.
+#   2. A false positive: add the NARROWEST allow-list below — an exact value or shape AND the one file (and, for history, the one commit)
+#      where it appears — with a description saying why it is not a secret. Never allow-list a directory, a file type or "*".
+#   3. If history is ever rewritten again, the commit SHAs pinned below must be updated.
+
+title = "Provatferi secret scanning"
+
+[extend]
+useDefault = true
+
+# ---------------------------------------------------------------------------------------------------------------------------------
+# Project rules
+# ---------------------------------------------------------------------------------------------------------------------------------
+
+[[rules]]
+id = "provatferi-cli-password-argument"
+description = "A password given as a command-line flag value (--admin_password=…, --password=…, --db-password=…). Approved commands saved in .claude/settings*.json leaked a WordPress admin password this way, and default rules do not see it."
+regex = '''(?i)--(?:[a-z]+[_-])?pass(?:word|wd)?=['"]?([^\s'"#$<{%\\][^\s'"\\]{5,})'''
+secretGroup = 1
+keywords = ["password=", "passwd=", "pass="]
+[[rules.allowlists]]
+description = "Placeholders and obviously fake values."
+stopwords = ["changeme", "change_me", "yourpassword", "your_password", "your-password", "placeholder", "example", "redacted", "dummy", "xxxxxxxx", "********"]
+
+[[rules]]
+id = "provatferi-mysql-cli-password"
+description = "A database password glued to -p on a mysql/mysqldump/mysqladmin/mariadb command line (-pSECRET)."
+regex = '''\b(?i:mysql|mysqldump|mysqladmin|mariadb)(?:\.exe)?\b[^\n|;&]*?\s-p([^\s'"-][^\s'"]{3,})'''
+secretGroup = 1
+keywords = ["mysql", "mariadb"]
+[[rules.allowlists]]
+description = "Placeholders and obviously fake values."
+stopwords = ["changeme", "yourpassword", "placeholder", "example", "redacted", "dummy"]
+
+[[rules]]
+id = "provatferi-hostinger-auth-rest-key"
+description = "The X-Auth-Rest key that goes with a Hostinger file-browser (TUS) upload session, or its HOSTINGER_AUTH_REST variable."
+regex = '''(?i)(?:x-auth-rest[:=\s]+|hostinger_auth_rest=)['"]?([a-f0-9]{64}-[a-f0-9]{16})\b'''
+secretGroup = 1
+keywords = ["x-auth-rest", "hostinger_auth_rest"]
+
+[[rules]]
+id = "provatferi-sanctum-token"
+description = "A Laravel Sanctum personal access token in its plain form (<id>|<40 random characters + 8 checksum characters>). Tokens never expire here (config/sanctum.php), so a leaked one stays valid until revoked."
+regex = '''\b(\d{1,9}\|[A-Za-z0-9]{40,56})\b'''
+secretGroup = 1
+entropy = 3.5
+keywords = ["|"]
+
+[[rules]]
+id = "provatferi-env-secret-assignment"
+description = "A literal value assigned to a variable that is named like a secret (REVALIDATE_SECRET=…, HOSTINGER_MAIL_API_TOKEN=…, DB_PASSWORD=…, BKASH_APP_SECRET=…, SSLCOMMERZ_STORE_PASSWD=…, CLOUDFLARE_API_TOKEN=…, *_WEBHOOK_SECRET=…). Empty values, null, $VARIABLE references and <placeholders> are fine."
+regex = '''(?i)\b([a-z][a-z0-9_]*(?:secret|password|passwd|api_key|api_token|access_token|auth_token|private_key|auth_key|auth_rest|app_key)[a-z0-9_]*)=['"]?([^\s'"#$<{%\\][^\s'"#\\]{7,})'''
+secretGroup = 2
+keywords = ["secret", "password", "passwd", "api_key", "api_token", "access_token", "auth_token", "private_key", "auth_key", "auth_rest", "app_key"]
+[[rules.allowlists]]
+description = "Placeholders and obviously fake values."
+stopwords = ["changeme", "change_me", "yourpassword", "your_password", "your-password", "your_secret", "your-secret", "placeholder", "example", "redacted", "dummy", "xxxxxxxx", "********", "generated-by", "generate-with"]
+
+# ---------------------------------------------------------------------------------------------------------------------------------
+# Allow-lists — each one is a documented false positive, as narrow as it can be made.
+# ---------------------------------------------------------------------------------------------------------------------------------
+
+[[allowlists]]
+description = "Unit-test fixtures: sample UUIDs used as fake submission tokens in the volunteer-application tests. They are the public RFC example UUID and an obviously synthetic one; neither authorises anything anywhere."
+condition = "AND"
+paths = [
+  '''^institutional/lib/api/__tests__/volunteer-application\.test\.mts$''',
+  '''^admin-erp/tests/Feature/Api/VolunteerApplicationSubmitFlowTest\.php$''',
+]
+regexes = [
+  '''^7c9e6679-7425-40de-944b-e07fc1f90ae7$''',
+  '''^a1b2c3d4-e5f6-4789-8abc-def012345678$''',
+]
+
+[[allowlists]]
+description = "History only: the first admin-erp/.env.example (commit 6c24bb0, tag admin-erp-phase1-baseline) had an EMPTY DB_PASSWORD= directly above DB_CHARSET=…; the generic rule matched across the line break. There is no value in that file."
+condition = "AND"
+commits = ["6c24bb0f3fadca16869128d46c58c999a7422095"]
+paths = ['''^admin-erp/\.env\.example$''']
+regexTarget = "match"
+regexes = ['''(?i)DB_PASSWORD=\s*DB_CHARSET''']
+
+[[allowlists]]
+description = "Unit-test fixture: the literal APP_KEY=base64:secret inside a temporary .env that the test writes to prove unrelated lines survive a rewrite. It is not a key."
+condition = "AND"
+paths = ['''^admin-erp/tests/Feature/Deploy/PublicUploadsContractTest\.php$''']
+regexes = ['''^base64:secret$''']
+
+[[allowlists]]
+description = "History only: vendored third-party WordPress core, plugin and theme code (example keys in Akismet, Yoast, Custom Post Type UI, a JWT plugin test token, a bundled public certificate, minified admin scripts …) added by the single commit 'project file create' (2026-08-18). These directories have been untracked since 2026-09 (see .gitignore) and none of it is project code."
+condition = "AND"
+commits = ["79abf13b3304db027d4927c327b90dc143ef07b2"]
+paths = ['''^cms/(wp-admin|wp-includes|wp-content/(plugins|themes))/''']

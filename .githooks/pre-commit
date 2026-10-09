@@ -1,0 +1,5 @@
+#!/bin/sh
+# Refuses a commit that contains a secret or a file that must never be committed.
+# Enable it once per clone:  git config core.hooksPath .githooks      (docs/SECRETS.md explains the whole set-up)
+# Bypassing it with --no-verify is not an option: CI scans every push again, and a pushed secret is a compromised secret.
+exec bash "$(git rev-parse --show-toplevel)/scripts/secret-scan.sh" staged

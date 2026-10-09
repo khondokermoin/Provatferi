@@ -5,12 +5,34 @@
 .env
 .env.*
 !.env.example
+*.env
+!*.env.example
 *.pem
 *.ppk
+*.p12
+*.pfx
+*.jks
+*.keystore
 id_rsa
 id_rsa.*
+id_ed25519
+id_ed25519.*
+/auth.json
+.netrc
 .super-admin-credentials.txt
 *credentials*.txt
+
+# --- AI-assistant and tooling state ----------------------------------------
+# Claude Code saves every command line you approve into these files — including
+# commands that carried a password or a token. That leaked a WordPress admin
+# password into a public Git history (removed 2026-10-09, see docs/SECRETS.md).
+# They are local to one machine, so they are never shared. If a vetted, secret-free
+# set of shared rules is ever wanted, add it deliberately with `git add -f`; the
+# pre-commit hook and CI still scan it.
+.claude/settings.json
+.claude/settings.local.json
+.claude/*.local.*
+.claude/scheduled_tasks.lock
 
 # --- Deployed site copies --------------------------------------------------
 # Local-only mirror of the live Hostinger docroot. Deployed by direct sync,

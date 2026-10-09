@@ -145,5 +145,12 @@
     "summary": "Membership task 5 on the public site: the member dashboard's 'পরিশোধের রসিদ' section (own receipts: number, purpose and months, date, amount, advance credit; View / Download (PDF) / English) and a same-origin route app/api/member/receipts/[number] that reads the member's session from the HttpOnly cookie and asks admin-erp for the PDF — the number is validated first (nothing malformed goes upstream), someone else's number and a missing one are the same 404, a signed-out visitor is sent to the login page, the PDF is never cached (private, no-store) and is named by the validated number.",
     "build": "01a11d70-b80e-73a4-8a3d-359fff5d867f from archive institutional-03e2e70.tar.gz (21:34:48Z-21:36:09Z), cache cleared right after; the archive was consumed (docroot holds only .htaccess).",
     "verification": "312 unit tests (210 + 19 + 83), tsc and eslint clean; production request-storm 6/6 loads settled at 23 requests, nav-qa 13/13; the receipts QA (portal 17/17, security 14/14) — see the admin-erp record membership_receipts_2026_10_09."
+  },
+  "history_rewrite_2026_10_09": {
+    "note": "Git history was rewritten on 2026-10-09 to remove two secret-bearing paths (.claude/settings.local.json, cms/wp-config.php) — see docs/SECRETS.md. Every commit SHA recorded in this file, and in the release manifests on the server, is the PRE-rewrite SHA. The commits are unchanged apart from those two paths and map as below. build-release.sh only reads `commit` here as a string for the manifest and requires the commit being BUILT to be an ancestor of origin/main, so the next deploy is unaffected; the next deploy should record the new SHA as usual.",
+    "commit_map": {
+      "03e2e70391bc86706951bba515d13524e7ce8a3f": "bf731094b6f7f4e50662ab80909f0103da26c1e0",
+      "9a26ed554d5089138cade64760d4a89684ea5aaa": "a492ac5302fbf554cbacad4c6928fca512cad41c"
+    }
   }
 }
