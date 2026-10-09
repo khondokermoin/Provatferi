@@ -1,0 +1,122 @@
+{
+  "fonts": {
+    "NotoSansBengali-Shaping-Regular.ttf": {
+      "role": "Bengali glyphs, shaped by mPDF (useOTL) — the Bengali of every PDF",
+      "release": "Noto Sans Bengali 2.001 (2017, Monotype / Google), OFL 1.1",
+      "derived": "name table only: PostScript name NotoSansBengaliShaping-Regular (deploy/patch-font-names.mjs)",
+      "upstream_sha256": "0841c3c2642810eaed9540b40703348e3d133e98e3df2ae1bbc159f24135b25a",
+      "version": "Version 2.001",
+      "postscript_name": "NotoSansBengaliShaping-Regular",
+      "bytes": 134340,
+      "sha256": "8f04dac7e9eab43654a535c79556bfb897c60939adeae6f0afefd47383a9b499",
+      "tables_sha256": {
+        "GDEF": "49f0283c80b4246018ad311088ba4055df141e0d0fdbe1074126dca3bdd18eed",
+        "GPOS": "ef757e860d7df894ecab2fad4da7576001b00549a27a86599cb29a947a93a15f",
+        "GSUB": "07221cd51c08baadf51815bd5b0bbbe1aa19b5b905f6a1022216cb5e1dadaf35",
+        "OS/2": "a317262857af9210e15d80b470a73b201aa1c84a4b73f1d141c687a17aa7e4cb",
+        "cmap": "6933151cb3271a58d968ad8b9206b0625125cacab5b4cbc9bedafe556b557fcb",
+        "glyf": "d73a2991f163963cf8b6367965a9bcb47f4eea15706b80bf4dfb8a8a416e2a11",
+        "head": "379f641db780649ae504c16f926aafdc6d510768f7d8cfba78dc4b0133807b37",
+        "hhea": "bb5d43dc73132349d3c82abdd09142a75c606c40ba69ed89554382045018c3f3",
+        "hmtx": "48871bbbd60a76ca18e940baa557514026a6797f938db24d5d1d6a7a581c4d97",
+        "loca": "47676d1f32be7c6549e3acd15f6c3ba465a4f3828a42f33bf632f0d4d6e8c899",
+        "maxp": "42d6ef2726c01b1b70dd0da6128fc7e5592fbad0f02aacfa378c200ecaad86db",
+        "name": "dafa6c27f37edc8f9f1b304d63165878f9ae236e90201b07f7824401cbd94697",
+        "post": "5b0074c1989181340e242ad426df50f3e3c112be66152965a2f9cbe39e1b324a"
+      }
+    },
+    "NotoSansBengali-Shaping-Bold.ttf": {
+      "role": "Bengali glyphs, bold, shaped by mPDF (useOTL)",
+      "release": "Noto Sans Bengali 2.001 (2017, Monotype / Google), OFL 1.1",
+      "derived": "name table only: PostScript name NotoSansBengaliShaping-Bold (deploy/patch-font-names.mjs)",
+      "upstream_sha256": "75ab012faf1c9e1f4b83fe33f6f1cd011f714fd7e2f932c6cce355e02cf7e17f",
+      "version": "Version 2.001",
+      "postscript_name": "NotoSansBengaliShaping-Bold",
+      "bytes": 132212,
+      "sha256": "2f2107781f9539b5d20c5b88c1088d69dc09032dbc264b9f1c0454f4e61edf73",
+      "tables_sha256": {
+        "GDEF": "49f0283c80b4246018ad311088ba4055df141e0d0fdbe1074126dca3bdd18eed",
+        "GPOS": "8c095ea69780f57b55bc3df6d1adb8b1f425285db14a8374714ae230965fa4fd",
+        "GSUB": "07221cd51c08baadf51815bd5b0bbbe1aa19b5b905f6a1022216cb5e1dadaf35",
+        "OS/2": "b883f593770cae65d65b2b0c4380ab307b974853c3e16585cb10a0a56a0154fd",
+        "cmap": "6933151cb3271a58d968ad8b9206b0625125cacab5b4cbc9bedafe556b557fcb",
+        "glyf": "d4df5d401c99fa0858a1c993cc5031730132aeb9b8e64282ed5ff095790036fa",
+        "head": "b14cc9058dd609bc1a40bf85d6271d2a441c41f43135294145865b5fd3999093",
+        "hhea": "991362d118b22e515aea3fe9f86a2bdcc13b2cb2439190398dcc9a1d5027c6c5",
+        "hmtx": "f0f2208f878839cf6d5249b0a942d57fe66567866bb30961b0576aaa6f405d58",
+        "loca": "c5936fda3edefbe0fb60d026bbbb5540f23c85aaca0a3384e5021456dbd9c341",
+        "maxp": "79e9a4cbcfae8e162ae922bc9611d157fe16d5cb67be9b4e87113a4c8c45088e",
+        "name": "a9b508cbc700fa4a726daa61ae0581776d8dd02cf8da0176cd1b0a96bed4d96b",
+        "post": "5b0074c1989181340e242ad426df50f3e3c112be66152965a2f9cbe39e1b324a"
+      }
+    },
+    "NotoSansBengali-Regular.ttf": {
+      "role": "Latin letters, digits and punctuation in PDFs (glyph substitution); the browser print view's WOFF2 source",
+      "release": "Noto Sans Bengali 3.011 (2025, Noto Project Authors), OFL 1.1",
+      "derived": null,
+      "version": "Version 3.011",
+      "postscript_name": "NotoSansBengali-Regular",
+      "bytes": 138780,
+      "sha256": "89e77fc7f35436abc4a972f60701c5f6684b6bfd23e4f73880d7da8132e5c2c9",
+      "upstream_sha256": "89e77fc7f35436abc4a972f60701c5f6684b6bfd23e4f73880d7da8132e5c2c9",
+      "tables_sha256": {
+        "GDEF": "b7286257edb114980d1dd39cbec5525a138eb90ec9947a9acfd9fbe1fdbc8154",
+        "GPOS": "8257267a3f1bc0229c5c45349f5ce4da6d7c424961443ceffa16d5a178dd4506",
+        "GSUB": "9b20e74641c16d8db4ffc8189b334fb601e6bed7686071ddeb10ba5786b1c1d7",
+        "OS/2": "30a2d8dffee87bb477863cd6a359d3772831402c3cd4cc761b4c0fc6a51443fe",
+        "STAT": "d1e3202343473fcb80d08cdc172a2e892ee5686db406924565cb3e78b0112e9f",
+        "cmap": "238e33d940d7638758f1aa231d6899ec29ab3f36a1c996f670520b4acc2ce473",
+        "gasp": "4ca731f86ad506ac0e320283dc9461926346de3c4d91d539ea7f6620d3826940",
+        "glyf": "fd902e16e600c941c3b248e51a8800d9bbf510e22d65bfc1eee830d608d66ccc",
+        "head": "f73fc29b758d470c429e4e058807557cc765d6c0971a2e489b50bf76c161d199",
+        "hhea": "b65c9fcd5c7fda506740ef6e59f7a4d865f3a31b7ad1bdd6cd1e064256228054",
+        "hmtx": "09a5fb30311d51c9d55b3cda25b2e524227ff791fc87bfd9e8af70deb8df66ca",
+        "loca": "871915e956ab33b0f514d655abd8d87d595d1201c5fdb32752af163e6cac7f4a",
+        "maxp": "6b2afc1bf4836b324cf5458bbf85e7417eeb5f9de36c6176e419a2c5a71f2716",
+        "name": "00c0a2d09fed1c1a38e5d1fd87e8583832db31dba4f585c0cc7f6ee27b297071",
+        "post": "084821e760f4f6e281eacbe11ab336df9d16efba77b7547eec0614dfd316aa46",
+        "prep": "907c4106ff9989c1805827d5581bdf107a253b098cb71eb374f5e47c35604452"
+      }
+    },
+    "NotoSansBengali-Bold.ttf": {
+      "role": "Bold Latin letters, digits and punctuation in PDFs; the browser print view's WOFF2 source",
+      "release": "Noto Sans Bengali 3.011 (2025, Noto Project Authors), OFL 1.1",
+      "derived": null,
+      "version": "Version 3.011",
+      "postscript_name": "NotoSansBengali-Bold",
+      "bytes": 139192,
+      "sha256": "fffa71fbfe82996f030ac55f15f785c9f6b20f540c3e77ea532b065e850d8af4",
+      "upstream_sha256": "fffa71fbfe82996f030ac55f15f785c9f6b20f540c3e77ea532b065e850d8af4",
+      "tables_sha256": {
+        "GDEF": "b7286257edb114980d1dd39cbec5525a138eb90ec9947a9acfd9fbe1fdbc8154",
+        "GPOS": "d59b1b5c8890d582f59a59bbbda60544b7206cd35e6b058354ba96f2ea60581a",
+        "GSUB": "9b20e74641c16d8db4ffc8189b334fb601e6bed7686071ddeb10ba5786b1c1d7",
+        "OS/2": "a976f140b26a9ecc5f948ef5219c6535a42c14ce0c7605ec8562f5c564c5653d",
+        "STAT": "b891cf36e0e2e3a9fb1388ea8c3a90ed63bd4d46b77c32c09de6b09390a8878e",
+        "cmap": "238e33d940d7638758f1aa231d6899ec29ab3f36a1c996f670520b4acc2ce473",
+        "gasp": "4ca731f86ad506ac0e320283dc9461926346de3c4d91d539ea7f6620d3826940",
+        "glyf": "49d7f2ee9433f930ffe37241e328192584d7ae8df86d952c70bd46d2b1ae49bf",
+        "head": "ca79a7f3efd62e71ab43e67ad0653bcac6f078de8c1247eb4f148b5cb4bfcdde",
+        "hhea": "bc35351daf31c0c0c7a6b791e9b626f8b8ac48021241dea67c854a760380ef60",
+        "hmtx": "383028b91e52437f7295e7c73a114b686e3cce4a6c95955ad9ce4099b6b3708b",
+        "loca": "8d6d339a6032463e6a9ae91f79cdd1ff3e7cabbf9d64bffb74710e510ccfd59a",
+        "maxp": "6b2afc1bf4836b324cf5458bbf85e7417eeb5f9de36c6176e419a2c5a71f2716",
+        "name": "7ee25f1f5f145de96c17b5b054a303555b00d5b2bf0bbe3f99c6ffa3e31fddbf",
+        "post": "084821e760f4f6e281eacbe11ab336df9d16efba77b7547eec0614dfd316aa46",
+        "prep": "907c4106ff9989c1805827d5581bdf107a253b098cb71eb374f5e47c35604452"
+      }
+    }
+  },
+  "print_fonts": {
+    "NotoSansBengali-Bold.woff2": {
+      "source": "NotoSansBengali-Bold.ttf (3.011) through deploy/build-print-font.mjs",
+      "bytes": 58492,
+      "sha256": "6669eb9962e2a61130b4ef40eb608ff17c29d8ec10bddfd4d17927c9be899f47"
+    },
+    "NotoSansBengali-Regular.woff2": {
+      "source": "NotoSansBengali-Regular.ttf (3.011) through deploy/build-print-font.mjs",
+      "bytes": 54880,
+      "sha256": "0773050bd8f6ec6ff8f5e8af64d5dc79933c085144ae14067cd446df4f8acbab"
+    }
+  }
+}

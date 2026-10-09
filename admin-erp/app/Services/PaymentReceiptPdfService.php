@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\PaymentReceipt;
+use App\Services\Pdf\PdfImagePreparer;
+use App\Services\Pdf\PdfRenderer;
 use App\Support\ReceiptPresenter;
 use Illuminate\Support\Facades\App;
 
@@ -13,14 +15,15 @@ use Illuminate\Support\Facades\App;
  * (nothing under public/ or the public disk) — every delivery is an authenticated response built from the receipt row,
  * so asking again returns the same facts (the snapshot never changes) and costs no audit entry, no number, no row.
  *
- * One PDF engine for the whole admin: App\Services\RecruitmentPdfService (mPDF with Noto Sans Bengali, which shapes
- * Bengali conjuncts correctly). The logo is embedded in the PDF as a data URI — no remote image, no browser font.
+ * One PDF engine for the whole admin: App\Services\Pdf\PdfRenderer (mPDF with Noto Sans Bengali, which shapes Bengali
+ * conjuncts correctly — docs/PDF_BENGALI_STANDARD.md). The logo is handed to it as an image, not written into the HTML
+ * as base64 — no remote image, no browser font.
  */
 final class PaymentReceiptPdfService
 {
     public const LANGUAGES = ['bn', 'en'];
 
-    public function __construct(private readonly RecruitmentPdfService $pdf)
+    public function __construct(private readonly PdfRenderer $pdf)
     {
     }
 
@@ -39,15 +42,14 @@ final class PaymentReceiptPdfService
     /** The receipt as PDF bytes, in $lang (bn | en). */
     public function pdf(PaymentReceipt $receipt, string $lang): string
     {
-        $logo = public_path('brand/provatferi-logo-light.png');
-        $logoSrc = is_file($logo) ? 'data:image/png;base64,'.base64_encode((string) file_get_contents($logo)) : null;
+        $logo = PdfImagePreparer::logo();
 
         $html = $this->inLocale($lang, fn () => view('admin.membership.receipts.document', [
             'p' => new ReceiptPresenter($receipt, $lang),
-            'logoSrc' => $logoSrc,
+            'logoSrc' => $logo !== null ? 'var:logo' : null,
         ])->render());
 
-        return $this->pdf->render($html, $receipt->receipt_no);
+        return $this->pdf->render($html, $receipt->receipt_no, $logo !== null ? ['logo' => $logo] : []);
     }
 
     /**

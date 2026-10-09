@@ -1,17 +1,19 @@
 {{--
     Shared printable-application content — used AS-IS by both the print
     route (rendered directly in-browser, wrapped by layouts/print.blade.php)
-    and the PDF route (this same markup handed to RecruitmentPdfService as
+    and the PDF route (this same markup handed to PdfRenderer as
     a raw HTML string, no browser involved). Table/block layout only — mPDF
     has no flexbox/grid support, so this deliberately does not use the
     admin panel's usual Bootstrap classes.
 
     $application, $contactLabels — same as the admin detail page.
     $photoSrc  — fully-resolved <img src>, or null. The CALLER resolves this
-                 (a data: URI for the PDF route, the authenticated file route
+                 ("var:photo" — an image handed to PdfRenderer, already made
+                 PDF-sized — for the PDF route, the authenticated file route
                  for the print route) — this partial never decides how a
                  photo is fetched, only whether one exists.
-    $logoSrc   — fully-resolved <img src> for the org mark, same reasoning.
+    $logoSrc   — fully-resolved <img src> for the org mark, same reasoning
+                 ("var:logo" in the PDF).
     $generatedAt — Carbon instant this document was produced.
 
     Deliberately NOT shown, per policy: internal_note, interview_*,
@@ -37,34 +39,36 @@
     for option_label()/status_label() call sites elsewhere in admin).
 --}}
 <style>
-    body { font-family: notosansbengali, sans-serif; font-size: 10.5pt; color: #201B17; line-height: 1.5; }
+@include('admin.pdf._typography')
     /* One mark, one identity block: the logo appears exactly once, to the
        left of the org name in both languages — no repetition of either
-       elsewhere in the document (§4 of the 2026-09-24 redesign). */
+       elsewhere in the document (§4 of the 2026-09-24 redesign).
+       Every rule below is a single class (or a td/th rule): mPDF ignores a
+       descendant selector that reaches a <div> or <img> inside a table cell
+       (".doc-header .org-name-bn"), which is how the heading lost its bold and
+       the photo its 80 px box until 2026-10-10. */
     .doc-header { width: 100%; margin-bottom: 0; }
     .doc-header td { vertical-align: middle; }
-    .doc-header .org-name-bn { font-family: notosansbengali, sans-serif; font-weight: bold; font-size: 14pt; color: #201B17; line-height: 1.3; }
-    .doc-header .org-name-en { font-size: 9pt; color: #6B5F53; margin-top: 1px; }
-    .doc-header .doc-title { font-family: notosansbengali, sans-serif; font-size: 9.5pt; color: #AC350A; font-weight: bold; margin-top: 4px; }
-    .doc-divider { border: none; border-top: 1px solid #E6DFD5; margin: 10px 0 14px; }
+    .org-name-bn { font-weight: bold; font-size: 14pt; color: #201B17; line-height: 1.3; }
+    .org-name-en { font-size: 9pt; color: #6B5F53; margin-top: 1px; }
+    .doc-title { font-size: 9.5pt; color: #AC350A; font-weight: bold; margin-top: 4px; }
+    .doc-divider { border-top: 1px solid #E6DFD5; margin: 10px 0 14px; height: 0; font-size: 0; line-height: 0; } /* a <div>: mPDF ignores an <hr>'s border */
     .doc-meta { width: 100%; margin-bottom: 14px; }
     .doc-meta td { font-size: 10pt; padding: 2px 0; }
     .doc-meta .meta-label { color: #6B5F53; width: 110px; }
     .applicant-block { width: 100%; margin-bottom: 16px; }
-    .applicant-block .photo-cell { width: 92px; vertical-align: top; }
-    .applicant-block .photo-cell img { width: 80px; height: 80px; object-fit: cover; border: 1px solid #E6DFD5; border-radius: 4px; }
-    .applicant-block .photo-cell .photo-placeholder {
-        width: 80px; height: 80px; border: 1px solid #E6DFD5; border-radius: 4px;
+    td.photo-cell { width: 92px; vertical-align: top; }
+    .applicant-photo { width: 80px; height: 80px; object-fit: cover; border: 1px solid #E6DFD5; }
+    .photo-placeholder {
+        width: 80px; height: 80px; border: 1px solid #E6DFD5;
         text-align: center; color: #A89F94; font-size: 8pt; padding-top: 30px;
     }
-    .applicant-block .name-cell { vertical-align: top; padding-left: 14px; }
-    .applicant-block .applicant-name { font-family: notosansbengali, sans-serif; font-weight: bold; font-size: 13pt; }
+    td.name-cell { vertical-align: top; padding-left: 14px; }
+    .applicant-name { font-weight: bold; font-size: 13pt; }
 
-    table.fields { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
-    table.fields th, table.fields td { border: 1px solid #E6DFD5; padding: 6px 8px; text-align: left; vertical-align: top; font-size: 10pt; }
-    table.fields th { width: 32%; background-color: #FAF7F2; font-weight: bold; color: #4A4038; }
+    table.fields { margin-bottom: 14px; }
 
-    .section-title { font-family: notosansbengali, sans-serif; font-weight: bold; font-size: 11pt; margin: 14px 0 6px; color: #201B17; }
+    .section-title { font-weight: bold; font-size: 11pt; margin: 14px 0 6px; color: #201B17; }
     .skill-badge { display: inline-block; border: 1px solid #E6DFD5; border-radius: 10px; padding: 2px 8px; margin: 0 4px 4px 0; font-size: 9pt; background-color: #FAF7F2; }
     .long-text { white-space: pre-line; font-size: 10pt; }
 
@@ -91,7 +95,7 @@
         </td>
     </tr>
 </table>
-<hr class="doc-divider">
+<div class="doc-divider"></div>
 
 <table class="doc-meta">
     <tr>
@@ -110,7 +114,7 @@
     <tr>
         <td class="photo-cell">
             @if ($photoSrc)
-                <img src="{{ $photoSrc }}" alt="">
+                <img class="applicant-photo" src="{{ $photoSrc }}" alt="">
             @else
                 <div class="photo-placeholder">{{ __('admin.fields.no_photo') }}</div>
             @endif

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\ImageOrientation;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -156,24 +157,7 @@ class PhotoUploadService
     /** Rotates a decoded JPEG the way its EXIF Orientation tag says (phones store portrait shots sideways + a tag). */
     private function applyExifOrientation(\GdImage $image, string $bytes): \GdImage
     {
-        if (!function_exists('exif_read_data') || !str_starts_with($bytes, "\xFF\xD8")) {
-            return $image;
-        }
-
-        $exif = @exif_read_data('data://image/jpeg;base64,'.base64_encode($bytes));
-        $angle = match ((int) ($exif['Orientation'] ?? 1)) {
-            3 => 180,
-            6 => 270,
-            8 => 90,
-            default => 0,
-        };
-        if ($angle === 0) {
-            return $image;
-        }
-
-        $rotated = imagerotate($image, $angle, 0);
-
-        return $rotated === false ? $image : $rotated;
+        return ImageOrientation::apply($image, $bytes);
     }
 
     public function deletePrivate(string $path): void

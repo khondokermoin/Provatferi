@@ -2,7 +2,7 @@
  * Build-time only (never shipped as a script — only its output is): converts
  * the vendored Noto Sans Bengali 3.011 TTFs (resources/fonts/NotoSansBengali-{Regular,Bold}.ttf — in a PDF mPDF uses them
  * for Latin text only; its Bengali comes from the 2.001 "Shaping" files, see resources/fonts/README.md and
- * RecruitmentPdfService) into self-hosted WOFF2 for the browser-facing print
+ * App\Services\Pdf\PdfRenderer) into self-hosted WOFF2 for the browser-facing print
  * view and the standalone error-page layout, removing the fonts.googleapis.com
  * / fonts.gstatic.com dependency both had (§7 of the 2026-09-24 defect pass —
  * an error page in particular must not depend on a third-party request to

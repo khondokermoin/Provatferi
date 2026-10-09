@@ -4,19 +4,23 @@ namespace Tests\Feature\Admin;
 
 use App\Models\JobApplication;
 use App\Models\JobPosting;
-use App\Services\RecruitmentPdfService;
+use App\Services\Pdf\PdfInspector;
+use App\Services\Pdf\PdfRenderer;
 use Illuminate\Support\Facades\Storage;
 
 /**
  * The PDF/print application document — §5/§6 of the recruitment field-
  * requirements + document feature. Covers auth gating, that the printable
- * content is correct, that internal_note can never reach it, and that a
+ * content is correct, that internal_note can never reach it, that a
  * historical application (missing photo/CV/newly-configurable fields) still
- * renders without error. The Bengali-rendering claim itself (mPDF forms real
- * conjuncts, dompdf cannot) was verified empirically before RecruitmentPdfService
- * was written — see its class docblock — and is not re-litigated per-test here;
+ * renders without error, and (2026-10-10) that the PDF applies the document's
+ * own typography, puts the photo in its 80 px box and no longer fails on a
+ * large photo. The Bengali-rendering claim itself (mPDF forms real conjuncts,
+ * dompdf cannot; shaped, glyph by glyph, as a HarfBuzz rendering of the same
+ * font) is held by tests/Feature/Pdf and deploy/qa/pdf-shaping-qa.mjs — see
+ * App\Services\Pdf\PdfRenderer — not re-litigated per-test here;
  * test_the_pdf_service_produces_a_genuine_pdf_from_bengali_html below is a
- * regression smoke test, not that original verification.
+ * regression smoke test.
  */
 class RecruitmentApplicationDocumentTest extends AdminTestCase
 {
@@ -299,9 +303,87 @@ class RecruitmentApplicationDocumentTest extends AdminTestCase
     {
         $html = '<h1>প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র</h1><p>কঠিন যুক্তাক্ষর: ক্ষমতা, জ্ঞান, তত্ত্ব, স্বেচ্ছাসেবী।</p>';
 
-        $bytes = app(RecruitmentPdfService::class)->render($html);
+        $bytes = app(PdfRenderer::class)->render($html);
 
         $this->assertStringStartsWith('%PDF-', $bytes);
         $this->assertGreaterThan(500, strlen($bytes));
+    }
+
+    /* ================================================================ the photo, the typography (2026-10-10) */
+
+    public function test_a_normal_photo_is_embedded_in_the_documents_80px_box(): void
+    {
+        $pdf = $this->pdfWithPhoto($this->noiseJpeg(480, 480, 80));
+
+        $this->assertContains(['width' => 360, 'height' => 360, 'filter' => 'DCTDecode'], PdfInspector::images($pdf), 'the photo is a 360 px JPEG, kept as it is');
+        // 80 CSS px = 60 pt. Before the fix the descendant selector was ignored and the photo was drawn at its natural size.
+        $this->assertContains([60.0, 60.0], PdfInspector::imagePlacements($pdf), 'the photo is drawn 60 x 60 pt');
+    }
+
+    /**
+     * The defect: a photo over about 700 KB, embedded as base64, pushed the HTML past pcre.backtrack_limit (1,000,000) and the
+     * whole PDF answered HTTP 500. A 10 MB phone photo must give a PDF — the limit stays where it is.
+     */
+    public function test_a_large_photo_no_longer_fails_the_pdf(): void
+    {
+        $large = $this->noiseJpeg(3000, 3000, 95);
+        $this->assertGreaterThan(5_000_000, strlen($large), 'the fixture is a photo that used to break the PDF');
+        $this->assertSame(1_000_000, (int) ini_get('pcre.backtrack_limit'), 'the limit was not raised to make this pass');
+
+        $pdf = $this->pdfWithPhoto($large);
+
+        $this->assertContains(['width' => 360, 'height' => 360, 'filter' => 'DCTDecode'], PdfInspector::images($pdf));
+        $this->assertLessThan(500_000, strlen($pdf), 'the PDF carries the 360 px copy, not the 10 MB original');
+    }
+
+    public function test_the_pdf_applies_the_documents_own_typography(): void
+    {
+        $pdf = $this->pdfWithPhoto($this->noiseJpeg(480, 480, 80));
+
+        // 14 pt bold organisation name, 13 pt bold applicant name, 11 pt section headings — all of which a descendant selector
+        // mPDF ignores had silently turned into 10.5 pt body text.
+        $sizes = PdfInspector::usedSizes($pdf);
+        foreach ([14.0, 13.0, 11.0, 10.0, 9.5] as $size) {
+            $this->assertContains($size, $sizes, "text is drawn at {$size} pt");
+        }
+        $boldRuns = array_filter(PdfInspector::analyse($pdf)['runs'], fn (array $run) => str_contains($run['base'], 'Bold') && in_array($run['size'], [14.0, 13.0, 11.0], true));
+        $this->assertNotEmpty($boldRuns, 'the headings are in the Bold file');
+        $this->assertSame([], PdfInspector::usedUnembeddedFonts($pdf), 'every font (✓ ✗ included) is embedded');
+    }
+
+    /** Builds an application with this photo on the private disk and returns the PDF the route answers with (200, or the test fails). */
+    private function pdfWithPhoto(string $jpeg): string
+    {
+        Storage::fake('uploads_private');
+        Storage::disk('uploads_private')->put('applications/photos/p.jpg', $jpeg);
+        $application = $this->application($this->posting(), ['photo_path' => 'applications/photos/p.jpg']);
+
+        $response = $this->actingAs($this->superAdmin())
+            ->get(route('admin.recruitment.applications.pdf', $application))->assertOk();
+        $this->assertSame('application/pdf', $response->headers->get('Content-Type'));
+        $this->assertStringStartsWith('%PDF-', $response->getContent());
+
+        return $response->getContent();
+    }
+
+    /** A JPEG of random pixels (incompressible: the heaviest photo of its size), made from a tile so it is cheap to build. */
+    private function noiseJpeg(int $width, int $height, int $quality): string
+    {
+        $tile = imagecreatetruecolor(256, 256);
+        for ($x = 0; $x < 256; $x++) {
+            for ($y = 0; $y < 256; $y++) {
+                imagesetpixel($tile, $x, $y, (int) imagecolorallocate($tile, random_int(0, 255), random_int(0, 255), random_int(0, 255)));
+            }
+        }
+        $image = imagecreatetruecolor($width, $height);
+        for ($x = 0; $x < $width; $x += 256) {
+            for ($y = 0; $y < $height; $y += 256) {
+                imagecopy($image, $tile, $x, $y, 0, 0, 256, 256);
+            }
+        }
+        ob_start();
+        imagejpeg($image, null, $quality);
+
+        return (string) ob_get_clean();
     }
 }

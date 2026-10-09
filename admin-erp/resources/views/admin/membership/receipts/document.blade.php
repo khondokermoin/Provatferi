@@ -13,16 +13,17 @@
     account or contact detail of the member is ever printed.
 
     $p         App\Support\ReceiptPresenter
-    $logoSrc   a data: URI (PDF) or a URL (browser) of the institution's logo
+    $logoSrc   src of the institution's logo: "var:logo" (an image handed to PdfRenderer) in the PDF, a URL in the browser
 --}}
 <style>
-    body { font-family: notosansbengali, sans-serif; font-size: 10.5pt; color: #201B17; line-height: 1.5; }
+@include('admin.pdf._typography')
     .rc-head { width: 100%; border-collapse: collapse; }
     .rc-head td { vertical-align: middle; }
     .rc-org-bn { font-weight: bold; font-size: 15pt; color: #201B17; line-height: 1.3; }
     .rc-org-en { font-size: 9.5pt; color: #4A4038; margin-top: 1px; }
     .rc-contact { font-size: 8.5pt; color: #6B5F53; margin-top: 4px; }
-    .rc-rule { border: none; border-top: 2px solid #AC350A; margin: 9px 0 13px; }
+    /* A <div> with a top border, not an <hr>: mPDF draws an <hr> in its own grey and ignores the border, the browser honours it. */
+    .rc-rule { border-top: 2px solid #AC350A; margin: 9px 0 13px; height: 0; font-size: 0; line-height: 0; }
 
     .rc-title-row { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
     .rc-title-row td { vertical-align: top; }
@@ -41,9 +42,6 @@
     .rc-amount-purpose { font-size: 10pt; color: #4A4038; }
 
     .rc-section { font-weight: bold; font-size: 10.5pt; color: #AC350A; margin: 14px 0 5px; }
-    table.rc-fields { width: 100%; border-collapse: collapse; }
-    table.rc-fields th, table.rc-fields td { border: 1px solid #E6DFD5; padding: 6px 9px; text-align: left; vertical-align: top; font-size: 10pt; }
-    table.rc-fields th { width: 34%; background-color: #FAF7F2; font-weight: bold; color: #4A4038; }
 
     table.rc-lines { width: 100%; border-collapse: collapse; }
     table.rc-lines td { border: 1px solid #E6DFD5; padding: 6px 9px; font-size: 10pt; }
@@ -81,7 +79,7 @@
         </td>
     </tr>
 </table>
-<hr class="rc-rule">
+<div class="rc-rule"></div>
 
 <table class="rc-title-row">
     <tr>

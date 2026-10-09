@@ -49,10 +49,11 @@
             padding: 15mm; box-shadow: 0 1px 4px rgba(32,27,23,0.12);
         }
 
-        /* notosansbengali is what document.blade.php's own inline <style>
-           targets — mapped here to the self-hosted @font-face of the same
-           family, so print preview and the mPDF-rendered PDF are set in the
-           same typeface, not merely similar-looking ones. */
+        /* provatferibn (the PDF engine's font key, admin/pdf/_typography) is
+           what the documents' own inline <style> names — a family the browser
+           has never heard of, so every element is mapped here to the
+           self-hosted @font-face above: print preview and mPDF-rendered PDF
+           are set in the same typeface, not merely similar-looking ones. */
         .print-page, .print-page * { font-family: 'Noto Sans Bengali', sans-serif; }
 
         @media print {

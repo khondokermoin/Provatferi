@@ -8,7 +8,8 @@ use App\Models\JobPosting;
 use App\Notifications\VolunteerApplicationStatusChangedNotification;
 use App\Services\ApplicationDocumentService;
 use App\Services\NoticeFileService;
-use App\Services\RecruitmentPdfService;
+use App\Services\Pdf\PdfImagePreparer;
+use App\Services\Pdf\PdfRenderer;
 use App\Support\AdminLocale;
 use App\Support\AdminTime;
 use Illuminate\Http\RedirectResponse;
@@ -35,7 +36,8 @@ class JobApplicationController extends Controller
     public function __construct(
         private readonly ApplicationDocumentService $documents,
         private readonly NoticeFileService $files,
-        private readonly RecruitmentPdfService $pdf,
+        private readonly PdfRenderer $pdf,
+        private readonly PdfImagePreparer $images,
     ) {
     }
 
@@ -215,10 +217,13 @@ class JobApplicationController extends Controller
 
     /**
      * PDF download: mPDF renders server-side with no browser/session
-     * involved, so the photo and the org mark are embedded as base64 data
-     * URIs read directly off disk here — a route URL would mean nothing to
-     * mPDF's own HTML parser. Same document.blade.php partial as print(),
-     * so the two outputs never drift apart.
+     * involved, so the photo and the org mark are read directly off disk here
+     * and handed to the engine as images (src="var:…") — a route URL would
+     * mean nothing to mPDF's own HTML parser. The photo is first made
+     * PDF-sized (a 21 mm square): the original, as base64 in the HTML, used to
+     * push it over pcre.backtrack_limit and the PDF answered HTTP 500.
+     * Same document.blade.php partial as print(), so the two outputs never
+     * drift apart.
      */
     public function pdf(Request $request, JobApplication $jobApplication): Response
     {
@@ -226,19 +231,19 @@ class JobApplicationController extends Controller
         $docLocale = $this->resolveDocLocale($request);
         $originalLocale = App::getLocale();
 
-        $photoSrc = null;
-        if ($jobApplication->photoFileExists()) {
-            $mime = $this->files->coverMime($jobApplication->photo_path);
-            if ($mime !== 'application/octet-stream') {
-                $bytes = Storage::disk('uploads_private')->get($jobApplication->photo_path);
-                $photoSrc = "data:{$mime};base64,".base64_encode((string) $bytes);
+        $images = [];
+        if ($jobApplication->photoFileExists() && $this->files->coverMime($jobApplication->photo_path) !== 'application/octet-stream') {
+            $photo = $this->images->photo((string) Storage::disk('uploads_private')->get($jobApplication->photo_path));
+            if ($photo !== null) {
+                $images['photo'] = $photo;
             }
         }
-
-        $logoPath = public_path('brand/provatferi-logo-light.png');
-        $logoSrc = is_file($logoPath)
-            ? 'data:image/png;base64,'.base64_encode((string) file_get_contents($logoPath))
-            : null;
+        $logo = PdfImagePreparer::logo();
+        if ($logo !== null) {
+            $images['logo'] = $logo;
+        }
+        $photoSrc = isset($images['photo']) ? 'var:photo' : null;
+        $logoSrc = isset($images['logo']) ? 'var:logo' : null;
 
         // The whole document — labels, section headings, and contactLabels —
         // renders under the DOCUMENT's own language, restored immediately
@@ -256,7 +261,7 @@ class JobApplicationController extends Controller
         ])->render();
         App::setLocale($originalLocale);
 
-        $bytes = $this->pdf->render($html);
+        $bytes = $this->pdf->render($html, $jobApplication->application_no, $images);
 
         return response($bytes, 200, [
             'Content-Type' => 'application/pdf',

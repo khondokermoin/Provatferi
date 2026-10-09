@@ -13,7 +13,8 @@ use App\Models\User;
 use App\Services\MembershipApprovalService;
 use App\Services\MembershipDueLedger;
 use App\Services\PaymentReceiptPdfService;
-use App\Services\RecruitmentPdfService;
+use App\Services\Pdf\PdfInspector;
+use App\Services\Pdf\PdfRenderer;
 use Illuminate\Support\Carbon;
 use Tests\Concerns\MakesMembershipTypes;
 
@@ -243,7 +244,7 @@ class PaymentReceiptDocumentTest extends AdminTestCase
         }
         if (($text = $this->pdfText($bangla->getContent())) !== null) {
             // Bengali WORDS are not asserted: shaped, their glyphs are in visual order and conjuncts have no Unicode value (see
-            // RecruitmentPdfService), so extraction returns fragments. What is Latin or a digit survives, and is what is checked here;
+            // PdfRenderer), so extraction returns fragments. What is Latin or a digit survives, and is what is checked here;
             // that the Bengali is shaped at all is test_the_bengali_in_the_pdf_is_shaped_not_merely_drawn below.
             foreach (['PLCC-RCT-2026-000001', '৫০০', '২০২৬', 'APP-2026-0001', 'Provatferi Literary and Cultural Center (PLCC)'] as $expected) {
                 $this->assertStringContainsString($expected, $text, "the Bangla PDF's text contains {$expected}");
@@ -253,7 +254,14 @@ class PaymentReceiptDocumentTest extends AdminTestCase
 
     public function test_the_bengali_in_the_pdf_is_shaped_not_merely_drawn(): void
     {
-        $text = $this->pdfText(app(RecruitmentPdfService::class)->render('<p>পরিশোধ ক্ষ</p><p>Receipt PLCC-RCT-2026-000001 ৳৬০০</p>', 'shaping'));
+        $pdf = app(PdfRenderer::class)->render('<p>পরিশোধ</p><p>ক্ষ</p><p>Receipt PLCC-RCT-2026-000001 ৳৬০০</p>', 'shaping');
+
+        // Without any external tool: পরিশোধ is six code points but seven glyphs shaped (ি moves before র, ো is two glyphs) and
+        // ক্ষ is three code points but ONE glyph (the ligature). Typed order and unformed conjuncts give 6 and 3.
+        $bengali = array_values(array_filter(PdfInspector::analyse($pdf)['runs'], fn (array $run) => str_contains($run['base'], 'Shaping')));
+        $this->assertSame([7, 1], array_map(fn (array $run) => $run['glyphs'], array_slice($bengali, 0, 2)), 'পরিশোধ ক্ষ is not shaped');
+
+        $text = $this->pdfText($pdf);
         if ($text === null) {
             $this->markTestSkipped('pdftotext is not installed');
         }
@@ -267,30 +275,16 @@ class PaymentReceiptDocumentTest extends AdminTestCase
         $this->assertStringContainsString('Receipt PLCC-RCT-2026-000001 ৳৬০০', $text, 'Latin text and digits come from the substitution font');
     }
 
-    public function test_a_receipt_is_still_produced_when_shaping_cannot_run(): void
-    {
-        $failed = new \ReflectionProperty(RecruitmentPdfService::class, 'shapingFailed');
-        $failed->setValue(null, true); // what a shaping failure leaves behind for the rest of the process
-
-        try {
-            $bytes = app(RecruitmentPdfService::class)->render('<p>পরিশোধ</p><p>Receipt PLCC-RCT-2026-000001</p>', 'fallback');
-            $this->assertStringStartsWith('%PDF-', $bytes);
-            if (($text = $this->pdfText($bytes)) !== null) {
-                $this->assertStringContainsString('পরিশোধ', $text, 'the degraded document is the typed text, in the 3.x font, as it was before shaping');
-                $this->assertStringContainsString('Receipt PLCC-RCT-2026-000001', $text);
-            }
-        } finally {
-            $failed->setValue(null, false);
-        }
-    }
-
     public function test_the_shaping_tables_are_prepared_once_by_a_throw_away_document(): void
     {
-        app(RecruitmentPdfService::class)->render('<p>পরিশোধ</p>', 'warm');
+        $renderer = app(PdfRenderer::class);
+        $renderer->render('<p>পরিশোধ</p>', 'warm');
 
-        $tempDir = (new \Mpdf\Config\ConfigVariables())->getDefaults()['tempDir'];
-        $this->assertFileExists(rtrim($tempDir, '/\\').'/mpdf/.shaping-ready-v1', 'the marker that says the probe document has run');
-        $this->assertFileExists(rtrim($tempDir, '/\\').'/mpdf/ttfontdata/notosansbengali.GSUBdata.json', "the Bengali font's parsed shaping tables");
+        // The cache behaviour itself (stale entries, damaged files, a document that fails) is tests/Feature/Pdf/PdfRendererTest.
+        $status = $renderer->cacheStatus();
+        $this->assertTrue($status['ready'], 'the Bengali font cache is complete and verified: '.implode(', ', $status['missing']));
+        $this->assertFileExists(dirname($status['directory']).'/.pdf-fonts-ready', 'the marker that says the probe document ran and its result was verified');
+        $this->assertFileExists($status['directory'].'/'.PdfRenderer::FONT_BENGALI.'.GSUBdata.json', "the Bengali font's parsed shaping tables");
     }
 
     public function test_the_pdf_service_validates_the_language(): void

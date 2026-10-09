@@ -565,7 +565,7 @@ async function viewsPhase() {
 
       // the PDF, downloaded through the admin session
       // Bengali WORDS are not expected in a Bengali PDF's extracted text: shaped, their glyphs are in visual order and conjuncts have no
-      // Unicode value (RecruitmentPdfService). Latin and digits survive, so those are checked; the Bengali itself is checked by eye
+      // Unicode value (PdfRenderer, docs/PDF_BENGALI_STANDARD.md). Latin and digits survive, so those are checked; the Bengali itself is checked by eye
       // on the rasterised page (pdf-rasterize.mjs).
       await savePdf(page, `/admin/membership/receipts/${no}/pdf?lang=${lang}`, `${name}-${lang}`, lang === "bn"
         ? [no, taka(ex.amount, "bn"), ...(ex.credit ? [taka(ex.credit, "bn")] : [])]

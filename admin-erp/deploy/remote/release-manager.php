@@ -629,6 +629,27 @@ case 'smoke-test-isolated':
             $result['checks']['uploads_readable_error'] = $e->getMessage();
             $result['ok'] = false;
         }
+
+        // The PDF engine (docs/PDF_BENGALI_STANDARD.md), added 2026-10-10: the font files are the recorded ones, mPDF's font cache
+        // can be built and verified in THIS release, and every word of the shaping fixture is drawn the way it was when somebody
+        // last looked at the rendered page. A release that cannot shape Bengali must not go live — receipts and application copies
+        // would come out with split vowel signs. It also builds the font cache here, in the release's own vendor directory, so the
+        // first receipt after the switch is not the one that pays for (and risks) it.
+        try {
+            $pdfCheck = new \App\Services\Pdf\PdfShapingCheck(new \App\Services\Pdf\PdfRenderer());
+            $started = microtime(true);
+            $pdfProblems = array_merge($pdfCheck->fontProblems(), $pdfCheck->mismatches());
+            $result['checks']['pdf_engine'] = $pdfProblems === [];
+            $result['checks']['pdf_engine_seconds'] = round(microtime(true) - $started, 1);
+            if ($pdfProblems !== []) {
+                $result['checks']['pdf_engine_problems'] = array_slice($pdfProblems, 0, 10);
+                $result['ok'] = false;
+            }
+        } catch (\Throwable $e) {
+            $result['checks']['pdf_engine'] = false;
+            $result['checks']['pdf_engine_error'] = get_class($e).': '.$e->getMessage();
+            $result['ok'] = false;
+        }
     } catch (\Throwable $e) {
         $result = ['ok' => false, 'error' => 'app failed to boot: '.get_class($e).': '.$e->getMessage()];
     }

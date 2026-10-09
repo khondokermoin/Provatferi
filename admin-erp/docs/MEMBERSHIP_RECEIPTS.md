@@ -8,7 +8,7 @@ reversals and refunds are **not** built.
 Code: `App\Models\PaymentReceipt` (the row), `App\Services\PaymentReceiptService` (when and what is issued; the member's own
 receipts), `App\Services\ApplicationPaymentService` (verifying a registration fee — moved out of the controller to carry the
 receipt), `App\Services\MembershipDueLedger::verifyPayment` (monthly money), `App\Services\MembershipNumbering`
-(`issueReceiptNumber`), `App\Support\ReceiptPresenter`, `App\Services\PaymentReceiptPdfService`,
+(`issueReceiptNumber`), `App\Support\ReceiptPresenter`, `App\Services\PaymentReceiptPdfService` (engine: `App\Services\Pdf\PdfRenderer`),
 `Admin\PaymentReceiptController`, `Api\V1\Member\ReceiptController`; the site's `lib/receipt-route.ts` and
 `app/api/member/receipts/[number]/route.ts`. Tests: `tests/Feature/Admin/PaymentReceiptTest.php`,
 `PaymentReceiptDocumentTest.php`, `PaymentReceiptConcurrencyTest.php` (real simultaneous processes), and on the site
@@ -85,20 +85,22 @@ PDF, Print, Close — and stacks into one column on a phone.
 
 ### The PDF
 
-The one PDF engine of the admin (`RecruitmentPdfService`, mPDF) — no second engine — generated **on demand on the server**,
+The one PDF engine of the admin (`App\Services\Pdf\PdfRenderer`, mPDF) — no second engine — generated **on demand on the server**,
 never stored, never at a public URL. `Content-Disposition` `attachment` (or `?disposition=inline`), file name = the receipt
 number, `Cache-Control: private, no-store`, `nosniff`.
 
-**Bengali shaping needed work.** Looking at the rendered page showed what no text-based test could: mPDF's shaping engine is
+**Bengali shaping needed work — twice.** Looking at the rendered page showed what no text-based test could: mPDF's shaping engine is
 off unless the font asks for it, and without it the vowel signs sat on the wrong side of their consonants (পরিশোধ printed as
 পরশিোধ) — in the recruitment application PDFs too, for as long as they existed. mPDF 8.3.1 cannot read the current Noto Sans
 Bengali (3.x) with shaping on, so the Bengali comes from the 2.001 release of the same typeface and the Latin letters from the 3.x
-files through glyph substitution; the shaping tables are prepared once per release by a throw-away document under a lock; if
-shaping ever throws, the receipt is still produced, unshaped, and the reason is logged. Trade-off: in a shaped PDF the text
-layer of Bengali words is fragments (conjuncts have no Unicode value); Latin text, numbers and amounts extract normally. Details:
-`resources/fonts/README.md` and the class comment of `RecruitmentPdfService`; guard:
-`PaymentReceiptDocumentTest::test_the_bengali_in_the_pdf_is_shaped_not_merely_drawn`.
-`institutional/scripts/pdf-rasterize.mjs` renders a PDF's pages to PNG for looking at them.
+files through glyph substitution. The second time (2026-10-10) shaping was on but not *consistently*: an mPDF cache flaw plus the
+old unshaped fallback made the document after any failure come out unshaped. There is no fallback any more, the font cache is
+verified before every document, and the shaping is checked pixel by pixel against HarfBuzz. Everything — the audit of all PDF
+generators, the standard, the root cause, the checks — is in **`docs/PDF_BENGALI_STANDARD.md`**. Trade-off: in a shaped PDF the
+text layer of Bengali words is fragments (conjuncts have no Unicode value); Latin text, numbers and amounts extract normally.
+Guards: `tests/Feature/Pdf`, `PaymentReceiptDocumentTest::test_the_bengali_in_the_pdf_is_shaped_not_merely_drawn`,
+`php artisan pdf:self-check`, `deploy/qa/pdf-shaping-qa.mjs`. `institutional/scripts/pdf-rasterize.mjs` renders a PDF's pages to PNG
+for looking at them.
 
 ## Who can open it
 
