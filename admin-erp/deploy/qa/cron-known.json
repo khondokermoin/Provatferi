@@ -1,0 +1,17 @@
+{
+  "_comment": "What is known about the scheduler of hosting account u951246149, checked on 2026-10-09 against ~/.logs (see cron-guard.php and deploy/README.md, 'Cron jobs'). 'permanent' jobs must be listed with exactly this schedule and command. 'known_hidden' jobs have a cronjob_<uid> log on disk but are NOT in the cron-jobs API list, and the API's delete answers 202 without effect on them: only Hostinger can remove them. Edit this file when one is removed.",
+  "permanent": {
+    "DWDyIEjfTM": {
+      "time": "5 18 * * *",
+      "command": "php /home/u951246149/domains/provatferi.org/laravel-admin/artisan membership:generate-dues",
+      "what": "daily membership dues generation (membership task 4)"
+    }
+  },
+  "known_hidden": {
+    "tHqWoa4E6h": "THE ORPHAN. Every minute: php /home/u951246149/domains/provatferi.org/public_html/admin/_qa_registry.php cleanup. Created 2026-10-08, its create call returned an empty record. The target file is absent, and the registry kit now refuses cleanup without 'go' and from any fixed name, so it only writes 'Could not open input file' to its log. delete(uid) was accepted (HTTP 202) at 10:57 and 11:07 UTC on 2026-10-09 and the job kept running every minute (25+ further runs observed).",
+    "4TLmOktkSo": "Every minute: a read-only php -r that prints scandir() of domains/provatferi.org and of laravel-admin-releases (a leftover probe).",
+    "4EucqENwqk": "Last ran 2026-10-05 12:49 UTC; its last output was a find -ls listing of the upload staging directories. A one-shot that may still be scheduled yearly.",
+    "qFGqvw6Wwy": "Last ran 2026-09-21 09:11 UTC; its last output was a release-manager stage report for release 248e8ef60bb9-2026-09-2109053. A one-shot that may still be scheduled yearly.",
+    "Tgf0Y6VWdW": "Last ran 2026-09-08 11:53 UTC; its last output was a php artisan migrate:status listing. A one-shot that may still be scheduled yearly."
+  }
+}

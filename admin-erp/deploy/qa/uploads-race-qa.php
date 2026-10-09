@@ -48,6 +48,16 @@ ini_set('display_errors', 'stderr');
 set_time_limit(0);
 
 $mode = $argv[1] ?? 'inspect';
+
+// PRODUCTION SAFETY (2026-10-09). `cleanup` deletes data, so on the live host it only runs from a kit uploaded under a one-off name made
+// for THIS session (_qa_<8+ hex>.php, or _qa_<word>_<hex>.php) — never from a fixed name that an old cron can still point at: a minutely
+// `_qa_registry.php cleanup` cron that the API could neither list nor delete wiped QA rows a day after it was made (deploy/README.md,
+// "Cron jobs"). Local runs are not gated; QA_FORCE_PRODUCTION_GUARDS=1 applies the production rule anywhere (the tests use it).
+if ($mode === 'cleanup' && (is_dir('/home/u951246149/domains') || getenv('QA_FORCE_PRODUCTION_GUARDS') === '1')
+    && ! preg_match('/^_qa_(?:[a-z]+_)?[0-9a-f]{8,}\.php$/', basename(__FILE__))) {
+    fwrite(STDERR, json_encode(['mode' => 'cleanup', 'ok' => false, 'error' => 'refusing on production: a destructive mode runs only from a kit named _qa_<hex>.php made for this session (this file is '.basename(__FILE__).') — nothing was removed'], JSON_UNESCAPED_SLASHES)."\n");
+    exit(2);
+}
 $APP = getenv('QA_APP') ?: (is_dir('/home/u951246149/domains/provatferi.org/laravel-admin') ? '/home/u951246149/domains/provatferi.org/laravel-admin' : dirname(__DIR__, 2));
 $APP = rtrim(str_replace('\\', '/', $APP), '/');
 $RELEASES = rtrim(str_replace('\\', '/', getenv('QA_RELEASES') ?: dirname($APP).'/laravel-admin-releases'), '/');

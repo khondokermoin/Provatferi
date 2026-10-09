@@ -3,8 +3,8 @@
  * Server-side half of the membership acceptance runs: Membership Registry task 2 (2026-10-06, application → review →
  * approval → registry) and task 3 (2026-10-07, member and application numbering). The browser halves are
  * institutional/scripts/membership-registry-qa.mjs and membership-numbering-qa.mjs. CLI only: on production it is
- * uploaded to the admin docroot as `_qa_registry.php` and run from a cron (it answers 404 to anything but the CLI);
- * locally `php deploy/qa/membership-registry-qa.php <mode>`.
+ * uploaded to the admin docroot under a ONE-OFF name, `_qa_<id>.php` (`php deploy/qa/cron-guard.php new-session` makes the id), and run
+ * from a cron (it answers 404 to anything but the CLI); locally `php deploy/qa/membership-registry-qa.php <mode>`.
  *
  *   audit                 READ-ONLY. What exists before a numbering change: application / membership / member counts
  *                         (real vs QA), the KIND of number each carries (PF-…, PLCC-…, APP-…, none — never the number of
@@ -94,6 +94,12 @@
  * Nothing in the application deleted them.) Never create a mutating cron as `* * * * *` — one-shot only; and treat an empty
  * create response as "a job may exist that you can no longer reach".
  *
+ * ENFORCED SINCE 2026-10-09: on the live host `cleanup` refuses to run from any file not named `_qa_<hex>.php` (and, here, without
+ * `go`), so even if that orphan cron — or any other — points at a kit again, it removes nothing. Clearing the orphan up showed it
+ * still runs every minute and cannot be deleted through the API at all (the list and delete work from records the blank create never
+ * made; the real truth is ~/.logs/cronjob_<uid>). deploy/qa/cron-guard.php confirms every create, reconciles against ~/.logs and
+ * verifies every delete; deploy/README.md, "Cron jobs", has the rules.
+ *
  * QA rows are recognised ONLY by their markers: applicant_name starting "QA REGISTRY TEST", member e-mail starting
  * "khondokermoin2k23+qareg", the season slug "qa-registry-test-season", the type slug starting "qa-dues-test-".
  *
@@ -112,6 +118,16 @@ ini_set('display_errors', 'stderr');
 set_time_limit(0);
 
 $mode = $argv[1] ?? 'snapshot';
+
+// PRODUCTION SAFETY (2026-10-09). `cleanup` deletes data, so on the live host it only runs from a kit uploaded under a one-off name made
+// for THIS session (_qa_<8+ hex>.php, or _qa_<word>_<hex>.php) — never from a fixed name that an old cron can still point at: a minutely
+// `_qa_registry.php cleanup` cron that the API could neither list nor delete wiped QA rows a day after it was made (deploy/README.md,
+// "Cron jobs"). Local runs are not gated; QA_FORCE_PRODUCTION_GUARDS=1 applies the production rule anywhere (the tests use it).
+if ($mode === 'cleanup' && (is_dir('/home/u951246149/domains') || getenv('QA_FORCE_PRODUCTION_GUARDS') === '1')
+    && ! preg_match('/^_qa_(?:[a-z]+_)?[0-9a-f]{8,}\.php$/', basename(__FILE__))) {
+    fwrite(STDERR, json_encode(['mode' => 'cleanup', 'ok' => false, 'error' => 'refusing on production: a destructive mode runs only from a kit named _qa_<hex>.php made for this session (this file is '.basename(__FILE__).') — nothing was removed'], JSON_UNESCAPED_SLASHES)."\n");
+    exit(2);
+}
 $APP = getenv('QA_APP') ?: (is_dir('/home/u951246149/domains/provatferi.org/laravel-admin') ? '/home/u951246149/domains/provatferi.org/laravel-admin' : dirname(__DIR__, 2));
 define('LARAVEL_START', microtime(true));
 define('LARAVEL_PUBLIC_PATH_OVERRIDE', $APP.'/public');

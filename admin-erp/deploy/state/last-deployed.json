@@ -370,5 +370,11 @@
       "03e2e70391bc86706951bba515d13524e7ce8a3f": "bf731094b6f7f4e50662ab80909f0103da26c1e0",
       "f8279064ac6f42a769e6ba56d1eff1fd1e0c1f1f": "3c23064a36760baba7bb5f5ee02a9eb9e2281a05"
     }
+  },
+  "orphan_cron_2026_10_09": {
+    "finding": "The cron list is NOT proof that no job runs. Job tHqWoa4E6h (every minute: php …/public_html/admin/_qa_registry.php cleanup, created 2026-10-08 by a create call that returned an empty record) was never listed and could not be deleted: hosting_cron-jobs_delete answered 202 'Request accepted' at 10:57:02 and 11:07:30 UTC on 2026-10-09 and the job went on running every minute (watched 10:55–11:22 UTC through a logging stand-in at the target path, since removed). Earlier entries in this ledger that say 'cron list empty' are statements about the list API only.",
+    "scheduler": "A job is a crontab line kept outside the account's jail (no crontab binary, /var/spool/cron empty): /bin/sh -c /usr/bin/flock -w 1 /tmp/cron_lock_<uid> timeout -s 9 1800 <command> > ~/.logs/cronjob_<uid> 2>&1 # CRONJOBID:<uid>. list/delete work from the control plane's records; a blank create leaves a line with no record. ~/.logs/cronjob_<uid> (rewritten on every run) is the ground truth.",
+    "state_now": "Still scheduled, harmless: its target file is absent (admin docroot = .htaccess, index.php, robots.txt, favicon.ico), the registry kit refuses 'cleanup' without 'go' and from any name other than _qa_<hex>.php on the live host. Only Hostinger can remove it. Other hidden jobs found the same way: 4TLmOktkSo (every minute, read-only scandir probe) and the logs of three old one-shots (4EucqENwqk, qFGqvw6Wwy, Tgf0Y6VWdW) — see deploy/qa/cron-known.json.",
+    "safeguards": "deploy/qa/cron-guard.php (confirm-create / reconcile / verify-gone / resolve), the kits' production name gate, README 'Cron jobs'; tests CronGuardTest and QaKitGuardsTest."
   }
 }

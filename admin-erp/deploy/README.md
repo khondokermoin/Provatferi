@@ -397,7 +397,9 @@ the switch, so a file removed since then comes back — read the dry run first.
 
 ### Proving it on production (acceptance, repeatable)
 
-Upload `deploy/qa/uploads-race-qa.php` to the admin docroot as `_qa_race.php` (it answers 404 to anything but the CLI and
+Upload `deploy/qa/uploads-race-qa.php` to the admin docroot under a one-off name, `_qa_race_<id>.php` (written `_qa_race.php`
+below for short; `<id>` comes from `php deploy/qa/cron-guard.php new-session` and production refuses `cleanup` from any other
+name — see "Cron jobs"; it answers 404 to anything but the CLI and
 removes itself after a clean `cleanup`), then, one cron per step (`* * * * *` is safe for the idempotent ones: create,
 read the output after ~70 s, delete):
 
@@ -417,6 +419,45 @@ read the output after ~70 s, delete):
    `reconcile <retired> apply` (refused), `reconcile <retired> apply keep-both`, `_qa_race.php drill-verify`.
 7. `_qa_race.php cleanup` (a one-shot cron) removes every file in the live tree, the docroot, every retired tree and
    `_upload-conflicts/`, the registered application rows, the state directory and itself, and proves nothing is left.
+
+## Cron jobs: how the scheduler really works, the trap, and the guard
+
+Learned on 2026-10-09, when a blank `create` response left a minutely `_qa_registry.php cleanup` job that could be neither listed
+nor deleted (it wiped QA rows a day after it was made). Everything below was observed with probe crons, not assumed.
+
+- A job is a line of a crontab kept **outside the account's jail**: there is no `crontab` binary, `/var/spool/cron` is empty, and the
+  SSH `crontab` is a read-only alias for `cat /var/spool/cron/<user>`. Every line runs
+  `/bin/sh -c /usr/bin/flock -w 1 /tmp/cron_lock_<uid> timeout -s 9 1800 <command> > ~/.logs/cronjob_<uid> 2>&1 # CRONJOBID:<uid>`
+  — at most 30 minutes, one run at a time.
+- `hosting_cron-jobs_list` and `hosting_cron-jobs_delete` act on the control plane's own records, not on that crontab. When `create`
+  comes back blank (`uid`, `username`, `time` and `command` all `""`) the line may exist **without** a record: it is never listed,
+  `delete` answers `202 Request accepted` and changes nothing (it says the same for a uid that never existed), and the job keeps
+  running. `hosting_cron-jobs_output` still works for it, because it only reads the log.
+- **`~/.logs/cronjob_<uid>` is the ground truth.** A live job rewrites its file on every run; a deleted, known job's file disappears
+  within a minute. Read the directory with a read-only probe cron — `ls -la --time-style=full-iso /home/u951246149/.logs`. The list
+  proves a job exists; it never proves one does not.
+
+Rules (the tool is `deploy/qa/cron-guard.php`; the ledger lives in the operator's scratch directory, not in the repo):
+
+1. Mutating work runs from a **one-shot** cron, never `* * * * *`; only idempotent read-only probes run every minute.
+2. Each session starts with `php deploy/qa/cron-guard.php new-session` → `<id>`. The kit is uploaded as `_qa_<id>.php` (on the live
+   host `cleanup` refuses any other name) and **every cron command carries `<id>`** — in the file name, or as `env QA_ID=<id> …`.
+3. **A create counts only after** `php deploy/qa/cron-guard.php confirm-create <ledger> <create.json> "<schedule>" <id>` accepts it:
+   uid, username, time and command present, the schedule as asked, the command carrying `<id>`. Anything less is a FAILED create — the
+   job may exist and be unreachable — so nothing is armed, nothing may be assumed either way, and the session stops until
+   `reconcile` has looked at `~/.logs`.
+4. Clean-up is `delete` → two minutes → `php deploy/qa/cron-guard.php verify-gone <ledger> <uid> <logs-before.txt> <logs-after.txt>`
+   (the log file gone, or frozen while the listing moved on). Only that marks a job `gone`; `reconcile` fails while anything of the
+   session is still armed.
+5. Start and end every session with `php deploy/qa/cron-guard.php reconcile <ledger> <list.json> <logs.txt>`. It fails on a job that
+   runs but is not listed, a listed job nobody created, an unconfirmed create, a deleted job whose log still advances, and the
+   permanent dues job missing or changed. `deploy/qa/cron-known.json` records what is already known: the permanent job, and the
+   hidden jobs that only Hostinger can remove.
+6. Never write "the cron list is empty" in a report on the strength of the list API alone.
+
+A hidden job cannot be removed through the API: ask Hostinger support (account, the uid, the exact line above) or look for it in
+hPanel → Cron jobs. Until then it is kept harmless — its target file must not exist, and no kit deletes anything when started from a
+fixed name.
 
 ## Rollback
 
