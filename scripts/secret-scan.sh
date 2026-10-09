@@ -8,11 +8,24 @@
 #
 # Exit status: 0 clean · 1 a secret (or a file that must never be committed) was found — values are redacted in the output ·
 #              2 the scanner is missing or too old (run scripts/install-gitleaks.sh). It fails CLOSED: no scanner, no pass.
+#
+# In GitHub Actions every finding is also published as an annotation (file, line, rule — never the value), so a failed run says why
+# on the run page and on the pull request without opening the log.
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
 MODE="${1:-}"
 MIN_VERSION="8.25.0"
+WORK_DIR="$(mktemp -d)"
+
+on_exit() {
+  local rc=$?
+  rm -rf "$WORK_DIR"
+  if [ "$rc" -ne 0 ] && [ -n "${GITHUB_ACTIONS:-}" ]; then
+    echo "::error title=Secret scan::scripts/secret-scan.sh $MODE exited with status $rc (1 = a secret or a forbidden file was found, 2 = scanner missing or too old)"
+  fi
+}
+trap on_exit EXIT
 
 find_gitleaks() {
   local candidate
@@ -42,34 +55,55 @@ FORBIDDEN='(^|/)(\.env(\.[^/]+)?|wp-config\.php|\.super-admin-credentials\.txt|[
 TEMPLATE='\.(example|sample|template|dist)$'
 
 check_forbidden() {
-  local offenders
+  local offenders path
   offenders="$(printf '%s\n' "$1" | grep -E "$FORBIDDEN" | grep -v -E "$TEMPLATE" || true)"
   if [ -n "$offenders" ]; then
     echo "secret-scan: these files must never be committed (see docs/SECRETS.md):" >&2
-    printf '  %s\n' $offenders >&2
+    printf '%s\n' "$offenders" | while IFS= read -r path; do
+      echo "  $path" >&2
+      if [ -n "${GITHUB_ACTIONS:-}" ]; then echo "::error file=$path,title=Secret scan - file must never be committed::see docs/SECRETS.md"; fi
+    done
     echo "secret-scan: unstage them (git rm --cached <file>) and keep them ignored; templates must be named *.example." >&2
     return 1
   fi
 }
 
+# One gitleaks run. In GitHub Actions the JSON report (values redacted) is turned into annotations.
+run_gitleaks() {
+  local rc=0 report="$WORK_DIR/report.json"
+  if [ -n "${GITHUB_ACTIONS:-}" ]; then
+    "$GL" "$@" --redact --no-banner -c .gitleaks.toml -v -f json -r "$report" || rc=$?
+    if [ -s "$report" ] && command -v jq >/dev/null 2>&1; then
+      jq -r '.[] | "::error file=\(.File),line=\(.StartLine),title=Secret scan - \(.RuleID)::\(.Description) (commit \(.Commit[0:7]))"' "$report" || true
+    fi
+  else
+    "$GL" "$@" --redact --no-banner -c .gitleaks.toml -v || rc=$?
+  fi
+  return "$rc"
+}
+
 case "$MODE" in
   staged)
     check_forbidden "$(git diff --cached --name-only --diff-filter=ACMR)"
-    "$GL" git --staged --redact --no-banner -c .gitleaks.toml -v
+    run_gitleaks git --staged
     ;;
   history)
     check_forbidden "$(git ls-files)"
     if [ -n "${CI:-}" ]; then LOG_OPTS="--all"; else LOG_OPTS="--branches --tags --remotes HEAD"; fi
-    "$GL" git --redact --no-banner -c .gitleaks.toml -v --log-opts="$LOG_OPTS" .
+    if [ -n "${GITHUB_ACTIONS:-}" ]; then
+      echo "::notice title=Secret scan::gitleaks $VERSION, $(git rev-list --all --count) commits reachable from $(git for-each-ref | wc -l | tr -d ' ') refs"
+    fi
+    run_gitleaks git --log-opts="$LOG_OPTS" .
     ;;
   tree)
     check_forbidden "$(git ls-files --cached --others --exclude-standard)"
-    SNAPSHOT="$(mktemp -d)"
-    trap 'rm -rf "$SNAPSHOT"' EXIT
+    SNAPSHOT="$WORK_DIR/snapshot"
+    mkdir -p "$SNAPSHOT"
     # A copy of exactly the files git would commit: ignored files (node_modules, vendor, local .env …) are not in it, and the
     # paths in the report — and in the allow-lists — are repository-relative.
     git ls-files -z --cached --others --exclude-standard | tar --null --ignore-failed-read -T - -cf - 2>/dev/null | tar -xf - -C "$SNAPSHOT"
-    (cd "$SNAPSHOT" && "$GL" dir --redact --no-banner -c .gitleaks.toml -v .)
+    cp .gitleaks.toml "$SNAPSHOT/.gitleaks.toml"
+    (cd "$SNAPSHOT" && run_gitleaks dir .)
     ;;
   *)
     echo "usage: scripts/secret-scan.sh staged|history|tree" >&2
