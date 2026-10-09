@@ -137,9 +137,31 @@ release deliberately has no backfill.
 r3 (a disposable ৳200-a-month type, dated back four months). Scenarios: registration fee, monthly contribution, partial
 payment, one payment over several months, an advance with credit left, a voluntary gift, an awaiting payment, a cancelled one,
 two waivers (none gets a receipt), two simultaneous verifications (one receipt), the member portal (own receipts yes, another
-member's no). `cleanup` removes the QA receipts straight from the database (the model refuses deletion on purpose), then their
+member's no). `cleanup go` (the `go` is required) removes the QA receipts straight from the database (the model refuses deletion on purpose), then their
 payments, and gives the receipt numbers back by the same guarded rule as every other number — only through the top run held by
 QA rows alone, never past a real receipt — so the first real receipt is still `PLCC-RCT-2026-000001`.
+
+### Production acceptance (2026-10-09)
+
+Real Chrome against production, disposable QA data only: approve 12/12, flow 25/26 (the one "failure" was the script counting its
+own `fetch(..., {redirect: "manual"})` race requests as aborted — now filtered), views 169/171 (the two were the script restoring
+the admin's language from a page without a CSRF token — fixed), portal 17/17, security 14/14; server-side `receipt-inspect`: 11 QA
+payments, 8 receipts numbered 000001-000008 with no gap and no duplicate, none for the awaiting / cancelled / waived payments, the
+counter equal to the highest number, 8 `receipt_issued` history rows, and every attempt to change or delete a receipt refused.
+Two simultaneous verification routes were exercised on the live host: three parallel `fetch` POSTs (one receipt) and two tabs
+clicking at the same instant (the second was told "already verified, nothing changed"). The rendered PDFs (16, both languages)
+were rasterised and read: Bengali shaped, Latin from the substitution font, logo crisp, totals reconciling. Evidence kept outside
+the repo (Downloads/provatferi-receipts-qa-2026-10-09).
+
+**The incident that cost an hour.** The QA rows kept vanishing one minute after `receipt-setup` made them. Nothing in the
+application deletes them: a minutely `cleanup` cron created at the end of the previous task (its create call returned an empty
+uid, so the panel never listed it and the API could not delete it) was still running `_qa_registry.php cleanup` every minute and
+had been idle only because that file no longer existed. A watcher run from fresh connections every five seconds showed the rows
+present until second 58 and gone at 61; uploading the kit under another name made them stay. Consequences, all now in the kit:
+upload it under a fresh random name per session, never create a mutating cron as `* * * * *`, and `cleanup` refuses to run
+unless it is asked for as `cleanup go`. The orphan job itself is still registered (the host offers no way to list or remove it
+through the API; `crontab` is not available to PHP): it fires every minute against a file that does not exist, harmlessly, and can
+be deleted in hPanel → Cron Jobs (the every-minute job ending in `_qa_registry.php cleanup`).
 
 ## Not built
 

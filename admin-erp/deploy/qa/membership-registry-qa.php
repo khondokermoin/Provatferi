@@ -28,7 +28,7 @@
  *   seed <n>              makes sure n extra QA members exist (Student, zero fee), approved through the real approval
  *                         service, for the registry's pagination. Idempotent. No e-mail is sent (the controller sends
  *                         e-mails; this does not use it).
- *   cleanup               removes everything QA and nothing else, then proves it: the QA applications (+ private photos,
+ *   cleanup go            (`go` is required — a bare `cleanup` refuses) removes everything QA and nothing else, then proves it: the QA applications (+ private photos,
  *                         payments, history), their memberships, the QA member accounts (+ tokens, reset tokens, season
  *                         history, profile versions and their photos, history, private photo), and the QA season — and, in
  *                         the SAME transaction, gives back the numbers ONLY QA rows were holding (see release below).
@@ -85,6 +85,14 @@
  *   `cleanup` also removes the QA receipts (straight from the database: the model refuses deletion on purpose) before their
  *   payments, and gives the receipt numbers back by the same guarded rule as every other number. `audit` also reports the payments
  *   and receipts that exist (real vs QA) — the "existing payments" evidence, with no names or amounts of a real person.
+ *
+ * UPLOAD IT UNDER A FRESH, UNGUESSABLE FILE NAME EACH SESSION (`_qa_<random>.php`) and delete it when the session ends — never
+ * under one fixed name. (2026-10-09: a minutely `cleanup` cron created on 2026-10-08 returned an EMPTY uid, never showed in the
+ * panel's cron list and so could never be deleted through the API — yet it kept running `_qa_registry.php cleanup` every minute
+ * for as long as a file of that name existed. The day it found the kit again, it removed every QA row one minute after it was
+ * made. It was found by a probe that watched the rows from fresh connections every five seconds: they vanished at second 60.
+ * Nothing in the application deleted them.) Never create a mutating cron as `* * * * *` — one-shot only; and treat an empty
+ * create response as "a job may exist that you can no longer reach".
  *
  * QA rows are recognised ONLY by their markers: applicant_name starting "QA REGISTRY TEST", member e-mail starting
  * "khondokermoin2k23+qareg", the season slug "qa-registry-test-season", the type slug starting "qa-dues-test-".
@@ -997,6 +1005,11 @@ if ($mode === 'time-probe') {
 
 // ------------------------------------------------------------------------------------------------ cleanup
 if ($mode === 'cleanup') {
+    // Deliberate: `cleanup` alone does nothing. A destructive mode that a bare command line can trigger is one stray cron away
+    // from wiping a QA run (see the note in the header) — so it must be asked for in full: `cleanup go`.
+    if (($argv[2] ?? '') !== 'go') {
+        out(['mode' => $mode, 'ok' => false, 'error' => 'refusing: run it as `cleanup go` — nothing was removed'], 2);
+    }
     $removed = ['applications' => 0, 'application_photos' => 0, 'payments' => 0, 'memberships' => 0, 'members' => 0, 'member_photos' => 0,
         'profile_versions' => 0, 'tokens' => 0, 'reset_tokens' => 0, 'season_history' => 0, 'history' => 0, 'season' => false,
         'dues' => 0, 'due_allocations' => 0, 'monthly_payments' => 0, 'due_history' => 0, 'qa_type_policies' => 0, 'qa_types' => 0, 'receipts' => 0];
@@ -1173,5 +1186,5 @@ if ($mode === 'sweep') {
         'sequences' => sequences()]);
 }
 
-fwrite(STDERR, "usage: membership-registry-qa.php audit | snapshot | season-open [min] | season-close | inspect | invite-link <application-no> | mail-preview <application-no> | seed <n> | dues-setup | dues-invites | dues-inspect | receipt-setup | receipt-invites | receipt-inspect | time-setup | time-probe | cleanup | sweep\n");
+fwrite(STDERR, "usage: membership-registry-qa.php audit | snapshot | season-open [min] | season-close | inspect | invite-link <application-no> | mail-preview <application-no> | seed <n> | dues-setup | dues-invites | dues-inspect | receipt-setup | receipt-invites | receipt-inspect | time-setup | time-probe | cleanup go | sweep\n");
 exit(2);

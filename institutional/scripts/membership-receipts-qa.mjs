@@ -78,7 +78,9 @@ async function open({ vp = "desktop", theme = "light" } = {}) {
   page.on("requestfailed", (r) => {
     const reason = r.failure()?.errorText ?? "";
     // A navigation superseded: a flight fetch, a document, or a Server Action stream cut short by its own redirect.
-    if (/ERR_ABORTED/.test(reason) && (r.url().includes("_rsc=") || r.resourceType() === "document" || r.headers()["next-action"] !== undefined)) return;
+    // Also this script's own `fetch(…, { redirect: "manual" })` race requests: the redirect they get back is not followed, so Chrome
+    // reports the abandoned follow-up GET as aborted — not an application error.
+    if (/ERR_ABORTED/.test(reason) && (r.url().includes("_rsc=") || r.resourceType() === "document" || r.resourceType() === "fetch" || r.headers()["next-action"] !== undefined)) return;
     problems.failed.push(`${r.method()} ${r.url().replace(/token=[^&]+/, "token=…").slice(0, 110)} ${reason} [${r.resourceType()}${r.isNavigationRequest() ? ", navigation" : ""}]`);
   });
   return { context, page, problems };
@@ -148,6 +150,8 @@ async function adminLogin(page) {
 const adminLocale = (page) => page.evaluate(() => document.documentElement.lang.slice(0, 2));
 async function setAdminLocale(page, locale) {
   if ((await adminLocale(page)) === locale) return;
+  // The standalone print / receipt pages carry no form and so no CSRF token: switch from a panel page (a 419 otherwise).
+  if (!(await page.$('form input[name="_token"]'))) await page.goto(`${admin}/admin`, { waitUntil: "networkidle2", timeout: 60000 });
   await page.evaluate(async (loc) => {
     const body = new FormData();
     body.set("_token", document.querySelector('form input[name="_token"]')?.value);
