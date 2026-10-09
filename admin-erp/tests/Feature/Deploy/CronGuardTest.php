@@ -225,6 +225,50 @@ class CronGuardTest extends TestCase
         $this->assertSame('UNKNOWN', cg_verify_gone('nope', $before, $laterRows([]))['verdict']);
     }
 
+    public function test_neutralize_gives_the_block_and_unblock_commands_and_never_touches_a_permanent_job(): void
+    {
+        $plan = cg_neutralize_commands('tHqWoa4E6h', $this->permanent());
+
+        $this->assertTrue($plan['ok']);
+        $this->assertSame('chmod 000 /tmp/cron_lock_tHqWoa4E6h', $plan['block']);
+        $this->assertSame('chmod 644 /tmp/cron_lock_tHqWoa4E6h', $plan['unblock']);
+        $this->assertStringContainsString('Permission denied', $plan['message']);
+
+        $dues = cg_neutralize_commands('DWDyIEjfTM', $this->permanent());
+        $this->assertFalse($dues['ok'], 'the dues cron can never be targeted, not even by a typo that happens to be its id');
+        $this->assertNull($dues['block']);
+        $this->assertStringContainsString('PERMANENT', $dues['message']);
+
+        foreach (['', 'abc', '../etc/passwd', 'a b c d e f', 'tHqWoa4E6h; rm -rf /', 'tHqWoa4E6h/../x', str_repeat('a', 40)] as $bad) {
+            $this->assertFalse(cg_neutralize_commands($bad, $this->permanent())['ok'], "not a job id: {$bad}");
+        }
+    }
+
+    public function test_the_cli_neutralize_prints_the_plan_for_a_hidden_job_and_refuses_the_dues_cron(): void
+    {
+        $dir = $this->tempDir();
+        file_put_contents($dir.'/known.json', json_encode(['permanent' => $this->permanent(), 'known_hidden' => []]));
+        $run = function (string $uid) use ($dir): array {
+            $process = proc_open([PHP_BINARY, base_path('deploy/qa/cron-guard.php'), 'neutralize', $uid, $dir.'/known.json'], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, $dir);
+            $out = stream_get_contents($pipes[1]);
+            $err = stream_get_contents($pipes[2]);
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+
+            return [proc_close($process), $out, $err];
+        };
+
+        [$code, $out] = $run('tHqWoa4E6h');
+        $this->assertSame(0, $code);
+        $this->assertStringContainsString('block:   chmod 000 /tmp/cron_lock_tHqWoa4E6h', $out);
+        $this->assertStringContainsString('unblock: chmod 644 /tmp/cron_lock_tHqWoa4E6h', $out);
+
+        [$code, $out, $err] = $run('DWDyIEjfTM');
+        $this->assertSame(1, $code);
+        $this->assertStringNotContainsString('chmod', $out);
+        $this->assertStringContainsString('PERMANENT job', $err);
+    }
+
     public function test_the_cli_walks_a_session_from_a_blank_create_to_a_verified_clean_up(): void
     {
         $dir = $this->tempDir();

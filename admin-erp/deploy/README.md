@@ -431,8 +431,13 @@ nor deleted (it wiped QA rows a day after it was made). Everything below was obs
   — at most 30 minutes, one run at a time.
 - `hosting_cron-jobs_list` and `hosting_cron-jobs_delete` act on the control plane's own records, not on that crontab. When `create`
   comes back blank (`uid`, `username`, `time` and `command` all `""`) the line may exist **without** a record: it is never listed,
-  `delete` answers `202 Request accepted` and changes nothing (it says the same for a uid that never existed), and the job keeps
-  running. `hosting_cron-jobs_output` still works for it, because it only reads the log.
+  `delete` answers success (`Request accepted`) and changes nothing (it says the same for a uid that never existed), and the job
+  keeps running. `hosting_cron-jobs_output` still works for it, because it only reads the log. Hostinger's published API
+  (OpenAPI 1.62.0) has exactly four account cron endpoints — list, create, delete, output — and nothing that updates, disables or
+  re-syncs a job; `create` takes only `time` and `command`, so a uid cannot be chosen or re-created either.
+- The one handle on the host is the job's **lock file**, `/tmp/cron_lock_<uid>`: `/tmp` is the account's own, writable directory
+  (backed by `~/.cagefs/tmp`) and lock files are never cleaned up. If the lock cannot be opened, `flock` refuses and the command never
+  starts; the job still fires and its log is rewritten with flock's refusal.
 - **`~/.logs/cronjob_<uid>` is the ground truth.** A live job rewrites its file on every run; a deleted, known job's file disappears
   within a minute. Read the directory with a read-only probe cron — `ls -la --time-style=full-iso /home/u951246149/.logs`. The list
   proves a job exists; it never proves one does not.
@@ -456,8 +461,19 @@ Rules (the tool is `deploy/qa/cron-guard.php`; the ledger lives in the operator'
 6. Never write "the cron list is empty" in a report on the strength of the list API alone.
 
 A hidden job cannot be removed through the API: ask Hostinger support (account, the uid, the exact line above) or look for it in
-hPanel → Cron jobs. Until then it is kept harmless — its target file must not exist, and no kit deletes anything when started from a
-fixed name.
+hPanel → Cron jobs. Until then it is kept harmless: its target file must not exist, no kit deletes anything when started from a
+fixed name, and it can be **blocked, reversibly**:
+
+- `php deploy/qa/cron-guard.php neutralize <uid>` prints the two commands (it refuses a permanent job such as the dues cron).
+  Run `chmod 000 /tmp/cron_lock_<uid>` from a short-lived cron (idempotent: delete the cron after its first run). From the next
+  minute the job's own log reads `flock: cannot open lock file /tmp/cron_lock_<uid>: Permission denied` and the command never
+  starts (proved with a logging-only stand-in at the orphan's target: three runs logged before, none in the five windows after).
+  `chmod 644 /tmp/cron_lock_<uid>` undoes it (also proved, on a disposable job).
+- Do **not** make the job's log read-only instead: a shell whose redirect cannot be opened writes its complaint to the scheduler's
+  own stderr, and where that goes (a mail per minute?) cannot be seen from the account.
+- A blocked job is still scheduled: its log keeps being rewritten every minute, and the list API still does not show it.
+
+2026-10-09: `tHqWoa4E6h` (the orphan) was blocked this way at 20:18 UTC; `4TLmOktkSo` is a read-only probe and was left alone.
 
 ## Rollback
 

@@ -15,9 +15,13 @@ declare(strict_types=1);
  *     empty). Every line runs
  *         /bin/sh -c /usr/bin/flock -w 1 /tmp/cron_lock_<uid> timeout -s 9 1800 <command> > ~/.logs/cronjob_<uid> 2>&1 # CRONJOBID:<uid>
  *   - `hosting_cron-jobs_list` and `hosting_cron-jobs_delete` work from the control plane's own records, not from that crontab. A job whose
- *     create came back blank exists in the scheduler but not in those records: it is never listed, `delete` answers 202 "Request accepted"
- *     and changes nothing (it answers the same for a uid that never existed), and the job keeps running. The same turned out to be true of
- *     a second job (a read-only directory listing) and of three one-shot jobs whose logs are still on disk.
+ *     create came back blank exists in the scheduler but not in those records: it is never listed, `delete` answers success ("Request
+ *     accepted") and changes nothing (it answers the same for a uid that never existed), and the job keeps running. The same turned out to be
+ *     true of a second job (a read-only directory listing). Hostinger's published API has exactly four cron endpoints — list, create, delete,
+ *     output — and none that updates, disables or re-syncs a job, so there is no supported way to remove such a line from here.
+ *   - The only handle on the host is the job's lock file, /tmp/cron_lock_<uid>, in the account's own (writable) /tmp; lock files are never
+ *     cleaned up. If it cannot be opened, flock refuses and the command never starts (the job still fires and its log is rewritten with
+ *     flock's refusal). `neutralize` prints the commands that block and unblock a hidden job that way; it refuses every permanent job.
  *   - The one place that always tells the truth is ~/.logs: a live job rewrites its `cronjob_<uid>` file on every run. So the list API is
  *     evidence that a job EXISTS, never that it does not.
  *
@@ -38,6 +42,8 @@ declare(strict_types=1);
  *                                                the only thing that can mark a ledger job `gone`: its log file is absent from a later listing, or
  *                                                frozen while the listing moved on. Take the two listings at least two minutes apart.
  *   resolve <ledger> <uid-or-id> "<note>"        closes an unconfirmed entry after a person checked ~/.logs.
+ *   neutralize <uid> [<known.json>]              for a HIDDEN job that delete cannot remove: the reversible cron commands that block / unblock it
+ *                                                (chmod on its lock file). Refuses a permanent job, so the dues cron cannot be targeted by a typo.
  *
  * logs.txt is the output of a read-only probe cron:  ls -la --time-style=full-iso /home/u951246149/.logs
  * (the raw text or the {"output": "..."} wrapper the API puts around it are both accepted).
@@ -237,6 +243,33 @@ function cg_verify_gone(string $uid, array $before, array $after, int $activeWin
     return ['ok' => false, 'verdict' => 'UNDECIDED', 'message' => 'its log is unchanged but too recent to tell — list again later'];
 }
 
+/**
+ * The cron commands that block, and later unblock, a HIDDEN job whose delete does nothing. The job still fires, but flock cannot open its
+ * lock file, so the job's command never starts; its log is rewritten with flock's refusal ("cannot open lock file … Permission denied").
+ * Reversible (chmod 644). The log file is deliberately NOT touched: a shell whose redirect target cannot be opened reports to the scheduler's
+ * own stderr, where its destination is unknown. Refuses anything that is not a plausible uid, and every permanent job.
+ *
+ * @param  array<string, array{time: string, command: string, what?: string}>  $permanent
+ * @return array{ok: bool, block: ?string, unblock: ?string, message: string}
+ */
+function cg_neutralize_commands(string $uid, array $permanent = []): array
+{
+    if (! preg_match('/^[A-Za-z0-9]{6,32}$/', $uid)) {
+        return ['ok' => false, 'block' => null, 'unblock' => null, 'message' => 'that is not a job id'];
+    }
+    if (isset($permanent[$uid])) {
+        return ['ok' => false, 'block' => null, 'unblock' => null, 'message' => "{$uid} is a PERMANENT job (".($permanent[$uid]['what'] ?? 'see cron-known.json').') — refusing'];
+    }
+
+    return [
+        'ok' => true,
+        'block' => "chmod 000 /tmp/cron_lock_{$uid}",
+        'unblock' => "chmod 644 /tmp/cron_lock_{$uid}",
+        'message' => 'run the block as a short-lived cron (it is idempotent; delete it after its first run), then check hosting_cron-jobs_output for '
+            ."the job: it must read \"flock: cannot open lock file /tmp/cron_lock_{$uid}: Permission denied\" and stay that way for at least three minutes",
+    ];
+}
+
 // ------------------------------------------------------------------------------------------------ CLI
 
 /** @return array{jobs: list<array<string, mixed>>} */
@@ -368,9 +401,23 @@ function cg_main(array $argv): int
             echo $closed > 0 ? "resolved {$closed} unconfirmed entr".($closed === 1 ? 'y' : 'ies')."\n" : "nothing to resolve for {$key}\n";
 
             return $closed > 0 ? 0 : 1;
+
+        case 'neutralize':
+            $uid = $argv[2] ?? '';
+            $knownPath = $argv[3] ?? __DIR__.'/cron-known.json';
+            $known = is_file($knownPath) ? (json_decode((string) file_get_contents($knownPath), true) ?: []) : [];
+            $plan = cg_neutralize_commands($uid, is_array($known['permanent'] ?? null) ? $known['permanent'] : []);
+            if (! $plan['ok']) {
+                fwrite(STDERR, "cron-guard: {$plan['message']}\n");
+
+                return 1;
+            }
+            echo "block:   {$plan['block']}\nunblock: {$plan['unblock']}\n{$plan['message']}\n";
+
+            return 0;
     }
 
-    fwrite(STDERR, "usage: cron-guard.php new-session | confirm-create | reconcile | verify-gone | resolve   (see the header of this file)\n");
+    fwrite(STDERR, "usage: cron-guard.php new-session | confirm-create | reconcile | verify-gone | resolve | neutralize   (see the header of this file)\n");
 
     return 64;
 }
