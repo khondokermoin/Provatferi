@@ -84,11 +84,12 @@ export default async function VolunteerApplySuccessPage({ params }: { params: Pr
         </Link>
       </div>
 
+      {/* An applicant's question about their own application is support's (the receipt mail's Reply-To). */}
       <p className="apply-success-footnote">
         {en ? (
-          <>Questions? Write to us at <a href={`mailto:${org.email}`}>{org.email}</a>.</>
+          <>Questions? Write to us at <a href={`mailto:${org.supportEmail}`}>{org.supportEmail}</a>.</>
         ) : (
-          <>প্রশ্ন থাকলে <a href={`mailto:${org.email}`}>{org.email}</a> — এ লিখতে পারেন।</>
+          <>প্রশ্ন থাকলে <a href={`mailto:${org.supportEmail}`}>{org.supportEmail}</a> — এ লিখতে পারেন।</>
         )}
       </p>
     </article>

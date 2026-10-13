@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build --webpack",
-    "postbuild": "node scripts/verify-seo-routes.mjs",
+    "postbuild": "node scripts/verify-seo-routes.mjs && node scripts/verify-client-bundle.mjs",
     "start": "next start",
     "lint": "eslint",
     "test:api": "node --conditions=react-server --import ./scripts/register-test-loader.mjs --test lib/api/__tests__/*.test.mts",

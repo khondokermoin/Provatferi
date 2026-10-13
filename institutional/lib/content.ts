@@ -19,6 +19,12 @@ export const org = {
   // Canonical public contact (2026-09-08 decision) — the old gmail address is
   // retired; do not restore it as the public-facing contact.
   email: "info@provatferi.org",
+  // Applicant, member and account help (admin-erp/docs/EMAIL_ARCHITECTURE.md):
+  // the address the site names where a person asks about THEIR application or
+  // opportunity — the same mailbox the automated mails' Reply-To points at.
+  // General enquiries stay on `email`. These two are the only addresses the
+  // public site may show (__tests__/mail-identity.test.mts).
+  supportEmail: "support@provatferi.org",
   phone: "+8801625050408",
   facebook: "https://fb.com/provatfericenter",
   acronym: "PLCC",

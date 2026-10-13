@@ -149,7 +149,7 @@ export default async function RecruitmentDetailPage({ params }: { params: Promis
                   {applyCtaLabel(job.is_volunteer, locale)} <span aria-hidden="true">→</span>
                 </Link>
               ) : (
-                <a href={`mailto:${org.email}?subject=${encodeURIComponent(title.text)}`} className="button button-primary">
+                <a href={`mailto:${org.supportEmail}?subject=${encodeURIComponent(title.text)}`} className="button button-primary">
                   {locale === "en" ? "Contact About This Opportunity" : "আবেদন সংক্রান্ত যোগাযোগ"}
                 </a>
               )}
