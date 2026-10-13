@@ -40,8 +40,10 @@ const phase = arg("phase");
 const site = (arg("site") ?? "").replace(/\/+$/, "");
 const admin = (arg("admin") ?? "").replace(/\/+$/, "");
 const admin2 = (arg("admin2") ?? arg("admin") ?? "").replace(/\/+$/, "");
-const adminEmail = arg("email");
-const adminPassword = arg("password");
+// The admin login: from the environment (QA_ADMIN_EMAIL / QA_ADMIN_PASSWORD, loaded from a scratch env file so it never sits on a
+// recorded command line) or, failing that, --email / --password.
+const adminEmail = process.env.QA_ADMIN_EMAIL || arg("email");
+const adminPassword = process.env.QA_ADMIN_PASSWORD || arg("password");
 const readJson = (file) => {
   const raw = readFileSync(resolve(file), "utf8");
   return JSON.parse(raw.slice(raw.indexOf("{"))); // a cron's output may start with a PHP warning line
