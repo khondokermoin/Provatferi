@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Support\InstitutionMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -9,8 +10,8 @@ use Illuminate\Notifications\Notification;
 /**
  * §37/§41: notifies the applicant of a decision on their membership application. Only ever sent for
  * approved/rejected/need_information — an applicant already knows about their own under_review/cancelled
- * transitions, so those don't warrant a message. Reply-To is support@, MAIL_ROLES.md's explicit "membership
- * application status" class.
+ * transitions, so those don't warrant a message. A support-class message (docs/EMAIL_ARCHITECTURE.md): a request for
+ * information even invites the applicant to answer by e-mail, so the reply must reach support@.
  *
  * $message is text written FOR the applicant (a rejection reason, or what information is needed). An admin's internal
  * note is never passed here (Membership Registry task 2 fixed a leak: the internal note used to be sent as the
@@ -42,11 +43,6 @@ class MembershipApplicationStatusChangedNotification extends Notification
     {
         $mail = (new MailMessage)->subject("আপনার সদস্যপদ আবেদন ({$this->applicationNo}) সম্পর্কে হালনাগাদ");
 
-        $supportAddress = config('mail.reply_to.support');
-        if (is_string($supportAddress) && $supportAddress !== '') {
-            $mail->replyTo($supportAddress, 'Provatferi Support');
-        }
-
         $mail->greeting('প্রিয়,')->line("আপনার সদস্যপদ আবেদন ({$this->applicationNo}) সম্পর্কে একটি হালনাগাদ রয়েছে।");
 
         match ($this->status) {
@@ -58,7 +54,7 @@ class MembershipApplicationStatusChangedNotification extends Notification
             default => $mail->line("বর্তমান অবস্থা: {$this->status}"),
         };
 
-        return $mail;
+        return InstitutionMail::support($mail);
     }
 
     private function approved(MailMessage $mail): void

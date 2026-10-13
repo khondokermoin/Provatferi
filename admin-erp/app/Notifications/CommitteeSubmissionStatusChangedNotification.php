@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Support\InstitutionMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -36,11 +37,6 @@ class CommitteeSubmissionStatusChangedNotification extends Notification
             $isApproved ? "আপনার আবেদন অনুমোদিত হয়েছে — {$this->committeeName}" : "আপনার আবেদন সম্পর্কে — {$this->committeeName}",
         );
 
-        $supportAddress = config('mail.reply_to.support');
-        if (is_string($supportAddress) && $supportAddress !== '') {
-            $message->replyTo($supportAddress, 'Provatferi Support');
-        }
-
         $message->greeting('প্রিয়,');
 
         if ($isApproved) {
@@ -52,6 +48,6 @@ class CommitteeSubmissionStatusChangedNotification extends Notification
             }
         }
 
-        return $message;
+        return InstitutionMail::support($message);
     }
 }

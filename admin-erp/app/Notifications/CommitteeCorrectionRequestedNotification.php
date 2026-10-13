@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Support\InstitutionMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -13,9 +14,8 @@ use Illuminate\Notifications\Notification;
  * remembering to copy and manually relay it. Routed via
  * Notification::route('mail', ...) since a committee nominee is not
  * necessarily a Member/User with a Notifiable trait to hang this off of.
- * Reply-To is support@, matching MAIL_ROLES.md's "membership application
- * status" class — a correction request is exactly that class of message
- * for the committee-submission workflow.
+ * A support-class message (docs/EMAIL_ARCHITECTURE.md): an applicant asked to
+ * correct their details is exactly who may need to write back.
  */
 class CommitteeCorrectionRequestedNotification extends Notification
 {
@@ -37,18 +37,13 @@ class CommitteeCorrectionRequestedNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $message = (new MailMessage)->subject("আপনার তথ্য সংশোধন প্রয়োজন — {$this->committeeName}");
-
-        $supportAddress = config('mail.reply_to.support');
-        if (is_string($supportAddress) && $supportAddress !== '') {
-            $message->replyTo($supportAddress, 'Provatferi Support');
-        }
-
-        return $message
+        $message = (new MailMessage)->subject("আপনার তথ্য সংশোধন প্রয়োজন — {$this->committeeName}")
             ->greeting('প্রিয়,')
             ->line("{$this->committeeName}-এর জন্য আপনার জমাকৃত তথ্যে একটি সংশোধন প্রয়োজন।")
             ->line("কারণ: {$this->reason}")
             ->action('তথ্য সংশোধন করুন', $this->correctionUrl)
             ->line("এই লিংকটি {$this->expiryDays} দিন পর মেয়াদোত্তীর্ণ হবে এবং শুধুমাত্র একবার ব্যবহারযোগ্য।");
+
+        return InstitutionMail::support($message);
     }
 }

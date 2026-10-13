@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Support\InstitutionMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -33,18 +34,13 @@ class MemberSetPasswordNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $message = (new MailMessage)->subject('আপনার সদস্য অ্যাকাউন্টের পাসওয়ার্ড সেট করুন — প্রভাতফেরী');
-
-        $supportAddress = config('mail.reply_to.support');
-        if (is_string($supportAddress) && $supportAddress !== '') {
-            $message->replyTo($supportAddress, 'Provatferi Support');
-        }
-
-        return $message
+        $message = (new MailMessage)->subject('আপনার সদস্য অ্যাকাউন্টের পাসওয়ার্ড সেট করুন — প্রভাতফেরী')
             ->greeting('স্বাগতম!')
             ->line('আপনার প্রভাতফেরী সদস্য পোর্টাল অ্যাকাউন্টের জন্য একটি পাসওয়ার্ড সেট করতে নিচের বাটনে ক্লিক করুন।')
             ->action('পাসওয়ার্ড সেট করুন', $this->url)
             ->line("এই লিংকটি {$this->expiryMinutes} মিনিট পর মেয়াদোত্তীর্ণ হবে।")
             ->line('আপনি যদি এই অনুরোধ না করে থাকেন, তাহলে এই ই-মেইলটি উপেক্ষা করুন।');
+
+        return InstitutionMail::support($message);
     }
 }

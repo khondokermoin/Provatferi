@@ -650,6 +650,32 @@ case 'smoke-test-isolated':
             $result['checks']['pdf_engine_error'] = get_class($e).': '.$e->getMessage();
             $result['ok'] = false;
         }
+
+        // Mail identity (docs/EMAIL_ARCHITECTURE.md), added 2026-10-14: every role address of config/institution.php is
+        // one plain address, From is the no-reply role, no sender or reply role is a private mailbox (the internal one
+        // or the SMTP login), production mail is really sent rather than kept in a log, and the password-reset mail
+        // built above replies to the support role. A release that would mail from, or invite replies to, the wrong
+        // mailbox must not go live. Only booleans and config-key names are recorded here: no address, no secret.
+        try {
+            if (class_exists(\App\Support\InstitutionMail::class)) {
+                $mailProblems = \App\Support\InstitutionMail::problems();
+                if (isset($mail) && $mail instanceof \Illuminate\Notifications\Messages\MailMessage
+                    && array_column($mail->replyTo ?? [], 0) !== [\App\Support\InstitutionMail::address('support')]) {
+                    $mailProblems[] = 'the password-reset mail does not reply to institution.email.support';
+                }
+                $result['checks']['mail_identity'] = $mailProblems === [];
+                if ($mailProblems !== []) {
+                    $result['checks']['mail_identity_problems'] = array_slice($mailProblems, 0, 10);
+                    $result['ok'] = false;
+                }
+            } else {
+                $result['checks']['mail_identity'] = 'not_in_this_release';
+            }
+        } catch (\Throwable $e) {
+            $result['checks']['mail_identity'] = false;
+            $result['checks']['mail_identity_error'] = get_class($e).': '.$e->getMessage();
+            $result['ok'] = false;
+        }
     } catch (\Throwable $e) {
         $result = ['ok' => false, 'error' => 'app failed to boot: '.get_class($e).': '.$e->getMessage()];
     }

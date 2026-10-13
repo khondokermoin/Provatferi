@@ -53,7 +53,7 @@ return [
 
     // Mail Center (Hostinger official Mail API). The token is scoped in
     // hPanel to a specific set of mailboxes (info@/support@/security@ —
-    // never admin@ or no-reply@, see docs/MAIL_ROLES.md) and is never
+    // never admin@ or no-reply@, see docs/EMAIL_ARCHITECTURE.md) and is never
     // logged, echoed, or exposed to the frontend. `webhook_secret` is the
     // one-time secret Hostinger returns when the message.received webhook
     // is created — HostingerMailWebhookController compares it against the

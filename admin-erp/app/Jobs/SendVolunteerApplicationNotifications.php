@@ -5,13 +5,14 @@ namespace App\Jobs;
 use App\Models\JobApplication;
 use App\Notifications\VolunteerApplicationReceivedNotification;
 use App\Notifications\VolunteerApplicationSubmittedNotification;
+use App\Support\InstitutionMail;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Throwable;
 
 /**
- * The applicant's receipt and the operations mailbox's heads-up, sent AFTER the
+ * The applicant's receipt and the internal mailbox's heads-up, sent AFTER the
  * response has gone back to the applicant.
  *
  * They used to be sent inside the request — two SMTP sessions, one after the
@@ -59,13 +60,13 @@ class SendVolunteerApplicationNotifications
             ]);
         }
 
-        $operations = config('mail.reply_to.operations');
-        if (! is_string($operations) || $operations === '') {
+        $internal = InstitutionMail::internalRecipient();
+        if ($internal === null) {
             return;
         }
 
         try {
-            Notification::route('mail', $operations)->notify(
+            Notification::route('mail', $internal)->notify(
                 new VolunteerApplicationSubmittedNotification(
                     $application->application_no,
                     $posting->title,

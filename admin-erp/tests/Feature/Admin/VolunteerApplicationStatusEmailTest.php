@@ -233,7 +233,7 @@ class VolunteerApplicationStatusEmailTest extends AdminTestCase
 
     public function test_the_reply_to_is_the_support_mailbox_when_configured(): void
     {
-        config(['mail.reply_to.support' => 'support@provatferi.test']);
+        config(['institution.email.support' => 'support@provatferi.test']);
         $notification = new VolunteerApplicationStatusChangedNotification('VOL-2026-0001', 'accepted', 'নাদিয়া', 'পোস্ট');
 
         $mail = $notification->toMail(new AnonymousNotifiable);

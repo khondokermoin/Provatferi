@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\JobApplication;
+use App\Support\InstitutionMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -48,12 +49,7 @@ class VolunteerApplicationStatusChangedNotification extends Notification
             ->subject("আপনার স্বেচ্ছাসেবী আবেদন ({$this->applicationNo}) সম্পর্কে হালনাগাদ")
             ->greeting("প্রিয় {$this->applicantName},");
 
-        $supportAddress = config('mail.reply_to.support');
-        if (is_string($supportAddress) && $supportAddress !== '') {
-            $message->replyTo($supportAddress, 'Provatferi Support');
-        }
-
-        $subject = $this->postingTitle !== null && $this->postingTitle !== ''
+        $subject =$this->postingTitle !== null && $this->postingTitle !== ''
             ? "“{$this->postingTitle}” — এ আপনার আবেদনের"
             : 'আপনার আবেদনের';
 
@@ -66,6 +62,6 @@ class VolunteerApplicationStatusChangedNotification extends Notification
             default => $message->line('বর্তমান অবস্থা: '.(JobApplication::STATUSES[$this->status] ?? $this->status)),
         };
 
-        return $message->line('ধন্যবাদ।');
+        return InstitutionMail::support($message->line('ধন্যবাদ।'));
     }
 }

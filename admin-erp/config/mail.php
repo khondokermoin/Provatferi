@@ -104,41 +104,19 @@ return [
     | Global "From" Address
     |--------------------------------------------------------------------------
     |
-    | You may wish for all emails sent by your application to be sent from
-    | the same address. Here you may specify a name and address that is
-    | used globally for all emails that are sent by your application.
+    | Everything the application sends is From the automated sender: the
+    | `noreply` role of config/institution.php, read from the SAME environment
+    | variables (INSTITUTION_NOREPLY_EMAIL, else the older MAIL_FROM_ADDRESS),
+    | so the visible From and the role cannot disagree. Reply-To addresses are
+    | not configured here: App\Support\InstitutionMail sets them per message
+    | class (docs/EMAIL_ARCHITECTURE.md). The SMTP login (MAIL_USERNAME above)
+    | is a different concept and is never the From.
     |
     */
 
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'no-reply@provatferi.org'),
+        'address' => env('INSTITUTION_NOREPLY_EMAIL', env('MAIL_FROM_ADDRESS', 'no-reply@provatferi.org')),
         'name' => env('MAIL_FROM_NAME', 'Provatferi Literary and Cultural Center'),
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Reply-To Addresses by Message Class
-    |--------------------------------------------------------------------------
-    |
-    | Everything the application sends goes out FROM the no-reply mailbox, but
-    | a recipient must always have a real address to reply to. Pick the one
-    | matching the message: `general` for ordinary notifications, `support`
-    | for anything about an account, application, or login the member may need
-    | help with, `security` for security-related notices.
-    |
-    | `operations` is the internal ERP address. It is a recipient for staff
-    | notices only — never a Reply-To on member-facing mail, and never
-    | published as a public contact address.
-    |
-    | Usage: ->replyTo(config('mail.reply_to.support'))
-    |
-    */
-
-    'reply_to' => [
-        'general' => env('MAIL_REPLY_TO_ADDRESS', 'info@provatferi.org'),
-        'support' => env('MAIL_REPLY_TO_SUPPORT', 'support@provatferi.org'),
-        'security' => env('MAIL_REPLY_TO_SECURITY', 'security@provatferi.org'),
-        'operations' => env('MAIL_OPERATIONS_ADDRESS', 'admin@provatferi.org'),
     ],
 
 ];

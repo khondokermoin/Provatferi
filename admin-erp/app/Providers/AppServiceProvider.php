@@ -6,6 +6,7 @@ use App\Models\Permission;
 use App\Models\User;
 use App\Services\HostingerMailService;
 use App\Services\PublicSiteRevalidator;
+use App\Support\InstitutionMail;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Gate;
@@ -46,7 +47,8 @@ class AppServiceProvider extends ServiceProvider
      * The framework's password-reset mail carries no Reply-To, so it would go
      * out from the no-reply mailbox with no way for a member to answer it.
      * A reset is exactly the message someone replies to when they are stuck,
-     * so point it at the support mailbox. Also replaces the default
+     * so it is a support-class message (InstitutionMail::support(), Reply-To
+     * support@; docs/EMAIL_ARCHITECTURE.md). Also replaces the default
      * generic copy/greeting/salutation with Provatferi's own voice — visual
      * branding (logo, colors, card layout) lives in
      * resources/views/vendor/mail/, published via `vendor:publish
@@ -66,35 +68,23 @@ class AppServiceProvider extends ServiceProvider
             $orgName = config('mail.from.name');
 
             $message = (new MailMessage)
-                ->subject(Lang::get('Reset your Provatferi ERP password'));
-
-            /*
-             * Only set Reply-To when there is an address to set it to.
-             * ->replyTo(null) does not fail here — it fails later, at send
-             * time, deep inside Symfony's Address constructor, which takes
-             * the whole password-reset flow down with a 500 and no usable
-             * hint as to why. That is exactly what happened in production on
-             * 2026-09-09: this file shipped while the config/mail.php that
-             * defines mail.reply_to did not, so the key resolved to null on
-             * the server while every local test passed.
-             *
-             * A missing contact address should cost us the Reply-To header,
-             * not the ability to reset a password, so it degrades instead of
-             * throwing. config/mail.php still supplies a real default; this
-             * is the backstop for when config and code drift apart again.
-             */
-            $supportAddress = config('mail.reply_to.support');
-            if (is_string($supportAddress) && $supportAddress !== '') {
-                $message->replyTo($supportAddress, 'Provatferi Support');
-            }
-
-            return $message
+                ->subject(Lang::get('Reset your Provatferi ERP password'))
                 ->greeting($firstName !== '' ? Lang::get('Hello, :name.', ['name' => $firstName]) : Lang::get('Hello.'))
                 ->line(Lang::get('We received a request to reset your account password. Use the button below to choose a new one.'))
                 ->action(Lang::get('Reset Password'), $url)
                 ->line(Lang::get('This link will expire in :count minutes for your security.', ['count' => $expiry]))
                 ->line(Lang::get("If you didn't request this, no action is needed — your password will stay the same."))
                 ->salutation(Lang::get('Regards,')."  \n".$orgName);
+
+            /*
+             * A missing support address costs the Reply-To header, never the
+             * ability to reset a password: InstitutionMail leaves the header
+             * out instead of passing null on. ->replyTo(null) does not fail
+             * here; it fails at send time inside Symfony's Address, which is
+             * how POST /forgot-password returned 500 in production on
+             * 2026-09-09, while every local test passed.
+             */
+            return InstitutionMail::support($message);
         });
     }
 }

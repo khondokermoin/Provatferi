@@ -23,7 +23,11 @@ class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        if (User::query()->where('email', 'admin@provatferi.org')->exists()) {
+        // The internal administration mailbox (config/institution.php) — an
+        // internal login, never published.
+        $email = (string) config('institution.email.internal');
+
+        if (User::query()->where('email', $email)->exists()) {
             $this->command?->info('Super Admin already exists — skipping.');
 
             return;
@@ -33,7 +37,7 @@ class AdminUserSeeder extends Seeder
 
         $user = User::query()->create([
             'name' => 'মেহেদী হাসান রনি',
-            'email' => 'admin@provatferi.org',
+            'email' => $email,
             'password' => Hash::make($password),
             'status' => 'active',
             'email_verified_at' => now(),
@@ -44,7 +48,7 @@ class AdminUserSeeder extends Seeder
             $user->roles()->attach($superAdmin->id);
         }
 
-        $this->command?->info('SUPER_ADMIN_EMAIL=admin@provatferi.org');
+        $this->command?->info("SUPER_ADMIN_EMAIL={$email}");
         $this->command?->info("SUPER_ADMIN_PASSWORD={$password}");
     }
 }

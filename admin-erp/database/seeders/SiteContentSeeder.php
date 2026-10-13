@@ -29,8 +29,9 @@ class SiteContentSeeder extends Seeder
             'site.tagline' => 'শিক্ষা • সাহিত্য • সংস্কৃতি • মানবতা',
 
             // Contact — canonical public values (2026-09-08 decision). The old
-            // gmail address is retired as the canonical public contact.
-            'site.email' => 'info@provatferi.org',
+            // gmail address is retired as the canonical public contact. The
+            // address is the `public` role of config/institution.php.
+            'site.email' => config('institution.email.public'),
             'site.phone' => '+8801625050408',
             'site.address' => 'লেবাশ, ডাকঘর দোল্লাই নোয়াবপুর, ইউনিয়ন দোল্লাই নোয়াবপুর, উপজেলা চান্দিনা, জেলা কুমিল্লা, বিভাগ চট্টগ্রাম',
             'site.facebook_url' => 'https://fb.com/provatfericenter',

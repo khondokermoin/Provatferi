@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Support\InstitutionMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -39,16 +40,11 @@ class VolunteerApplicationReceivedNotification extends Notification
             ->line("আবেদন নম্বর: {$this->applicationNo}")
             ->line('প্রভাতফেরীর পক্ষ থেকে আবেদন যাচাই করে প্রয়োজন অনুযায়ী আপনার সঙ্গে যোগাযোগ করা হবে।');
 
-        $supportAddress = config('mail.reply_to.support');
-        if (is_string($supportAddress) && $supportAddress !== '') {
-            $message->replyTo($supportAddress, 'Provatferi Support');
-        }
-
         if ($this->communityUrl !== null && $this->communityUrl !== '') {
             $message->line('যোগাযোগ ও পরবর্তী আপডেটের জন্য চাইলে আমাদের কমিউনিটি গ্রুপে যুক্ত হতে পারেন — এটি ঐচ্ছিক।')
                 ->action('WhatsApp Group-এ যুক্ত হোন', $this->communityUrl);
         }
 
-        return $message->line('ধন্যবাদ।');
+        return InstitutionMail::support($message->line('ধন্যবাদ।'));
     }
 }

@@ -50,11 +50,11 @@ class PasswordResetMailPolicyTest extends TestCase
 
     public function test_the_internal_admin_mailbox_is_not_used_for_member_facing_mail(): void
     {
-        foreach (['from.address', 'reply_to.general', 'reply_to.support', 'reply_to.security'] as $key) {
+        foreach (['mail.from.address', 'institution.email.public', 'institution.email.support', 'institution.email.security', 'institution.email.noreply'] as $key) {
             $this->assertNotSame(
                 'admin@provatferi.org',
-                config("mail.{$key}"),
-                "admin@ is internal-only and must not appear in mail.{$key}.",
+                config($key),
+                "admin@ is internal-only and must not appear in {$key}.",
             );
         }
     }
@@ -151,7 +151,7 @@ class PasswordResetMailPolicyTest extends TestCase
 
         $this->assertStringContainsString(config('mail.from.name'), $body);
         $this->assertStringContainsString('brand/provatferi-logo-light.png', $body);
-        $this->assertStringContainsString(config('mail.reply_to.support'), $body, 'The footer should surface a real support contact.');
+        $this->assertStringContainsString(config('institution.email.support'), $body, 'The footer should surface a real support contact.');
     }
 
     public function test_the_reset_link_expiry_is_stated_in_minutes(): void
@@ -302,14 +302,15 @@ class PasswordResetMailPolicyTest extends TestCase
      * MailMessage without complaint and only explodes later, inside Symfony's
      * Address constructor, when the transport turns it into a real message —
      * so every build-time assertion passed while POST /forgot-password
-     * returned a 500.
+     * returned a 500. The support address now lives in config/institution.php
+     * and reaches the message through App\Support\InstitutionMail.
      *
      * This has to drive an actual send for that reason: asserting on the
      * MailMessage alone reproduces nothing.
      */
     public function test_a_missing_support_address_does_not_break_sending_a_reset(): void
     {
-        config(['mail.reply_to.support' => null]);
+        config(['institution.email.support' => null]);
 
         $user = User::factory()->create(['email' => 'member@example.test']);
 
@@ -332,7 +333,7 @@ class PasswordResetMailPolicyTest extends TestCase
         $replyTo = $this->lastSentEmail()->getReplyTo();
 
         $this->assertCount(1, $replyTo);
-        $this->assertSame(config('mail.reply_to.support'), $replyTo[0]->getAddress());
+        $this->assertSame(config('institution.email.support'), $replyTo[0]->getAddress());
     }
 
     public function test_the_support_reply_to_config_key_exists(): void
@@ -341,8 +342,8 @@ class PasswordResetMailPolicyTest extends TestCase
         // server. Assert the key itself, so a config file that ships without
         // it fails here rather than in production.
         $this->assertIsString(
-            config('mail.reply_to.support'),
-            'mail.reply_to.support must be defined — AppServiceProvider reads it when branding the reset mail.',
+            config('institution.email.support'),
+            'institution.email.support must be defined — InstitutionMail reads it for every support-class message, the reset included.',
         );
     }
 

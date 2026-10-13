@@ -36,7 +36,10 @@ password.
 
 `admin@provatferi.org` is an internal ERP login and operational-notice
 address only. It is deliberately not the organisation's public contact
-address — that is `info@provatferi.org`, held in `site.email`.
+address — that is `info@provatferi.org`, held in `site.email`. Which address
+plays which e-mail role (public contact, support, security, automated sender,
+internal), and how mail is sent and tested: `docs/EMAIL_ARCHITECTURE.md`;
+`php artisan mail:identity` checks a running install.
 
 ## RBAC
 

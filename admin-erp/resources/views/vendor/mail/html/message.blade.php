@@ -30,10 +30,13 @@
     for anything it sends, decoupled from the internal admin app's own name.
     Automated-mail disclosure line ties back to why the message arrived at
     all, matching the intro line in AppServiceProvider::bootPasswordResetMail().
+    The help address is the support role (docs/EMAIL_ARCHITECTURE.md); the
+    line is left out rather than rendered empty if it is not configured.
 --}}
+@php($supportAddress = \App\Support\InstitutionMail::address('support'))
 **{{ config('mail.from.name') }}**
 
-This is an automated message from Provatferi's official systems. For help, contact [{{ config('mail.reply_to.support') }}](mailto:{{ config('mail.reply_to.support') }}).
+This is an automated message from Provatferi's official systems.@if ($supportAddress) For help, contact [{{ $supportAddress }}](mailto:{{ $supportAddress }}).@endif
 
 © {{ \App\Support\AdminTime::year() }} {{ config('mail.from.name') }}. {{ __('All rights reserved.') }}
 </x-mail::footer>

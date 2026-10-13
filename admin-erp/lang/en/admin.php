@@ -953,6 +953,7 @@ return [
         'sent_success' => 'Message sent.',
         'sound_enable' => 'Enable notification sound',
         'sound_disable' => 'Disable notification sound',
+        'private_mailbox_not_public' => 'This is the internal administration mailbox, which must never be published. Use the public contact address (:public).',
     ],
 
     'bilingual' => [

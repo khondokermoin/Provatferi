@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Support\InstitutionMail;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -31,11 +32,6 @@ class PublicProfileReviewedNotification extends Notification
         $isApproved = $this->status === 'approved';
         $message = (new MailMessage)->subject($isApproved ? 'আপনার পাবলিক প্রোফাইল প্রকাশিত হয়েছে' : 'আপনার পাবলিক প্রোফাইল সম্পর্কে');
 
-        $supportAddress = config('mail.reply_to.support');
-        if (is_string($supportAddress) && $supportAddress !== '') {
-            $message->replyTo($supportAddress, 'Provatferi Support');
-        }
-
         $message->greeting('প্রিয়,');
 
         if ($isApproved) {
@@ -48,6 +44,6 @@ class PublicProfileReviewedNotification extends Notification
             $message->line('সদস্য পোর্টালে গিয়ে আবার সম্পাদনা করে জমা দিতে পারেন।');
         }
 
-        return $message;
+        return InstitutionMail::support($message);
     }
 }

@@ -2,7 +2,7 @@
     {{-- Header --}}
     <x-slot:header>
         <x-mail::header :url="config('app.url')">
-            {{ config('app.name') }}
+            {{ config('mail.from.name') }}
         </x-mail::header>
     </x-slot:header>
 
@@ -18,10 +18,14 @@
         </x-slot:subcopy>
     @endisset
 
-    {{-- Footer --}}
+    {{-- Footer: the plain-text twin of html/message.blade.php — the organisation's public name (mail.from.name), never
+         the internal app name, and the support role as the help address (docs/EMAIL_ARCHITECTURE.md). --}}
     <x-slot:footer>
         <x-mail::footer>
-            © {{ \App\Support\AdminTime::year() }} {{ config('app.name') }}. @lang('All rights reserved.')
+            @php($supportAddress = \App\Support\InstitutionMail::address('support'))
+            This is an automated message from Provatferi's official systems.@if ($supportAddress) For help, contact {{ $supportAddress }}.@endif
+
+            © {{ \App\Support\AdminTime::year() }} {{ config('mail.from.name') }}. @lang('All rights reserved.')
         </x-mail::footer>
     </x-slot:footer>
 </x-mail::layout>

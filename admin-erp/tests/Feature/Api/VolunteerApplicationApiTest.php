@@ -89,7 +89,7 @@ class VolunteerApplicationApiTest extends TestCase
         $this->assertSame(['application_no'], array_keys($response->json('data')));
     }
 
-    public function test_the_applicant_and_the_operations_mailbox_are_notified(): void
+    public function test_the_applicant_and_the_internal_mailbox_are_notified(): void
     {
         $posting = $this->posting();
 
@@ -99,7 +99,11 @@ class VolunteerApplicationApiTest extends TestCase
             VolunteerApplicationReceivedNotification::class,
             fn ($notification, $channels, $notifiable) => $notifiable->routes['mail'] === 'nadia@example.test',
         );
-        Notification::assertSentOnDemand(VolunteerApplicationSubmittedNotification::class);
+        // The staff notice goes to the internal role of config/institution.php, and only there.
+        Notification::assertSentOnDemand(
+            VolunteerApplicationSubmittedNotification::class,
+            fn ($notification, $channels, $notifiable) => $notifiable->routes['mail'] === config('institution.email.internal'),
+        );
     }
 
     public function test_every_required_field_is_enforced(): void

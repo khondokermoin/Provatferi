@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\Setting;
 use App\Http\Controllers\Controller;
+use App\Support\InstitutionMail;
+use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -42,7 +44,13 @@ class SettingsController extends Controller
             'site.short_name' => ['required', 'string', 'max:100'],
             'site.acronym' => ['nullable', 'string', 'max:50'],
             'site.tagline' => ['nullable', 'string', 'max:255'],
-            'site.email' => ['required', 'email', 'max:255'],
+            // site.email is published (website footer, contact page, settings API, receipt letterheads), so a private
+            // mailbox — the internal one, or the SMTP login — can never be saved here (docs/EMAIL_ARCHITECTURE.md).
+            'site.email' => ['required', 'email', 'max:255', function (string $attribute, mixed $value, Closure $fail): void {
+                if (is_string($value) && InstitutionMail::isPrivate($value)) {
+                    $fail(__('admin.mail.private_mailbox_not_public', ['public' => (string) InstitutionMail::address('public')]));
+                }
+            }],
             'site.phone' => ['nullable', 'string', 'max:30'],
             'site.address' => ['nullable', 'string', 'max:1000'],
             'site.facebook_url' => ['nullable', 'url', 'max:255'],
