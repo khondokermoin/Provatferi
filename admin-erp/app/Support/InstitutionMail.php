@@ -66,7 +66,8 @@ final class InstitutionMail
     /** The configured address of a role, or null when it is missing or not exactly one plain address. */
     public static function address(string $role): ?string
     {
-        $value = config("institution.email.{$role}");
+        // Concatenated, not interpolated: deploy/config-contract.php reads a double-quoted key as a literal one.
+        $value = config('institution.email.'.$role);
 
         return is_string($value) && self::isPlainAddress($value) ? $value : null;
     }
@@ -102,7 +103,7 @@ final class InstitutionMail
         $problems = [];
 
         foreach (['public', 'support', 'security', 'noreply', 'internal'] as $role) {
-            $value = config("institution.email.{$role}");
+            $value = config('institution.email.'.$role);
             if (! is_string($value) || trim($value) === '') {
                 $problems[] = "institution.email.{$role} is not set";
             } elseif (! self::isPlainAddress($value)) {
@@ -171,7 +172,7 @@ final class InstitutionMail
 
         $address = self::address($role);
         if ($address !== null && ! self::isPrivate($address)) {
-            $name = self::headerText((string) config("institution.email_names.{$role}", ''));
+            $name = self::headerText((string) config('institution.email_names.'.$role, ''));
             $message->replyTo($address, $name !== '' ? $name : null);
         }
 

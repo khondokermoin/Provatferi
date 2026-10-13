@@ -30,7 +30,7 @@ class MailIdentity extends Command
         $smtp = (array) config('mail.mailers.smtp');
         $roles = [];
         foreach (InstitutionMail::ROLES as $role) {
-            $roles[$role] = config("institution.email.{$role}");
+            $roles[$role] = config('institution.email.'.$role);
         }
         $problems = InstitutionMail::problems();
 
