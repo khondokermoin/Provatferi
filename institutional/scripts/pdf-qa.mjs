@@ -65,7 +65,8 @@ try {
       const text = r.buf.toString("latin1");
       check(`${name}: HTTP 200, application/pdf, attachment, never cached`, r.status === 200 && /^application\/pdf/.test(r.type ?? "") && (r.disposition ?? "").startsWith("attachment") && /no-store/.test(r.cache ?? ""), { status: r.status, type: r.type, disposition: r.disposition });
       check(`${name}: real PDF bytes, ${r.buf.length} bytes (a photo's original is never embedded)`, text.startsWith("%PDF-") && text.slice(-1024).includes("%%EOF") && r.buf.length > 20_000 && r.buf.length < 600_000, r.buf.length);
-      check(`${name}: the photo is the prepared 360 px JPEG`, /\/Subtype \/Image \/Width 360 \/Height 360[^>]*DCTDecode/.test(text));
+      // mPDF writes each dictionary entry on a line of its own: match whitespace, not single spaces.
+      check(`${name}: the photo is the prepared 360 px JPEG`, /\/Subtype\s*\/Image\s*\/Width\s+360\s*\/Height\s+360[^>]*\/DCTDecode/.test(text));
       const names = [...new Set([...text.matchAll(/\/BaseFont \/([A-Za-z0-9+_-]+)/g)].map((m) => m[1]))].sort();
       check(`${name}: every font is embedded and named once (${names.join(", ")})`, names.length >= 3 && names.every((n) => n.startsWith("MPDFAA+")) && !names.some((n) => /Helvetica|ZapfDingbats|Times|Courier/.test(n)), names);
       await writeFile(resolve(out, "pdf", `${name}.pdf`), r.buf);
