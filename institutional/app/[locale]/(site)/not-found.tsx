@@ -1,7 +1,7 @@
 import Link from "@/components/SiteLink";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { org } from "@/lib/content";
+import { getPublicContact } from "@/lib/contact";
 import { getStrings } from "@/lib/i18n";
 import { splitLocaleFromPathname, localizeHref } from "@/lib/i18n/paths";
 
@@ -31,6 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function SiteNotFound() {
   const locale = await currentLocale();
   const t = getStrings(locale);
+  const contact = await getPublicContact(locale);
 
   return (
     <div className="error-page" role="main">
@@ -46,7 +47,7 @@ export default async function SiteNotFound() {
         </Link>
       </div>
       <p className="error-page-footnote">
-        {t.notFound.troubleContact}: <a href={`mailto:${org.email}`}>{org.email}</a>
+        {t.notFound.troubleContact}: <a href={`mailto:${contact.email}`}>{contact.email}</a>
       </p>
     </div>
   );

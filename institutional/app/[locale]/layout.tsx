@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Noto_Sans_Bengali } from "next/font/google";
 import "../globals.css";
 import { org } from "@/lib/content";
+import { getPublicContact } from "@/lib/contact";
+import type { PublicContact } from "@/lib/contact-resolve";
+import { safeJsonLd } from "@/lib/json-ld";
 import { getStrings, isLocale, type Locale } from "@/lib/i18n";
 import { localeAlternates } from "@/lib/social-meta";
 
@@ -62,12 +65,13 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 }
 
 /**
- * Organization + WebSite structured data. Every value here is either the
- * verified org content already used across the site or a documented literal
- * (PLCC as a secondary alias, per the 2026-09-07 SEO decision) — nothing
- * invented. Update this the moment any of these facts change.
+ * Organization + WebSite structured data. The identity facts are the verified org content already used across the site
+ * or a documented literal (PLCC as a secondary alias, per the 2026-09-07 SEO decision) — nothing invented. The CONTACT
+ * values (e-mail, telephone, social profiles) are the admin-managed settings, the same ones the footer and the contact
+ * page show, so search engines never see an address the site itself no longer shows. A phone number or social profile
+ * the admin has removed is left out, not replaced by an old value.
  */
-function structuredData(locale: Locale) {
+function structuredData(locale: Locale, contact: PublicContact) {
   return [
     {
       "@context": "https://schema.org",
@@ -76,15 +80,15 @@ function structuredData(locale: Locale) {
       alternateName: [org.acronym, org.nameBn, org.shortName],
       url: org.website,
       logo: `${org.website}/brand/provatferi-light.png`,
-      email: org.email,
-      telephone: org.phone,
+      email: contact.email,
+      ...(contact.phone ? { telephone: contact.phone } : {}),
       address: {
         "@type": "PostalAddress",
         addressLocality: "Chandina",
         addressRegion: "Cumilla",
         addressCountry: "BD",
       },
-      sameAs: [org.facebook],
+      ...(contact.social.length > 0 ? { sameAs: contact.social.map((link) => link.url) } : {}),
     },
     {
       "@context": "https://schema.org",
@@ -124,16 +128,19 @@ const themeInitScript = `
 export default async function RootLayout({ children, params }: { children: React.ReactNode; params: Promise<{ locale: string }> }) {
   const { locale: rawLocale } = await params;
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "bn";
+  // Shares one cached fetch with the site layout and the pages (lib/contact.ts).
+  const contact = await getPublicContact(locale);
 
   return (
     <html lang={locale} className={`${notoSansBengali.variable} h-full antialiased`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-        {structuredData(locale).map((entry) => (
+        {structuredData(locale, contact).map((entry) => (
           <script
             key={entry["@type"]}
             type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(entry) }}
+            // safeJsonLd: the values include text an admin typed, so `<`, `>` and `&` are written as \uXXXX escapes.
+            dangerouslySetInnerHTML={{ __html: safeJsonLd(entry) }}
           />
         ))}
       </head>

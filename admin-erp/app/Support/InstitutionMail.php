@@ -93,6 +93,36 @@ final class InstitutionMail
     }
 
     /**
+     * Why an address may NOT be published as a public contact (website, contact page, structured data), or null when it
+     * may. A published address must be one a person can write to and that we read as a contact:
+     *   private    the internal mailbox, the SMTP login, or any `admin@` (never public)
+     *   automated  the no-reply sender: nobody reads it
+     *   security   the security mailbox: for security reports, not general contact
+     * Used by the admin Settings screen (a clear validation error) and again when the public API is built, so a bad
+     * value that reached the database by any other route is still never served.
+     */
+    public static function publicContactProblem(?string $address): ?string
+    {
+        $address = strtolower(trim((string) $address));
+        if ($address === '') {
+            return null;
+        }
+
+        $local = (string) strstr($address, '@', true);
+        if (self::isPrivate($address) || $local === 'admin') {
+            return 'private';
+        }
+        if ($address === strtolower((string) self::address('noreply')) || in_array($local, ['no-reply', 'noreply', 'donotreply', 'do-not-reply'], true)) {
+            return 'automated';
+        }
+        if ($address === strtolower((string) self::address('security')) || $local === 'security') {
+            return 'security';
+        }
+
+        return null;
+    }
+
+    /**
      * Every way the configured identity breaks the e-mail architecture; empty when it is sound. Config only, so it
      * runs anywhere the application boots (the release smoke test calls it before a switch).
      *

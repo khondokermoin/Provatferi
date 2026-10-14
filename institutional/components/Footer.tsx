@@ -3,15 +3,18 @@
 import Link from "@/components/SiteLink";
 import { usePathname } from "next/navigation";
 import { footerExploreLinks, footerInvolvedLinks, org } from "@/lib/content";
-import { address as addressEn } from "@/lib/content.en";
 import { getStrings } from "@/lib/i18n";
 import { splitLocaleFromPathname, localizeHref } from "@/lib/i18n/paths";
 import BrandLogo from "./BrandLogo";
+import { usePublicContact } from "./ContactProvider";
+import SocialIcon from "./SocialIcon";
+import SocialLinks from "./SocialLinks";
 
 export default function Footer() {
   const { locale } = splitLocaleFromPathname(usePathname());
   const t = getStrings(locale);
-  const address = locale === "en" ? addressEn : org.address;
+  // Address, phone, e-mail, social links and map location: the admin-managed settings, resolved on the server.
+  const contact = usePublicContact(locale);
 
   return (
     <footer className="site-footer">
@@ -19,7 +22,7 @@ export default function Footer() {
         <div>
           <Link href={localizeHref("/", locale)} aria-label={t.masthead.homeAria}><BrandLogo footer /></Link>
           <p className="footer-description">{t.footer.description}</p>
-          <a href={org.facebook} target="_blank" rel="noreferrer">{t.footer.facebookLink} ↗</a>
+          <SocialLinks links={contact.social} locale={locale} variant="footer" />
         </div>
         <div>
           <h2>{t.footer.exploreHeading}</h2>
@@ -36,9 +39,15 @@ export default function Footer() {
         </div>
         <div>
           <h2>{t.footer.contactHeading}</h2>
-          <p>{address}</p>
-          <a href={`tel:${org.phone}`}>{org.phone}</a>
-          <a href={`mailto:${org.email}`}>{org.email}</a>
+          {contact.address && <p lang={contact.addressLang} style={{ whiteSpace: "pre-line" }}>{contact.address}</p>}
+          {contact.phone && contact.phoneHref && <a href={contact.phoneHref}>{contact.phone}</a>}
+          <a href={`mailto:${contact.email}`}>{contact.email}</a>
+          {contact.map && (
+            <a href={contact.map.url} target="_blank" rel="noopener noreferrer">
+              {t.location.viewOnMap} <SocialIcon platform="external" size={13} inline />
+              <span className="sr-only"> ({t.common.opensInNewTab})</span>
+            </a>
+          )}
         </div>
       </div>
       <div className="site-container footer-bottom">

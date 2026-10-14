@@ -7,6 +7,7 @@ use App\Models\AboutPage;
 use App\Models\ContentBlock;
 use App\Models\Objective;
 use App\Models\Setting;
+use App\Support\PublicSettingsPayload;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -19,37 +20,15 @@ use Illuminate\Http\JsonResponse;
  */
 class SettingsController extends Controller
 {
-    /** GET /api/v1/settings */
+    /**
+     * GET /api/v1/settings: the organisation's public identity, contact, social links and location. Built by
+     * App\Support\PublicSettingsPayload from the PUBLIC rows only; see docs/PUBLIC_CONTACT_SETTINGS.md for the shape.
+     */
     public function index(): JsonResponse
     {
-        $values = Setting::query()->where('is_public', true)->pluck('value', 'key');
-        $get = fn (string $key) => $values[$key] ?? null;
+        $values = Setting::query()->where('is_public', true)->pluck('value', 'key')->all();
 
-        return response()->json(['data' => [
-            'organization' => [
-                'name_bn' => $get('site.name_bn'),
-                'name_en' => $get('site.name_en'),
-                'short_name' => $get('site.short_name'),
-                'acronym' => $get('site.acronym'),
-                'tagline' => $get('site.tagline'),
-            ],
-            'contact' => [
-                'email' => $get('site.email'),
-                'phone' => $get('site.phone'),
-                'address' => $get('site.address'),
-                'facebook_url' => $get('site.facebook_url'),
-            ],
-            'seo' => [
-                'title' => $get('site.seo_title'),
-                'description' => $get('site.seo_description'),
-                'alternate_names' => json_decode((string) $get('site.alternate_names'), true) ?? [],
-                'canonical_url' => $get('site.website_url'),
-            ],
-            'links' => [
-                'website_url' => $get('site.website_url'),
-                'literature_url' => $get('site.literature_url'),
-            ],
-        ]]);
+        return response()->json(['data' => PublicSettingsPayload::build($values)]);
     }
 
     /** GET /api/v1/about */

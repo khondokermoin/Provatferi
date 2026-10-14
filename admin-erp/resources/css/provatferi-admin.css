@@ -569,6 +569,40 @@ input.form-control.form-control:-webkit-autofill:focus {
   padding-top: 0.2rem;
 }
 
+/*
+ * SWITCH-001 (2026-10-14): a real on/off switch. The Settings screen's "Show on website" controls are this panel's first
+ * `.form-switch`. Zircos draws one 2em wide and pulls it left by 2.5em, expecting the wrapper's own 2.5em of padding —
+ * which the flex `.form-check` above zeroes — so here it rendered as a 26x24 oval hanging off the left edge of its card,
+ * and read as a ringed circle, not a toggle. Same flex row as the checkboxes above (gap, 24px height), but the control is
+ * a 44x24 pill: the knob sits left when off and right when on, so the state shows in position and not only in colour. The
+ * checked pill takes the brand fill from the rule above with a white knob (white on the brand orange clears the 3:1
+ * non-text minimum, as the checkbox tick does); the unchecked knob is a warm grey that clears 3:1 on the pill. The knob is
+ * a background image and a data URI cannot read a CSS variable, so the dark theme gets its own light knob; Zircos's focus
+ * knob (a `var()` inside a data URI, which never resolves) is replaced too. The doubled class is specificity, not a typo:
+ * it beats Zircos's `.form-switch .form-check-input:focus` whichever stylesheet loads last. Keyboard focus keeps the
+ * outline from the :focus-visible rule at the top of this file.
+ */
+.form-check.form-switch {
+  padding-left: 0;
+}
+.form-check.form-switch .form-check-input.form-check-input {
+  width: 44px;
+  height: 24px;
+  margin: 0;
+  border-radius: 24px;
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-position: left center;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%237a6f60'/%3e%3c/svg%3e");
+}
+.form-check.form-switch .form-check-input.form-check-input:checked {
+  background-position: right center;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23fff'/%3e%3c/svg%3e");
+}
+[data-bs-theme="dark"] .form-check.form-switch .form-check-input.form-check-input:not(:checked) {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23b9ad9a'/%3e%3c/svg%3e");
+}
+
 /* Select chevron is a hardcoded dark-grey SVG with no theme awareness —
    invisible on a dark card. Dark mode gets a light-stroke equivalent. */
 [data-bs-theme="dark"] .form-select {

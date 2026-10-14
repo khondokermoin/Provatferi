@@ -3,6 +3,7 @@ import { localizedMetadata } from "@/lib/social-meta";
 import { membershipTypes as fallbackMembershipTypes, org } from "@/lib/content";
 import { membershipTypes as fallbackMembershipTypesEn } from "@/lib/content.en";
 import { getCurrentCampaigns, getMembershipTypes } from "@/lib/api/membership";
+import { getPublicContact } from "@/lib/contact";
 import { FEE_LABELS, feeQuote, formatTaka, type FeeQuote } from "@/lib/fees";
 import PageHeader from "@/components/PageHeader";
 import MembershipApplicationForm from "@/components/MembershipApplicationForm";
@@ -43,7 +44,8 @@ export default async function MembershipPage({ params }: { params: Promise<{ loc
   // Both lookups are asked for together, so the cards, the form and the "season is open" message are built from the same
   // moment (and the page waits for one round trip, not two). Each is dropped from the site's cache the instant an admin
   // changes anything it holds and is never used past the `valid_until` Laravel names — see lib/api/membership.ts.
-  const [result, campaignsResult] = await Promise.all([getMembershipTypes(), getCurrentCampaigns()]);
+  // The contact details are the admin-managed settings (the "contact us directly" line below).
+  const [result, campaignsResult, contact] = await Promise.all([getMembershipTypes(), getCurrentCampaigns(), getPublicContact(locale)]);
 
   // Whole-list fallback here, not field-by-field: a membership type list is
   // one coherent set, not independent facts, so a malformed or empty API
@@ -130,14 +132,14 @@ export default async function MembershipPage({ params }: { params: Promise<{ loc
                 {locale === "en" ? (
                   <>
                     There is no membership registration season open right now. If you&apos;re interested in becoming a
-                    member, please contact us directly — <a href={`mailto:${org.email}`}>{org.email}</a> or{" "}
-                    <a href={`tel:${org.phone}`}>{org.phone}</a>.
+                    member, please contact us directly — <a href={`mailto:${contact.email}`}>{contact.email}</a>
+                    {contact.phone && contact.phoneHref && <> or <a href={contact.phoneHref}>{contact.phone}</a></>}.
                   </>
                 ) : (
                   <>
                     বর্তমানে কোনো নিবন্ধন সিজন চলমান নেই। সদস্য হতে আগ্রহী হলে সরাসরি যোগাযোগ করুন —{" "}
-                    <a href={`mailto:${org.email}`}>{org.email}</a> অথবা{" "}
-                    <a href={`tel:${org.phone}`}>{org.phone}</a>।
+                    <a href={`mailto:${contact.email}`}>{contact.email}</a>
+                    {contact.phone && contact.phoneHref && <> অথবা <a href={contact.phoneHref}>{contact.phone}</a></>}।
                   </>
                 )}
               </p>

@@ -59,6 +59,9 @@ class PublicSiteRevalidator
     /** The public member directory: a member's visibility, status or name, or a profile version (2026-10-06). */
     public const MEMBERS_TAG = 'members';
 
+    /** Any public `site.*` setting: contact details, social links, map location (lib/api/settings.ts; 2026-10-14). */
+    public const SETTINGS_TAG = 'site-settings';
+
     /** @var array<string, true> */
     private array $pending = [];
 

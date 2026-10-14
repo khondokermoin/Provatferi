@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { localizedMetadata } from "@/lib/social-meta";
 import Link from "@/components/SiteLink";
 import { org } from "@/lib/content";
+import { getPublicContact } from "@/lib/contact";
 import { getNotices, type NoticeQuery } from "@/lib/api/notices";
 import { toBnDigits } from "@/lib/format";
 import PageHeader from "@/components/PageHeader";
@@ -72,6 +73,7 @@ export default async function NoticesPage({
   const result = await getNotices(query);
 
   if (!result.ok) {
+    const contact = await getPublicContact(locale);
     return (
       <>
         <PageHeader title={TITLES[locale]} description={DESCRIPTIONS[locale]} locale={locale} />
@@ -79,8 +81,8 @@ export default async function NoticesPage({
           <p>{locale === "en" ? "Notices can't be shown right now" : "নোটিশগুলো এই মুহূর্তে দেখানো যাচ্ছে না"}</p>
           <p>
             {locale === "en"
-              ? `Please try again shortly. For an urgent matter, contact: ${org.email}`
-              : `কিছুক্ষণ পর আবার চেষ্টা করুন। জরুরি প্রয়োজনে যোগাযোগ করুন: ${org.email}`}
+              ? `Please try again shortly. For an urgent matter, contact: ${contact.email}`
+              : `কিছুক্ষণ পর আবার চেষ্টা করুন। জরুরি প্রয়োজনে যোগাযোগ করুন: ${contact.email}`}
           </p>
           {isFiltered && (
             <Link href={localizeHref("/notices", locale)} className="button button-outline">

@@ -2,32 +2,29 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Models\Setting;
 use App\Http\Controllers\Controller;
-use App\Support\InstitutionMail;
-use Closure;
+use App\Models\Setting;
+use App\Support\SiteSettings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 /**
- * A fixed, curated list of setting keys — like Permission, this screen does
- * not allow creating arbitrary keys from the form. Grouped to match how the
- * institutional site actually uses them (identity / contact / SEO).
+ * The site settings screen: the organisation's identity, institutional contact, social links, location and search-engine
+ * info. A fixed list of settings (App\Support\SiteSettings), like Permission: the form cannot create or write any other
+ * key. The values it saves are what the public site shows (docs/PUBLIC_CONTACT_SETTINGS.md).
+ *
+ * Authorization: `settings.view` to open it, `settings.update` to save (routes/web.php; EnsurePermission). The update
+ * route also carries `revalidate.public`, so the public site has dropped its cached settings before the admin sees
+ * "saved".
  */
 class SettingsController extends Controller
 {
-    /** @var array<string, array<int, string>> */
-    private const GROUPS = [
-        'identity' => ['site.name_bn', 'site.name_en', 'site.short_name', 'site.acronym', 'site.tagline'],
-        'contact' => ['site.email', 'site.phone', 'site.address', 'site.facebook_url'],
-        'seo' => ['site.seo_title', 'site.seo_description', 'site.alternate_names', 'site.website_url'],
-        'links' => ['site.literature_url'],
-    ];
-
     public function index(): View
     {
-        $settings = Setting::query()->whereIn('key', $this->allKeys())->pluck('value', 'key');
+        $settings = Setting::query()->whereIn('key', SiteSettings::keys())->pluck('value', 'key');
 
         return view('admin.settings.index', [
             'title' => __('admin.nav.site_settings'),
@@ -38,43 +35,42 @@ class SettingsController extends Controller
 
     public function update(Request $request): RedirectResponse
     {
-        $data = $request->validate([
-            'site.name_bn' => ['required', 'string', 'max:255'],
-            'site.name_en' => ['required', 'string', 'max:255'],
-            'site.short_name' => ['required', 'string', 'max:100'],
-            'site.acronym' => ['nullable', 'string', 'max:50'],
-            'site.tagline' => ['nullable', 'string', 'max:255'],
-            // site.email is published (website footer, contact page, settings API, receipt letterheads), so a private
-            // mailbox — the internal one, or the SMTP login — can never be saved here (docs/EMAIL_ARCHITECTURE.md).
-            'site.email' => ['required', 'email', 'max:255', function (string $attribute, mixed $value, Closure $fail): void {
-                if (is_string($value) && InstitutionMail::isPrivate($value)) {
-                    $fail(__('admin.mail.private_mailbox_not_public', ['public' => (string) InstitutionMail::address('public')]));
-                }
-            }],
-            'site.phone' => ['nullable', 'string', 'max:30'],
-            'site.address' => ['nullable', 'string', 'max:1000'],
-            'site.facebook_url' => ['nullable', 'url', 'max:255'],
-            'site.seo_title' => ['nullable', 'string', 'max:255'],
-            'site.seo_description' => ['nullable', 'string', 'max:500'],
-            'site.website_url' => ['nullable', 'url', 'max:255'],
-            'site.literature_url' => ['nullable', 'url', 'max:255'],
-        ], [], [
-            'site.name_bn' => __('admin.fields.name_bangla_label'), 'site.name_en' => __('admin.fields.name_english_label'), 'site.email' => __('admin.common.email'),
-        ]);
+        // Invalid input redirects back with every error and the admin's own input; nothing is half-saved.
+        $validated = SiteSettings::validator($request->all())->validate();
+        $values = SiteSettings::normalize($validated);
+        $userId = $request->user()->id;
 
-        foreach ($data as $key => $value) {
-            // Model save (not a query-builder update) so the saved-model hook
-            // that clears Setting::get()'s cache actually fires.
-            $setting = Setting::query()->where('key', $key)->first();
-            $setting?->update(['value' => $value, 'updated_by' => $request->user()->id]);
+        $changed = DB::transaction(function () use ($values, $userId): array {
+            $existing = Setting::query()->whereIn('key', array_keys($values))->get()->keyBy('key');
+            $changed = [];
+
+            foreach ($values as $key => $value) {
+                $row = $existing->get($key);
+                // Only a real change writes a row, so a save that changes nothing touches nothing and purges nothing.
+                if ($row !== null && (string) ($row->value ?? '') === (string) ($value ?? '')) {
+                    continue;
+                }
+
+                // A key added by this release is created on first save: public, like every `site.*` setting.
+                $row ??= new Setting(['key' => $key, 'value_type' => SiteSettings::valueTypeFor($key), 'group_name' => 'site', 'is_public' => true]);
+                // Model save (not a query-builder update) so the hooks fire: the cache entry of Setting::get()
+                // and the public-site revalidation (SettingObserver).
+                $row->value = $value;
+                $row->updated_by = $userId;
+                $row->save();
+                $changed[] = $key;
+            }
+
+            return $changed;
+        });
+
+        if ($changed === []) {
+            return redirect()->route('admin.settings.index')->with('status', __('admin.contact_settings.nothing_changed'));
         }
 
-        return redirect()->route('admin.settings.index')->with('success', __('admin.flash.settings_updated'));
-    }
+        // Keys only: who changed which settings. The values are public data and are in the table.
+        Log::info('Site settings changed.', ['user_id' => $userId, 'keys' => $changed]);
 
-    /** @return array<int, string> */
-    private function allKeys(): array
-    {
-        return array_merge(...array_values(self::GROUPS));
+        return redirect()->route('admin.settings.index')->with('success', __('admin.flash.settings_updated'));
     }
 }

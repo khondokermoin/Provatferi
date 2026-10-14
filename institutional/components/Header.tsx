@@ -10,11 +10,15 @@ import { splitLocaleFromPathname, localizeHref } from "@/lib/i18n/paths";
 import BrandLogo from "./BrandLogo";
 import ThemeToggle from "./ThemeToggle";
 import LanguageSwitcher from "./LanguageSwitcher";
+import { usePublicContact } from "./ContactProvider";
+import SocialLinks from "./SocialLinks";
 
 export default function Header() {
   const rawPathname = usePathname();
   const { locale, path: barePathname } = splitLocaleFromPathname(rawPathname);
   const t = getStrings(locale);
+  // The social links are admin-managed (switched on/off and edited in the ERP); none switched on means none shown.
+  const contact = usePublicContact(locale);
   const [open, setOpen] = useState(false);
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [lastPathname, setLastPathname] = useState(rawPathname);
@@ -99,7 +103,12 @@ export default function Header() {
       <div className="brand-topline">
         <div className="site-container topline-inner">
           <span>{t.topline.tagline}</span>
-          <a href={org.facebook} target="_blank" rel="noreferrer">{t.topline.followUs} <span aria-hidden="true">↗</span></a>
+          {contact.social.length > 0 && (
+            <div className="topline-social">
+              <span>{t.topline.followUs}</span>
+              <SocialLinks links={contact.social} locale={locale} variant="topline" />
+            </div>
+          )}
         </div>
       </div>
       <div className="site-container masthead">

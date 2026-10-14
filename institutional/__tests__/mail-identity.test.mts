@@ -54,16 +54,16 @@ test("no source file names an institutional address other than the two public on
   assert.deepEqual(hits.map((hit) => hit.split(": ")[0]).filter((file) => !file.endsWith(join("lib", "content.ts"))), []);
 });
 
-test("applicant-facing help points at support@, general contact at info@", () => {
+test("applicant-facing help points at support@, general contact at info@ (both read from the admin-managed contact settings)", () => {
   const success = readFileSync(join(ROOT, "app", "[locale]", "(site)", "recruitment", "[slug]", "apply", "success", "page.tsx"), "utf8");
-  assert.match(success, /mailto:\$\{org\.supportEmail\}/, "the after-applying page names support@ for questions about the application");
-  assert.doesNotMatch(success, /org\.email\b/);
+  assert.match(success, /mailto:\$\{contact\.supportEmail\}/, "the after-applying page names support@ for questions about the application");
+  assert.doesNotMatch(success, /contact\.email\b|\borg\./);
 
   const posting = readFileSync(join(ROOT, "app", "[locale]", "(site)", "recruitment", "[slug]", "page.tsx"), "utf8");
-  assert.match(posting, /mailto:\$\{org\.supportEmail\}\?subject=/, "\"Contact About This Opportunity\" goes to support@");
+  assert.match(posting, /mailto:\$\{contact\.supportEmail\}\?subject=/, "\"Contact About This Opportunity\" goes to support@");
 
   const footer = readFileSync(join(ROOT, "components", "Footer.tsx"), "utf8");
-  assert.match(footer, /mailto:\$\{org\.email\}/, "the footer's contact is info@");
+  assert.match(footer, /mailto:\$\{contact\.email\}/, "the footer's contact is info@");
 });
 
 test("no source reads a mail credential, and nothing is exposed through NEXT_PUBLIC_ or next.config env", () => {

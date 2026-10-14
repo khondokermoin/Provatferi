@@ -310,8 +310,10 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     });
     Route::get('/settings', [SettingsController::class, 'index'])
         ->middleware('permission:settings.view')->name('settings.index');
+    // `revalidate.public`: the public site drops its cached contact/social/location settings BEFORE the admin is told
+    // "saved" (SettingObserver queues the tag; FlushPublicSiteRevalidations sends it).
     Route::put('/settings', [SettingsController::class, 'update'])
-        ->middleware('permission:settings.update')->name('settings.update');
+        ->middleware(['permission:settings.update', 'revalidate.public'])->name('settings.update');
 
     /* Institutional content — About/Mission/Vision are singletons; Objectives is a full CRUD list. */
     Route::get('/content/about', [AboutController::class, 'edit'])

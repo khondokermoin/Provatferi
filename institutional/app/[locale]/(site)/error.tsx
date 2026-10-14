@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "@/components/SiteLink";
 import { usePathname } from "next/navigation";
-import { org } from "@/lib/content";
+import { usePublicContact } from "@/components/ContactProvider";
 import { getStrings } from "@/lib/i18n";
 import { splitLocaleFromPathname, localizeHref } from "@/lib/i18n/paths";
 
@@ -16,6 +16,8 @@ import { splitLocaleFromPathname, localizeHref } from "@/lib/i18n/paths";
 export default function SiteError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   const { locale } = splitLocaleFromPathname(usePathname());
   const t = getStrings(locale);
+  // The contact address the layout fetched from the admin settings; the original value if this somehow renders without it.
+  const contact = usePublicContact(locale);
 
   useEffect(() => {
     // Server-side equivalent (Laravel's own exception log) already captures
@@ -39,7 +41,7 @@ export default function SiteError({ error, reset }: { error: Error & { digest?: 
         </Link>
       </div>
       <p className="error-page-footnote">
-        {t.error.troubleContact}: <a href={`mailto:${org.email}`}>{org.email}</a>
+        {t.error.troubleContact}: <a href={`mailto:${contact.email}`}>{contact.email}</a>
         {error.digest ? ` (${t.globalError.reference}: ${error.digest})` : ""}
       </p>
     </div>

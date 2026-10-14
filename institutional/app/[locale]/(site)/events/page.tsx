@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { org, recentActivities } from "@/lib/content";
 import { recentActivities as recentActivitiesEn } from "@/lib/content.en";
 import PageHeader from "@/components/PageHeader";
+import { getPublicContact } from "@/lib/contact";
 import { isLocale, type Locale } from "@/lib/i18n";
 import { localizeHref } from "@/lib/i18n/paths";
 
@@ -23,6 +24,8 @@ export default async function EventsPage({ params }: { params: Promise<{ locale:
   const { locale: rawLocale } = await params;
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "bn";
   const activities = locale === "en" ? recentActivitiesEn : recentActivities;
+  // The Facebook page is the admin-managed link: shown only while it is switched on (the Settings screen in the ERP).
+  const facebook = (await getPublicContact(locale)).social.find((link) => link.platform === "facebook");
 
   return (
     <>
@@ -37,9 +40,11 @@ export default async function EventsPage({ params }: { params: Promise<{ locale:
               ? "New events will be announced here. If you'd like to propose or collaborate on one, please get in touch."
               : "নতুন ইভেন্ট ঘোষণা করা হলে এখানে প্রকাশ করা হবে। ইভেন্টের প্রস্তাব বা সহযোগিতার আগ্রহ থাকলে যোগাযোগ করুন।"}
           </p>
-          <a href={org.facebook} className="button button-outline" target="_blank" rel="noreferrer">
-            {locale === "en" ? "Follow our Facebook page" : "ফেসবুক পেজ অনুসরণ করুন"} <span aria-hidden="true">↗</span>
-          </a>
+          {facebook && (
+            <a href={facebook.url} className="button button-outline" target="_blank" rel="noopener noreferrer">
+              {locale === "en" ? "Follow our Facebook page" : "ফেসবুক পেজ অনুসরণ করুন"} <span aria-hidden="true">↗</span>
+            </a>
+          )}
           <Link href={localizeHref("/contact", locale)} className="button button-primary">
             {locale === "en" ? "Contact Us" : "যোগাযোগ করুন"} <span aria-hidden="true">↗</span>
           </Link>

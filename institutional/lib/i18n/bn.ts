@@ -47,7 +47,6 @@ export const bn: UiStrings = {
   },
   footer: {
     description: "সাহিত্য, সংস্কৃতি ও মানবিকতার চর্চায় একটি সুন্দর আগামী গড়ার প্রয়াস।",
-    facebookLink: "ফেসবুকে প্রভাতফেরী",
     exploreHeading: "ঘুরে দেখুন",
     exploreLinks: {
       "/about": "আমাদের সম্পর্কে",
@@ -112,6 +111,16 @@ export const bn: UiStrings = {
     expired: "মেয়াদ শেষ হয়েছে",
     archivedNotice: "এটি একটি আর্কাইভ করা নোটিশ — প্রাতিষ্ঠানিক ইতিহাস হিসেবে সংরক্ষিত।",
     translationPending: "এই অংশের ইংরেজি অনুবাদ এখনো যুক্ত হয়নি।",
+  },
+  social: {
+    heading: "সামাজিক মাধ্যম",
+    facebook: "ফেসবুক",
+    linkedin: "লিংকডইন",
+    youtube: "ইউটিউব",
+  },
+  location: {
+    heading: "অবস্থান",
+    viewOnMap: "মানচিত্রে দেখুন",
   },
   notFound: {
     title: "পাতাটি পাওয়া যায়নি",

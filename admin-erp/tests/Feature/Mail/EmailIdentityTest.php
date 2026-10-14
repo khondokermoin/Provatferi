@@ -302,10 +302,11 @@ class EmailIdentityTest extends TestCase
         $admin = User::factory()->create(['email_verified_at' => now(), 'status' => 'active']);
         $admin->roles()->attach(\App\Models\Role::query()->where('slug', 'super_admin')->firstOrFail());
 
+        // Field names as PHP delivers them from a browser (underscores; see App\Support\SiteSettings).
         $this->actingAs($admin)->put(route('admin.settings.update'), [
-            'site.name_bn' => 'X', 'site.name_en' => 'X', 'site.short_name' => 'X',
-            'site.email' => 'Admin@Provatferi.org',
-        ])->assertSessionHasErrors('site.email');
+            'site_name_bn' => 'X', 'site_name_en' => 'X', 'site_short_name' => 'X',
+            'site_email' => 'Admin@Provatferi.org', 'site_support_email' => 'support@provatferi.org',
+        ])->assertSessionHasErrors('site_email');
 
         $this->assertSame(self::PUBLIC, Setting::get('site.email'));
     }

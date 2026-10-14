@@ -37,10 +37,23 @@ export interface SettingsResponse {
   };
   contact: {
     email: string | null;
+    /** 2026-10-14: absent from an ERP that predates the admin-managed contact settings. */
+    support_email?: string | null;
     phone: string | null;
     address: string | null;
+    /** 2026-10-14: the English address. `undefined` = an older ERP; `null` = the admin has not entered one. */
+    address_en?: string | null;
+    /** Legacy alias of the Facebook entry in `social`. */
     facebook_url: string | null;
   };
+  /**
+   * 2026-10-14: the social links that are switched on and valid, in a fixed order. Present (possibly empty) in every
+   * current response, so its presence is how the site knows the ERP is current and therefore authoritative: an empty list
+   * means "the admin switched everything off", not "unknown".
+   */
+  social?: Array<{ platform: string; url: string }>;
+  /** 2026-10-14: the Google Maps location, or null when none is configured. */
+  location?: { map_url: string; label: string | null; label_en: string | null } | null;
   seo: {
     title: string | null;
     description: string | null;

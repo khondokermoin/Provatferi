@@ -41,6 +41,11 @@ plays which e-mail role (public contact, support, security, automated sender,
 internal), and how mail is sent and tested: `docs/EMAIL_ARCHITECTURE.md`;
 `php artisan mail:identity` checks a running install.
 
+The public contact details (e-mail, phone, address in Bangla and English, Facebook / LinkedIn / YouTube links, map
+location) are edited in one place, **Admin → Settings**, and every public page reads them from there — the setting keys,
+the link and map rules, the Bangla / English behaviour, the API and the cache flow are in
+`docs/PUBLIC_CONTACT_SETTINGS.md`.
+
 ## RBAC
 
 Custom tables: `roles`, `permissions`, `role_permissions`, `user_roles`.

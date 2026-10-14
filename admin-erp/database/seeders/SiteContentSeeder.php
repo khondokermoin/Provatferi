@@ -50,6 +50,33 @@ class SiteContentSeeder extends Seeder
             Setting::query()->updateOrCreate(['key' => $key], ['value' => $value, 'value_type' => 'string', 'group_name' => 'site']);
         }
 
+        // Public contact & social additions (2026-10-14; the migration 2026_10_14_090000 adds the same rows to a database
+        // that already exists, and on a fresh one it runs BEFORE this seeder, with the Facebook switch off because no
+        // Facebook address existed yet: so what this seeder owns is set here, like every base key above).
+        $established = [
+            'site.support_email' => [config('institution.email.support'), 'string'],
+            'site.address_en' => ['Lebash, Dollai Nowabpur Post Office, Dollai Nowabpur Union, Chandina Upazila, Cumilla District, Chattogram Division', 'string'],
+            'site.facebook_enabled' => ['true', 'boolean'], // the Facebook address seeded above has always been public
+        ];
+        foreach ($established as $key => [$value, $type]) {
+            Setting::query()->updateOrCreate(['key' => $key], ['value' => $value, 'value_type' => $type, 'group_name' => 'site']);
+        }
+
+        // Nothing established yet for these: empty and switched off. firstOrCreate, so a re-seed never wipes what an
+        // admin has since entered.
+        $notSetYet = [
+            'site.linkedin_url' => [null, 'string'],
+            'site.linkedin_enabled' => ['false', 'boolean'],
+            'site.youtube_url' => [null, 'string'],
+            'site.youtube_enabled' => ['false', 'boolean'],
+            'site.map_url' => [null, 'string'],
+            'site.map_label' => [null, 'string'],
+            'site.map_label_en' => [null, 'string'],
+        ];
+        foreach ($notSetYet as $key => [$value, $type]) {
+            Setting::query()->firstOrCreate(['key' => $key], ['value' => $value, 'value_type' => $type, 'group_name' => 'site']);
+        }
+
         // Alternate names, matching the live Organization structured data exactly.
         Setting::query()->updateOrCreate(
             ['key' => 'site.alternate_names'],

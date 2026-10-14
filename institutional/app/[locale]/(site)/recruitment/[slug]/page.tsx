@@ -2,6 +2,7 @@ import Link from "@/components/SiteLink";
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { org } from "@/lib/content";
+import { getPublicContact } from "@/lib/contact";
 import { applicationWindowLabel, applyCtaLabel, communityCtaLabel, getJobPosting } from "@/lib/api/recruitment";
 import { formatDate } from "@/lib/format";
 import { localizedMetadata } from "@/lib/social-meta";
@@ -48,7 +49,7 @@ export default async function RecruitmentDetailPage({ params }: { params: Promis
   const { locale: rawLocale, slug } = await params;
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "bn";
   const t = getStrings(locale);
-  const result = await getJobPosting(slug);
+  const [result, contact] = await Promise.all([getJobPosting(slug), getPublicContact(locale)]);
   if (!result.ok) notFound();
 
   const job = result.data;
@@ -149,7 +150,7 @@ export default async function RecruitmentDetailPage({ params }: { params: Promis
                   {applyCtaLabel(job.is_volunteer, locale)} <span aria-hidden="true">→</span>
                 </Link>
               ) : (
-                <a href={`mailto:${org.supportEmail}?subject=${encodeURIComponent(title.text)}`} className="button button-primary">
+                <a href={`mailto:${contact.supportEmail}?subject=${encodeURIComponent(title.text)}`} className="button button-primary">
                   {locale === "en" ? "Contact About This Opportunity" : "আবেদন সংক্রান্ত যোগাযোগ"}
                 </a>
               )}

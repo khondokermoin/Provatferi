@@ -48,7 +48,6 @@ export const en: UiStrings = {
   },
   footer: {
     description: "Working toward a better tomorrow through literature, culture, and humanity.",
-    facebookLink: "Provatferi on Facebook",
     exploreHeading: "Explore",
     exploreLinks: {
       "/about": "About Us",
@@ -113,6 +112,16 @@ export const en: UiStrings = {
     expired: "Expired",
     archivedNotice: "This is an archived notice, kept as part of our institutional record.",
     translationPending: "The English translation for this section is not yet available.",
+  },
+  social: {
+    heading: "Social media",
+    facebook: "Facebook",
+    linkedin: "LinkedIn",
+    youtube: "YouTube",
+  },
+  location: {
+    heading: "Location",
+    viewOnMap: "View on Map",
   },
   notFound: {
     title: "Page not found",

@@ -54,7 +54,6 @@ export interface UiStrings {
   };
   footer: {
     description: string;
-    facebookLink: string;
     exploreHeading: string;
     exploreLinks: NavChildStrings;
     involvedHeading: string;
@@ -109,6 +108,18 @@ export interface UiStrings {
     expired: string;
     archivedNotice: string;
     translationPending: string;
+  };
+  /** The organisation's social links (admin-managed; lib/contact-resolve.ts decides which exist). */
+  social: {
+    heading: string;
+    facebook: string;
+    linkedin: string;
+    youtube: string;
+  };
+  /** The admin-managed map location. */
+  location: {
+    heading: string;
+    viewOnMap: string;
   };
   notFound: {
     title: string;

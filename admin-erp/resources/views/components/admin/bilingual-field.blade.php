@@ -53,10 +53,15 @@
     $bnIsActive = ! $enIsActive;
 
     $sharedAttributes = $attributes->except(['id']);
+
+    // Accessible names: each input is named by the group label plus its language tab ("Address", "Bangla"), because the
+    // group label is a <span>, not a <label for>. The help text, when there is one, describes both inputs.
+    $labelId = $uid.'-label';
+    $helpId = $help ? $uid.'-help' : null;
 @endphp
 
 <div class="mb-3 pf-bilingual-field">
-    <span class="form-label d-block mb-1">
+    <span class="form-label d-block mb-1" id="{{ $labelId }}">
         {{ $label }}
         @if ($required)
             <span class="pf-required" aria-hidden="true">*</span>
@@ -108,6 +113,8 @@
             @if ($as === 'textarea')
                 <textarea id="{{ $uid }}-bn"
                           name="{{ $bnName }}"
+                          aria-labelledby="{{ $labelId }} {{ $bnTabId }}"
+                          @if ($helpId) aria-describedby="{{ $helpId }}" @endif
                           rows="{{ $rows }}"
                           @if ($required) required @endif
                           @if ($bnHasError) aria-invalid="true" @endif
@@ -116,6 +123,8 @@
                 <input type="{{ $type }}"
                        id="{{ $uid }}-bn"
                        name="{{ $bnName }}"
+                       aria-labelledby="{{ $labelId }} {{ $bnTabId }}"
+                       @if ($helpId) aria-describedby="{{ $helpId }}" @endif
                        value="{{ old($bnName, $bnValue) }}"
                        @if ($required) required @endif
                        @if ($bnHasError) aria-invalid="true" @endif
@@ -130,6 +139,8 @@
             @if ($as === 'textarea')
                 <textarea id="{{ $uid }}-en"
                           name="{{ $enName }}"
+                          aria-labelledby="{{ $labelId }} {{ $enTabId }}"
+                          @if ($helpId) aria-describedby="{{ $helpId }}" @endif
                           rows="{{ $rows }}"
                           @if ($enHasError) aria-invalid="true" @endif
                           {{ $sharedAttributes->merge(['class' => 'form-control'.($enHasError ? ' is-invalid' : '')]) }}>{{ old($enName, $enValue) }}</textarea>
@@ -137,6 +148,8 @@
                 <input type="{{ $type }}"
                        id="{{ $uid }}-en"
                        name="{{ $enName }}"
+                       aria-labelledby="{{ $labelId }} {{ $enTabId }}"
+                       @if ($helpId) aria-describedby="{{ $helpId }}" @endif
                        value="{{ old($enName, $enValue) }}"
                        @if ($enHasError) aria-invalid="true" @endif
                        {{ $sharedAttributes->merge(['class' => 'form-control'.($enHasError ? ' is-invalid' : '')]) }}>
@@ -153,6 +166,6 @@
     </div>
 
     @if ($help)
-        <div class="form-text">{{ $help }}</div>
+        <div class="form-text" id="{{ $helpId }}">{{ $help }}</div>
     @endif
 </div>

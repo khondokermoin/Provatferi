@@ -2,7 +2,7 @@ import Link from "@/components/SiteLink";
 import ScrollToTop from "@/components/ScrollToTop";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { org } from "@/lib/content";
+import { getPublicContact } from "@/lib/contact";
 import { getJobPosting } from "@/lib/api/recruitment";
 import { isLocale, type Locale } from "@/lib/i18n";
 import { localizeHref } from "@/lib/i18n/paths";
@@ -32,7 +32,7 @@ export default async function VolunteerApplySuccessPage({ params }: { params: Pr
   const { locale: rawLocale, slug } = await params;
   const locale: Locale = isLocale(rawLocale) ? rawLocale : "bn";
   const en = locale === "en";
-  const result = await getJobPosting(slug);
+  const [result, contact] = await Promise.all([getJobPosting(slug), getPublicContact(locale)]);
   if (!result.ok) notFound();
 
   const job = result.data;
@@ -87,9 +87,9 @@ export default async function VolunteerApplySuccessPage({ params }: { params: Pr
       {/* An applicant's question about their own application is support's (the receipt mail's Reply-To). */}
       <p className="apply-success-footnote">
         {en ? (
-          <>Questions? Write to us at <a href={`mailto:${org.supportEmail}`}>{org.supportEmail}</a>.</>
+          <>Questions? Write to us at <a href={`mailto:${contact.supportEmail}`}>{contact.supportEmail}</a>.</>
         ) : (
-          <>প্রশ্ন থাকলে <a href={`mailto:${org.supportEmail}`}>{org.supportEmail}</a> — এ লিখতে পারেন।</>
+          <>প্রশ্ন থাকলে <a href={`mailto:${contact.supportEmail}`}>{contact.supportEmail}</a> — এ লিখতে পারেন।</>
         )}
       </p>
     </article>

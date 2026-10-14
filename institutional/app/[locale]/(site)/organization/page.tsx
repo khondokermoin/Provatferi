@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { localizedMetadata } from "@/lib/social-meta";
 import { governancePositions, org } from "@/lib/content";
-import { governancePositions as governancePositionsEn, address as addressEn } from "@/lib/content.en";
+import { governancePositions as governancePositionsEn } from "@/lib/content.en";
 import { getOrganizationUnits } from "@/lib/api/organization";
+import { getPublicContact } from "@/lib/contact";
+import { getStrings } from "@/lib/i18n";
 import PageHeader from "@/components/PageHeader";
 import { isLocale, type Locale } from "@/lib/i18n";
 import { pickText } from "@/lib/i18n/pick";
@@ -42,14 +44,17 @@ export default async function OrganizationPage({ params }: { params: Promise<{ l
    * roster endpoint (only the Sanctum-gated /admin/organization-units CRUD
    * exists server-side), so inventing one here would mean fabricating names
    * for a real, currently-unfilled committee. Only the office address below
-   * is API-driven, from the one real "central" unit that exists today —
-   * organizational_units.name_en exists but has no address_en counterpart,
-   * so the address itself falls back to the same approved English
-   * transliteration used everywhere else on the English site.
+   * is API-driven. A Bangla page shows the central unit's own address when it has one. A unit has no English address
+   * column, so an English page (and a unit without an address) uses the institution's contact address from the admin
+   * Settings screen (lib/contact.ts), which has the Bangla and English forms and the translation-note policy.
    */
-  const units = await getOrganizationUnits();
+  const [units, contact] = await Promise.all([getOrganizationUnits(), getPublicContact(locale)]);
   const centralUnit = units.ok ? units.data.find((u) => u.unit_type === "central") : null;
-  const address = centralUnit?.address ? (locale === "en" ? addressEn : centralUnit.address) : (locale === "en" ? addressEn : org.address);
+  const unitAddress = locale === "bn" ? (centralUnit?.address ?? null) : null;
+  const address = unitAddress ?? contact.address;
+  const addressLang = unitAddress ? "bn" : contact.addressLang;
+  const addressIsFallback = unitAddress ? false : contact.addressIsFallback;
+  const t = getStrings(locale);
   const unitName = centralUnit ? pickText(locale, centralUnit.name, centralUnit.name_en) : null;
 
   return (
@@ -144,7 +149,8 @@ export default async function OrganizationPage({ params }: { params: Promise<{ l
         <div className="info-card" style={{ maxWidth: 560 }}>
           <span className="info-card-tag">{locale === "en" ? "Address" : "ঠিকানা"}</span>
           {unitName && <p style={{ fontWeight: 600, marginBottom: 4 }}>{unitName.text}</p>}
-          <p>{address}</p>
+          {address && <p lang={addressLang} style={{ whiteSpace: "pre-line" }}>{address}</p>}
+          {addressIsFallback && <p className="translation-note">{t.common.translationPending}</p>}
         </div>
       </section>
     </>
