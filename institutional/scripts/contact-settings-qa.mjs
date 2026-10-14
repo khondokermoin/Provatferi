@@ -227,6 +227,11 @@ check("0", "the settings screen renders every expected field", ["site_email", "s
     return { unlabeled, dotted, switches: document.querySelectorAll('input[type=checkbox][role="switch"]').length, hasGuard: document.querySelector("form[data-form-guard]") !== null };
   });
   check("UX", "every control has an accessible name (a label or aria-labelledby), the switches are role=switch, no field name contains a dot", info.unlabeled.length === 0 && info.dotted.length === 0 && info.switches === 3, JSON.stringify(info));
+  // A label or help text must read as language, never as the text of an HTML entity ("Website&#039;s main address"):
+  // that is what a double-escaped English string with an apostrophe looks like on screen (found on production 2026-10-14).
+  const shownText = await adminPage.evaluate(() => document.body.innerText);
+  const entities = shownText.match(/&(#\d+|#x[0-9a-f]+|amp|quot|lt|gt|apos);/gi) ?? [];
+  check("UX", "no HTML entity is shown as text on the settings screen (every label is escaped exactly once)", entities.length === 0, JSON.stringify([...new Set(entities)]));
   await shot(adminPage, "admin-settings-desktop-before");
   const mobile = await browser.newPage();
   await mobile.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });

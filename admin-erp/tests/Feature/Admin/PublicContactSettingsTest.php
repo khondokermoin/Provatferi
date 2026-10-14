@@ -406,6 +406,25 @@ class PublicContactSettingsTest extends AdminTestCase
         }
     }
 
+    /**
+     * Found on production 2026-10-14 (English admin): "Website&#039;s main address (URL)". Blade escaped an interpolated
+     * component attribute (label="{{ __(…) }}") and the component escaped it again, so an apostrophe or an ampersand in
+     * an English label reached the page as the text of an entity. The screen binds its attributes (:label="__(…)"):
+     * every English string below has to come out escaped exactly once, in the HTML and so on the screen.
+     */
+    public function test_english_labels_with_an_apostrophe_are_escaped_once_not_twice(): void
+    {
+        $admin = $this->superAdmin();
+        $admin->forceFill(['ui_locale' => 'en'])->save();
+
+        $html = $this->actingAs($admin)->get(route('admin.settings.index'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('Website&#039;s main address (URL)', $html);
+        $this->assertStringContainsString('The organization&#039;s identity.', $html);
+        $this->assertStringContainsString('Provatferi&#039;s affiliate site.', $html);
+        $this->assertDoesNotMatchRegularExpression('/&amp;(#\d+|[a-z]+);/i', $html, 'an entity was escaped a second time, so it would be shown as text');
+    }
+
     public function test_validation_messages_follow_the_admins_language(): void
     {
         foreach (['bn' => 'অবশ্যই https://', 'en' => 'must start with https://'] as $locale => $phrase) {

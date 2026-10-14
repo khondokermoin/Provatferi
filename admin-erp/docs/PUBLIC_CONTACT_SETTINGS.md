@@ -124,7 +124,13 @@ into arrow functions: `Cache::forget()` returns `false` when a key was not cache
   again (`lib/public-links.ts`) — a second copy of the rules, deliberately, so a bad row can never become a public link.
 * Admin screen: inline validation under each field, success / failure alerts, no double submission, an unsaved-changes
   warning (`public/js/provatferi-form-guard.js`), labelled controls (the shared bilingual field is wired with
-  `aria-labelledby`), mobile layout, light and dark themes.
+  `aria-labelledby`), mobile layout, light and dark themes, a real on/off switch for the three social links
+  (`SWITCH-001` in `resources/css/provatferi-admin.css`).
+* Blade trap on this screen: text passed to an `<x-admin.*>` tag is **bound** (`:label="__('…')"`), never interpolated
+  (`label="{{ __('…') }}"`). Blade escapes an interpolated attribute and the component escapes it again, so an English
+  string with an apostrophe showed as `Website&#039;s main address` (seen on production in the English admin, 2026-10-14;
+  `test_english_labels_with_an_apostrophe_are_escaped_once_not_twice`). About fifty other admin views still use the
+  interpolated form and have the same flaw wherever an English string contains `'` or `&`.
 
 ## Deployment and verification
 
