@@ -35,8 +35,23 @@ No other address is used. A new mailbox is an owner decision, not a code change.
 
 Do not assume the SMTP login may send as another address: test it. On
 2026-10-14 Hostinger accepted `MAIL FROM` for every institutional address from
-the production login. Whole-message delivery and authentication (SPF, DKIM,
-DMARC) are tested by the procedure under "Production testing" below.
+the production login, and every message class was delivered. At an outside
+receiver, mail From `no-reply@` passed SPF and DMARC with strict alignment.
+Hostinger's own inbound reported `dkim=pass`, `spf=pass` and `dmarc=pass`.
+(See "Production testing" below.)
+
+Two facts about the provider that the application cannot change:
+
+- **Trace headers name the SMTP login.** Hostinger stamps it on every
+  outgoing message: the `Received: … (Authenticated sender: …)` line,
+  `X-AuthUser` and `X-MailChannels-SenderId`. Anyone who opens a message's
+  raw headers sees it. The only way to keep a private mailbox out of them is
+  to log in as the sending address itself (`noreply`). That is an owner
+  decision, because it changes which mailbox password the server holds.
+- **A role address may be an alias.** Hostinger delivers mail for an alias
+  into another mailbox, and `support@`, `security@` and `no-reply@` were
+  aliases on 2026-10-14. The application only ever addresses the role. Where
+  that mail is read is mailbox provisioning, also an owner decision.
 
 ## Message classes
 
@@ -53,9 +68,9 @@ not the notification, decides the identity headers.
 choice).** Every automated message keeps one sender identity: one DKIM and
 DMARC alignment and one sender reputation, and people learn that automated
 mail only ever comes from `no-reply@`. Bounces and auto-replies go to the
-envelope sender (`no-reply@`), so they never flood the mailbox where real
-incident reports arrive. The security role is carried by the Reply-To and by
-the message text, which names `security@` as the contact.
+envelope sender (`no-reply@`), so they are never addressed to `security@`,
+where real incident reports arrive. The security role is carried by the
+Reply-To and by the message text, which names `security@` as the contact.
 
 **Internal notices have no Reply-To.** Nothing in them needs an answer: the work
 happens in the ERP. Leaving the header out also means the class can never offer
@@ -183,11 +198,32 @@ and the envelope domain are all `provatferi.org`. Open points for the owner:
 the DMARC report addresses are not among the five mailboxes, and `p=none` only
 monitors.
 
+Deliverability observations from the 2026-10-14 production run. They are
+reported only; nothing was changed for them.
+
+- Outbound mail leaves Hostinger through MailChannels. MailChannels sent some
+  messages through its "Bad" pool (`X-MC-Relay: Bad`) and some through
+  "Neutral". All were delivered.
+- At the disposable outside receiver, the stored copies' DKIM body hash did
+  not verify. The same signatures verified at Hostinger's own inbound, so the
+  body was altered after signing somewhere on the outside path. DMARC still
+  passed there through aligned SPF. Check DKIM at a mainstream mailbox (a
+  message's "Show original") before tightening DMARC.
+- WordPress mail fails DMARC (see below).
+
 ## WordPress installs (cms., archive.)
 
 They do not use this configuration. WordPress sends with PHP `mail()` as
 `wordpress@cms.provatferi.org` / `wordpress@archive.provatferi.org`. Neither is
-one of the five identities, and there is no SMTP login. Bringing them in line
+one of the five identities, and there is no SMTP login. Verified on
+2026-10-14:
+
+- the envelope sender is the shared server's own address;
+- the message is not DKIM-signed;
+- DMARC fails, and the message is delivered only because the policy is
+  `p=none`.
+
+A stricter DMARC policy would quarantine or reject WordPress mail. Bringing them in line
 means an SMTP plugin, configured by the owner in wp-admin, logging in to
 Hostinger and sending From `no-reply@` with Reply-To `support@`. It is not done
 from this repository, because it puts a mailbox credential inside WordPress.
@@ -215,9 +251,11 @@ cron jobs. It never prints a password, a token, a link or a body.
    login's credentials. It answers each test copy the way a mail client does
    (to its Reply-To, else its From) and asks the server for delivery status
    notifications. It replies only to the organisation's own role addresses.
-7. `verify <tag>` a few minutes later. Each reply must have a `delivered` report
-   for the expected role (`support@`, `security@`), and no reply may have come
-   back to the internal mailbox.
+7. `verify <tag>` a few minutes later. Each reply must have a successful
+   delivery report (`delivered`, or `expanded` for an alias) whose
+   Final-Recipient is the expected role (`support@`, `security@`). A reply
+   that appears in the internal mailbox is expected only when that role is an
+   alias delivered there. That was the case on 2026-10-14.
 8. `subjects-cleanup`, then `cleanup <tag>`, which deletes exactly this tag's
    messages from the internal mailbox. Remove the kit and the cron jobs, and
    delete the disposable inbox. The test replies stay in `support@` and

@@ -16,8 +16,9 @@
  *       for delivery status notifications (DSN). It only ever writes to the institution's own role addresses.
  *   verify <tag>
  *       Read-only. Lists, per folder of the internal mailbox, this tag's messages: the test copies, the delivery
- *       reports for the replies (what happened to each reply, and where), and any reply that came back to the internal
- *       mailbox itself (there must be none).
+ *       reports for the replies (what happened to each reply, and where), and any reply that was delivered into the
+ *       internal mailbox itself, which happens only when its role address is an alias of that mailbox (on 2026-10-14
+ *       support@, security@ and no-reply@ were).
  *   subjects-create <tag> <staff-address> <member-address>
  *       A role-less, unverified, inactive ERP account and a bare inactive member record on two disposable addresses, so
  *       that the REAL password-reset flows can be triggered over HTTPS. Nothing else is created.
@@ -530,7 +531,7 @@ switch ($mode) {
                     }
                     $item['kind'] = 'delivery report';
                 } elseif (str_starts_with((string) $item['subject'], 'Re:')) {
-                    $item['kind'] = 'REPLY RETURNED TO THIS MAILBOX';
+                    $item['kind'] = 'reply delivered into this mailbox (its role address is an alias of it)';
                 } else {
                     $item['kind'] = 'test copy';
                     $item['reply_to'] = $h['reply-to'] ?? null;
