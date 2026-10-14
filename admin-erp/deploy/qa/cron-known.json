@@ -12,6 +12,7 @@
     "4TLmOktkSo": "Every minute: a read-only php -r that prints scandir() of domains/provatferi.org and of laravel-admin-releases (a leftover probe).",
     "4EucqENwqk": "Ran repeatedly on 2026-10-05 (lock file created 11:09 UTC, log last written 12:49:02 UTC), has not fired since: a stopped probe whose log was left behind. A stale log, not a live job.",
     "qFGqvw6Wwy": "Last ran 2026-09-21 09:11 UTC (a release-manager stage report for release 248e8ef60bb9-2026-09-2109053), before the flock wrapper existed (no lock file). Has not fired since; whether a yearly one-shot line remains cannot be told from the account.",
-    "Tgf0Y6VWdW": "Last ran 2026-09-08 11:53 UTC (a php artisan migrate:status listing), before the flock wrapper existed (no lock file). Has not fired since; whether a yearly one-shot line remains cannot be told from the account."
+    "Tgf0Y6VWdW": "Last ran 2026-09-08 11:53 UTC (a php artisan migrate:status listing), before the flock wrapper existed (no lock file). Has not fired since; whether a yearly one-shot line remains cannot be told from the account.",
+    "nbJ52ZLdrs": "Last ran 2026-10-13 18:09 UTC: a one-shot read-only WordPress mail-identity probe of public_html/cms (blogname, admin_email, wp_mail filters, plugins) from the e-mail role work. Its list entry is gone but its log was left behind, frozen since; seen frozen across two listings on 2026-10-14. A stale log, not a live job."
   }
 }
