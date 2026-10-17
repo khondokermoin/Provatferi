@@ -105,7 +105,12 @@ Rides on the project's two-tier upload architecture (`PhotoUploadService`), so i
    other public upload lives. `deploy/qa/leadership-qa.php where` proves a photo's real path and that it is **outside**
    the release tree.
 4. **Replacing or removing** a photo deletes the old files, after the new row has committed (a failure never leaves a
-   profile without its photo).
+   profile without its photo). Every upload gets a fresh random file name, so a page can never show a stale picture.
+5. **The CDN remembers the old address.** Photos are served through Cloudflare with `Cache-Control: public,
+   max-age=604800`: the address of a photo that was just replaced or removed can keep answering from the edge cache for up to
+   a week although its files are gone from the server (seen on production 2026-10-17: the address answered `200`,
+   `cf-cache-status: HIT`; the same address with a query string answered `404`, `BYPASS`). Only someone who already holds the
+   old address sees it. If an old photo must disappear at once, purge the cache (hPanel → Cache, or Cloudflare).
 
 On the site the `<img>` carries the width and height (no layout shift), a `srcset` (card size, page size for dense
 screens), and `alt` = the person's name from the data ("Photo of …" / "…-এর ছবি"). A profile without a photo shows its
@@ -170,9 +175,11 @@ site can redirect).
    (`lib/revalidate-request.ts`); a tag outside the list is refused.
 4. The HTML is not cached by the CDN. Caching is not disabled anywhere.
 
-Measured on a production build against a real local ERP (`scripts/leadership-qa.mjs`): activate, edit Bangla, edit
-English, photo change, feature, deactivate, address change, archive — **every change visible on a plain GET of the public
-page within 20–150 ms of the save response; a reorder in under 800 ms**.
+Measured on **production**, real Chrome, 2026-10-17 (`scripts/leadership-qa.mjs`, 35 measurements): the admin's save
+response takes 1.0–3.2 s (3.2 s for a 4.7 MB photograph); the changed page is then visible to a plain GET **0.15–1.65 s
+after the response** — activate 0.2–0.6 s, edit Bangla or English 0.2–0.5 s, photo 0.5–1.3 s, feature 0.5–0.8 s, deactivate
+0.3–0.9 s, address change 0.2 s, archive 0.3–0.5 s, reorder ≤ 1.7 s, sitemap 0.6 s. On a local production build the same
+changes are visible within 20–150 ms (reorder < 800 ms).
 
 ## Addresses (slugs)
 
@@ -250,3 +257,4 @@ to an `<x-admin.*>` tag is **bound** (`:label="__('…')"`), never interpolated.
 * The homepage section is fixed at four profiles; the Leadership page has no pagination (it is not meant for hundreds).
 * Only `https://` links; a profile on a site without HTTPS cannot be linked.
 * Users cannot be deleted from the admin screens (existing behaviour); the QA kit removes its own.
+* A replaced or removed photo's old address can still answer from the CDN for up to a week (see *Photo*, item 5).

@@ -399,8 +399,15 @@ function jpegInfo(buf) {
   return info;
 }
 
-async function fetchImage(url) {
-  const res = await fetch(url, { headers: { "user-agent": UA }, signal: AbortSignal.timeout(30000) });
+/**
+ * `fresh` asks the ORIGIN, not the CDN: production's photos are served through Cloudflare with `Cache-Control: public,
+ * max-age=604800`, so the address of a photo that was just replaced or removed keeps answering 200 from the edge (cf-cache-status:
+ * HIT) although the file is gone from the server (seen 2026-10-17: the same address answered 200 HIT, and 404 BYPASS with a query
+ * string). A unique query string is a different cache key, so it reaches the origin: that is what proves the file is deleted.
+ */
+async function fetchImage(url, { fresh = false } = {}) {
+  const target = fresh ? `${url}${url.includes("?") ? "&" : "?"}cb=${Date.now()}${Math.floor(Math.random() * 1e6)}` : url;
+  const res = await fetch(target, { headers: { "user-agent": UA }, signal: AbortSignal.timeout(30000) });
   const bytes = Buffer.from(await res.arrayBuffer());
   return { status: res.status, type: res.headers.get("content-type") ?? "", bytes, info: res.status === 200 ? jpegInfo(bytes) : null };
 }
@@ -553,7 +560,7 @@ try {
       const m = await measure(`D photo ${file}`, r, profileUrl(slugA), (h, s) => s === 200 && !h.includes(previous.url.split("/").pop()) && h.includes("/storage/leadership/"));
       const now = (await api(apiProfile(slugA))).json?.data?.photo;
       const img = now ? await fetchImage(now.url) : null;
-      const oldGone = fileGone((await fetchImage(previous.url)).status);
+      const oldGone = fileGone((await fetchImage(previous.url, { fresh: true })).status);
       check("D", `${label}: ${expect.text}`, m.ok && now && now.url !== previous.url && img?.status === 200 && expect.ok(now, img), JSON.stringify({ now, info: img?.info, gps: img?.bytes.includes(Buffer.from("GPS-POSITION-MARKER")) }));
       check("D", `${label}: the previous copy no longer exists on the server (a replaced photo does not pile up)`, oldGone, previous.url);
       previous = now ?? previous;
@@ -572,7 +579,7 @@ try {
     const m = await measure("D photo removed", removed, profileUrl(slugA), (h) => !h.includes("/storage/leadership/") && h.includes("leader-initials"));
     const afterApi = (await api(apiProfile(slugA))).json?.data;
     check("D", "without a photo the API says null and the page shows the initials box, never a broken image", m.ok && afterApi?.photo === null, JSON.stringify(afterApi?.photo));
-    check("D", "the removed photo's files are deleted from the server", fileGone((await fetchImage(previous.url)).status) && fileGone((await fetchImage(previous.url.replace(/\.jpg$/, "-sm.jpg"))).status), previous.url);
+    check("D", "the removed photo's files are deleted from the server", fileGone((await fetchImage(previous.url, { fresh: true })).status) && fileGone((await fetchImage(previous.url.replace(/\.jpg$/, "-sm.jpg"), { fresh: true })).status), previous.url);
 
     // Back to a good portrait for everything that follows (and the screenshots).
     await openEdit(ids.A);
