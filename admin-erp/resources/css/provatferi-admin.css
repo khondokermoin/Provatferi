@@ -824,6 +824,19 @@ input:-webkit-autofill:focus {
   font-size: 20px;
   font-weight: 700;
 }
+/*
+ * The theme fixes the page head at 60px. On a phone the action buttons (New ..., Preview ...) wrap below the title when
+ * the title and breadcrumb are long, and they then spilled over the first lines of the page (seen on Recruitment and on
+ * Leadership). With actions present the head grows to what it holds; its bottom padding is dropped because the head's own
+ * margin follows. Pages without actions keep the theme's head exactly as it was.
+ */
+@media (max-width: 767.98px) {
+  .page-title-head.pf-has-actions {
+    height: auto;
+    min-height: 60px;
+    padding-bottom: 0;
+  }
+}
 .card-title {
   font-size: 16px;
 }

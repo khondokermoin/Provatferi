@@ -210,10 +210,12 @@ export const navLinks: NavItem[] = [
     id: "about",
     href: "/about",
     label: "আমাদের সম্পর্কে",
-    match: ["/about", "/organization", "/committee"],
+    match: ["/about", "/organization", "/committee", "/leadership"],
     children: [
       { href: "/about", label: "প্রভাতফেরী সম্পর্কে" },
       { href: "/about#story", label: "আমাদের গল্প" },
+      // Leadership / Key Persons (2026-10-15): the permanent core people. The Committee entries below are term-bound.
+      { href: "/leadership", label: "নেতৃত্ব ও মূল ব্যক্তিবর্গ" },
       { href: "/organization#committee", label: "বর্তমান অন্তর্বর্তীকালীন কমিটি" },
       { href: "/committee", label: "কমিটির ইতিহাস" },
       { href: "/organization#structure", label: "সাংগঠনিক কাঠামো" },
@@ -258,6 +260,7 @@ export const navLinks: NavItem[] = [
 /** Footer V2 — Explore / Get Involved columns, sourced from the same real destinations as the header nav. */
 export const footerExploreLinks = [
   { href: "/about", label: "আমাদের সম্পর্কে" },
+  { href: "/leadership", label: "নেতৃত্ব" },
   { href: "/activities", label: "কার্যক্রম" },
   { href: "/committee", label: "কমিটির ইতিহাস" },
   { href: "/members", label: "সদস্য পরিচিতি" },

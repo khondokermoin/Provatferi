@@ -8,6 +8,11 @@
     'rows' => 4,
     'required' => false,
     'help' => null,
+    // By default the Bangla input is named `$name` and the English one `$name_en` (the convention of every older table).
+    // A table that names both sides explicitly (`name_bn` / `name_en`, Leadership profiles) passes them here; `$name`
+    // is then only the prefix of the element ids.
+    'bnName' => null,
+    'enName' => null,
 ])
 
 {{--
@@ -32,8 +37,8 @@
 --}}
 
 @php
-    $bnName = $name;
-    $enName = $name.'_en';
+    $bnField = $bnName ?: $name;
+    $enField = $enName ?: $name.'_en';
     $uid = $attributes->get('id') ?: 'bf-'.str_replace(['[', ']'], ['-', ''], $name);
 
     $bnTabId = $uid.'-bn-tab';
@@ -41,10 +46,10 @@
     $bnPaneId = $uid.'-bn-pane';
     $enPaneId = $uid.'-en-pane';
 
-    $bnHasError = $errors->has($bnName);
-    $enHasError = $errors->has($enName);
+    $bnHasError = $errors->has($bnField);
+    $enHasError = $errors->has($enField);
 
-    $resolvedEnValue = old($enName, $enValue);
+    $resolvedEnValue = old($enField, $enValue);
     $enIsMissing = trim((string) $resolvedEnValue) === '';
 
     // Bangla is the default tab, EXCEPT when only the English side failed
@@ -112,25 +117,25 @@
              id="{{ $bnPaneId }}" role="tabpanel" aria-labelledby="{{ $bnTabId }}">
             @if ($as === 'textarea')
                 <textarea id="{{ $uid }}-bn"
-                          name="{{ $bnName }}"
+                          name="{{ $bnField }}"
                           aria-labelledby="{{ $labelId }} {{ $bnTabId }}"
                           @if ($helpId) aria-describedby="{{ $helpId }}" @endif
                           rows="{{ $rows }}"
                           @if ($required) required @endif
                           @if ($bnHasError) aria-invalid="true" @endif
-                          {{ $sharedAttributes->merge(['class' => 'form-control'.($bnHasError ? ' is-invalid' : '')]) }}>{{ old($bnName, $bnValue) }}</textarea>
+                          {{ $sharedAttributes->merge(['class' => 'form-control'.($bnHasError ? ' is-invalid' : '')]) }}>{{ old($bnField, $bnValue) }}</textarea>
             @else
                 <input type="{{ $type }}"
                        id="{{ $uid }}-bn"
-                       name="{{ $bnName }}"
+                       name="{{ $bnField }}"
                        aria-labelledby="{{ $labelId }} {{ $bnTabId }}"
                        @if ($helpId) aria-describedby="{{ $helpId }}" @endif
-                       value="{{ old($bnName, $bnValue) }}"
+                       value="{{ old($bnField, $bnValue) }}"
                        @if ($required) required @endif
                        @if ($bnHasError) aria-invalid="true" @endif
                        {{ $sharedAttributes->merge(['class' => 'form-control'.($bnHasError ? ' is-invalid' : '')]) }}>
             @endif
-            @error($bnName)
+            @error($bnField)
                 <div class="invalid-feedback d-block"><i class="ti ti-alert-circle" aria-hidden="true"></i> {{ $message }}</div>
             @enderror
         </div>
@@ -138,23 +143,23 @@
              id="{{ $enPaneId }}" role="tabpanel" aria-labelledby="{{ $enTabId }}">
             @if ($as === 'textarea')
                 <textarea id="{{ $uid }}-en"
-                          name="{{ $enName }}"
+                          name="{{ $enField }}"
                           aria-labelledby="{{ $labelId }} {{ $enTabId }}"
                           @if ($helpId) aria-describedby="{{ $helpId }}" @endif
                           rows="{{ $rows }}"
                           @if ($enHasError) aria-invalid="true" @endif
-                          {{ $sharedAttributes->merge(['class' => 'form-control'.($enHasError ? ' is-invalid' : '')]) }}>{{ old($enName, $enValue) }}</textarea>
+                          {{ $sharedAttributes->merge(['class' => 'form-control'.($enHasError ? ' is-invalid' : '')]) }}>{{ old($enField, $enValue) }}</textarea>
             @else
                 <input type="{{ $type }}"
                        id="{{ $uid }}-en"
-                       name="{{ $enName }}"
+                       name="{{ $enField }}"
                        aria-labelledby="{{ $labelId }} {{ $enTabId }}"
                        @if ($helpId) aria-describedby="{{ $helpId }}" @endif
-                       value="{{ old($enName, $enValue) }}"
+                       value="{{ old($enField, $enValue) }}"
                        @if ($enHasError) aria-invalid="true" @endif
                        {{ $sharedAttributes->merge(['class' => 'form-control'.($enHasError ? ' is-invalid' : '')]) }}>
             @endif
-            @error($enName)
+            @error($enField)
                 <div class="invalid-feedback d-block"><i class="ti ti-alert-circle" aria-hidden="true"></i> {{ $message }}</div>
             @enderror
             @if ($enIsMissing && ! $enHasError)

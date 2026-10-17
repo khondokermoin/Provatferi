@@ -103,6 +103,30 @@ final class PublicLinks
     }
 
     /**
+     * A person's own website (Leadership profiles): any public site, over https. Same character and shape rules as every
+     * other link here; what is refused on top is a host that cannot be somebody's public website — an IP address or a
+     * name that only exists inside a network (`.local`, `.internal`, …). The home page alone is a fine address.
+     *
+     * @return array{url: ?string, error: ?string} error: scheme | invalid | length | host
+     */
+    public static function website(?string $input): array
+    {
+        [$parts, $error] = self::parse((string) $input, self::SOCIAL_MAX_LENGTH);
+        if ($parts === null) {
+            return ['url' => null, 'error' => $error];
+        }
+
+        $host = $parts['host'];
+        $isIpAddress = preg_match('/^\d{1,3}(\.\d{1,3}){3}$/', $host) === 1;
+        $isPrivateName = preg_match('/\.(local|localhost|internal|intranet|lan|home|corp|test|invalid|example)$/', $host) === 1;
+        if ($isIpAddress || $isPrivateName || ! preg_match('/\.[a-z]{2,}$/', $host)) {
+            return ['url' => null, 'error' => 'host'];
+        }
+
+        return ['url' => self::build($parts), 'error' => null];
+    }
+
+    /**
      * One phone number as typed (digits, +, spaces, brackets, dots, hyphens; 6-15 digits). Empty is allowed: the number
      * is optional. The `tel:` link is built from the digits only, on the site.
      *

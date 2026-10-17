@@ -46,6 +46,12 @@ location) are edited in one place, **Admin → Settings**, and every public page
 the link and map rules, the Bangla / English behaviour, the API and the cache flow are in
 `docs/PUBLIC_CONTACT_SETTINGS.md`.
 
+The organisation's permanent core people (founder, executive director, directors, advisors — not the term-bound
+Committee) are managed in **Admin → Institution → Leadership / Key Persons** and shown at `/leadership`, on each person's
+own page and in a small homepage section. Nothing is pre-filled. The data model, the five `leadership.*` permissions, the
+publishing, photo, Bangla / English, cache and API rules, and the procedure for creating a profile are in
+`docs/LEADERSHIP_SYSTEM.md`.
+
 ## RBAC
 
 Custom tables: `roles`, `permissions`, `role_permissions`, `user_roles`.

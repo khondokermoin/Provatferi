@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\CommitteeSubmissionController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\HomepageCarouselController;
 use App\Http\Controllers\Admin\JobApplicationController;
+use App\Http\Controllers\Admin\LeadershipProfileController;
 use App\Http\Controllers\Admin\MemberController;
 use App\Http\Controllers\Admin\MemberDuesController;
 use App\Http\Controllers\Admin\MembershipController;
@@ -371,6 +372,39 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
             ->middleware('permission:settings.update')->name('move-down');
         Route::delete('/{homepageCarouselSlide}', [HomepageCarouselController::class, 'destroy'])
             ->middleware('permission:settings.delete')->name('destroy');
+    });
+
+    /*
+     * Leadership / Key Persons (2026-10-15; docs/LEADERSHIP_SYSTEM.md) — permanent institutional profiles, a domain of their
+     * own and not the Committee system. There is deliberately NO delete route: a profile is archived. Every route that
+     * changes what the website shows carries `revalidate.public`, so the public site drops its cached copy BEFORE the
+     * admin's browser is told "saved" (LeadershipProfileObserver queues the tag; FlushPublicSiteRevalidations sends it).
+     */
+    Route::prefix('leadership')->name('leadership.')->group(function () {
+        Route::get('/', [LeadershipProfileController::class, 'index'])
+            ->middleware('permission:leadership.view')->name('index');
+        Route::get('/create', [LeadershipProfileController::class, 'create'])
+            ->middleware('permission:leadership.create')->name('create');
+        Route::post('/', [LeadershipProfileController::class, 'store'])
+            ->middleware(['permission:leadership.create', 'revalidate.public'])->name('store');
+        Route::get('/{leadershipProfile}/edit', [LeadershipProfileController::class, 'edit'])
+            ->middleware('permission:leadership.update')->name('edit');
+        Route::put('/{leadershipProfile}', [LeadershipProfileController::class, 'update'])
+            ->middleware(['permission:leadership.update', 'revalidate.public'])->name('update');
+        Route::get('/{leadershipProfile}/preview', [LeadershipProfileController::class, 'preview'])
+            ->middleware('permission:leadership.view')->name('preview');
+        Route::patch('/{leadershipProfile}/status', [LeadershipProfileController::class, 'setStatus'])
+            ->middleware(['permission:leadership.publish', 'revalidate.public'])->name('status');
+        Route::patch('/{leadershipProfile}/featured', [LeadershipProfileController::class, 'toggleFeatured'])
+            ->middleware(['permission:leadership.publish', 'revalidate.public'])->name('featured');
+        Route::post('/{leadershipProfile}/move-up', [LeadershipProfileController::class, 'moveUp'])
+            ->middleware(['permission:leadership.publish', 'revalidate.public'])->name('move-up');
+        Route::post('/{leadershipProfile}/move-down', [LeadershipProfileController::class, 'moveDown'])
+            ->middleware(['permission:leadership.publish', 'revalidate.public'])->name('move-down');
+        Route::post('/{leadershipProfile}/archive', [LeadershipProfileController::class, 'archive'])
+            ->middleware(['permission:leadership.archive', 'revalidate.public'])->name('archive');
+        Route::post('/{leadershipProfile}/restore', [LeadershipProfileController::class, 'restore'])
+            ->middleware(['permission:leadership.archive', 'revalidate.public'])->name('restore');
     });
 });
 

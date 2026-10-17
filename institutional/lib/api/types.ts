@@ -594,3 +594,43 @@ export interface CarouselSlide {
   link_label: string | null;
   link_label_en: string | null;
 }
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/public/leadership[/{slug}] — Leadership / Key Persons (2026-10-15)
+// ---------------------------------------------------------------------------
+
+/** Two public JPEG sizes of a profile photo; `width`/`height` are the page-size image's, so its space can be reserved. */
+export interface LeadershipPhoto {
+  url: string;
+  sm_url: string;
+  width: number;
+  height: number;
+}
+
+/** What a card on the Leadership page and the homepage shows. Bangla is the base language; every `_en` may be null. */
+export interface LeadershipSummary {
+  slug: string;
+  name_bn: string;
+  name_en: string | null;
+  designation_bn: string;
+  designation_en: string | null;
+  short_bio_bn: string | null;
+  short_bio_en: string | null;
+  expertise_bn: string | null;
+  expertise_en: string | null;
+  featured: boolean;
+  photo: LeadershipPhoto | null;
+  social: Array<{ platform: string; url: string }>;
+  website_url: string | null;
+}
+
+/** The summary plus what only the profile page shows. The e-mail and phone are optional and public by the admin's choice. */
+export interface LeadershipDetail extends LeadershipSummary {
+  full_bio_bn: string | null;
+  full_bio_en: string | null;
+  quote_bn: string | null;
+  quote_en: string | null;
+  associated_since_year: number | null;
+  public_email: string | null;
+  public_phone: string | null;
+}

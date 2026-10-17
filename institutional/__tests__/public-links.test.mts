@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { cleanText, safeMapUrl, safePhone, safeSocialUrl, telHref, usablePublicEmail } from "../lib/public-links.ts";
+import { cleanText, safeMapUrl, safePhone, safeSocialUrl, safeWebsiteUrl, telHref, usablePublicEmail } from "../lib/public-links.ts";
 
 /**
  * The site's own copy of the link/phone/e-mail rules (admin-erp: tests/Unit/Support/PublicLinksTest.php holds the same
@@ -159,9 +159,36 @@ test("only an address that may be published is accepted: never admin@, no-reply@
   assert.equal(usablePublicEmail("info@provatferi.org"), "info@provatferi.org");
   assert.equal(usablePublicEmail("  Support@Provatferi.ORG "), "support@provatferi.org");
   assert.equal(usablePublicEmail("office@example.org"), "office@example.org");
-  for (const bad of ["admin@provatferi.org", "ADMIN@Provatferi.org", "admin@example.org", "no-reply@provatferi.org", "noreply@example.org", "do-not-reply@example.org", "security@provatferi.org", "not-an-email", "a@b", "info@provatferi.org\r\nBcc: x@y.z", "<info@provatferi.org>", "info@provatferi.org, support@provatferi.org", ""]) {
+  for (const bad of ["admin@provatferi.org", "ADMIN@Provatferi.org", "admin@example.org", "no-reply@provatferi.org", "noreply@example.org", "do-not-reply@example.org", "security@provatferi.org", "not-an-email", "a@b", "info@provatferi.org\r\nBcc: x@y.z", "<info@provatferi.org>", "info@provatferi.org, support@provatferi.org", "boss%0d%0abcc@example.org", "a%40b@example.org", ""]) {
     assert.equal(usablePublicEmail(bad), null, JSON.stringify(bad));
   }
+});
+
+const acceptedWebsites: Array<[string, string]> = [
+  ["https://example.org", "https://example.org"],
+  ["https://www.example.org/about/me?lang=bn", "https://www.example.org/about/me?lang=bn"],
+  ["HTTPS://WWW.Example.ORG/Page", "https://www.example.org/Page"],
+  ["https://example.org:443/a#top", "https://example.org/a"],
+  ["https://roney.com.bd/", "https://roney.com.bd/"],
+  ["https://blog.example.net/posts/1", "https://blog.example.net/posts/1"],
+  ["  https://example.org/x \n", "https://example.org/x"],
+];
+
+test("a person's public website is accepted and normalised", () => {
+  for (const [input, expected] of acceptedWebsites) assert.equal(safeWebsiteUrl(input), expected, input);
+});
+
+test("anything that cannot be somebody's public website is rejected", () => {
+  const rejected = [
+    "", "http://example.org", "javascript:alert(1)", "data:text/html;base64,PHNjcmlwdD4=", "example.org", "//example.org", "ftp://example.org/file",
+    "https://user:pass@example.org/", "https://example.org@evil.example/", "https://example.org:8443/", "https://example.org/a b", 'https://example.org/"x',
+    "https://example.org/<script>", "https://example.org\\evil", "https://exämple.org/", "https://xn--exmple-cua.org/", "https://example.org/a\nSet-Cookie: x=1",
+    `https://example.org/${"a".repeat(600)}`, "https://192.168.1.10/admin", "https://127.0.0.1/", "https://nas.local/share", "https://localhost/", "https://intranet/",
+    "https://site.test/",
+  ];
+  for (const bad of rejected) assert.equal(safeWebsiteUrl(bad), null, JSON.stringify(bad.slice(0, 60)));
+  assert.equal(safeWebsiteUrl(null), null);
+  assert.equal(safeWebsiteUrl(42), null);
 });
 
 test("cleanText keeps line breaks and Bengali, turns other control characters into spaces, and caps the length", () => {

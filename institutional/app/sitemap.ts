@@ -3,9 +3,11 @@ import { org } from "@/lib/content";
 import { localizeHref } from "@/lib/i18n/paths";
 import { getActivitiesWithFallback } from "@/lib/api/activities";
 import { getCommittees } from "@/lib/api/committees";
+import { getLeadershipProfiles } from "@/lib/api/leadership";
 import { getMemberDirectory } from "@/lib/api/member-directory";
 import { getNoticeSitemap } from "@/lib/api/notices";
 import { getJobPostings } from "@/lib/api/recruitment";
+import { hasEnglishPage } from "@/lib/leadership";
 
 /**
  * Phase 2 (plan Section F): one entry per logical (bn) page, with
@@ -68,6 +70,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entry(`/committee/${committee.slug}`, { changeFrequency: "monthly", priority: 0.5, hasTranslation: committee.name_en !== null }),
   );
 
+  // Leadership / Key Persons: the index and each ACTIVE profile — and nothing while none is published, so an empty page is
+  // never advertised. A profile's English page is offered only when its English name and designation both exist.
+  const leadershipResult = await getLeadershipProfiles();
+  const leaders = leadershipResult.ok ? leadershipResult.data : [];
+  const leadershipEntries: MetadataRoute.Sitemap =
+    leaders.length === 0
+      ? []
+      : [
+          entry("/leadership", { changeFrequency: "weekly", priority: 0.7 }),
+          ...leaders.map((leader) => entry(`/leadership/${leader.slug}`, { changeFrequency: "monthly", priority: 0.6, hasTranslation: hasEnglishPage(leader) })),
+        ];
+
   const membersResult = await getMemberDirectory();
   // Member profiles have no `_en` field (personal names/bios aren't
   // translated content) — the same page renders at both locales, so it's
@@ -101,5 +115,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }),
   );
 
-  return [...staticEntries, ...activityEntries, ...committeeEntries, ...memberEntries, ...noticeEntries, ...jobEntries];
+  return [...staticEntries, ...leadershipEntries, ...activityEntries, ...committeeEntries, ...memberEntries, ...noticeEntries, ...jobEntries];
 }

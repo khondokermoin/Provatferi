@@ -1,4 +1,5 @@
 import { CAROUSEL_CACHE_TAG } from "./api/carousel";
+import { LEADERSHIP_CACHE_TAG } from "./api/leadership";
 import { MEMBERS_CACHE_TAG } from "./api/member-directory";
 import { MEMBERSHIP_CACHE_TAGS } from "./api/membership";
 import { SETTINGS_CACHE_TAG } from "./api/settings";
@@ -17,7 +18,7 @@ import { canonicalTags, verifyRevalidation, verifyRevalidationV2, type ReplayGua
  * the signature must verify (401); a nonce must not have been seen (401); every tag must be allowed (400). Tag names
  * are only judged AFTER the caller proved who it is.
  */
-export const ALLOWED_REVALIDATE_TAGS: ReadonlySet<string> = new Set([CAROUSEL_CACHE_TAG, ...Object.values(MEMBERSHIP_CACHE_TAGS), MEMBERS_CACHE_TAG, SETTINGS_CACHE_TAG]);
+export const ALLOWED_REVALIDATE_TAGS: ReadonlySet<string> = new Set([CAROUSEL_CACHE_TAG, ...Object.values(MEMBERSHIP_CACHE_TAGS), MEMBERS_CACHE_TAG, SETTINGS_CACHE_TAG, LEADERSHIP_CACHE_TAG]);
 
 /** More than the number of tags that exist is not a legitimate call. */
 export const MAX_TAGS_PER_REQUEST = 8;

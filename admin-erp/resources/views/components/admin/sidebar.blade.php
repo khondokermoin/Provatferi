@@ -41,6 +41,17 @@
             ],
         ],
         [
+            // Leadership / Key Persons: the institution's permanent core people. A group of its own, not part of
+            // "Organization": a user may hold leadership.view without organization.view, and the Committee system is a
+            // different thing (its members belong to a term).
+            'title' => __('admin.nav.groups.institution'),
+            'permission' => 'leadership.view',
+            'items' => [
+                // 'active' is a route pattern: the item stays highlighted on the create, edit and preview screens too.
+                ['label' => __('admin.nav.leadership'), 'icon' => 'ti-user-star', 'route' => 'admin.leadership.index', 'active' => 'admin.leadership.*'],
+            ],
+        ],
+        [
             'title' => __('admin.nav.groups.programmes'),
             'items' => [
                 [
@@ -177,10 +188,11 @@
                         @continue(! $canSee($item))
 
                         @if (empty($item['children']))
+                            @php $itemActive = $isActive($item['active'] ?? $item['route']); @endphp
                             <li class="side-nav-item">
                                 <a href="{{ route($item['route']) }}"
-                                   class="side-nav-link {{ $isActive($item['route']) ? 'active' : '' }}"
-                                   @if ($isActive($item['route'])) aria-current="page" @endif>
+                                   class="side-nav-link {{ $itemActive ? 'active' : '' }}"
+                                   @if ($itemActive) aria-current="page" @endif>
                                     <span class="menu-icon"><i class="ti {{ $item['icon'] }}" aria-hidden="true"></i></span>
                                     <span class="menu-text">{{ $item['label'] }}</span>
                                 </a>

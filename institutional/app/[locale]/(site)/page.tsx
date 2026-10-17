@@ -3,8 +3,11 @@ import { activityCategories, org, recentActivities } from "@/lib/content";
 import { activityCategories as activityCategoriesEn, recentActivities as recentActivitiesEn } from "@/lib/content.en";
 import { getNotices } from "@/lib/api/notices";
 import { getCarouselSlides } from "@/lib/api/carousel";
+import { getLeadershipProfiles } from "@/lib/api/leadership";
+import { resolveLeader } from "@/lib/leadership";
 import NoticeList from "@/components/NoticeList";
 import HomeCarousel from "@/components/HomeCarousel";
+import LeadershipHome, { HOME_LEADERSHIP_COUNT } from "@/components/LeadershipHome";
 import { isLocale, type Locale } from "@/lib/i18n";
 import { localizeHref } from "@/lib/i18n/paths";
 
@@ -138,6 +141,11 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const carouselResult = await getCarouselSlides();
   const carouselSlides = carouselResult.ok ? carouselResult.data : [];
 
+  // Leadership / Key Persons: only profiles that are both active and featured, in the admin's order, a few of them.
+  // None (or the ERP unreachable) means no section — the page is otherwise exactly as it was.
+  const leadershipResult = await getLeadershipProfiles({ featuredOnly: true, limit: HOME_LEADERSHIP_COUNT });
+  const featuredLeaders = leadershipResult.ok ? leadershipResult.data.map((profile) => resolveLeader(profile, locale)) : [];
+
   return (
     <div className="home-page">
       <section className="home-hero" aria-labelledby="hero-title">
@@ -220,6 +228,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           ))}
         </div>
       </section>
+
+      <LeadershipHome leaders={featuredLeaders} locale={locale} />
 
       <section className="join-section" aria-labelledby="join-title">
         <div><p className="eyebrow">{c.joinEyebrow}</p><h2 id="join-title">{c.joinTitle1}<br />{c.joinTitle2}</h2><p>{c.joinIntro}</p></div>

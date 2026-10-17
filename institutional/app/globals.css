@@ -873,6 +873,91 @@ h1, h2, h3, h4 { color: var(--heading); }
 .contact-map-actions { margin-top: 16px; }
 .contact-map-label { margin-bottom: 4px; }
 
+/*
+ * LEADERSHIP / KEY PERSONS (2026-10-15): the institution's permanent core people. Quiet and institutional — cards with a
+ * portrait, the name as the one link, the designation in the accent colour; no motion beyond a border change. Theme tokens
+ * only, so light and dark follow the page. A profile without a photo shows its initials in the same 4:5 frame.
+ */
+.leader-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: stretch; }
+.leader-grid.is-featured { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* The homepage shows one to four people: a row of fixed-width cards, never one card stretched across the page. */
+.leader-grid.is-home { display: flex; flex-wrap: wrap; gap: 20px; }
+.leader-grid.is-home .leader-card { flex: 0 1 calc(25% - 15px); min-width: 220px; }
+/* One or two people: two wide row cards, so the section is not a pair of narrow cards beside an empty half. */
+.leader-grid.is-home.is-few { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+.leader-grid.is-home.is-few .leader-card { min-width: 0; }
+
+.leader-card { position: relative; display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: border-color .18s; }
+.leader-card:hover, .leader-card:focus-within { border-color: var(--border-strong); }
+.leader-card:focus-within { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+.leader-card.is-featured { flex-direction: row; }
+.leader-card.is-featured .leader-photo-card { flex: 0 0 42%; aspect-ratio: auto; min-height: 100%; }
+.leader-card-body { display: flex; flex-direction: column; flex: 1; gap: 8px; min-width: 0; padding: 20px 22px 22px; }
+.leader-card h3 { margin: 0; font-size: 20px; line-height: 1.4; font-weight: 700; color: var(--heading); overflow-wrap: anywhere; }
+.leader-card.is-compact h3 { font-size: 17px; }
+.leader-card.is-compact .leader-bio { -webkit-line-clamp: 3; }
+.leader-card-link { color: inherit; text-decoration: none; }
+.leader-card-link:focus-visible { outline: none; }
+/* The name's link is stretched over the whole card; the social icons sit above it so each is still its own link. */
+.leader-card-link::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+.leader-designation { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.6; color: var(--accent-text); }
+.leader-bio { margin: 4px 0 0; font-size: 15px; line-height: 1.75; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+.leader-card .translation-note, .leader-bio-text ~ .translation-note { margin: 0; font-size: 13px; line-height: 1.6; font-style: italic; color: var(--muted); }
+.leader-card-cta { display: inline-flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 10px; font-size: 14px; font-weight: 600; color: var(--heading); }
+.leader-card:hover .leader-card-cta { color: var(--accent-text); }
+
+.leader-photo-frame { position: relative; overflow: hidden; background: var(--soft); }
+.leader-photo-card { width: 100%; aspect-ratio: 4 / 5; }
+.leader-photo-card img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 20%; }
+.leader-card.is-compact .leader-photo-card { aspect-ratio: 1 / 1; }
+.leader-initials { display: flex; align-items: center; justify-content: center; font-size: clamp(36px, 6vw, 64px); font-weight: 700; letter-spacing: .02em; color: var(--accent-text); }
+.leader-photo-page { border: 1px solid var(--border); border-radius: 12px; }
+.leader-photo-page img { display: block; width: 100%; height: auto; }
+.leader-photo-page.leader-initials { aspect-ratio: 4 / 5; }
+
+/* The profile page: portrait and facts beside the biography; one column on a phone. */
+.leader-profile-grid { display: grid; grid-template-columns: minmax(240px, 340px) minmax(0, 1fr); gap: 44px; align-items: start; }
+.leader-profile-aside { position: sticky; top: 24px; display: grid; gap: 20px; }
+.leader-facts { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 15px; line-height: 1.7; color: var(--muted); }
+.leader-facts strong { color: var(--heading); }
+.leader-contact { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
+.leader-contact h2 { margin: 0 0 12px; font-size: 15px; font-weight: 700; letter-spacing: 0; color: var(--heading); }
+.leader-contact-list { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 10px; }
+.leader-contact-list a { display: inline-flex; align-items: flex-start; gap: 10px; font-weight: 600; color: var(--accent-text); overflow-wrap: anywhere; }
+.leader-contact-list .social-icon { margin-top: 3px; }
+.social-links-card { position: relative; z-index: 2; margin-top: 4px; }
+.social-links-card a { justify-content: center; width: 36px; height: 36px; border: 1px solid var(--border-strong); border-radius: 50%; color: var(--muted); transition: color .18s, border-color .18s; }
+.social-links-card a:hover, .social-links-card a:focus-visible { color: var(--accent-text); border-color: var(--accent-text); }
+.social-links-profile a { min-height: 40px; padding: 8px 14px; border: 1px solid var(--border-strong); border-radius: 8px; font-size: 14px; color: var(--heading); transition: color .18s, border-color .18s; }
+.social-links-profile a:hover, .social-links-profile a:focus-visible { color: var(--accent-text); border-color: var(--accent-text); }
+.leader-quote { margin: 0 0 28px; padding: 4px 0 4px 22px; border-left: 3px solid var(--brand-orange); }
+.leader-quote p { margin: 0; font-size: 20px; line-height: 1.75; font-style: italic; color: var(--heading); }
+.leader-bio-text p { margin: 0 0 18px; font-size: 17px; line-height: 1.95; color: var(--body); max-width: 760px; }
+.leader-bio-text ul { margin: 0 0 18px; padding-left: 22px; max-width: 760px; line-height: 1.9; color: var(--body); }
+.leader-back { margin: 40px 0 0; }
+.leader-back .icon-back { display: inline-block; transform: scaleX(-1); margin-right: 8px; }
+.home-leadership-intro { margin: 8px 0 0; max-width: 560px; font-size: 15px; line-height: 1.75; color: var(--muted); }
+@media (max-width: 1050px) {
+  .leader-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .leader-grid.is-home .leader-card { flex-basis: calc(50% - 10px); }
+  .leader-profile-grid { gap: 32px; }
+}
+@media (max-width: 743px) {
+  .leader-grid, .leader-grid.is-featured { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  /* On a phone every card is a row — a small portrait beside the text — rather than a full-width photograph. */
+  .leader-card, .leader-card.is-featured { flex-direction: row; }
+  .leader-photo-card, .leader-card.is-featured .leader-photo-card, .leader-card.is-compact .leader-photo-card { flex: 0 0 34%; max-width: 150px; min-height: 0; aspect-ratio: 4 / 5; align-self: flex-start; }
+  .leader-card-body { padding: 16px; }
+  .leader-grid.is-home, .leader-grid.is-home.is-few { gap: 16px; }
+  .leader-grid.is-home .leader-card { flex: 1 1 100%; min-width: 0; }
+  .leader-grid.is-home.is-few { grid-template-columns: minmax(0, 1fr); }
+  .leader-profile-grid { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .leader-profile-aside { position: static; }
+  .leader-photo-page { max-width: 320px; }
+  .leader-quote p { font-size: 18px; }
+  .leader-bio-text p { font-size: 16px; line-height: 1.9; }
+}
+
 @media (max-width: 1050px) {
   .main-navigation { gap: 16px; }
   .main-navigation a { font-size: 13px; }

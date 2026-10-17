@@ -269,6 +269,9 @@ if (! function_exists('upload_error_label')) {
             'ছবিটি ক্ষতিগ্রস্ত বা অসম্পূর্ণ।' => 'The image is corrupted or incomplete.',
             'ছবি সংরক্ষণ করা যায়নি।' => 'The image could not be saved.',
             'মূল ছবিটি খুঁজে পাওয়া যায়নি।' => 'The original image could not be found.',
+            // Leadership profile photos (App\Services\LeadershipPhotoService)
+            'ছবির মাত্রা অতিরিক্ত বড়। অনুগ্রহ করে ছোট ছবি দিন।' => 'The photo dimensions are too large. Please use a smaller photo.',
+            'ছবিটি খুবই ছোট। ছোট প্রান্ত অন্তত ৩০০ পিক্সেল হতে হবে।' => 'The photo is too small: its shorter side must be at least 300 pixels.',
         ];
 
         return $map[$message] ?? $message;

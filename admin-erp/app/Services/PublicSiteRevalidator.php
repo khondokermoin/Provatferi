@@ -62,6 +62,9 @@ class PublicSiteRevalidator
     /** Any public `site.*` setting: contact details, social links, map location (lib/api/settings.ts; 2026-10-14). */
     public const SETTINGS_TAG = 'site-settings';
 
+    /** Any Leadership / Key Persons profile: the index, the homepage section and every profile page (lib/api/leadership.ts; 2026-10-15). */
+    public const LEADERSHIP_TAG = 'leadership';
+
     /** @var array<string, true> */
     private array $pending = [];
 

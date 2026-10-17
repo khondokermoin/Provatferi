@@ -121,6 +121,30 @@ export interface UiStrings {
     heading: string;
     viewOnMap: string;
   };
+  /** Leadership / Key Persons (2026-10-15): the institution's permanent core people — not the Committee. */
+  leadership: {
+    title: string;
+    description: string;
+    featuredHeading: string;
+    othersHeading: string;
+    viewProfile: string;
+    profileOf: (name: string) => string;
+    backToList: string;
+    expertise: string;
+    associatedSince: (year: string) => string;
+    contactHeading: string;
+    email: string;
+    phone: string;
+    website: string;
+    photoAlt: (name: string) => string;
+    emptyTitle: string;
+    emptyMessage: string;
+    /** The small section on the homepage. */
+    homeEyebrow: string;
+    homeTitle: string;
+    homeIntro: string;
+    homeLink: string;
+  };
   notFound: {
     title: string;
     heading: string;

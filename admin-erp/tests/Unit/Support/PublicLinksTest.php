@@ -224,6 +224,65 @@ class PublicLinksTest extends TestCase
         $this->assertSame('format', PublicLinks::phone($input)['error']);
     }
 
+    // --- a person's own website (Leadership profiles) -----------------------------------------------------------------
+
+    /** @return array<string, array{string, string}> input, normalised */
+    public static function acceptedWebsites(): array
+    {
+        return [
+            'home page' => ['https://example.org', 'https://example.org'],
+            'with a path and a query' => ['https://www.example.org/about/me?lang=bn', 'https://www.example.org/about/me?lang=bn'],
+            'upper-case host is normalised' => ['HTTPS://WWW.Example.ORG/Page', 'https://www.example.org/Page'],
+            'default port and fragment are dropped' => ['https://example.org:443/a#top', 'https://example.org/a'],
+            'a country domain' => ['https://roney.com.bd/', 'https://roney.com.bd/'],
+            'a sub-domain' => ['https://blog.example.net/posts/1', 'https://blog.example.net/posts/1'],
+            'surrounding whitespace' => ["  https://example.org/x \n", 'https://example.org/x'],
+        ];
+    }
+
+    #[DataProvider('acceptedWebsites')]
+    public function test_a_public_website_is_accepted_and_normalised(string $input, string $expected): void
+    {
+        $this->assertSame(['url' => $expected, 'error' => null], PublicLinks::website($input));
+    }
+
+    /** @return array<string, array{string, string}> input, error code */
+    public static function rejectedWebsites(): array
+    {
+        return [
+            'empty' => ['', 'invalid'],
+            'http' => ['http://example.org', 'scheme'],
+            'javascript' => ['javascript:alert(1)', 'scheme'],
+            'data uri' => ['data:text/html;base64,PHNjcmlwdD4=', 'scheme'],
+            'a bare domain' => ['example.org', 'scheme'],
+            'scheme-relative' => ['//example.org', 'scheme'],
+            'ftp' => ['ftp://example.org/file', 'scheme'],
+            'user info' => ['https://user:pass@example.org/', 'invalid'],
+            'user info trick' => ['https://example.org@evil.example/', 'invalid'],
+            'another port' => ['https://example.org:8443/', 'invalid'],
+            'a space' => ['https://example.org/a b', 'invalid'],
+            'a quote' => ['https://example.org/"x', 'invalid'],
+            'angle brackets' => ['https://example.org/<script>', 'invalid'],
+            'a backslash' => ['https://example.org\\evil', 'invalid'],
+            'non-ascii host' => ['https://exämple.org/', 'invalid'],
+            'punycode host' => ['https://xn--exmple-cua.org/', 'invalid'],
+            'a newline' => ["https://example.org/a\nSet-Cookie: x=1", 'invalid'],
+            'too long' => ['https://example.org/'.str_repeat('a', 600), 'length'],
+            'an ipv4 address' => ['https://192.168.1.10/admin', 'host'],
+            'a loopback address' => ['https://127.0.0.1/', 'host'],
+            'an internal name' => ['https://nas.local/share', 'host'],
+            'localhost' => ['https://localhost/', 'invalid'],
+            'a single label' => ['https://intranet/', 'invalid'],
+            'a reserved test tld' => ['https://site.test/', 'host'],
+        ];
+    }
+
+    #[DataProvider('rejectedWebsites')]
+    public function test_anything_that_cannot_be_somebodys_public_website_is_rejected_with_a_reason(string $input, string $error): void
+    {
+        $this->assertSame(['url' => null, 'error' => $error], PublicLinks::website($input));
+    }
+
     // --- plain text -------------------------------------------------------------------------------------------------
 
     public function test_plain_text_may_span_lines_but_never_carry_markup_or_control_characters(): void

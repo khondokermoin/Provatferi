@@ -16,6 +16,7 @@
         'settings' => __('admin.fields.module_settings'),
         'users' => __('admin.fields.module_users_roles'),
         'notices' => __('admin.nav.notices'),
+        'leadership' => __('admin.nav.leadership'),
     ];
     $actionLabels = [
         'view' => __('admin.fields.action_view'),

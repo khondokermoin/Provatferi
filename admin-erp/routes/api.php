@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\Public\CommitteeController as PublicCommitteeCon
 use App\Http\Controllers\Api\V1\Public\CommitteeCorrectionController;
 use App\Http\Controllers\Api\V1\Public\CommitteeRegistrationController;
 use App\Http\Controllers\Api\V1\Public\HomepageCarouselController;
+use App\Http\Controllers\Api\V1\Public\LeadershipController as PublicLeadershipController;
 use App\Http\Controllers\Api\V1\Public\MemberDirectoryController;
 use App\Http\Controllers\Api\V1\Public\MembershipApplicationController;
 use App\Http\Controllers\Api\V1\Public\MembershipCampaignController;
@@ -55,6 +56,10 @@ Route::prefix('v1')->group(function () {
     // provatferi.org's server-side fetches only, never the browser directly.
     Route::prefix('public')->group(function () {
         Route::get('/homepage-carousel', [HomepageCarouselController::class, 'index']);
+
+        // Leadership / Key Persons (2026-10-15): active profiles only, an explicit list of public fields (docs/LEADERSHIP_SYSTEM.md).
+        Route::get('/leadership', [PublicLeadershipController::class, 'index']);
+        Route::get('/leadership/{slug}', [PublicLeadershipController::class, 'show'])->where('slug', '[a-z0-9]+(-[a-z0-9]+)*');
 
         Route::get('/membership/campaigns/current', [MembershipCampaignController::class, 'current']);
         Route::post('/membership/applications', [MembershipApplicationController::class, 'store'])->middleware('throttle:6,1');

@@ -85,6 +85,23 @@ export function safeSocialUrl(platform: string, input: unknown): string | null {
   return build(parts);
 }
 
+/**
+ * A person's own website (Leadership profiles): any public site over https, in the same character and shape rules as every
+ * other link here, except that a host which cannot be somebody's public website is refused — an IP address, or a name that
+ * only exists inside a network (`.local`, `.internal`, …). The home page alone is a fine address.
+ */
+export function safeWebsiteUrl(input: unknown): string | null {
+  if (typeof input !== "string") return null;
+  const parts = parseHttps(input, SOCIAL_MAX_LENGTH);
+  if (parts === null) return null;
+
+  const isIpAddress = /^\d{1,3}(\.\d{1,3}){3}$/.test(parts.host);
+  const isPrivateName = /\.(local|localhost|internal|intranet|lan|home|corp|test|invalid|example)$/.test(parts.host);
+  if (isIpAddress || isPrivateName || !/\.[a-z]{2,}$/.test(parts.host)) return null;
+
+  return build(parts);
+}
+
 const GOOGLE_MAPS_HOSTS = ["google.com", "www.google.com", "google.com.bd", "www.google.com.bd"];
 
 /** The normalised address of a Google Maps location, or null. Embed/iframe addresses are never accepted. */
@@ -134,7 +151,8 @@ const NEVER_PUBLIC_LOCAL_PARTS = new Set(["admin", "no-reply", "noreply", "donot
 export function usablePublicEmail(input: unknown): string | null {
   if (typeof input !== "string") return null;
   const value = input.trim().toLowerCase();
-  if (value.length > 254 || !/^[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(value)) return null;
+  // No percent sign in the local part: an address becomes a mailto: link, and `%0d%0a` in one is a header injection.
+  if (value.length > 254 || !/^[a-z0-9._+-]+@[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(value)) return null;
   const local = value.slice(0, value.indexOf("@"));
   return NEVER_PUBLIC_LOCAL_PARTS.has(local) ? null : value;
 }
