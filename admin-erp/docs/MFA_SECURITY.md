@@ -23,7 +23,7 @@ The code lives here:
 | Audit trail | `app/Services/SecurityEventLogger.php`, table `security_events` |
 | Security e-mails | `app/Notifications/MfaSecurityNotification.php`, `app/Jobs/SendMfaSecurityNotification.php` |
 | Break-glass reset and status | `php artisan mfa:reset`, `php artisan mfa:status` |
-| Tests | `tests/Feature/Mfa/*` (101 tests) |
+| Tests | `tests/Feature/Mfa/*` (100 tests) |
 
 ## Current authentication audit (2026-10-17)
 
