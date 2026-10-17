@@ -131,7 +131,7 @@ async function calibrateClock() {
   const m = /^ts=([0-9.]+)$/m.exec(text);
   if (m) {
     clockOffset = Number(m[1]) - (t0 + t1) / 2000 + SERVER_SKEW;
-    note(`clock: this machine is ${(-clockOffset).toFixed(1)} s ${clockOffset < 0 ? "ahead of" : "behind"} the server (Cloudflare reference + skew ${SERVER_SKEW} s)`);
+    note(`clock: this machine is ${Math.abs(clockOffset).toFixed(1)} s ${clockOffset < 0 ? "ahead of" : "behind"} the server (Cloudflare reference + skew ${SERVER_SKEW} s)`);
   } else {
     clockOffset = SERVER_SKEW;
     note("clock: no Cloudflare reference (local run?): this machine's clock is used");

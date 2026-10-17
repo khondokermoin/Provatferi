@@ -371,3 +371,18 @@ whose secret cannot be read can be reset with `mfa:reset`.
 | `MfaSecretSafetyTest` | R logs and audit trail; S e-mails; T JSON, admin pages, public endpoints, client bundles; encryption at rest |
 | `MfaResetAndAuthorizationTest` | O no in-app reset route, no IDOR, no mass assignment; break-glass command; P CSRF on every form; J password reset |
 | `MfaSchemaTest` | Additive, nullable columns; existing accounts unaffected; audit table shape |
+
+## Acceptance on production
+
+Live since 2026-10-17 20:12 UTC (release `b6e0ecb3087f-2026-10-1719341`), accepted the same evening with 68 of 68 checks in
+real Chrome. Two halves, rerunnable:
+
+- `deploy/qa/mfa-qa.php` (server, CLI only, uploaded under a one-off name, one mode per cron): `audit` (configuration,
+  schema, two-step state in counts, server clock against Cloudflare's), `inventory`, `snapshot` / `diff` / `purge <tag> go`
+  / `forget`, and `reset-qa <email>` (the break-glass command, refused for anything but a `qa-mfa-…` account). It prints
+  counts, ids and flags only, never a secret or a code. It recognises QA data by its markers: accounts `qa-mfa-…`, roles
+  `QA-MFA-…`, the audit rows about or by them, sessions whose browser string carries `provatferi-mfa-qa/`.
+- `institutional/scripts/mfa-qa.mjs` (browser): the owner's login only creates the QA roles and accounts and switches the
+  QA role's requirement on; it never enrols the owner and never signs the owner out (a sign-out would rotate the owner's
+  remember-me token). Codes are computed in memory from the key on the set-up page. Screenshots mask the QR code, the key,
+  the recovery codes and every typed field. With `--wait-reset N` it ends by waiting for the `reset-qa` e-mail.
