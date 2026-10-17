@@ -10,7 +10,7 @@
 
 @section('content')
     <x-admin.table :paginator="$roles" caption="{{ __('admin.fields.roles_list') }}"
-        :headers="[__('admin.fields.role'), __('admin.nav.users'), __('admin.nav.permissions'), __('admin.common.type'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
+        :headers="[__('admin.fields.role'), __('admin.nav.users'), __('admin.nav.permissions'), __('admin.common.type'), __('admin.mfa.col_mfa'), ['label' => __('admin.actions.actions'), 'align' => 'end']]">
 
         @forelse ($roles as $role)
             <tr>
@@ -29,6 +29,17 @@
                         </span>
                     @else
                         <span class="badge bg-secondary-subtle text-secondary-emphasis">{{ __('admin.fields.custom_role_badge') }}</span>
+                    @endif
+                </td>
+                <td data-label="{{ __('admin.mfa.col_mfa') }}">
+                    @if ($role->mfa_required)
+                        <span class="badge bg-success-subtle text-success-emphasis d-inline-flex align-items-center gap-1">
+                            <i class="ti ti-shield-check" aria-hidden="true"></i>{{ __('admin.mfa.short_required') }}
+                        </span>
+                    @elseif (\App\Support\Mfa\MfaPolicy::roleIsPrivileged($role))
+                        <span class="badge bg-warning-subtle text-warning-emphasis">{{ __('admin.mfa.short_recommended') }}</span>
+                    @else
+                        <span class="text-muted fs-13">{{ __('admin.mfa.short_optional') }}</span>
                     @endif
                 </td>
                 <td data-label="{{ __('admin.actions.actions') }}" class="text-end">
@@ -57,7 +68,7 @@
                 </td>
             </tr>
         @empty
-            <x-admin.empty-state colspan="5" icon="ti-shield" title="{{ __('admin.fields.no_roles') }}" />
+            <x-admin.empty-state colspan="6" icon="ti-shield" title="{{ __('admin.fields.no_roles') }}" />
         @endforelse
     </x-admin.table>
 

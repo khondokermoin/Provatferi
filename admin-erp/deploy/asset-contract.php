@@ -111,6 +111,8 @@ checkFile($appPath.'/public/favicon.ico', 'favicon.ico', $present, $missing);
 foreach ([
     'provatferi-theme.js',
     'provatferi-password-toggle.js',
+    'provatferi-form-guard.js',
+    'provatferi-copy.js', // two-step verification: copy / download / print of the key and the recovery codes
 ] as $file) {
     checkFile($appPath.'/public/js/'.$file, "js asset: $file", $present, $missing);
 }

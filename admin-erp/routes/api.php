@@ -93,11 +93,13 @@ Route::prefix('v1')->group(function () {
             ->middleware('throttle:5,1')->name('api.public.recruitment.apply');
     });
 
-    // Auth.
+    // Auth (staff tokens). The login follows the web sign-in's rules — its rate limits (LoginRequest + MfaThrottle, never
+    // the IP alone) and two-step verification (docs/MFA_SECURITY.md, "API tokens"); every staff token route except logout
+    // passes the same gate (mfa.api).
     Route::post('/auth/login', [AuthController::class, 'login']);
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
-        Route::get('/auth/me', [AuthController::class, 'me']);
+        Route::get('/auth/me', [AuthController::class, 'me'])->middleware('mfa.api');
     });
 
     // Member portal (§12) — completely separate from the ERP staff auth
@@ -121,7 +123,7 @@ Route::prefix('v1')->group(function () {
 
     // Admin — Sanctum + permission-gated. Only organization-units is fully
     // implemented as the reference pattern; the others follow the same shape.
-    Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
+    Route::middleware(['auth:sanctum', 'mfa.api'])->prefix('admin')->group(function () {
         Route::middleware('permission:organization.view')->get('/organization-units', [AdminOrganizationUnitController::class, 'index']);
         Route::middleware('permission:organization.create')->post('/organization-units', [AdminOrganizationUnitController::class, 'store']);
         Route::middleware('permission:organization.update')->put('/organization-units/{organizationUnit}', [AdminOrganizationUnitController::class, 'update']);

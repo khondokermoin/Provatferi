@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Role extends Model
 {
+    /** mfa_required is deliberately not fillable: only RoleMfaController changes it, behind its own confirmation. */
     protected $fillable = ['name', 'slug', 'description', 'is_system_role'];
 
     protected function casts(): array
     {
-        return ['is_system_role' => 'boolean'];
+        return ['is_system_role' => 'boolean', 'mfa_required' => 'boolean'];
     }
 
     public function permissions(): BelongsToMany

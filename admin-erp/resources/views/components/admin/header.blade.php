@@ -76,6 +76,10 @@
                             <i class="ti ti-user-hexagon me-1 fs-17 align-middle" aria-hidden="true"></i>
                             <span class="align-middle">{{ __('admin.nav.profile') }}</span>
                         </a>
+                        <a href="{{ route('admin.account.security') }}" class="dropdown-item">
+                            <i class="ti ti-shield-lock me-1 fs-17 align-middle" aria-hidden="true"></i>
+                            <span class="align-middle">{{ __('admin.nav.account_security') }}</span>
+                        </a>
                         <div class="dropdown-divider"></div>
                         <form method="POST" action="{{ route('logout') }}">
                             @csrf

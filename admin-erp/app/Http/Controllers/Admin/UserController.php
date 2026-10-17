@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\Mfa\NewlyRequiredAudit;
 use App\Support\SuperAdminGuard;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -85,6 +86,7 @@ class UserController extends Controller
         ]);
 
         $user->roles()->sync($data['roles'] ?? []);
+        NewlyRequiredAudit::after([], collect([$user->fresh('roles')]), $request->user(), 'roles');
 
         return redirect()->route('admin.users.show', $user)
             ->with('success', __('admin.flash.user_created', ['name' => $user->name]));
@@ -143,8 +145,10 @@ class UserController extends Controller
         }
 
         // Password is never edited here; use the reset-link action instead.
+        $before = NewlyRequiredAudit::before(collect([$user]));
         $user->update($data);
         $user->roles()->sync($roles);
+        NewlyRequiredAudit::after($before, collect([$user->fresh('roles')]), $request->user(), 'roles');
 
         return redirect()->route('admin.users.show', $user)
             ->with('success', __('admin.flash.user_updated', ['name' => $user->name]));

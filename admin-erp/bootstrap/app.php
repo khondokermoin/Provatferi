@@ -29,15 +29,32 @@ $app = Application::configure(basePath: dirname(__DIR__))
         // because it must run after the session is started and after the
         // authenticated user is resolved. It only calls App::setLocale() —
         // it never touches routing, so the admin URLs stay identical.
+        //
+        // Then, for every web request (docs/MFA_SECURITY.md): a deactivated account is signed out (EnsureActiveAccount),
+        // and the two-step verification gate runs (EnsureMfa) — a session that has not completed the second step goes
+        // back through the challenge, an account that must enrol can reach the enrolment pages only. Global on purpose:
+        // a route added later cannot forget them.
         $middleware->web(append: [
             \App\Http\Middleware\SetAdminLocale::class,
+            \App\Http\Middleware\EnsureActiveAccount::class,
+            \App\Http\Middleware\EnsureMfa::class,
         ]);
+
+        // A visitor with an open two-step challenge (correct password, no code yet) who asks for an admin page is sent
+        // back to the challenge, not to the login form.
+        $middleware->redirectGuestsTo(fn (\Illuminate\Http\Request $request) => \App\Support\Mfa\MfaSession::hasPending($request)
+            ? route('mfa.challenge')
+            : route('login'));
 
         $middleware->alias([
             'permission' => \App\Http\Middleware\EnsurePermission::class,
             'member.auth' => \App\Http\Middleware\EnsureMemberAuthenticated::class,
             // Sends queued public-site invalidations before the admin sees "saved" (see the class docblock).
             'revalidate.public' => \App\Http\Middleware\FlushPublicSiteRevalidations::class,
+            // Step-up: a code from the authenticator within the last 15 minutes (App\Http\Middleware\RequireRecentMfa).
+            'mfa.recent' => \App\Http\Middleware\RequireRecentMfa::class,
+            // The two-step rule for staff API tokens (App\Http\Middleware\EnsureApiMfa).
+            'mfa.api' => \App\Http\Middleware\EnsureApiMfa::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

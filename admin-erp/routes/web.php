@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AboutController;
+use App\Http\Controllers\Admin\AccountSecurityController;
 use App\Http\Controllers\Admin\ActivityController;
 use App\Http\Controllers\Admin\ActivityTypeController;
 use App\Http\Controllers\Admin\CommitteeController;
@@ -27,6 +28,7 @@ use App\Http\Controllers\Admin\PositionController;
 use App\Http\Controllers\Admin\PublicMemberProfileController;
 use App\Http\Controllers\Admin\RecruitmentController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\RoleMfaController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VisionController;
@@ -131,8 +133,29 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         Route::post('/', [RoleController::class, 'store'])->middleware('permission:users.create')->name('store');
         Route::get('/{role}/edit', [RoleController::class, 'edit'])->middleware('permission:users.update')->name('edit');
         Route::put('/{role}', [RoleController::class, 'update'])->middleware('permission:users.update')->name('update');
+        // "Require two-step verification for this role": its own guarded action (RoleMfaController's docblock).
+        Route::patch('/{role}/mfa', [RoleMfaController::class, 'update'])->middleware('permission:users.update')->name('mfa');
         Route::delete('/{role}', [RoleController::class, 'destroy'])->middleware('permission:users.delete')->name('destroy');
     });
+
+    /*
+     * Account security — the signed-in account's own two-step verification (docs/MFA_SECURITY.md). No route takes a user
+     * id: every action applies to the person signed in. Recent-password checks: `password.confirm` (15 min) on the pages,
+     * repeated in the controller for the forms; `mfa.recent` = a code from the authenticator within 15 minutes.
+     */
+    Route::get('/account/security', [AccountSecurityController::class, 'show'])->name('account.security');
+    Route::get('/account/security/setup', [AccountSecurityController::class, 'setup'])
+        ->middleware('password.confirm:password.confirm,900')->name('account.security.setup');
+    Route::post('/account/security/setup/restart', [AccountSecurityController::class, 'restart'])->name('account.security.restart');
+    Route::post('/account/security/enable', [AccountSecurityController::class, 'enable'])->name('account.security.enable');
+    Route::get('/account/security/recovery-codes', [AccountSecurityController::class, 'codes'])
+        ->middleware(['password.confirm:password.confirm,900', 'mfa.recent'])->name('account.security.codes');
+    Route::post('/account/security/recovery-codes', [AccountSecurityController::class, 'regenerate'])->name('account.security.codes.regenerate');
+    Route::post('/account/security/disable', [AccountSecurityController::class, 'disable'])->name('account.security.disable');
+    Route::get('/account/security/confirm', [AccountSecurityController::class, 'stepUp'])->name('account.security.step-up');
+    Route::post('/account/security/confirm', [AccountSecurityController::class, 'stepUpVerify'])->name('account.security.step-up.verify');
+    Route::post('/account/security/enforcement', [AccountSecurityController::class, 'enforcement'])
+        ->middleware('mfa.recent')->name('account.security.enforcement');
 
     Route::get('/system/permissions', [PermissionController::class, 'index'])
         ->middleware('permission:users.view')->name('permissions.index');

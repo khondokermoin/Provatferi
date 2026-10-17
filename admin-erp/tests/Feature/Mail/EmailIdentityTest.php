@@ -9,6 +9,7 @@ use App\Notifications\CommitteeSubmissionStatusChangedNotification;
 use App\Notifications\MemberInvitationNotification;
 use App\Notifications\MembershipApplicationStatusChangedNotification;
 use App\Notifications\MemberSetPasswordNotification;
+use App\Notifications\MfaSecurityNotification;
 use App\Notifications\PublicProfileReviewedNotification;
 use App\Notifications\VolunteerApplicationReceivedNotification;
 use App\Notifications\VolunteerApplicationStatusChangedNotification;
@@ -132,6 +133,8 @@ class EmailIdentityTest extends TestCase
             'committee submission decided' => [fn () => new CommitteeSubmissionStatusChangedNotification('কার্যনির্বাহী কমিটি', 'approved'), 'support'],
             'public profile reviewed' => [fn () => new PublicProfileReviewedNotification('approved'), 'support'],
             'internal new-application notice' => [fn () => new VolunteerApplicationSubmittedNotification('VOL-2026-0001', 'স্বেচ্ছাসেবক', 'নাদিয়া', 'https://admin.provatferi.org/admin/recruitment-applications/1'), 'internal'],
+            'two-step verification turned on' => [fn () => new MfaSecurityNotification('enabled', ['at' => '17 Oct 2026, 12:00 (Asia/Dhaka)', 'ip' => '203.0.113.5', 'device' => 'Chrome on Windows']), 'security'],
+            'two-step verification reset on the server' => [fn () => new MfaSecurityNotification('reset', ['at' => '17 Oct 2026, 12:00 (Asia/Dhaka)']), 'security'],
         ];
     }
 
@@ -146,6 +149,7 @@ class EmailIdentityTest extends TestCase
 
         $expectedReplyTo = match ($class) {
             'support' => [[self::SUPPORT, 'Provatferi Support']],
+            'security' => [[self::SECURITY, 'Provatferi Security']],
             'internal' => [],
         };
         $this->assertSame($expectedReplyTo, $this->addresses($email->getReplyTo()));

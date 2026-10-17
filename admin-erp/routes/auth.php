@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
+use App\Http\Controllers\Auth\MfaChallengeController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -38,6 +39,16 @@ Route::middleware('guest')->group(function () {
 
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
+
+    /*
+     * The second step of signing in (docs/MFA_SECURITY.md). Guest routes: the password was right but nobody is signed in
+     * until a code completes the challenge. Throttled per account, per session and per address in the controller
+     * (App\Support\Mfa\MfaThrottle), never by address alone.
+     */
+    Route::get('two-factor-challenge', [MfaChallengeController::class, 'show'])->name('mfa.challenge');
+    Route::post('two-factor-challenge', [MfaChallengeController::class, 'verify'])->name('mfa.challenge.verify');
+    Route::post('two-factor-challenge/recovery', [MfaChallengeController::class, 'recovery'])->name('mfa.challenge.recovery');
+    Route::post('two-factor-challenge/cancel', [MfaChallengeController::class, 'cancel'])->name('mfa.challenge.cancel');
 });
 
 Route::middleware('auth')->group(function () {
@@ -55,7 +66,7 @@ Route::middleware('auth')->group(function () {
     Route::get('confirm-password', [ConfirmablePasswordController::class, 'show'])
         ->name('password.confirm');
 
-    Route::post('confirm-password', [ConfirmablePasswordController::class, 'store']);
+    Route::post('confirm-password', [ConfirmablePasswordController::class, 'store'])->name('password.confirm.store');
 
     Route::put('password', [PasswordController::class, 'update'])->name('password.update');
 

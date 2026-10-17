@@ -25,9 +25,18 @@ class User extends Authenticatable
         'notification_sound_enabled',
     ];
 
+    /**
+     * The mfa_* columns are deliberately NOT fillable: only App\Services\Mfa\MfaManager writes them (docs/MFA_SECURITY.md).
+     * They are hidden as well, so no array/JSON serialisation of a user can ever carry a secret or a recovery-code hash.
+     */
     protected $hidden = [
         'password',
         'remember_token',
+        'mfa_secret',
+        'mfa_pending_secret',
+        'mfa_pending_created_at',
+        'mfa_recovery_codes',
+        'mfa_last_used_step',
     ];
 
     protected function casts(): array
@@ -36,7 +45,22 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
             'password' => 'hashed',
+            // Encrypted at rest with the application key (AES-256-CBC + MAC); a database dump alone reveals nothing.
+            'mfa_secret' => 'encrypted',
+            'mfa_pending_secret' => 'encrypted',
+            'mfa_pending_created_at' => 'datetime',
+            // One-way keyed hashes only (App\Services\Mfa\RecoveryCodes), never the codes themselves.
+            'mfa_recovery_codes' => 'array',
+            'mfa_confirmed_at' => 'datetime',
+            'mfa_last_used_step' => 'integer',
+            'mfa_enrollment_required_at' => 'datetime',
         ];
+    }
+
+    /** Two-step verification is on: a confirmed secret exists. */
+    public function hasMfaEnabled(): bool
+    {
+        return $this->mfa_confirmed_at !== null && $this->getRawOriginal('mfa_secret') !== null;
     }
 
     public function roles(): BelongsToMany

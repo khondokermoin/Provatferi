@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Support\SessionTerminator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -23,6 +24,10 @@ class PasswordController extends Controller
         $request->user()->update([
             'password' => Hash::make($validated['password']),
         ]);
+
+        // Every other device signed in with the old password is signed out (docs/MFA_SECURITY.md, "Sessions"); this one
+        // stays. Two-step verification is untouched.
+        SessionTerminator::endSessionsOf($request->user(), $request->session()->getId());
 
         return back()->with('success', 'পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে।');
     }

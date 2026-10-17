@@ -129,6 +129,8 @@
             'title' => __('admin.nav.groups.account'),
             'items' => [
                 ['label' => __('admin.nav.profile'), 'icon' => 'ti-user-circle', 'route' => 'profile.edit'],
+                // Two-step verification and recovery codes (docs/MFA_SECURITY.md); highlighted on its sub-pages too.
+                ['label' => __('admin.nav.account_security'), 'icon' => 'ti-shield-lock', 'route' => 'admin.account.security', 'active' => 'admin.account.security*'],
             ],
         ],
     ];

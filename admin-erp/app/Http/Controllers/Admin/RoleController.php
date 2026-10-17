@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Support\Mfa\NewlyRequiredAudit;
 use App\Support\SuperAdminGuard;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -73,11 +74,14 @@ class RoleController extends Controller
                 ->with('warning', __('admin.flash.super_admin_permissions_not_applied'));
         }
 
+        $before = NewlyRequiredAudit::before($role->users()->with('roles.permissions')->get());
         $role->update([
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
         ]);
         $role->permissions()->sync($data['permissions'] ?? []);
+        // A new privileged permission makes the role's accounts required once the privileged-account rule is on.
+        NewlyRequiredAudit::after($before, $role->users()->with('roles.permissions')->get(), $request->user(), 'role_permissions');
 
         return redirect()->route('admin.roles.index')->with('success', __('admin.flash.role_updated', ['name' => $role->name]));
     }

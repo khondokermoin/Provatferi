@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
+use App\Support\Mfa\MfaThrottle;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -34,16 +36,24 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * Attempt to authenticate the request's credentials.
+     * Checks the email and password WITHOUT signing anyone in (docs/MFA_SECURITY.md, "Login flow"): the caller decides
+     * whether this account goes straight in or through the two-step challenge first. An inactive (deactivated) account is
+     * refused with the same message as a wrong password, so the answer never says which accounts exist or are disabled.
      *
      * @throws ValidationException
      */
-    public function authenticate(): void
+    public function authenticate(): User
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        /** @var \Illuminate\Auth\SessionGuard $guard */
+        $guard = Auth::guard('web');
+        $valid = $guard->validate($this->only('email', 'password'));
+        $user = $guard->getLastAttempted();
+
+        if (! $valid || ! $user instanceof User || $user->status !== 'active') {
             RateLimiter::hit($this->throttleKey());
+            MfaThrottle::recordFailure('login', $this->accountKey(), $this);
 
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
@@ -51,22 +61,35 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+        MfaThrottle::clear('login', $this->accountKey(), $this);
+
+        // What Auth::attempt() did before: upgrade an old password hash while the plain password is at hand.
+        if (config('hashing.rehash_on_login', true)) {
+            $guard->getProvider()->rehashPasswordIfRequired($user, $this->only('password'));
+        }
+
+        return $user;
     }
 
     /**
-     * Ensure the login request is not rate limited.
+     * Ensure the login request is not rate limited: five failures a minute for one account from one address (the
+     * original rule), plus an allowance per account across all addresses and a larger one per address
+     * (App\Support\Mfa\MfaThrottle) — never the address alone.
      *
      * @throws ValidationException
      */
     public function ensureIsNotRateLimited(): void
     {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
+        $seconds = RateLimiter::tooManyAttempts($this->throttleKey(), 5) ? RateLimiter::availableIn($this->throttleKey()) : null;
+        $wider = MfaThrottle::blockedFor('login', $this->accountKey(), $this);
+        if ($wider !== null) {
+            $seconds = max($seconds ?? 0, $wider);
+        }
+        if ($seconds === null) {
             return;
         }
 
         event(new Lockout($this));
-
-        $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
             'email' => trans('auth.throttle', [
@@ -82,5 +105,10 @@ class LoginRequest extends FormRequest
     public function throttleKey(): string
     {
         return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+    }
+
+    private function accountKey(): string
+    {
+        return Str::transliterate(Str::lower($this->string('email')));
     }
 }

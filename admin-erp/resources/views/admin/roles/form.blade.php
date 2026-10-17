@@ -61,4 +61,39 @@
             </div>
         </div>
     </form>
+
+    {{-- Two-step verification for this role (docs/MFA_SECURITY.md): its own form and route (RoleMfaController), so the
+         protection changes only through that guarded action, never as a side effect of saving names or permissions. --}}
+    @if ($isEdit)
+        <div class="row">
+            <div class="col-lg-8">
+                <x-admin.card :title="__('admin.mfa.role_heading')" id="role-mfa-card">
+                    @if (\App\Support\Mfa\MfaPolicy::roleIsPrivileged($role) && ! $role->mfa_required)
+                        <p class="fs-13 text-warning-emphasis"><i class="ti ti-alert-triangle" aria-hidden="true"></i> {{ __('admin.mfa.role_recommended') }}</p>
+                    @endif
+                    @if ($isSuperAdmin && ! auth()->user()->hasRole(\App\Support\Mfa\MfaPolicy::PRIVILEGED_ROLE))
+                        <p class="mb-0 fs-13">
+                            <span class="badge {{ $role->mfa_required ? 'bg-success-subtle text-success-emphasis' : 'bg-secondary-subtle text-secondary-emphasis' }}">
+                                {{ $role->mfa_required ? __('admin.mfa.short_required') : __('admin.mfa.short_optional') }}
+                            </span>
+                            <span class="d-block text-muted mt-2">{{ __('admin.mfa.role_super_admin_only') }}</span>
+                        </p>
+                    @else
+                        <form method="POST" action="{{ route('admin.roles.mfa', $role) }}" class="d-flex flex-wrap align-items-center gap-3">
+                            @csrf
+                            @method('PATCH')
+                            <input type="hidden" name="mfa_required" value="0">
+                            <div class="form-check form-switch m-0">
+                                <input class="form-check-input" type="checkbox" role="switch" id="role-mfa-required" name="mfa_required" value="1"
+                                       aria-describedby="role-mfa-help" @checked($role->mfa_required)>
+                                <label class="form-check-label" for="role-mfa-required">{{ __('admin.mfa.role_label') }}</label>
+                            </div>
+                            <button type="submit" class="btn btn-light border btn-sm">{{ __('admin.mfa.role_save') }}</button>
+                        </form>
+                        <p class="form-text mb-0 mt-2" id="role-mfa-help">{{ __('admin.mfa.role_help') }}</p>
+                    @endif
+                </x-admin.card>
+            </div>
+        </div>
+    @endif
 @endsection

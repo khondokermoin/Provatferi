@@ -52,6 +52,11 @@ own page and in a small homepage section. Nothing is pre-filled. The data model,
 publishing, photo, Bangla / English, cache and API rules, and the procedure for creating a profile are in
 `docs/LEADERSHIP_SYSTEM.md`.
 
+Staff accounts can protect themselves with two-step verification (an authenticator app, TOTP) in **Admin → Account
+security**; it can be required per role or for every privileged account. Enrolment, the sign-in challenge, recovery
+codes, the rules for who must use it, step-up, rate limits, the audit trail, staff API tokens, the break-glass reset
+(`php artisan mfa:reset`) and the owner's roll-out steps are in `docs/MFA_SECURITY.md`.
+
 ## RBAC
 
 Custom tables: `roles`, `permissions`, `role_permissions`, `user_roles`.

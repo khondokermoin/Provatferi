@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\SecurityEvent;
 use App\Models\User;
+use App\Services\SecurityEventLogger;
+use App\Support\SessionTerminator;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -47,6 +50,15 @@ class NewPasswordController extends Controller
                     'password' => Hash::make($request->password),
                     'remember_token' => Str::random(60),
                 ])->save();
+
+                // A reset usually follows a lost or stolen password: every open session and API token of the account ends
+                // now (docs/MFA_SECURITY.md, "Password reset"). Two-step verification and its recovery codes are NOT
+                // touched: the next sign-in still asks for a code.
+                $ended = SessionTerminator::endSessionsOf($user);
+                app(SecurityEventLogger::class)->record(SecurityEvent::SESSIONS_ENDED_AFTER_PASSWORD_RESET, $user, [
+                    'sessions_ended' => $ended['sessions'],
+                    'api_tokens_revoked' => $ended['api_tokens'],
+                ]);
 
                 event(new PasswordReset($user));
             }
