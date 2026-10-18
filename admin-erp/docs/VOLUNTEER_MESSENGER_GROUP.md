@@ -216,3 +216,39 @@ Messenger itself:
 * The application form still accepts 5 submissions a minute for the whole site (the pre-existing limit, shared by every visitor);
   the acceptance kit keeps to 3 a minute so that it never turns a real applicant away.
 * The page cannot know that an applicant actually joined; approval in Messenger is manual.
+
+## Production acceptance (2026-10-18)
+
+Release `f922fde9b645-2026-10-1809242` (ERP first, then the site build). Real Chrome against provatferi.org and
+admin.provatferi.org with `institutional/scripts/volunteer-messenger-qa.mjs`:
+
+* **Main run, 79/79** (desktop and phone, light and dark, Bangla and English). With the group configured and ON — first a
+  made-up link, then the owner's real one — the notice, opportunity and apply pages (HTML and data payload), the public APIs
+  and the 11 script/style files the pages load carry no invite. A refused application and a refused duplicate stay on the form
+  with no proof cookie; a valid one lands on the confirmation with Join and Copy; Join and Copy give exactly the canonical
+  link (clipboard read back; the manual-copy fallback checked); refresh, a second tab and the other language work inside the
+  window; a fresh browser and every tampered, truncated, extended or invented proof show the neutral page; switching the group
+  off hides the card and a changed link shows on the next load; fifteen hostile links are refused with nothing stored, a link
+  pasted in Messenger's own long form is saved canonical, and a save without the CSRF token is refused (419).
+* **Expiry, 5/5**: run 31.5 minutes after the proof was issued, with the application row still present, so it is the expiry that
+  is tested and not a revocation: the neutral page, no invite in the source, and the verification API answers
+  `verified:false, messenger:null`.
+* Headers: the confirmation page is `private, no-cache, no-store`, the verification API `no-store, private` with its own
+  `x-ratelimit-limit: 600`, `cf-cache-status: DYNAMIC` on both; the page is `noindex, nofollow` and not in the sitemap.
+* The owner's real invite, pasted in the `www.messenger.com … ?send_source=…` form, was saved through the real admin screen and
+  checked by digest only (the first 8 hex characters of the sha256 of its token). It is left saved and switched ON.
+* Server side (`deploy/qa/volunteer-messenger-qa.php`): snapshot before the run; after it, **no real application, posting, notice,
+  setting or file had changed** (only the three QA applications were left, then purged); production writes no Laravel log file, so
+  there was nothing to scan.
+* Regression: `nav-qa.mjs` 13/13 and `request-storm-qa.mjs` settled on the home page, the opportunity page, the neutral
+  confirmation and the notice.
+
+Three things only a real browser run found, each fixed and pinned by a test: the verification route first shared the application
+form's 5-a-minute rate-limit bucket (the numeric `throttle` is keyed by domain + IP, not by route); Next's cookie store keeps one
+cookie per name, so the no-JavaScript Server Action could not set both language paths; and `.button span` (the 19px arrow glyph)
+made the Copy label larger than the Join label.
+
+Cleanup after the run: the kit's purge removed exactly the three QA applications and their three photos (the next real
+application number is `VOL-2026-0082`, as before the run); an independent diff against the pre-run snapshot was identical
+apart from the intended difference (the Messenger settings now hold the owner's link, switched on); the kit file, the
+snapshot and every session cron were removed, and the only cron left is the permanent dues job.
