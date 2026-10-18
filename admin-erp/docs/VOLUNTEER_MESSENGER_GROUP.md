@@ -242,6 +242,8 @@ admin.provatferi.org with `institutional/scripts/volunteer-messenger-qa.mjs`:
   there was nothing to scan.
 * Regression: `nav-qa.mjs` 13/13 and `request-storm-qa.mjs` settled on the home page, the opportunity page, the neutral
   confirmation and the notice.
+* Before the release the same script ran 81/81 on a local Laravel + Next pair, which adds the no-JavaScript Server Action path
+  (a native Server Action POST is never sent at production); that run is what found the three defects below.
 
 Three things only a real browser run found, each fixed and pinned by a test: the verification route first shared the application
 form's 5-a-minute rate-limit bucket (the numeric `throttle` is keyed by domain + IP, not by route); Next's cookie store keeps one
