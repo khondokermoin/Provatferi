@@ -96,6 +96,9 @@ class VolunteerMessengerKitTest extends TestCase
         // The only delete on applications is by the marked ids; an empty list deletes nothing.
         $this->assertSame(1, substr_count($source, "DB::table('job_applications')->whereIn('id', \$qa)->delete()"));
         $this->assertStringContainsString("if (\$ids === []) {\n        return [];\n    }", $source, 'filesOf([]) must be empty, never "every application"');
+        // A stray file is only ever one that is old: a real applicant's files are stored a moment before their row is.
+        $this->assertStringContainsString('lastModified($path) < time() - STRAY_MIN_AGE_SECONDS', $source);
+        $this->assertStringContainsString('const STRAY_MIN_AGE_SECONDS = 1800;', $source);
         // It reports the saved invite only as a digest of its token.
         $this->assertStringContainsString("substr(hash('sha256', \$token), 0, 8)", $source);
         $this->assertDoesNotMatchRegularExpression('/[\'"]link[\'"]\s*=>|[\'"]url[\'"]\s*=>\s*\$/', $source, 'no output field may carry the link itself');

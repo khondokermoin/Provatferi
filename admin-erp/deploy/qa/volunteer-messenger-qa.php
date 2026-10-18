@@ -83,6 +83,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 const FOLDERS = ['applications/photos', 'applications/cv'];
+const STRAY_MIN_AGE_SECONDS = 1800;
 const MESSENGER_KEYS = [CentralMessengerGroup::KEY_ENABLED, CentralMessengerGroup::KEY_URL];
 
 /** @return list<int> */
@@ -317,9 +318,12 @@ switch ($mode) {
             // A file a REAL application also references is never ours to delete.
             $ownFiles = array_values(array_diff($ownFiles, $keepers));
             // A file no application references and the baseline did not list: an upload whose application was never written.
+            // Only one older than half an hour: a real applicant's files are stored a moment BEFORE their row is, and a purge that
+            // ran in that gap must not take them.
             $stray = [];
             foreach (applicationFiles() as $path => $size) {
-                if (! in_array($path, $keepers, true) && ! in_array($path, $ownFiles, true) && ! array_key_exists($path, $then['files'] ?? [])) {
+                if (! in_array($path, $keepers, true) && ! in_array($path, $ownFiles, true) && ! array_key_exists($path, $then['files'] ?? [])
+                    && Storage::disk('uploads_private')->lastModified($path) < time() - STRAY_MIN_AGE_SECONDS) {
                     $stray[] = $path;
                 }
             }
