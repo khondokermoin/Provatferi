@@ -5,12 +5,18 @@
  *    loaded raises the browser's own "leave site?" prompt. Typing a change and typing it back clears the warning.
  *  - Double submit: once a valid submit starts, every submit button is disabled and says "Saving…" (data-saving-label),
  *    so a second click cannot send the form twice. A page restored from the browser's back/forward cache is re-armed.
+ *  - Optional data-guard-group="<name>" (2026-10-18; the committee review page): forms of one group are ONE decision with
+ *    several buttons (approve / ask for a correction / reject). When one of them is sent, the buttons of the others are
+ *    disabled too and typed-but-unsent text in them no longer raises the "leave site?" prompt.
  *
  * Plain JavaScript, no dependency. It only compares the form with itself in memory: no value is stored, logged or sent
- * anywhere. Without JavaScript the form still saves; it simply has neither guard.
+ * anywhere. Without JavaScript the form still saves; it simply has neither guard (the server does not rely on this one:
+ * the committee review answers a repeated decision from the row as it is by then).
  */
 (function () {
     'use strict';
+
+    var sent = {};
 
     function snapshot(form) {
         var parts = [];
@@ -26,11 +32,12 @@
     function arm(form) {
         var initial = snapshot(form);
         var submitting = false;
+        var group = form.getAttribute('data-guard-group');
         var buttons = Array.prototype.slice.call(form.querySelectorAll('button[type="submit"]'));
         var original = buttons.map(function (button) { return button.innerHTML; });
 
         function isDirty() {
-            return !submitting && snapshot(form) !== initial;
+            return !submitting && !(group && sent[group]) && snapshot(form) !== initial;
         }
 
         window.addEventListener('beforeunload', function (event) {
@@ -55,6 +62,12 @@
                     button.innerHTML = '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>' + label;
                 }
             });
+            if (group) {
+                sent[group] = true;
+                Array.prototype.forEach.call(document.querySelectorAll('form[data-guard-group="' + group + '"] button[type="submit"]'), function (button) {
+                    button.disabled = true;
+                });
+            }
         });
 
         // Back/forward cache: the page returns exactly as it was left, with the buttons still disabled.
@@ -63,6 +76,9 @@
                 return;
             }
             submitting = false;
+            if (group) {
+                sent[group] = false;
+            }
             initial = snapshot(form);
             buttons.forEach(function (button, index) {
                 button.disabled = false;

@@ -257,10 +257,14 @@ class CommitteeRegistrationManagementTest extends AdminTestCase
         $this->assertSame('correction_requested', $submission->status);
         $response->assertSessionHas('generated_correction_link', fn ($url) => str_contains($url, '/committee/register/correct/'));
 
-        // A rejected submission is terminal — no further transition is allowed.
+        // A rejected submission is terminal — no further transition is allowed, and the reviewer is told so on the review
+        // page (it used to be a bare 422 page; see CommitteeSubmissionReviewTest for the full behaviour).
         $rejected = $this->submission($committee, $position, 'rejected');
         $this->actingAs($admin)->patch(route('admin.committees.submissions.approve', [$committee, $rejected]))
-            ->assertStatus(422);
+            ->assertRedirect(route('admin.committees.submissions.show', [$committee, $rejected]))
+            ->assertSessionHas('error');
+        $this->assertSame('rejected', $rejected->fresh()->status);
+        $this->assertSame(0, CommitteeMember::query()->where('committee_submission_id', $rejected->id)->count());
     }
 
     public function test_a_correction_request_emails_the_nominee_the_correction_link(): void

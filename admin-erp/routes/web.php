@@ -110,6 +110,8 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
 
         Route::get('/{committee}/submissions', [CommitteeSubmissionController::class, 'index'])->middleware('permission:organization.view')->name('submissions.index');
         Route::get('/{committee}/submissions/{submission}', [CommitteeSubmissionController::class, 'show'])->middleware('permission:organization.view')->name('submissions.show');
+        // The applicant's photo for the reviewer: streamed from the private disk, never a public URL (CommitteeSubmissionPhoto).
+        Route::get('/{committee}/submissions/{submission}/photo', [CommitteeSubmissionController::class, 'photo'])->middleware('permission:organization.view')->name('submissions.photo');
         Route::patch('/{committee}/submissions/{submission}/approve', [CommitteeSubmissionController::class, 'approve'])->middleware('permission:organization.approve')->name('submissions.approve');
         Route::patch('/{committee}/submissions/{submission}/reject', [CommitteeSubmissionController::class, 'reject'])->middleware('permission:organization.approve')->name('submissions.reject');
         Route::patch('/{committee}/submissions/{submission}/request-correction', [CommitteeSubmissionController::class, 'requestCorrection'])->middleware('permission:organization.approve')->name('submissions.request-correction');

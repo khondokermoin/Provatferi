@@ -11,13 +11,19 @@
         <div class="col-lg-7">
             <x-admin.card title="{{ __('admin.fields.applicant_info') }}">
                 <div class="d-flex align-items-start gap-3 mb-3">
-                    @if ($photoUrl)
-                        <img src="{{ $photoUrl }}" alt="{{ $submission->full_name }}" class="rounded" style="width:80px;height:80px;object-fit:cover;">
-                    @else
-                        <div class="rounded bg-secondary-subtle d-flex align-items-center justify-content-center" style="width:80px;height:80px;">
-                            <i class="ti ti-user fs-24 text-secondary" aria-hidden="true"></i>
-                        </div>
-                    @endif
+                    {{-- The reviewer's picture: the private original through an authenticated route (CommitteeSubmissionPhoto),
+                         so it is there while the application is still waiting. data-photo-state: available | none | missing. --}}
+                    <div class="flex-shrink-0" data-photo-state="{{ $photoState }}">
+                        @if ($photoUrl)
+                            <a href="{{ $photoUrl }}" target="_blank" rel="noopener" title="{{ __('admin.fields.view_full_size') }}">
+                                <img src="{{ $photoUrl }}" alt="{{ $submission->full_name }}" class="rounded d-block" style="width:96px;height:96px;object-fit:cover;">
+                            </a>
+                        @else
+                            <div class="rounded bg-secondary-subtle d-flex align-items-center justify-content-center" style="width:96px;height:96px;">
+                                <i class="ti ti-user fs-24 text-secondary" aria-hidden="true"></i>
+                            </div>
+                        @endif
+                    </div>
                     <div>
                         <span class="fw-semibold fs-16">{{ $submission->full_name }}</span>
                         @if ($submission->name_en)
@@ -26,6 +32,17 @@
                         @if ($submission->member)
                             <span class="badge bg-info-subtle text-info-emphasis fs-11 mt-1">
                                 <i class="ti ti-link" aria-hidden="true"></i> {{ __('admin.fields.linked_to_existing_member') }}
+                            </span>
+                        @endif
+                        @if ($photoState === 'none')
+                            <span class="d-block text-muted fs-12 mt-1">{{ __('admin.fields.photo_not_provided') }}</span>
+                        @elseif ($photoState === 'missing')
+                            {{-- The icon carries the warning colour; the words stay in the body colour so they read in both themes. --}}
+                            <span class="d-block text-body fs-12 mt-1" role="status">
+                                <i class="ti ti-alert-triangle text-warning me-1" aria-hidden="true"></i>{{ __('admin.fields.uploaded_but_file_missing') }}
+                                @if (in_array('correction_requested', $nextStatuses, true))
+                                    {{ __('admin.committee_review.photo_lost_help') }}
+                                @endif
                             </span>
                         @endif
                     </div>
@@ -125,10 +142,20 @@
                 </x-admin.card>
             @endif
 
+            @if ($submission->status === 'approved')
+                <div class="alert alert-success fs-13" role="status">
+                    <i class="ti ti-circle-check me-1" aria-hidden="true"></i>{{ __('admin.committee_review.approved_notice') }}
+                </div>
+            @endif
+
+            {{-- The three decision forms share one guard group (public/js/provatferi-form-guard.js): once one of them is sent, every
+                 decision button is disabled and says it is working, so a second click cannot send a second decision. The server
+                 does not rely on this: it answers a repeated decision from the row as it is by then. --}}
             @can('organization.approve')
                 @if (in_array('approved', $nextStatuses, true))
                     <x-admin.card title="{{ __('admin.actions.approve') }}">
-                        <form method="POST" action="{{ route('admin.committees.submissions.approve', [$committee, $submission]) }}">
+                        <form method="POST" action="{{ route('admin.committees.submissions.approve', [$committee, $submission]) }}"
+                              data-form-guard data-guard-group="review" data-saving-label="{{ __('admin.committee_review.working') }}">
                             @csrf @method('PATCH')
                             <button type="submit" class="btn btn-success w-100">
                                 <i class="ti ti-circle-check me-1" aria-hidden="true"></i>{{ __('admin.actions.approve') }}
@@ -139,7 +166,8 @@
 
                 @if (in_array('correction_requested', $nextStatuses, true))
                     <x-admin.card title="{{ __('admin.fields.correction_needed_title') }}">
-                        <form method="POST" action="{{ route('admin.committees.submissions.request-correction', [$committee, $submission]) }}">
+                        <form method="POST" action="{{ route('admin.committees.submissions.request-correction', [$committee, $submission]) }}"
+                              data-form-guard data-guard-group="review" data-saving-label="{{ __('admin.committee_review.working') }}">
                             @csrf @method('PATCH')
                             <x-admin.form-textarea name="admin_note" label="{{ __('admin.fields.correction_reason') }}" :rows="3" required />
                             <button type="submit" class="btn btn-outline-warning w-100">
@@ -151,7 +179,8 @@
 
                 @if (in_array('rejected', $nextStatuses, true))
                     <x-admin.card title="{{ __('admin.actions2.reject2') }}">
-                        <form method="POST" action="{{ route('admin.committees.submissions.reject', [$committee, $submission]) }}">
+                        <form method="POST" action="{{ route('admin.committees.submissions.reject', [$committee, $submission]) }}"
+                              data-form-guard data-guard-group="review" data-saving-label="{{ __('admin.committee_review.working') }}">
                             @csrf @method('PATCH')
                             <x-admin.form-textarea name="admin_note" label="{{ __('admin.actions2.reject_reason') }}" :rows="3" required />
                             <button type="submit" class="btn btn-outline-danger w-100">
@@ -170,3 +199,7 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    <script src="{{ asset('js/provatferi-form-guard.js') }}"></script>
+@endpush

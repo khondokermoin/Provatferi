@@ -294,9 +294,26 @@ return [
         '403' => ['title' => 'Not permitted', 'code' => '403', 'heading' => 'You do not have permission to view this page', 'body' => 'Your account lacks the permission needed to see this page. Please contact an administrator if you need access.'],
         '404' => ['title' => 'Page not found', 'code' => '404', 'heading' => 'We could not find that page', 'body' => 'The page you are looking for has been moved, or the address is not correct.'],
         '419' => ['title' => 'Session expired', 'code' => '419', 'heading' => 'This page has expired', 'body' => 'For security, a form left open too long expires. Reload the page and try again — nothing you entered has been lost.'],
+        '422' => ['title' => 'Request not processed', 'code' => '422', 'heading' => 'This request could not be processed', 'body' => 'The page you used may be out of date, or the request no longer fits the current state of the record. Go back, reload the page and look at its current state before trying again — nothing has been lost.'],
         '429' => ['title' => 'Too many requests', 'code' => '429', 'heading' => 'Too many attempts in a short time', 'body' => 'There is a limit in place for security. Please wait a moment and try again.'],
         '500' => ['title' => 'Server problem', 'code' => '500', 'heading' => 'Something went wrong', 'body' => 'The error is on our side. Please try again shortly — if it keeps happening, contact an administrator.'],
         '503' => ['title' => 'Under maintenance', 'code' => '503', 'heading' => 'Temporarily unavailable', 'body' => 'Necessary maintenance is in progress. The system will be back shortly — please try again in a moment.'],
+    ],
+
+    // Committee-application review (docs/COMMITTEE_SUBMISSION_REVIEW.md): what a reviewer is told when a decision cannot, or need not, be taken.
+    'committee_review' => [
+        'already_approved' => 'This application was already approved — by :name on :when. Nothing was changed.',
+        'already_approved_plain' => 'This application was already approved. Nothing was changed.',
+        'already_rejected' => 'This application was already rejected. Nothing was changed.',
+        'already_correction' => 'A correction was already requested for this application. Nothing was changed.',
+        'blocked_approve' => 'This application is now “:status”, so it can no longer be approved. The page below shows its current state.',
+        'blocked_reject' => 'This application is now “:status”, so it can no longer be rejected. The page below shows its current state.',
+        'blocked_correction' => 'This application is now “:status”, so a correction can no longer be requested. The page below shows its current state.',
+        'photo_missing_blocked' => 'The applicant’s photo file could not be found on the server, so the application was not approved and nothing was changed. Request a correction so the applicant can send the photo again, then approve it.',
+        'failed' => 'The decision could not be saved and nothing was changed. Please try once more. If it keeps failing, give this reference to the administrator: :ref.',
+        'approved_notice' => 'Approved — the applicant now holds a seat on the committee roster.',
+        'photo_lost_help' => 'Request a correction so the applicant can send it again.',
+        'working' => 'Working…',
     ],
 
     'profile' => [
