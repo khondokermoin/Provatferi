@@ -127,7 +127,7 @@ class EmailIdentityTest extends TestCase
             'membership approved' => [fn () => new MembershipApplicationStatusChangedNotification('APP-2026-0001', 'approved', null, 'PLCC-LM-2026-0001', 'invited'), 'support'],
             'membership rejected' => [fn () => new MembershipApplicationStatusChangedNotification('APP-2026-0001', 'rejected', 'কারণ'), 'support'],
             'membership needs information' => [fn () => new MembershipApplicationStatusChangedNotification('APP-2026-0001', 'need_information', 'ছবি'), 'support'],
-            'volunteer application received' => [fn () => new VolunteerApplicationReceivedNotification('VOL-2026-0001', 'স্বেচ্ছাসেবক', 'https://chat.whatsapp.com/x'), 'support'],
+            'volunteer application received' => [fn () => new VolunteerApplicationReceivedNotification('VOL-2026-0001', 'স্বেচ্ছাসেবক'), 'support'],
             'volunteer application decided' => [fn () => new VolunteerApplicationStatusChangedNotification('VOL-2026-0001', 'accepted', 'নাদিয়া', 'স্বেচ্ছাসেবক'), 'support'],
             'committee correction requested' => [fn () => new CommitteeCorrectionRequestedNotification('কার্যনির্বাহী কমিটি', 'ছবি অস্পষ্ট', 'https://provatferi.org/committee/register/correct/t', 7), 'support'],
             'committee submission decided' => [fn () => new CommitteeSubmissionStatusChangedNotification('কার্যনির্বাহী কমিটি', 'approved'), 'support'],

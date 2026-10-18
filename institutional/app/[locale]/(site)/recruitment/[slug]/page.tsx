@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { org } from "@/lib/content";
 import { getPublicContact } from "@/lib/contact";
-import { applicationWindowLabel, applyCtaLabel, communityCtaLabel, getJobPosting } from "@/lib/api/recruitment";
+import { applicationWindowLabel, applyCtaLabel, getJobPosting } from "@/lib/api/recruitment";
 import { formatDate } from "@/lib/format";
 import { localizedMetadata } from "@/lib/social-meta";
 import { excerpt } from "@/lib/text-blocks";
@@ -143,8 +143,9 @@ export default async function RecruitmentDetailPage({ params }: { params: Promis
                 )}
               </dl>
 
-              {/* §10: applying happens on the website form. The WhatsApp
-                  group is offered afterwards, as a community channel. */}
+              {/* §10: applying happens on the website form. A volunteer group is NOT offered here: the central Messenger
+                  group is shown only on the confirmation after a verified application
+                  (admin-erp/docs/VOLUNTEER_MESSENGER_GROUP.md). */}
               {job.accepts_applications && job.apply_path ? (
                 <Link href={localizeHref(job.apply_path, locale)} className="button button-primary">
                   {applyCtaLabel(job.is_volunteer, locale)} <span aria-hidden="true">→</span>
@@ -152,13 +153,6 @@ export default async function RecruitmentDetailPage({ params }: { params: Promis
               ) : (
                 <a href={`mailto:${contact.supportEmail}?subject=${encodeURIComponent(title.text)}`} className="button button-primary">
                   {locale === "en" ? "Contact About This Opportunity" : "আবেদন সংক্রান্ত যোগাযোগ"}
-                </a>
-              )}
-
-              {job.notice_action && (
-                <a className="button button-outline" href={job.notice_action.url} target="_blank" rel="noopener noreferrer">
-                  {communityCtaLabel(job.notice_action.url, pickText(locale, job.notice_action.label, job.notice_action.label_en).text, locale)} <span aria-hidden="true">↗</span>
-                  <span className="sr-only"> ({t.common.opensInNewTab})</span>
                 </a>
               )}
 

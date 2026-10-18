@@ -97,6 +97,14 @@
                 </x-admin.card>
 
                 <x-admin.card title="{{ __('admin.fields.action_button') }} ({{ __('admin.common.optional') }})">
+                    {{-- A notice linked to a recruitment posting never shows its button publicly (its old use was the community
+                         group link): say so here instead of leaving an admin to wonder (docs/VOLUNTEER_MESSENGER_GROUP.md). --}}
+                    @if ($isEdit && $notice->jobPosting)
+                        <div class="alert alert-info d-flex align-items-start gap-2 fs-13" role="note" id="notice-linked-button-note">
+                            <i class="ti ti-info-circle fs-16 mt-1 flex-shrink-0" aria-hidden="true"></i>
+                            <span>{{ __('admin.messenger.notice_linked_note') }}</span>
+                        </div>
+                    @endif
                     <div class="row">
                         <div class="col-md-8">
                             <x-admin.form-input name="action_url" label="{{ __('admin.fields.action_link_label') }}" type="url" :value="$notice->action_url" maxlength="500"

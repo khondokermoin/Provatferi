@@ -57,6 +57,12 @@ security**; it can be required per role or for every privileged account. Enrolme
 codes, the rules for who must use it, step-up, rate limits, the audit trail, staff API tokens, the break-glass reset
 (`php artisan mfa:reset`) and the owner's roll-out steps are in `docs/MFA_SECURITY.md`.
 
+The central volunteer Messenger group is offered **only on the confirmation page after a verified application** — never on
+a notice, an opportunity page, the API or in the page source. The invite link and its on/off switch are managed in
+**Admin → Recruitment → Volunteer Messenger group**; how the page proves a visitor has just applied (a short-lived,
+encrypted, HttpOnly proof checked by Laravel on every load), the canonical `https://m.me/j/<token>/` form, why Messenger's
+"Require approval to join" must stay on, and how to change or reset the link are in `docs/VOLUNTEER_MESSENGER_GROUP.md`.
+
 ## RBAC
 
 Custom tables: `roles`, `permissions`, `role_permissions`, `user_roles`.

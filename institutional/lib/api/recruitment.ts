@@ -7,10 +7,6 @@ function isSkillOption(v: unknown): v is SkillOption {
   return isRecord(v) && typeof v.key === "string" && typeof v.label === "string";
 }
 
-function isNoticeAction(v: unknown): v is { url: string; label: string; label_en: string | null } | null {
-  return v === null || (isRecord(v) && typeof v.url === "string" && typeof v.label === "string" && isOptionalString(v.label_en));
-}
-
 function isFieldRequirements(v: unknown): v is Record<string, "required" | "optional"> | null {
   return v === null || (isRecord(v) && Object.values(v).every((x) => x === "required" || x === "optional"));
 }
@@ -47,7 +43,9 @@ export function isJobPosting(v: unknown): v is JobPosting {
     isStringOrNull(v.notice_slug) &&
     typeof v.accepts_applications === "boolean" &&
     isStringOrNull(v.apply_path) &&
-    isNoticeAction(v.notice_action) &&
+    // `notice_action` (the linked notice's button, once the community-group link) is no longer part of the contract:
+    // the ERP sends null, or nothing, and this site never reads it. It is deliberately NOT checked, so a posting is
+    // never rejected over a key nobody uses — and so a link that ever did arrive here has no way into the page.
     (v.skill_options === null || (Array.isArray(v.skill_options) && v.skill_options.every(isSkillOption))) &&
     // Same undefined-tolerant shape as share_image_url just below — a live
     // ERP not yet carrying this deploy would omit the key entirely rather
@@ -65,16 +63,6 @@ export function isJobPosting(v: unknown): v is JobPosting {
 export function applyCtaLabel(isVolunteer: boolean, locale: Locale = "bn"): string {
   const t = getStrings(locale).common;
   return isVolunteer ? t.applyAsVolunteer : t.apply;
-}
-
-/**
- * A WhatsApp destination is named for what it is, so the secondary button
- * never reads like the way to apply. Any other action keeps the label the
- * admin gave it (in whichever locale-appropriate form the caller already
- * resolved, e.g. via pickText on action.label/label_en).
- */
-export function communityCtaLabel(url: string, fallbackLabel: string, locale: Locale = "bn"): string {
-  return /(^|\/\/|\.)(wa\.me|chat\.whatsapp\.com)/.test(url) ? getStrings(locale).common.joinCommunityGroup : fallbackLabel;
 }
 
 function isJobPostingsResponse(json: unknown): json is { data: JobPosting[] } {

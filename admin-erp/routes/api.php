@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\V1\Public\MembershipApplicationController;
 use App\Http\Controllers\Api\V1\Public\MembershipCampaignController;
 use App\Http\Controllers\Api\V1\Public\NoticeController as PublicNoticeController;
 use App\Http\Controllers\Api\V1\Public\VolunteerApplicationController;
+use App\Http\Controllers\Api\V1\Public\VolunteerApplicationSuccessController;
 use App\Http\Controllers\Api\HostingerMailWebhookController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use Illuminate\Support\Facades\Route;
@@ -91,6 +92,13 @@ Route::prefix('v1')->group(function () {
         // the posting itself decides whether it accepts applications at all.
         Route::post('/recruitment/{slug}/applications', [VolunteerApplicationController::class, 'store'])
             ->middleware('throttle:5,1')->name('api.public.recruitment.apply');
+        // The confirmation page's server asks here before it shows the central Messenger group invite (a proof in the body,
+        // never in the URL). Every visitor's page load comes from the public site's one server address, so the limit is a
+        // backstop for the whole site, not a per-person one. It has a bucket of its own (the third parameter): the numeric
+        // throttle is keyed by domain + IP and NOT by route, so without a prefix every confirmation page load would count
+        // against the 5 a minute of the application form above — a few refreshes would turn the next applicant away.
+        Route::post('/recruitment/{slug}/application-success', [VolunteerApplicationSuccessController::class, 'show'])
+            ->middleware('throttle:600,1,application-success:')->name('api.public.recruitment.success');
     });
 
     // Auth (staff tokens). The login follows the web sign-in's rules — its rate limits (LoginRequest + MfaThrottle, never

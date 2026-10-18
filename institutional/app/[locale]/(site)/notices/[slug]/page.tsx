@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { org } from "@/lib/content";
 import { getNotice } from "@/lib/api/notices";
-import { applicationWindowLabel, applyCtaLabel, communityCtaLabel } from "@/lib/api/recruitment";
+import { applicationWindowLabel, applyCtaLabel } from "@/lib/api/recruitment";
 import { localeAlternates } from "@/lib/social-meta";
 import { canonicalNoticeUrl } from "@/lib/share";
 import type { NoticeRecruitmentInfo } from "@/lib/api/types";
@@ -131,9 +131,14 @@ export default async function NoticeDetailPage({ params }: { params: Promise<{ l
   const summary = pickOptionalText(locale, notice.summary, notice.summary_en);
   const body = pickText(locale, notice.body, notice.body_en);
   const organizationUnit = pickOptionalText(locale, notice.organization_unit, notice.organization_unit_en);
-  const action = notice.action
-    ? { ...notice.action, label: pickText(locale, notice.action.label, notice.action.label_en) }
-    : null;
+  // A notice linked to a recruitment posting has no button of its own: its application route is `recruitment.apply_path`, and
+  // a volunteer group invite is offered only on the confirmation page after a verified application
+  // (admin-erp/docs/VOLUNTEER_MESSENGER_GROUP.md). The ERP already sends null for it; ignoring `action` here as well means an
+  // ERP that has not been updated yet cannot put a group link on this page.
+  const action =
+    notice.action && !notice.recruitment
+      ? { ...notice.action, label: pickText(locale, notice.action.label, notice.action.label_en) }
+      : null;
 
   const published = formatDate(notice.published_at, locale);
   const expires = formatDate(notice.expires_at, locale);
@@ -218,8 +223,7 @@ export default async function NoticeDetailPage({ params }: { params: Promise<{ l
                 <div className="notice-cta">
                   <p className="notice-cta-title">{locale === "en" ? "Next Steps" : "পরবর্তী পদক্ষেপ"}</p>
 
-                  {/* §9: the website form is the primary action. WhatsApp
-                      drops to secondary whenever the form is open. */}
+                  {/* §9: the website form is the primary action. */}
                   {applyPath && (
                     <Link className="button button-primary" href={applyPath}>
                       {applyCtaLabel(notice.recruitment?.is_volunteer ?? false, locale)} <span aria-hidden="true">→</span>
@@ -233,18 +237,10 @@ export default async function NoticeDetailPage({ params }: { params: Promise<{ l
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      {applyPath ? communityCtaLabel(action.url, action.label.text, locale) : action.label.text}{" "}
+                      {action.label.text}{" "}
                       <span aria-hidden="true">↗</span>
                       <span className="sr-only"> ({t.common.opensInNewTab})</span>
                     </a>
-                  )}
-
-                  {applyPath && action && (
-                    <p className="notice-cta-note">
-                      {locale === "en"
-                        ? "Applications are submitted through the website form. The group is only for communication and updates — no personal information needs to be sent there."
-                        : "আবেদন ওয়েবসাইটের ফরমেই জমা হবে। গ্রুপটি শুধু যোগাযোগ ও আপডেটের জন্য — সেখানে ব্যক্তিগত তথ্য পাঠানোর প্রয়োজন নেই।"}
-                    </p>
                   )}
 
                   {action && (

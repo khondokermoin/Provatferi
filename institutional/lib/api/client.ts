@@ -248,6 +248,65 @@ export async function apiPostForm<T>(path: string, formData: FormData, opts: Api
   return { ok: true, data: json };
 }
 
+export interface ApiPostJsonOptions<T> {
+  validate: (json: unknown) => json is T;
+  timeoutMs?: number;
+}
+
+/**
+ * POSTs a small JSON body to a public admin-erp endpoint and never caches the answer (`cache: "no-store"`). For the call
+ * whose request carries a short-lived credential in its BODY — the volunteer success proof (lib/volunteer-success.ts):
+ * a body is not written to access logs and browser history the way an address is. Never throws; a refusal or an outage is
+ * an error result, and only the path (never the body) is logged.
+ */
+export async function apiPostJson<T>(path: string, body: unknown, opts: ApiPostJsonOptions<T>): Promise<ApiResult<T>> {
+  const base = baseUrl();
+  if (!base) {
+    console.error(`[api] LARAVEL_API_URL is not configured; skipping POST for ${path}`);
+    return { ok: false, error: "not_configured" };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), opts.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(`${base}${path}`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+  } catch (err) {
+    const reason: ApiErrorReason = err instanceof DOMException && err.name === "AbortError" ? "timeout" : "network_error";
+    logFailure(path, reason, err);
+    return { ok: false, error: reason };
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (!response.ok) {
+    logFailure(path, "http_error", `HTTP ${response.status}`);
+    return { ok: false, error: "http_error" };
+  }
+
+  let json: unknown;
+  try {
+    json = await response.json();
+  } catch (err) {
+    logFailure(path, "invalid_json", err);
+    return { ok: false, error: "invalid_json" };
+  }
+
+  if (!opts.validate(json)) {
+    logFailure(path, "invalid_shape", "response did not match the expected shape");
+    return { ok: false, error: "invalid_shape" };
+  }
+
+  return { ok: true, data: json };
+}
+
 // ---------------------------------------------------------------------------
 // Authenticated path — the member portal (§12). The Sanctum token lives only
 // in this Next.js app's own HttpOnly cookie; every call here carries it as

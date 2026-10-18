@@ -37,18 +37,16 @@ class SendVolunteerApplicationNotifications
 
     public function handle(): void
     {
-        $application = JobApplication::query()->with('jobPosting.notice')->find($this->applicationId);
+        $application = JobApplication::query()->with('jobPosting')->find($this->applicationId);
         $posting = $application?->jobPosting;
         if ($application === null || $posting === null) {
             return;
         }
 
-        $notice = $posting->notice;
-        $communityUrl = $notice !== null && $notice->isPubliclyVisible() ? $notice->action_url : null;
-
         try {
+            // No group link in the receipt: see VolunteerApplicationReceivedNotification.
             Notification::route('mail', $application->applicant_email)->notify(
-                new VolunteerApplicationReceivedNotification($application->application_no, $posting->title, $communityUrl)
+                new VolunteerApplicationReceivedNotification($application->application_no, $posting->title)
             );
             // The only record, short of the mailbox itself, that the receipt really went out.
             $application->forceFill(['receipt_sent_at' => now()])->saveQuietly();

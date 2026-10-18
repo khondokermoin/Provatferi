@@ -1,6 +1,7 @@
 import "server-only";
 import { forwardApplication, GENERIC_SUBMIT_ERROR, type VolunteerApplicationState } from "./volunteer-application";
 import { handleUpload } from "./upload-route";
+import { successSetCookieHeaders } from "./volunteer-success";
 
 /**
  * The volunteer application form's JavaScript submit endpoint (app/api/recruitment/[slug]/apply/route.ts is
@@ -21,6 +22,9 @@ import { handleUpload } from "./upload-route";
  * The guard (same-origin, multipart only, a ceiling on the body, parse) is shared with every other upload
  * route: lib/upload-route.ts. What is specific to this form is below: its ceiling, its refusal, and its
  * upstream call (forwardApplication) with the opt-in timing cookie.
+ *
+ * On a successful submission the answer also carries the success-proof cookies (lib/volunteer-success.ts): HttpOnly, and
+ * scoped to the confirmation page's own path. The JSON body the browser reads is only the form state, never the proof.
  */
 
 /** Laravel's own ceilings are 5 MB for the photo and 5 MB for the CV; the rest of the form is text. */
@@ -33,9 +37,12 @@ export function handleApplicationPost(request: Request, slug: string): Promise<R
     maxBytes: MAX_BODY_BYTES,
     refuse: refusal,
     run: async (formData) => {
-      const { state, timing } = await forwardApplication(slug, formData, request.headers.get("x-pf-timing") === "1");
+      const { state, timing, proof } = await forwardApplication(slug, formData, request.headers.get("x-pf-timing") === "1");
+      const headers: [string, string][] = [];
       // Same cookie the Server Action sets for the opt-in measurement (scripts/submit-qa.mjs reads it).
-      return { state, headers: timing ? { "Set-Cookie": `pf_timing=${encodeURIComponent(timing)}; Max-Age=60; Path=/; SameSite=Lax; Secure` } : undefined };
+      if (timing) headers.push(["Set-Cookie", `pf_timing=${encodeURIComponent(timing)}; Max-Age=60; Path=/; SameSite=Lax; Secure`]);
+      if (state.status === "success" && proof) headers.push(...successSetCookieHeaders(slug, proof));
+      return { state, headers: headers.length > 0 ? headers : undefined };
     },
   });
 }

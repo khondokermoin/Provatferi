@@ -84,9 +84,9 @@ class VolunteerApplicationApiTest extends TestCase
         $this->assertNotNull($application->submitted_at);
         $this->assertTrue(mb_check_encoding($application->contribution, 'UTF-8'));
 
-        // The receipt carries the application number and nothing else.
+        // The receipt carries the application number and the success proof (VolunteerMessengerGateTest) and nothing else.
         $response->assertJsonPath('data.application_no', $application->application_no);
-        $this->assertSame(['application_no'], array_keys($response->json('data')));
+        $this->assertSame(['application_no', 'success_proof', 'success_proof_expires_in'], array_keys($response->json('data')));
     }
 
     public function test_the_applicant_and_the_internal_mailbox_are_notified(): void

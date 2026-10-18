@@ -299,8 +299,8 @@ export interface JobPosting {
   accepts_applications: boolean;
   /** Derived from the posting's own slug in the ERP — never composed here. */
   apply_path: string | null;
-  /** The linked notice's own CTA (the WhatsApp community group): a SECONDARY channel, never the way to apply. */
-  notice_action: { url: string; label: string; label_en: string | null } | null;
+  // No `notice_action`: the linked notice's button used to be the community-group link. A group invite is no longer public;
+  // the central Messenger group is offered on the confirmation page after a verified application (lib/volunteer-success.ts).
   /** Only present on the detail contract, and only while the form is open. */
   skill_options: SkillOption[] | null;
   /**

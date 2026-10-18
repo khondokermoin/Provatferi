@@ -27,9 +27,9 @@ test("a paragraph after a list starts a new block, and a later list stays separa
 });
 
 test("URLs become links without swallowing trailing punctuation, including the Bengali danda", () => {
-  assert.deepEqual(splitLinks("গ্রুপ: https://chat.whatsapp.com/JRJpeNjFVzbFeJf1d9luEb।"), [
-    { kind: "text", value: "গ্রুপ: " },
-    { kind: "link", href: "https://chat.whatsapp.com/JRJpeNjFVzbFeJf1d9luEb", label: "chat.whatsapp.com/JRJpeNjFVzbFeJf1d9luEb" },
+  assert.deepEqual(splitLinks("তথ্য: https://example.org/news/made-up-page।"), [
+    { kind: "text", value: "তথ্য: " },
+    { kind: "link", href: "https://example.org/news/made-up-page", label: "example.org/news/made-up-page" },
     { kind: "text", value: "।" },
   ]);
 });

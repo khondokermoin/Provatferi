@@ -69,9 +69,9 @@ export default async function VolunteerApplyPage({ params }: { params: Promise<{
       </header>
 
       <section className="content-section">
-        {/* The form no longer owns a success panel — a successful submission
-            redirects to apply/success, which reads the community group from
-            the posting itself, so neither prop belongs here any more. */}
+        {/* The form owns no success panel — a successful submission goes to apply/success, which offers the
+            central Messenger group to a verified applicant only (admin-erp/docs/VOLUNTEER_MESSENGER_GROUP.md).
+            Nothing about the group is passed to, or rendered by, this page. */}
         {/* The slug is bound HERE, in the Server Component, never inside the client form: binding while rendering a form
             that uses useActionState makes a no-JavaScript postback loop forever on the server — the Node worker spins and
             the site stops answering (production, 2026-10-04; see the committee register page). */}

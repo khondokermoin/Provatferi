@@ -90,6 +90,8 @@
                     'children' => [
                         ['label' => __('admin.nav.job_postings'), 'route' => 'admin.recruitment.index'],
                         ['label' => __('admin.nav.job_applications'), 'route' => 'admin.recruitment.applications.index'],
+                        // The central volunteer Messenger group (a site-wide setting, hence its own permission).
+                        ['label' => __('admin.nav.messenger_group'), 'route' => 'admin.recruitment.messenger.edit', 'permission' => 'settings.update'],
                     ],
                 ],
             ],

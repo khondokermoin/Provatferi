@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\JobPosting;
 use App\Models\Notice;
 use App\Services\NoticeFileService;
+use App\Support\Recruitment\CentralMessengerGroup;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -96,13 +97,7 @@ class NoticeController extends Controller
             'body_en' => $notice->body_en,
             'organization_unit' => $notice->organizationUnit?->name,
             'organization_unit_en' => $notice->organizationUnit?->name_en,
-            'action' => filled($notice->action_url)
-                ? [
-                    'url' => $notice->action_url,
-                    'label' => $notice->action_label ?: 'বিস্তারিত দেখুন',
-                    'label_en' => $notice->action_label_en,
-                ]
-                : null,
+            'action' => $this->action($notice),
             'cover_image_url' => $notice->cover_image_path ? route('api.public.notices.cover', $notice->slug) : null,
             // §12/§13: the DEDICATED Open Graph image, when the admin uploaded
             // one — never the cover image, which may be a different aspect
@@ -151,6 +146,29 @@ class NoticeController extends Controller
         $extension = pathinfo($notice->share_image_path, PATHINFO_EXTENSION);
 
         return $this->files->response($notice->share_image_path, "{$notice->slug}-share.{$extension}", $this->files->coverMime($notice->share_image_path), true);
+    }
+
+    /**
+     * The notice's own button, for a notice that stands on its own. Two cases never reach the public:
+     *  - a notice linked to a recruitment posting: its button used to be the volunteer community-group link, and a group
+     *    invite is now offered only on the confirmation page after a verified application
+     *    (docs/VOLUNTEER_MESSENGER_GROUP.md). The posting's own "apply" action is `recruitment.apply_path`, below;
+     *  - a button that points at the central Messenger group invite, wherever it came from (a safety net: the admin form
+     *    refuses it too).
+     *
+     * @return array{url: string, label: string, label_en: ?string}|null
+     */
+    private function action(Notice $notice): ?array
+    {
+        if ($notice->jobPosting !== null || ! filled($notice->action_url) || CentralMessengerGroup::containsInvite($notice->action_url)) {
+            return null;
+        }
+
+        return [
+            'url' => $notice->action_url,
+            'label' => $notice->action_label ?: 'বিস্তারিত দেখুন',
+            'label_en' => $notice->action_label_en,
+        ];
     }
 
     /** @return array<string, mixed> */

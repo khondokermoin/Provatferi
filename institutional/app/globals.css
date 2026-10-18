@@ -1243,8 +1243,9 @@ input[type="radio"]:disabled { cursor: not-allowed; opacity: .55; }
 
 /* ---------- §8/§9: the volunteer application success page ----------
    Its own route, so a refresh cannot resubmit. Deliberately quiet: the
-   confirmation leads, the WhatsApp invitation sits under it as a real but
-   secondary step, and nothing on the page identifies the applicant. */
+   confirmation leads, the Messenger group card (shown to a verified applicant
+   only) sits under it as a real but secondary step, and nothing on the page
+   identifies the applicant. */
 .apply-success { max-width: 660px; }
 .apply-success-badge {
   display: inline-flex; align-items: center; gap: 8px; margin: 0 0 18px;
@@ -1255,18 +1256,45 @@ input[type="radio"]:disabled { cursor: not-allowed; opacity: .55; }
 .apply-success h1 { font-size: clamp(24px, 3.4vw, 34px); font-weight: 700; line-height: 1.35; letter-spacing: -.015em; margin: 0 0 16px; text-wrap: balance; }
 .apply-success-lead { font-size: 18px; line-height: 1.75; color: var(--heading); margin: 0 0 14px; }
 .apply-success p { max-width: 62ch; line-height: 1.8; color: var(--muted); }
-.apply-success-community {
-  margin: 26px 0 22px; padding: 20px 22px;
+/* The page for someone whose confirmation cannot be verified: the same frame, no tick. */
+.apply-success-badge-neutral { background: var(--card); border-color: var(--border-strong); color: var(--muted); }
+.apply-success-retry-icon { vertical-align: -3px; margin-inline-start: 2px; }
+/* Apply again, on the page for someone whose confirmation cannot be verified: room above, and a gap before the actions row. */
+.apply-success .apply-success-cta { margin: 22px 0 8px; }
+.apply-success-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 18px; }
+.apply-success-footnote { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 14px; }
+
+/* The central volunteer Messenger group, offered only to a verified applicant (components/MessengerGroupCard.tsx). A real
+   object, not a link tucked under the text: one heading, one sentence, one primary action and a quiet copy control. */
+.messenger-card {
+  margin: 26px 0 24px; padding: 20px 22px 18px;
   border: 1px solid var(--border); border-left: 3px solid var(--brand-orange);
   border-radius: 12px; background: var(--card);
 }
-.apply-success-community p { margin: 0 0 14px; color: var(--body); }
-.apply-success-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
-.apply-success-footnote { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 14px; }
+.messenger-card-head { display: flex; align-items: center; gap: 12px; margin: 0 0 10px; }
+.messenger-card-icon {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--soft); color: var(--accent-text);
+}
+.messenger-card h2 { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.45; color: var(--heading); text-wrap: balance; }
+.apply-success .messenger-card-text { margin: 0 0 16px; color: var(--body); }
+.messenger-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
+.messenger-card .button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; }
+/* `.button span` is the 19px arrow glyph of the other buttons; here a span is a LABEL and must match the Join button's text. */
+.messenger-card .button span { font-size: inherit; line-height: inherit; }
+.messenger-card .messenger-copy { padding-inline: 16px; }
+/* Reserves its own line, so "copied" appearing never moves what is below it. */
+.apply-success .messenger-card-status { min-height: 22px; margin: 10px 0 0; font-size: 13.5px; font-weight: 600; line-height: 1.5; color: var(--accent-text); }
+.messenger-card-field {
+  width: 100%; margin-top: 6px; padding: 10px 12px; box-sizing: border-box;
+  border: 1.5px solid var(--border-strong); border-radius: 8px; background: var(--bg);
+  font-size: 13px; color: var(--body); text-overflow: ellipsis;
+}
 
 @media (max-width: 480px) {
-  .apply-success-community { padding: 16px; }
-  .apply-success-community .button, .apply-success-actions .button { width: 100%; }
+  .messenger-card { padding: 16px 16px 14px; }
+  .messenger-card .button, .apply-success-actions .button, .apply-success-cta .button { width: 100%; }
 }
 
 /* ---------- Share control on a notice (§11-12) ---------- */
@@ -1282,7 +1310,7 @@ input[type="radio"]:disabled { cursor: not-allowed; opacity: .55; }
 /* Reserves its own line so the row never reflows when the message appears. */
 .share-copied { flex-basis: 100%; min-height: 20px; margin: 0; font-size: 13px; font-weight: 600; color: var(--accent-text); }
 
-/* CTA stack on a notice: the website form first, the community link under it. */
+/* CTA stack on a notice: the website form first, then any button the notice itself carries. */
 .notice-cta .button { width: 100%; }
 .notice-cta .button + .button { margin-top: 8px; }
 .notice-cta-note { margin: 10px 0 0; font-size: 13px; line-height: 1.6; color: var(--muted); }

@@ -234,7 +234,7 @@ class NoticeManagementTest extends AdminTestCase
             'status' => 'published',
             'published_at' => '',
             'slug' => 'volunteer-team-call',
-            'action_url' => 'https://chat.whatsapp.com/JRJpeNjFVzbFeJf1d9luEb',
+            'action_url' => 'https://chat.whatsapp.com/MadeUpGroupCode123456',
             'action_label' => 'স্বেচ্ছাসেবী হিসেবে যুক্ত হোন',
         ]))->assertRedirect()->assertSessionHasNoErrors();
 

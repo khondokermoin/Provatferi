@@ -27,6 +27,7 @@ use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\PositionController;
 use App\Http\Controllers\Admin\PublicMemberProfileController;
 use App\Http\Controllers\Admin\RecruitmentController;
+use App\Http\Controllers\Admin\RecruitmentMessengerController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\RoleMfaController;
 use App\Http\Controllers\Admin\SettingsController;
@@ -319,6 +320,13 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         ->middleware('permission:recruitment.delete')->name('recruitment.destroy');
     Route::get('/recruitment/{jobPosting}/files/share', [RecruitmentController::class, 'shareImage'])
         ->middleware('permission:recruitment.view')->name('recruitment.files.share');
+
+    /* The central volunteer Messenger group: the switch and the invite link (docs/VOLUNTEER_MESSENGER_GROUP.md). A site-wide
+       setting, so `settings.update` — the same permission as the other site settings — for the page and the save alike. */
+    Route::get('/recruitment-messenger', [RecruitmentMessengerController::class, 'edit'])
+        ->middleware('permission:settings.update')->name('recruitment.messenger.edit');
+    Route::put('/recruitment-messenger', [RecruitmentMessengerController::class, 'update'])
+        ->middleware('permission:settings.update')->name('recruitment.messenger.update');
 
     /* Recruitment Applications review */
     Route::prefix('recruitment-applications')->name('recruitment.applications.')->group(function () {

@@ -79,7 +79,7 @@ test("getNotice accepts a detail with an action, attachment and live recruitment
         ...summary,
         body: "প্রথম অনুচ্ছেদ।\n\n• প্রথম কাজ",
         organization_unit: "প্রভাতফেরী সাহিত্য ও সাংস্কৃতিক কেন্দ্র",
-        action: { url: "https://chat.whatsapp.com/example", label: "স্বেচ্ছাসেবী হিসেবে যুক্ত হোন" },
+        action: { url: "https://example.org/form", label: "ফরমটি দেখুন" },
         cover_image_url: null,
         share_image_url: null,
         attachment: { url: "https://admin.example.test/api/v1/public/notices/volunteer-team-call/attachment", size: 2500000, mime: "application/pdf" },
@@ -98,7 +98,7 @@ test("getNotice accepts a detail with an action, attachment and live recruitment
   assert.equal(result.ok, true);
   if (result.ok) {
     assert.equal(result.data.recruitment?.salary_range, null);
-    assert.equal(result.data.action?.label, "স্বেচ্ছাসেবী হিসেবে যুক্ত হোন");
+    assert.equal(result.data.action?.label, "ফরমটি দেখুন");
     // The apply route is resolved by the ERP, never composed in the page.
     assert.equal(result.data.recruitment?.apply_path, "/recruitment/volunteer-ab12/apply");
   }
@@ -161,7 +161,6 @@ test("getJobPosting requires the volunteer/rolling contract fields", async () =>
     application_mode: "rolling", application_mode_label: "চলমান", opening_date: "2026-09-15", application_deadline: null,
     published_at: "2026-09-15T04:00:00+00:00", notice_slug: "volunteer-team-call",
     accepts_applications: true, apply_path: "/recruitment/volunteer-ab12/apply",
-    notice_action: { url: "https://chat.whatsapp.com/example", label: "স্বেচ্ছাসেবী হিসেবে যুক্ত হোন" },
     skill_options: [{ key: "fundraising", label: "Fundraising / Donation / Sponsorship" }],
     share_image_url: null,
   };

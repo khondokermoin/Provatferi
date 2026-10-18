@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Notice;
 use App\Models\OrganizationalUnit;
+use App\Rules\NoCentralMessengerInvite;
 use App\Services\NoticeFileService;
 use App\Services\NoticeRecruitmentLinker;
 use Illuminate\Http\RedirectResponse;
@@ -388,15 +389,18 @@ class NoticeController extends Controller
     /** @return array<string, mixed> */
     private function rules(Notice $notice): array
     {
+        // Public text must never carry the central Messenger group invite (docs/VOLUNTEER_MESSENGER_GROUP.md).
+        $noInvite = new NoCentralMessengerInvite;
+
         return [
-            'title' => ['required', 'string', 'max:255'],
-            'title_en' => ['nullable', 'string', 'max:255'],
+            'title' => ['required', 'string', 'max:255', $noInvite],
+            'title_en' => ['nullable', 'string', 'max:255', $noInvite],
             'slug' => ['nullable', 'string', 'max:120', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', Rule::notIn(Notice::RESERVED_SLUGS), Rule::unique('notices', 'slug')->ignore($notice->id)],
             'notice_type' => ['required', Rule::in(array_keys(Notice::TYPES))],
-            'summary' => ['nullable', 'string', 'max:500'],
-            'summary_en' => ['nullable', 'string', 'max:500'],
-            'body' => ['required', 'string', 'max:30000'],
-            'body_en' => ['nullable', 'string', 'max:30000'],
+            'summary' => ['nullable', 'string', 'max:500', $noInvite],
+            'summary_en' => ['nullable', 'string', 'max:500', $noInvite],
+            'body' => ['required', 'string', 'max:30000', $noInvite],
+            'body_en' => ['nullable', 'string', 'max:30000', $noInvite],
             'published_at' => ['nullable', 'date'],
             'expires_at' => ['nullable', 'date'],
             'organization_unit_id' => ['nullable', Rule::exists('organizational_units', 'id')],
@@ -406,7 +410,7 @@ class NoticeController extends Controller
             'remove_cover_image' => ['nullable', 'boolean'],
             'remove_share_image' => ['nullable', 'boolean'],
             'remove_attachment' => ['nullable', 'boolean'],
-            'action_url' => ['nullable', 'url:http,https', 'max:500'],
+            'action_url' => ['nullable', 'url:http,https', 'max:500', $noInvite],
             'action_label' => ['nullable', 'string', 'max:100', 'required_with:action_url'],
             'action_label_en' => ['nullable', 'string', 'max:100'],
             'is_pinned' => ['nullable', 'boolean'],

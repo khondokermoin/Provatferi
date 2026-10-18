@@ -10,9 +10,11 @@ use Illuminate\Notifications\Notification;
 /**
  * §22: the applicant's own receipt. Routed via Notification::route('mail', …)
  * — a volunteer applicant has no User/Member row to hang this off. Carries
- * the application number and nothing else the applicant just typed; the
- * WhatsApp community link is offered as optional, never as the place to
- * send personal details.
+ * the application number and nothing else the applicant just typed.
+ *
+ * It carries no group link of any kind. The central Messenger group invite is shown only on the confirmation page
+ * that follows a verified submission (docs/VOLUNTEER_MESSENGER_GROUP.md); this message goes to whatever address was
+ * typed into the form, which is not proof of who reads it.
  */
 class VolunteerApplicationReceivedNotification extends Notification
 {
@@ -21,7 +23,6 @@ class VolunteerApplicationReceivedNotification extends Notification
     public function __construct(
         private readonly string $applicationNo,
         private readonly string $postingTitle,
-        private readonly ?string $communityUrl = null,
     ) {
     }
 
@@ -39,11 +40,6 @@ class VolunteerApplicationReceivedNotification extends Notification
             ->line("“{$this->postingTitle}” — এ আপনার আবেদন সফলভাবে গ্রহণ করা হয়েছে।")
             ->line("আবেদন নম্বর: {$this->applicationNo}")
             ->line('প্রভাতফেরীর পক্ষ থেকে আবেদন যাচাই করে প্রয়োজন অনুযায়ী আপনার সঙ্গে যোগাযোগ করা হবে।');
-
-        if ($this->communityUrl !== null && $this->communityUrl !== '') {
-            $message->line('যোগাযোগ ও পরবর্তী আপডেটের জন্য চাইলে আমাদের কমিউনিটি গ্রুপে যুক্ত হতে পারেন — এটি ঐচ্ছিক।')
-                ->action('WhatsApp Group-এ যুক্ত হোন', $this->communityUrl);
-        }
 
         return InstitutionMail::support($message->line('ধন্যবাদ।'));
     }

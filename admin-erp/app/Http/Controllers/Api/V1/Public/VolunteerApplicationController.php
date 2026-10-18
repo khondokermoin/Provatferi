@@ -9,6 +9,7 @@ use App\Models\JobPosting;
 use App\Services\ApplicationDocumentService;
 use App\Services\PhotoUploadService;
 use App\Support\PhaseTimer;
+use App\Support\Recruitment\ApplicationSuccessProof;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
@@ -29,9 +30,10 @@ use RuntimeException;
  * used to file applications against a posting that never invited them.
  * `website` is the honeypot the other public forms already use (§21).
  *
- * The response carries the application number and nothing else: no id, no
- * echo of the submitted data, and no route that could later read it back —
- * an application is readable only inside the ERP, behind recruitment.view.
+ * The response carries the application number and a success proof (see accepted())
+ * and nothing else: no id, no echo of the submitted data, and no route that could
+ * later read it back — an application is readable only inside the ERP, behind
+ * recruitment.view.
  *
  * Speed and double-submit safety (2026-10-03): the applicant's receipt and the
  * operations heads-up are sent AFTER the response (see
@@ -360,10 +362,21 @@ class VolunteerApplicationController extends Controller
      * 201 for a new application, 200 when this is the same attempt arriving again.
      * `Server-Timing` is attached only when the caller opts in with X-Pf-Timing: 1
      * (scripts/submit-qa.mjs does): durations only, never request data.
+     *
+     * Only a ACCEPTED application gets here (a validation error, a refused duplicate, a rejected file all throw first), so
+     * this is the one place a success proof is issued: the public site's server keeps it in an HttpOnly cookie and the
+     * confirmation page verifies it before the Messenger group invite is shown (ApplicationSuccessProof). The proof is
+     * meant for that server only: it is never rendered, and the response is not cacheable.
      */
     private function accepted(Request $request, JobApplication $application, PhaseTimer $timer, bool $replayed = false): JsonResponse
     {
-        $response = response()->json(['data' => ['application_no' => $application->application_no]], $replayed ? 200 : 201);
+        $proof = ApplicationSuccessProof::issue($application);
+        $response = response()->json(['data' => [
+            'application_no' => $application->application_no,
+            'success_proof' => $proof['proof'],
+            'success_proof_expires_in' => $proof['expires_in'],
+        ]], $replayed ? 200 : 201);
+        $response->header('Cache-Control', 'no-store, private');
 
         if ($request->header('X-Pf-Timing') === '1') {
             $response->header('Server-Timing', $timer->header());

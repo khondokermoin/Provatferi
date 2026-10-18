@@ -94,7 +94,6 @@ export const en: UiStrings = {
     applicationDeadline: (date) => `Deadline: ${date}`,
     applicationRolling: "Applications open on a rolling basis",
     applicationDeadlineUnset: "Deadline to be announced",
-    joinCommunityGroup: "Join our WhatsApp Group",
     officialNotice: "View the official notice for this opportunity",
     downloadAttachment: "Download attachment",
     shareThis: "Share this notice",
@@ -114,6 +113,35 @@ export const en: UiStrings = {
     expired: "Expired",
     archivedNotice: "This is an archived notice, kept as part of our institutional record.",
     translationPending: "The English translation for this section is not yet available.",
+  },
+  applyConfirmation: {
+    metaTitle: "Application confirmation",
+    receivedBadge: "Application Received",
+    receivedHeading: "Your application has been received",
+    receivedLead: "Thank you for your interest in Provatferi's volunteer programme.",
+    receivedBody:
+      "Our team will review the information you provided. We'll reach out by phone or email for the next steps if needed. There's nothing more for you to do right now.",
+    receivedBodyWithGroup:
+      "Our team will review the information you provided. We'll reach out by phone or email for the next steps if needed. Your application itself needs nothing more from you.",
+    unverifiedBadge: "Confirmation",
+    unverifiedHeading: "This confirmation is not available",
+    unverifiedBody:
+      "The confirmation stays open only for a short time after you submit, and only in the browser that was used to apply. If you have already submitted your application, there is nothing more to do — our team will review it and get in touch if needed.",
+    unreachableBody: "We could not check your confirmation just now. Please reload this page in a moment.",
+    tryAgain: "Try again",
+    backToNotice: "Back to Notice",
+    viewAllOpportunities: "View all opportunities",
+    questionsBefore: "Questions? Write to us at ",
+    questionsAfter: ".",
+  },
+  messengerGroup: {
+    title: "Provatferi Central Volunteer Messenger Group",
+    text: "Your application has been submitted successfully. To get to know the other volunteers and the Provatferi team, send a request to join the central Messenger group.",
+    join: "Join the Messenger Group",
+    copy: "Copy link",
+    copied: "Link copied",
+    copyFailed: "Copying is not available here — press and hold the link to copy it.",
+    linkLabel: "Messenger group link",
   },
   social: {
     heading: "Social media",

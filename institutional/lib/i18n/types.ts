@@ -88,7 +88,6 @@ export interface UiStrings {
     applicationDeadline: (date: string) => string;
     applicationRolling: string;
     applicationDeadlineUnset: string;
-    joinCommunityGroup: string;
     officialNotice: string;
     downloadAttachment: string;
     shareThis: string;
@@ -108,6 +107,42 @@ export interface UiStrings {
     expired: string;
     archivedNotice: string;
     translationPending: string;
+  };
+  /**
+   * The volunteer application's confirmation page (app/[locale]/(site)/recruitment/[slug]/apply/success). Shown after a
+   * submission; what an applicant sees when the confirmation can be verified, and what everyone else sees.
+   */
+  applyConfirmation: {
+    /** <title>: neutral, because the same page answers a verified applicant and a visitor who typed the address. */
+    metaTitle: string;
+    receivedBadge: string;
+    receivedHeading: string;
+    receivedLead: string;
+    /** The usual paragraph: nothing more to do. */
+    receivedBody: string;
+    /** The paragraph when the Messenger group is offered underneath: the APPLICATION needs nothing more. */
+    receivedBodyWithGroup: string;
+    unverifiedBadge: string;
+    unverifiedHeading: string;
+    unverifiedBody: string;
+    /** When the system that checks the confirmation could not be reached. */
+    unreachableBody: string;
+    tryAgain: string;
+    backToNotice: string;
+    viewAllOpportunities: string;
+    questionsBefore: string;
+    questionsAfter: string;
+  };
+  /** The central volunteer Messenger group card on the confirmation page (components/MessengerGroupCard.tsx). */
+  messengerGroup: {
+    title: string;
+    text: string;
+    join: string;
+    copy: string;
+    copied: string;
+    /** Neither clipboard route worked: the link is shown to copy by hand. */
+    copyFailed: string;
+    linkLabel: string;
   };
   /** The organisation's social links (admin-managed; lib/contact-resolve.ts decides which exist). */
   social: {

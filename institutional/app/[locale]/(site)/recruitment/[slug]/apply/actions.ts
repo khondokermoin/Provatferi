@@ -3,6 +3,7 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { forwardApplication, type VolunteerApplicationState } from "@/lib/volunteer-application";
+import { setSuccessCookie } from "@/lib/volunteer-success";
 
 export type { SubmittedValues, VolunteerApplicationState } from "@/lib/volunteer-application";
 
@@ -22,6 +23,11 @@ export type { SubmittedValues, VolunteerApplicationState } from "@/lib/volunteer
  *
  * §8: a successful submission redirects to its own page. That makes the browser issue a GET, so a
  * refresh cannot resubmit the application or send the confirmation e-mail twice.
+ *
+ * The confirmation page shows the Messenger group only to a verified applicant, so a success also sets the proof cookie
+ * (lib/volunteer-success.ts) before the redirect. It is the cookie for the address redirected to below (the unprefixed,
+ * Bangla one): Next's cookie store keeps one cookie per name, so it cannot carry the English path as well, as the
+ * JavaScript path's route handler does.
  */
 export async function submitVolunteerApplication(
   slug: string,
@@ -33,11 +39,13 @@ export async function submitVolunteerApplication(
   // short-lived cookie instead.
   const wantTiming = (await headers()).get("x-pf-timing") === "1";
 
-  const { state, timing } = await forwardApplication(slug, formData, wantTiming);
+  const { state, timing, proof } = await forwardApplication(slug, formData, wantTiming);
 
+  const store = await cookies();
   if (timing !== null) {
-    (await cookies()).set("pf_timing", encodeURIComponent(timing), { maxAge: 60, path: "/", sameSite: "lax", secure: true, httpOnly: false });
+    store.set("pf_timing", encodeURIComponent(timing), { maxAge: 60, path: "/", sameSite: "lax", secure: true, httpOnly: false });
   }
+  if (state.status === "success" && proof) setSuccessCookie(store, slug, proof);
 
   // Outside any try/catch on purpose: redirect() signals by throwing.
   if (state.status === "success") redirect(`/recruitment/${encodeURIComponent(slug)}/apply/success`);

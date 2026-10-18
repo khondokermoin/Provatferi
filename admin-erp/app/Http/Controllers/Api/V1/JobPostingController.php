@@ -103,18 +103,13 @@ class JobPostingController extends Controller
             'published_at' => $job->published_at?->toIso8601String(),
             'notice_slug' => $job->notice !== null && $job->notice->isPubliclyVisible() ? $job->notice->slug : null,
             // §10/§19: the website form is the primary way to apply, and its
-            // path comes from the posting. The linked notice's own action
-            // (the WhatsApp community group) rides along as the SECONDARY
-            // channel — never as the application route.
+            // path comes from the posting.
             'accepts_applications' => $job->acceptsApplications(),
             'apply_path' => $job->applyPath(),
-            'notice_action' => $job->notice !== null && $job->notice->isPubliclyVisible() && filled($job->notice->action_url)
-                ? [
-                    'url' => $job->notice->action_url,
-                    'label' => $job->notice->action_label ?: 'কমিউনিটি গ্রুপ',
-                    'label_en' => $job->notice->action_label_en,
-                ]
-                : null,
+            // The linked notice's button used to ride along here as the community-group link. A group invite is no longer
+            // public: it is offered on the confirmation page after a verified application (docs/VOLUNTEER_MESSENGER_GROUP.md).
+            // The key stays, always null, because a public site built before this change still requires it to be present.
+            'notice_action' => null,
             // The skill catalogue only matters where the form is rendered.
             'skill_options' => $detailed && $job->acceptsApplications() ? $this->skillOptions() : null,
             // Required/optional per field for this posting — rides along with

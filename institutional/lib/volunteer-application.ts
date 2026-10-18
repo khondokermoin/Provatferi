@@ -1,5 +1,6 @@
 import "server-only";
 import { apiPostForm, isRecord, type ApiPostTiming } from "./api/client";
+import { readSuccessProof, type SuccessProof } from "./volunteer-success";
 
 /**
  * Server-side half of the volunteer application submit, shared by its two entry points:
@@ -28,7 +29,7 @@ export type VolunteerApplicationState =
 export const GENERIC_SUBMIT_ERROR =
   "আবেদন জমা দেওয়া যায়নি — একটু পরে আবার চেষ্টা করুন। সমস্যা চলতে থাকলে আমাদের সঙ্গে যোগাযোগ করুন।";
 
-function isApplicationCreatedResponse(v: unknown): v is { data: { application_no: string } } {
+function isApplicationCreatedResponse(v: unknown): v is { data: { application_no: string } & Record<string, unknown> } {
   return isRecord(v) && isRecord(v.data) && typeof v.data.application_no === "string";
 }
 
@@ -71,6 +72,12 @@ const round = (ms: number | undefined) => (ms === undefined ? null : Math.round(
 export interface ForwardedApplication {
   state: VolunteerApplicationState;
   /**
+   * The success proof Laravel issued for an accepted application (null for anything else, and for a Laravel that issues
+   * none). It is for THIS server only: the caller puts it in an HttpOnly cookie (lib/volunteer-success.ts) and it is never
+   * part of `state`, which is what the browser is sent.
+   */
+  proof: SuccessProof | null;
+  /**
    * Phase durations as JSON, only when the caller opted in (`x-pf-timing: 1`, which scripts/submit-qa.mjs
    * sends and a visitor never does): this layer's own time, the multipart rebuild, the Laravel hop and
    * Laravel's own Server-Timing. Durations only, never any of the submitted data.
@@ -101,11 +108,11 @@ export async function forwardApplication(slug: string, formData: FormData, wantT
       })
     : null;
 
-  if (result.ok) return { state: { status: "success" }, timing };
+  if (result.ok) return { state: { status: "success" }, timing, proof: readSuccessProof(result.data.data) };
 
   const { values, skills, consents } = echoBack(formData);
   if (result.error === "validation") {
-    return { state: { status: "validation", errors: result.errors, values, skills, consents }, timing };
+    return { state: { status: "validation", errors: result.errors, values, skills, consents }, timing, proof: null };
   }
-  return { state: { status: "error", message: GENERIC_SUBMIT_ERROR, values, skills, consents }, timing };
+  return { state: { status: "error", message: GENERIC_SUBMIT_ERROR, values, skills, consents }, timing, proof: null };
 }
