@@ -353,6 +353,53 @@ if (PHASE === "readonly") {
   finish();
 }
 
+// ============================================================================================================ SWEEP
+// A read-only look at EVERY real committee application (never a QA one): GET of the review page and of the photo route, counted by
+// state. Nothing is clicked or changed and no name, address or screenshot is kept: ids, statuses and file facts only. It answers
+// "does the review page work for the applications that already exist?".
+if (PHASE === "sweep") {
+  const { page } = await newPage("admin");
+  check("W0", "the admin signs in", await login(page, ADMIN_EMAIL, ADMIN_PASSWORD));
+  await page.goto(`${ADMIN}/admin/organization/committees`, { waitUntil: "networkidle2", timeout: 90000 });
+  const committees = await page.evaluate(() => [...new Set([...document.querySelectorAll("a[href*='/organization/committees/']")].map((a) => (a.getAttribute("href").match(/committees\/(\d+)(?:$|\?|\/)/) ?? [])[1]).filter(Boolean))]);
+  const rows = [];
+  for (const committee of committees) {
+    const isQa = await (async () => { await page.goto(committeeBase(committee), { waitUntil: "networkidle2", timeout: 90000 }); return page.evaluate(() => /QA-CMT-/.test(document.body.innerText)); })();
+    if (isQa) { note(`committee ${committee} is a QA committee: skipped`); continue; }
+    for (let p = 1; p <= 10; p++) {
+      await page.goto(`${committeeBase(committee)}/submissions?page=${p}`, { waitUntil: "networkidle2", timeout: 90000 });
+      const found = await page.evaluate(() => [...document.querySelectorAll("tbody tr")].map((tr) => (tr.querySelector("a[href*='/submissions/']")?.getAttribute("href").match(/submissions\/(\d+)/) ?? [])[1]).filter(Boolean));
+      rows.push(...found.map((id) => ({ committee, id })));
+      if (found.length < 15) break;
+    }
+  }
+  const tally = {};
+  const problemsFound = [];
+  for (const { committee, id } of rows) {
+    const response = await page.goto(reviewUrl(id, committee), { waitUntil: "networkidle2", timeout: 90000 });
+    await sleep(200);
+    const r = await readReview(page);
+    const route = await page.evaluate(async (u) => { const res = await fetch(u, { credentials: "include" }); return { status: res.status, type: res.headers.get("content-type") }; }, photoUrl(id, committee));
+    const key = `${(r.status ?? "?").toLowerCase()} | photo ${r.photoState} | route ${route.status}${route.status === 200 ? ` ${route.type}` : ""} | ${r.photoState === "available" ? (r.photo?.naturalWidth > 0 ? "image loaded" : "IMAGE NOT LOADED") : "placeholder"}`;
+    tally[key] = (tally[key] ?? 0) + 1;
+    const fine = response?.status() === 200 && !/Unprocessable|Oops! An Error/.test(r.bodyText) && (r.photoState === "available" ? r.photo?.naturalWidth > 0 && route.status === 200 : route.status === 404);
+    if (!fine) problemsFound.push({ committee, id, http: response?.status(), state: r.photoState, route: route.status });
+  }
+  note(`${rows.length} real application(s) in ${committees.length} committee(s) looked at (GET only); by state: ${JSON.stringify(tally)}`);
+  check("W1", "every real application's review page answers 200 and its photo behaves: an image that loaded through the route, or an honest placeholder with the route answering 404", problemsFound.length === 0, JSON.stringify(problemsFound));
+  // The two malformed addresses, asked about a QA application (never a real one): refused, and no image comes back.
+  const probeId = arg("probe-id");
+  if (probeId) {
+    for (const [suffix, what] of [["/photo/..%2f..%2f.env", "dot-dot after /photo"], ["/photo%2f..%2f..%2f.env", "encoded dot-dot"]]) {
+      const r = await page.evaluate(async (u) => { const res = await fetch(u, { credentials: "include" }); return { status: res.status, type: res.headers.get("content-type") }; }, `${reviewUrl(probeId)}${suffix}`);
+      check("W3", `a malformed photo request (${what}) is refused (404 from Laravel or 403 from the edge) and no image comes back`, [403, 404].includes(r.status) && !/^image\//.test(r.type ?? ""), JSON.stringify(r));
+    }
+  }
+  check("W2", "no console or page error", problems.length === 0, problems.slice(0, 3).join(" | "));
+  await browser.close();
+  finish();
+}
+
 // ============================================================================================================ REPRODUCE
 if (PHASE === "reproduce") {
   const photo = await makePhoto("qa-photo.png");
@@ -601,9 +648,11 @@ if (PHASE === "verify") {
       [`${committeeBase()}/submissions/abc/photo`, "a non-numeric submission"],
       [`${committeeBase()}/submissions/9999999/photo`, "a submission that does not exist"],
     ];
+    // A '..%2f' path may be refused by the host's edge (a 403, before Laravel sees it) or by Laravel itself (a 404): either is a refusal.
     for (const [url, what] of probes) {
       const r = await admin.evaluate(async (u) => { const res = await fetch(u, { credentials: "include" }); return { status: res.status, type: res.headers.get("content-type") }; }, url);
-      check("J", `a malformed photo request (${what}) is refused with 404`, r.status === 404 && !/^image\//.test(r.type ?? ""), JSON.stringify(r));
+      const dotted = /\.\.%2f|%2f\.\./i.test(url);
+      check("J", `a malformed photo request (${what}) is refused (${dotted ? "404 from Laravel or 403 from the edge" : "404"}) and no image comes back`, (r.status === 404 || (dotted && r.status === 403)) && !/^image\//.test(r.type ?? ""), JSON.stringify(r));
     }
     const smuggled = await admin.evaluate(async (u) => { const res = await fetch(u, { credentials: "include" }); return { status: res.status, type: res.headers.get("content-type"), bytes: (await res.arrayBuffer()).byteLength }; }, `${photoUrl(A1)}?path=../../.env&file=/etc/passwd&photo_path=../../.env`);
     check("J", "a path smuggled in the query string is ignored: the answer is still this application's own photo, byte for byte", smuggled.status === 200 && smuggled.type === "image/png" && smuggled.bytes === photo.bytes, JSON.stringify(smuggled));

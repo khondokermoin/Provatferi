@@ -140,6 +140,42 @@ account without the permission (403); the placeholder states; thirteen unsafe pa
 address; the guards on the forms; both admin languages without a raw key; the branded 422 page. The existing test that asserted
 the 422 now asserts the redirect and the message.
 
+## Production proof after the release (2026-10-18, 20:08–20:14Z; disposable QA committee + one real application read-only)
+
+`committee-approval-qa.mjs --phase verify`, real Chrome against provatferi.org / admin.provatferi.org: **81/83** on the first run.
+The two that did not pass asked for a **404** on `…/photo/..%2f..%2f.env` and `…/photo%2f..%2f..%2f.env`; production answers **403**
+there (the host's edge refuses encoded dot-dot paths before Laravel sees them; Laravel's own answer is the 404 seen in the local run
+and in PHPUnit). Both are refusals with no image; the check now accepts either and a re-run of just those two probes passes.
+
+| What | Result |
+|---|---|
+| single click on Approve, same 2.3 MB photo | **454 ms** and 432 ms (3433 ms before the fix) |
+| double click | the page ends on the review page, Approved, one audit row, one success message; ONE request leaves the browser |
+| stale second tab clicks Approve after the first approved | the review page with "already approved — by NAME on DATE. Nothing was changed." (info); still one audit row, one seat |
+| stale tab: Approve after a rejection / Reject twice / correction requested twice | an error naming the state / "already rejected" / "already requested", on the review page; one audit row each; no second link |
+| applicant e-mail (disposable inboxes) | arrives, names the committee, **exactly one** although of a double click / a stale second tab (sent after the answer, so `defer()` works on the host) |
+| pending application: photo | an image that loaded, from the route, not `/storage/`; 200 `image/png`, the submitted number of bytes, `no-store, private`, `nosniff`, sandbox CSP, `inline; filename=applicant-photo-<id>.png` |
+| anonymous / view-only reviewer / account without the permission | redirect to the login / sees the page and the photo, no decision, a hand-sent decision is 403 and changes nothing / 403 for both |
+| `..%2f` addresses, submission 0, `abc`, 9999999, a path in the query string, the same application through another committee | refused (403 edge or 404) / 404 / 404 / 404 / the application's own photo byte for byte / 404 |
+| no photo / photo file gone / `../../.env` path on record | placeholder with the matching note, route 404; Approve on the last two answers "photo not found, nothing changed" (not a 422, not a 500); Approve with no photo at all works |
+| rejected / unpublished application, Approve | an error naming the state on the review page |
+| both admin languages, desktop and 390 px phone, light and dark | 40 layout checks: HTTP 200, no sideways scroll, no entity text, no raw key, the photo loaded, no console error; the four messages are in the admin's language |
+| uploads and the release switch | QA applications filed **before** the switch (C still pending; A, B, D, E approved by the reproduction runs, so with a public copy) show their photos **after** it, through the new route |
+
+The server side agrees (`deploy/qa/committee-approval-qa.php inspect` on the first QA application): one audit row, one seat, the
+public copy byte-identical to the private original, production `APP_DEBUG` false, the Laravel log empty.
+
+Real data: the only real application that exists (#24, committee 4) was looked at with GET requests only (`--phase readonly`,
+then `--phase sweep` over every committee): HTTP 200, status Approved, its photo an image that loads through the route
+(1254×1254, 2.1 MB), the route answers 200 `image/png`, no decision is offered, no 422. It was not clicked, approved, rejected or
+changed at any point.
+
+Cleanup of that run: the kit's diff against the baseline taken before any QA data showed **no difference in any real row or file**
+(only 1 QA committee, 15 QA applications, 2 QA staff accounts and 2 QA roles left over); `purge … go` removed exactly those and
+17 files, and its own diff afterwards read `identical_to_snapshot: true`. The kit file, the snapshot and every cron of the session
+were removed and the admin docroot is back to its baseline (full account in `deploy/state/last-deployed.json`,
+`committee_review_2026_10_18.cleanup`).
+
 ## Production acceptance kit
 
 * `institutional/scripts/committee-approval-qa.mjs` — real Chrome. `--phase reproduce` (before a fix), `verify` (after: ~70
@@ -159,6 +195,14 @@ the 422 now asserts the redirect and the message.
 * The numeric `throttle:N,M` on the public API is one bucket per client address, shared by every visitor (they all reach Laravel
   from the site's server). An application costs two hits (the form page, the post); the committee page answers "not found" while
   the bucket is full. Two applications per 65 s.
+* **A kit snapshot taken before a release switch stays in the retired tree**: `storage/app/committee-approval-qa/` is part of the
+  release tree and `switch` carries over only the uploads folders, so afterwards the kit says "no snapshot named …". Restore it
+  with `cp -n` from `_previous-<stamp>/storage/app/committee-approval-qa/` into the live `storage/app/…` (a cron command may not be
+  longer than 255 characters: `mkdir -p` and `cp -n` as two crons a minute apart, absolute paths), and delete the retired copy
+  after `forget` so housekeeping is not blocked by it. Better: take the baseline snapshot AFTER the switch.
+* The kit's `purge` deletes the files a QA row points to; a QA row seeded with a `../..` path must never turn into a delete. It
+  now deletes only paths of the exact shape the application writes and counts the rest (`unsafe_paths_left_alone`).
+* Cron commands are limited to 255 characters (the API answers 422 — the status this very task is about).
 * `Application::terminate()` runs terminating callbacks again for every request a process handles: use `defer()` for
   once-per-request after-response work (tests make several requests per process).
 * `$request->user()` in a test run through `actingAs` and the `web` group: `SetAdminLocale` sets the locale from the user, so a

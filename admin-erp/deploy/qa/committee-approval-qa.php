@@ -210,12 +210,17 @@ function fileFacts(string $disk, ?string $path): array
         return ['recorded' => false];
     }
     $storage = Storage::disk($disk);
+    try {
+        $exists = $storage->exists($path);
+    } catch (Throwable) {
+        $exists = false; // a path the disk refuses to even look at (a '../..' one) is "not there"
+    }
     $facts = [
         'recorded' => true,
         'folder' => dirname($path),
         'extension' => strtolower(pathinfo($path, PATHINFO_EXTENSION)),
         'name_shape_ok' => preg_match('~^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|jpeg|png|webp)$~', basename($path)) === 1,
-        'exists' => $storage->exists($path),
+        'exists' => $exists,
     ];
     if ($facts['exists']) {
         $absolute = $storage->path($path);
@@ -491,6 +496,16 @@ switch ($mode) {
             $ownPrivate = array_values(array_diff($rows->pluck('photo_path')->filter()->unique()->all(), $keepPrivate));
             $ownPublic = array_values(array_diff($rows->pluck('photo_approved_path')->filter()->unique()->all(), $keepPublic));
 
+            // A path read from a row is never used to delete a file unless it has the exact shape the application itself writes
+            // (one folder, one plain file name, an image extension): the `seed` rows with a '../..' path exist precisely to be
+            // refused, and the purge must refuse them too. Anything else is only counted.
+            $isSafe = fn (string $pattern) => fn (string $path): bool => preg_match($pattern, $path) === 1;
+            $safePrivate = '~^'.preg_quote(PRIVATE_FOLDER, '~').'/[A-Za-z0-9][A-Za-z0-9._-]{0,120}\.(?:jpe?g|png|webp)\z~i';
+            $safePublic = '~^'.preg_quote(PUBLIC_FOLDER, '~').'/[A-Za-z0-9][A-Za-z0-9._-]{0,120}\.(?:jpe?g|png|webp)\z~i';
+            $unsafeCount = count(array_filter($ownPrivate, fn ($p) => ! $isSafe($safePrivate)($p))) + count(array_filter($ownPublic, fn ($p) => ! $isSafe($safePublic)($p)));
+            $ownPrivate = array_values(array_filter($ownPrivate, $isSafe($safePrivate)));
+            $ownPublic = array_values(array_filter($ownPublic, $isSafe($safePublic)));
+
             // A file nobody references and the baseline did not list: an upload whose row was never written. Only one older than
             // half an hour — a real applicant's photo is stored a moment BEFORE their row is.
             $stray = ['private' => [], 'public' => []];
@@ -504,7 +519,8 @@ switch ($mode) {
             }
 
             $plan = ['committees' => $qaCommittees, 'submissions' => $qaSubmissions, 'users' => $qaUsers, 'roles' => $qaRoles, 'units' => $qaUnits,
-                'private_photos' => $ownPrivate, 'public_photos' => $ownPublic, 'stray_private' => $stray['private'], 'stray_public' => $stray['public']];
+                'private_photos' => $ownPrivate, 'public_photos' => $ownPublic, 'stray_private' => $stray['private'], 'stray_public' => $stray['public'],
+                'unsafe_paths_left_alone' => $unsafeCount];
             if (! $go) {
                 out(['mode' => 'purge', 'dry_run' => true, 'would_delete' => $plan, 'hint' => 'run again with the word "go" to delete']);
             }
@@ -547,8 +563,12 @@ switch ($mode) {
             $removed = 0;
             foreach ([['uploads_private', [...$ownPrivate, ...$stray['private']]], ['public', [...$ownPublic, ...$stray['public']]]] as [$disk, $paths]) {
                 foreach ($paths as $path) {
-                    if (Storage::disk($disk)->exists($path) && Storage::disk($disk)->delete($path)) {
-                        $removed++;
+                    try {
+                        if (Storage::disk($disk)->exists($path) && Storage::disk($disk)->delete($path)) {
+                            $removed++;
+                        }
+                    } catch (Throwable) {
+                        // A file that cannot be removed is left for the next run (it then shows up as a stray); never abort halfway.
                     }
                 }
             }
