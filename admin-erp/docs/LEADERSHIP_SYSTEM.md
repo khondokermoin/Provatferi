@@ -174,8 +174,9 @@ photo (initials only; only the initials are `aria-hidden`) gets it in the same p
 
 *Why the photo and not the card's corner.* The first version put the button at the card's top-right corner and gave the
 heading a 28 px right gutter so that a long name could not run under it. The design guard (below) caught that this **re-wrapped
-existing names** in five of the 64 captured views (the Bangla index on a tablet grew by 56 px; a name wrapped onto a second
-line on the English index and homepage section on a phone and tablet) — which the frozen design does not allow. On a photo there
+existing names** in five of the 64 captured views (the Bangla index on a tablet grew by 56 px; a name wrapped differently on
+the English index on a tablet and on a phone, and in the Bangla and the English homepage section on a phone) — which the frozen
+design does not allow. On a photo there
 is never any text, so the button needs no gutter and no existing line moves. The gutter rules were removed; a test forbids any padding on a card heading and any wrapper box.
 
 It opens a menu with two entries, each with an icon and a label:
@@ -223,6 +224,15 @@ inside them. `--phase verify` also checks, at 390 px, 820 px and 1366 px in both
 
 **Verification**: `scripts/leadership-seo-qa.mjs --phase seo|verify` (read-only; works for any profile the API lists, nothing is
 hard-coded) — see the script header. Unit tests: `leadership-share`, `leadership-seo`.
+
+**Production acceptance (2026-10-23, build `01a1685b`, commit `7f0ba99`)**: 265/265 HTTP checks (`--phase seo`: both languages,
+every active profile, sitemap, internal links, 404); 148/148 real-Chrome checks (`--phase verify`: desktop, 390 px phone with
+touch, light and dark, keyboard, native-share stub with the exact name / designation / address, fallback links, exact clipboard
+text, Bangla and English, no console error or failed request); 192/192 design-guard checks against the pre-deploy production
+baseline (`--phase compare`: every measured box, line of text, font and colour identical in 64 of 64 views, pixels identical
+within the decoding noise described above, the new button on every card and portrait). The run is read-only — it created and
+changed nothing in production. Limits: the platforms' own debuggers (Facebook, LinkedIn, X, Google's rich-results test) were not
+run, and the real OS share sheets of a phone were stubbed, not driven.
 
 ## Public API
 
