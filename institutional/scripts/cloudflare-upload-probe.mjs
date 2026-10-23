@@ -2,9 +2,10 @@
 // form's upload can arrive in, and reports what each one got:
 //
 //   old   The Server Action shape the forms used to submit in: POST to the form's page with a `Next-Action` header.
-//         The action id is INVALID on purpose (Next answers 404 "action not found" and runs nothing), so this creates
-//         nothing. Expected: a fixture with the trigger bytes in the first MiB is refused by Cloudflare (403, a bare
-//         edge page); every other fixture gets through to Next (404). This is the class of failure the forms had.
+//         The action id is INVALID on purpose (Next answers 404 "action not found" up to 16.3, 409 "Server Action unavailable"
+//         from 16.4, and runs nothing), so this creates nothing. Expected: a fixture with the trigger bytes in the first MiB is
+//         refused by Cloudflare (403, a bare edge page); every other fixture gets through to Next (404 or 409). This is the class
+//         of failure the forms had.
 //   new   The route shape they submit in now: a multipart POST to the same-origin route under /api/, no Next-Action
 //         header. The payload is INVALID on purpose (no session / an unknown link or season) so nothing is created.
 //         Expected for every fixture: the route's own JSON answer, never an edge page.
@@ -30,7 +31,7 @@ const slug = arg("slug", "no-such-posting-qa-probe");
 const paceMs = Number(arg("pace-ms", "15000"));
 const only = (arg("only", "old,new,native") ?? "").split(",");
 const origin = new URL(base).origin;
-const FAKE_ACTION = "7f00000000000000000000000000000000000000"; // not an action id: Next answers 404 and runs nothing
+const FAKE_ACTION = "7f00000000000000000000000000000000000000"; // not an action id: Next answers 404 (409 from 16.4) and runs nothing
 const BOGUS = "qa-probe-no-such-link-0000000000000000";
 
 const manifest = JSON.parse(await readFile(join(fixturesDir, "manifest.json"), "utf8"));
@@ -88,12 +89,12 @@ async function probeOld() {
         headers: { "Next-Action": FAKE_ACTION, Accept: "text/x-component" },
         body: await body(fixture, { 0: '[{"status":"idle"},"$K1"]' }),
       });
-      // Not refused: Next's own answer for an unknown action id (404, and nothing ran).
-      const nextAnswered = !res.edgeRefusal && res.status === 404;
+      // Not refused: Next's own answer for an unknown action id (404 up to 16.3, 409 from 16.4, and nothing ran).
+      const nextAnswered = !res.edgeRefusal && (res.status === 404 || res.status === 409);
       record({
         shape: "old", form: form.name, fixture, status: res.status, edgeRefusal: res.edgeRefusal, cfRay: res.cfRay, server: res.server,
-        detail: nextAnswered ? "Next: action not found (let through)" : `${res.type || "no body"}`,
-        expected: expectBlocked ? "refused by Cloudflare" : "let through to Next (404)",
+        detail: nextAnswered ? "Next: unknown action (let through)" : `${res.type || "no body"}`,
+        expected: expectBlocked ? "refused by Cloudflare" : "let through to Next (404 or 409)",
         ok: expectBlocked ? res.edgeRefusal : nextAnswered,
       });
     }

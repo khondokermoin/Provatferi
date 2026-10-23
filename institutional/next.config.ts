@@ -2,9 +2,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    remotePatterns: [
-      { protocol: "https", hostname: "cms.provatferi.org", pathname: "/wp-content/uploads/**" },
-    ],
+    // The image optimizer (/_next/image, which decodes with sharp) has exactly one job on this site: the two brand logos in
+    // /public/brand, drawn by components/BrandLogo.tsx. So nothing else may be handed to it (2026-10-23 review of the Next.js and
+    // sharp image advisories): no remote host is allow-listed — the SSRF advisory needs one — and the only local files it accepts are
+    // the logos, so no uploaded or look-alike file (an SVG or any other) can reach the decoder through this endpoint. Optimizing
+    // another image means adding it here deliberately; __tests__/next-config.test.mts explains and pins this.
+    remotePatterns: [],
+    localPatterns: [{ pathname: "/brand/**", search: "" }],
   },
   experimental: {
     // Next.js defaults this to 1mb, which a real applicant's photo alone

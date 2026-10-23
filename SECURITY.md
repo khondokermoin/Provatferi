@@ -10,6 +10,10 @@ If you find a secret that has been committed (a password, token, key, `.env` con
 
 Secrets never live in Git. The rules, the places real values belong, the automated checks (pre-commit hook and CI secret scan) and the rotation checklist are in [docs/SECRETS.md](docs/SECRETS.md).
 
+## Dependencies
+
+The two Next.js applications are checked with `npm audit`, a lockfile floor in the test suite (`institutional/__tests__/dependency-floor.test.mts`) and Hostinger's own scan of what is deployed. What was patched, what is deliberately left alone and the upgrade checklist are in [docs/DEPENDENCIES.md](docs/DEPENDENCIES.md).
+
 ## Supported versions
 
 Only the current `main` branch is maintained; fixes are made there and deployed to production.

@@ -417,7 +417,8 @@ async function designPhase(mode) {
       const response = await go(page, c.url);
       // "compare" looks at the page as it is, measured with the new button present, then photographs it with the button hidden.
       measurements[c.key] = { status: response?.status(), ...(await measure(page)), buttons: await page.$$eval(".leader-actions", (els) => els.length) };
-      if (mode === "compare") await page.addStyleTag({ content: ".leader-actions{visibility:hidden!important}" });
+      // `--keep-actions` is for comparing two builds that BOTH carry the button (a framework upgrade): nothing is hidden then.
+      if (mode === "compare" && !process.argv.includes("--keep-actions")) await page.addStyleTag({ content: ".leader-actions{visibility:hidden!important}" });
       // Where the photographs are, in the screenshot's own pixels (an element screenshot starts at the element's corner).
       const images = mode !== "compare" ? [] : await page.evaluate((selector) => {
         const origin = selector ? document.querySelector(selector).getBoundingClientRect() : { x: -scrollX, y: -scrollY };
