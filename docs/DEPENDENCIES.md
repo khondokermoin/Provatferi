@@ -47,6 +47,16 @@ release; 16.4.3 was published the same afternoon, carries no security fix, and w
 | GHSA-68fv-2mgg-jv7q (high) | source-map-js: an indexed source map blocks the event loop | source-map-js 1.2.2 | build time only (PostCSS / Tailwind), nothing parses a visitor's source map | same |
 | GHSA-vfj7-8cjw-p6xm | `braces` stack exhaustion (reached `eslint-config-next` through dev tooling) | — | **withdrawn by GitHub on 2026-10-23** ("not a practically exploitable vulnerability") | same |
 
+**Production acceptance (2026-10-23).** Builds `01a1697a` (provatferi.org) and `01a16981` (Sahittopata; its first attempt failed on a
+transient build-time connect timeout to the CMS and was retried unchanged). Both sites answer `window.next.version` = 16.4.2 in a
+real browser, Hostinger's vulnerability scan of each lists nothing, Hostinger's `npm install` says "found 0 vulnerabilities". Against
+baselines taken just before the deploy: Sahittopata 98/98 page checks and 12/12 header checks identical; the institutional site 94
+page views (86 identical in every check; 8 notice pages differ only by the "New" badge that the API stops sending after a few days;
+6 views were re-captured after the laptop's DNS dropped out), the Leadership design guard 192/192, SEO 265/265, share-menu
+verification 148/148, request-storm / navigation / carousel scripts green, and 50 of 51 header and image-optimizer answers identical
+(the 51st is the intended AVIF refusal). Details and file names: `institutional/deploy/state/last-deployed.json`,
+`frontend/deploy/state/last-deployed.json`.
+
 Next 16.4 also changed behaviour; what was seen when the old and the new build were run side by side is in the upgrade record
 (`institutional/deploy/state/last-deployed.json`). Two are worth knowing: a Server Action id the server does not know now answers
 **409 "Server Action unavailable"** (it was 404 "Server action not found" — `scripts/cloudflare-upload-probe.mjs` accepts either),

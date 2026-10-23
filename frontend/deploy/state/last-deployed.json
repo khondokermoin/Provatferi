@@ -1,0 +1,17 @@
+{
+  "commit": "0c5243ae7e70c0c0770dedc34e32e15bf8cdc97e",
+  "deployed_at": "2026-10-23T16:05:23Z",
+  "deployed_via": "git archive --format=tar.gz -o frontend-0c5243a.tar.gz 0c5243a frontend -> hosting_deploy (path = the archive, type nodejs, node 22, appType next, rootDirectory frontend, outputDirectory .next, buildScript build:hostinger, packageManager npm) -> poll hosting_get-deployment -> hosting_cache_clear-website. The buildScript MUST be passed: the settings stored for the site still say `build` (Turbopack), which crashes in Hostinger's build container.",
+  "build_uuid": "01a16981-2c74-711b-9fa3-bb582ceb389e",
+  "previous_build_uuid": "01a102ab-7440-707a-83dd-0909449f7e90",
+  "previous_deployed_at": "2026-10-03T16:50:13Z",
+  "previous_note": "the previous build came from frontend-28d1fef.tar.gz (the archive's name; this folder had no deploy-state file before 2026-10-23)",
+  "note": "URGENT SECURITY PATCH (23rd one-task order), same vulnerability class as the institutional site: Next.js 16.3.6 -> 16.4.2, sharp 0.35.5, source-map-js 1.2.2. Application code and design untouched; next.config.ts: the development-only `localhost` image pattern is no longer active in production and no local file is accepted by the optimizer. Hostinger: npm install 'found 0 vulnerabilities', next build --webpack 16.4.2 compiled in 7.5 s, 7/7 static pages, build 42.6 s, restarted in 2.0 s, completed in 1m15s.",
+  "first_attempt": "build 01a1697f-0907-73d1-b71d-43b7e63ad6e4 FAILED: UND_ERR_CONNECT_TIMEOUT (10 s) to the CMS's Cloudflare IPv6 address while prerendering `/` (the home page and the sitemap read the CMS at build time). The old version kept serving; the identical retry, a minute later, succeeded. If it recurs, retry; the CMS must be reachable from the build container.",
+  "advisories_fixed": "GHSA-673q-mjm6-r5xr, GHSA-2464-fhr4-w9xw (critical), GHSA-p3m5-59mp-jv5r (high) in next 16.4.1; GHSA-cjq9-62q9-8jv4, -mcj8-r9mp-w47p, -4jqv-mc3x-m676, -f87g-xv8r-7p7x, -h694-7cp9-m8p3, -3w37-wq28-93x7, -39w2-rjm5-chcv in 16.3.8; sharp GHSA-wq5f-xc86-pv6w in 0.35.5; source-map-js GHSA-68fv-2mgg-jv7q in 1.2.2. GHSA-vfj7-8cjw-p6xm (braces, dev chain) was withdrawn by GitHub the same day.",
+  "versions": "next 16.3.6 -> 16.4.2 and eslint-config-next 16.3.6 -> 16.4.2 (exact pins), sharp 0.35.4 -> 0.35.5, source-map-js 1.2.1 -> 1.2.2; the lockfile changes by exactly 40 package versions, none added, none removed; npm audit 0 vulnerabilities with and without dev dependencies.",
+  "relevance_here": "Applicable: a live image optimizer for CMS and Gravatar pictures (GHSA-2464 / sharp / GHSA-cjq9 SSRF; the `localhost` pattern let the optimizer fetch from the Hostinger server's own localhost). Not applicable: no Server Actions, no `use cache`, no metadata image routes, no next/og. The CMS currently holds no media at all.",
+  "local_before_deploy": "the pre-upgrade commit built and started next to the new build: headers and optimizer answers 11/12 (the one difference is the Link header, recognised as noise), 14 page views x 7 checks 98/98 (home light/dark, search, category, article; desktop and phone)",
+  "production_after": "window.next.version = 16.4.2 on / and /search; Hostinger's vulnerability scan lists nothing; headers and optimizer answers 12/12 identical to before (including the ISR cache headers); 14 page views 98/98 identical to the baseline taken before the deploy",
+  "evidence": "C:/Users/MOIN/Downloads/dependency-security-2026-10-23/"
+}
