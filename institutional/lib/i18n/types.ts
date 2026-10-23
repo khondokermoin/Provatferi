@@ -179,6 +179,13 @@ export interface UiStrings {
     homeTitle: string;
     homeIntro: string;
     homeLink: string;
+    /** The share / copy-link menu on a card and on a profile page (2026-10-23): the three-dot button's accessible name and the menu's words. */
+    actionsLabel: (name: string) => string;
+    shareProfile: string;
+    copyProfileLink: string;
+    linkCopied: string;
+    shareVia: string;
+    copyFailed: string;
   };
   notFound: {
     title: string;

@@ -331,7 +331,7 @@ test("both dictionaries carry every Leadership string, and the navigation points
   assert.ok(footerExploreLinks.some((link) => link.href === "/leadership"));
 });
 
-test("the Leadership pages, cards and resolver never write HTML: no dangerouslySetInnerHTML, no raw next/link", () => {
+test("the Leadership pages, cards and resolver never write HTML (the JSON-LD script apart): no dangerouslySetInnerHTML, no raw next/link", () => {
   for (const file of [
     "app/[locale]/(site)/leadership/page.tsx",
     "app/[locale]/(site)/leadership/[slug]/page.tsx",
@@ -342,7 +342,10 @@ test("the Leadership pages, cards and resolver never write HTML: no dangerouslyS
     "lib/api/leadership.ts",
   ]) {
     const source = read(file);
-    assert.ok(!source.includes("dangerouslySetInnerHTML"), `${file} must not write HTML`);
+    // The one thing a Leadership file may write is a JSON-LD script (search-result data, 2026-10-23) whose body went through the
+    // script-safe encoder `safeJsonLd`; leadership-seo.test.mts proves what that encoder and the blocks it carries do.
+    const withoutStructuredData = source.replace(/<script type="application\/ld\+json" dangerouslySetInnerHTML=\{\{ __html: safeJsonLd\([a-z]+\) \}\} \/>/g, "");
+    assert.ok(!withoutStructuredData.includes("dangerouslySetInnerHTML"), `${file} must not write HTML`);
     assert.ok(!/from "next\/link"/.test(source), `${file} must use SiteLink`);
   }
 });

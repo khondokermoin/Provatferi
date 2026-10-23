@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
+import LeaderActions from "@/components/LeaderActions";
 import LeaderPhoto from "@/components/LeaderPhoto";
 import Link from "@/components/SiteLink";
 import SocialIcon from "@/components/SocialIcon";
@@ -10,7 +11,10 @@ import { org } from "@/lib/content";
 import { toBnDigits } from "@/lib/format";
 import { getStrings, isLocale, type Locale } from "@/lib/i18n";
 import { localizeHref } from "@/lib/i18n/paths";
+import { safeJsonLd } from "@/lib/json-ld";
 import { leaderDescription, resolveLeaderDetail } from "@/lib/leadership";
+import { buildLeaderBreadcrumbJsonLd, buildPersonJsonLd } from "@/lib/leadership-seo";
+import { buildShareLinks, buildShareTarget, canonicalProfileUrl, leaderActionLabels } from "@/lib/leadership-share";
 import { localizedMetadata } from "@/lib/social-meta";
 
 /*
@@ -21,6 +25,10 @@ import { localizedMetadata } from "@/lib/social-meta";
  * Everything on the page is the admin's own text and the admin's own data, shown as plain text (TextBlocks makes paragraphs,
  * bullets and plain links; nothing is ever HTML). Nothing is claimed that the profile does not say: the description of the
  * page is the short biography or, failing that, the designation — both stored facts.
+ *
+ * 2026-10-23: the page also carries a share / copy-link button (over the portrait, components/LeaderActions.tsx) and its search
+ * and share-card data: Open Graph type "profile", a schema.org Person and a BreadcrumbList (lib/leadership-seo.ts), all from
+ * stored data only. The address shared and written into that data is the canonical one (lib/leadership-share.ts).
  */
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string; slug: string }> }): Promise<Metadata> {
@@ -32,6 +40,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   const leader = resolveLeaderDetail(result.data, locale);
   const t = getStrings(locale);
 
+  const photoAlt = t.leadership.photoAlt(leader.name);
   const metadata = localizedMetadata({
     locale,
     // The canonical (Bangla) path is always the CURRENT address, even when this request came through an old one.
@@ -41,14 +50,23 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     // An English page "exists" only when the English name and designation were both entered; otherwise it is a
     // fallback render whose canonical points at the Bangla page and which hreflang does not advertise.
     hasTranslation: leader.hasEnglish,
-    image: leader.photo ? { url: leader.photo.src, width: leader.photo.width, height: leader.photo.height, alt: t.leadership.photoAlt(leader.name) } : undefined,
+    image: leader.photo ? { url: leader.photo.src, width: leader.photo.width, height: leader.photo.height, alt: photoAlt } : undefined,
   });
 
-  // A page's own openGraph replaces the layout's wholesale, so the language of the share card is stated here: the page's own
-  // locale, and the other one only when the other language page really exists.
+  // A page's own openGraph replaces the layout's wholesale, so everything the share card needs is stated here: the object type
+  // ("profile": this page is about one person), the site name, the page's own locale, and the other one only when the other
+  // language page really exists. The picture is the public optimised copy (always a JPEG), with its dimensions and alt text.
   return {
     ...metadata,
-    openGraph: { ...metadata.openGraph, locale: t.meta.ogLocale, ...(leader.hasEnglish ? { alternateLocale: locale === "bn" ? ["en_US"] : ["bn_BD"] } : {}) },
+    openGraph: {
+      ...metadata.openGraph,
+      type: "profile",
+      siteName: locale === "bn" ? org.nameBn : org.nameEn,
+      locale: t.meta.ogLocale,
+      ...(leader.hasEnglish ? { alternateLocale: locale === "bn" ? ["en_US"] : ["bn_BD"] } : {}),
+      ...(leader.photo ? { images: [{ url: leader.photo.src, width: leader.photo.width, height: leader.photo.height, alt: photoAlt, type: "image/jpeg" }] } : {}),
+    },
+    ...(leader.photo ? { twitter: { ...metadata.twitter, images: [{ url: leader.photo.src, alt: photoAlt }] } } : {}),
   };
 }
 
@@ -67,8 +85,18 @@ export default async function LeadershipProfilePage({ params }: { params: Promis
   const hasContact = leader.email !== null || leader.phone !== null || leader.website !== null || leader.social.length > 0;
   const body = leader.fullBio ?? leader.shortBio;
 
+  // The canonical address (the English one only when the English page really exists), the share action and the structured data.
+  const canonicalUrl = canonicalProfileUrl(result.data.slug, locale, leader.hasEnglish);
+  const share = buildShareTarget({ slug: result.data.slug, name: leader.name, designation: leader.designation, hasEnglish: leader.hasEnglish, locale });
+  const person = canonicalUrl === null ? null : buildPersonJsonLd({ profile: result.data, view: leader, locale, url: canonicalUrl });
+  const breadcrumb =
+    canonicalUrl === null ? null : buildLeaderBreadcrumbJsonLd({ locale, homeName: t.common.home, indexName: t.leadership.title, personName: leader.name, personUrl: canonicalUrl });
+
   return (
     <>
+      {/* safeJsonLd: the values are text an admin typed, so `<`, `>` and `&` are written as \uXXXX escapes (lib/json-ld.ts). */}
+      {person !== null && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(person) }} />}
+      {breadcrumb !== null && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumb) }} />}
       <div className="page-header leader-header">
         <nav className="breadcrumb" aria-label={t.common.breadcrumbAria}>
           <Link href={localizeHref("/", locale)}>{t.common.home}</Link>
@@ -84,7 +112,12 @@ export default async function LeadershipProfilePage({ params }: { params: Promis
       <section className="content-section leader-profile" aria-label={leader.name}>
         <div className="leader-profile-grid">
           <aside className="leader-profile-aside">
-            <LeaderPhoto leader={leader} alt={t.leadership.photoAlt(leader.name)} variant="page" />
+            <LeaderPhoto
+              leader={leader}
+              alt={t.leadership.photoAlt(leader.name)}
+              variant="page"
+              actions={share === null ? null : <LeaderActions target={share} links={buildShareLinks(share)} labels={leaderActionLabels(t, leader.name)} />}
+            />
 
             {(leader.expertise !== null || leader.sinceYear !== null) && (
               <ul className="leader-facts">

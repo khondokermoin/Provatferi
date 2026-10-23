@@ -174,6 +174,12 @@ export const en: UiStrings = {
     homeTitle: "Leadership & Key Persons",
     homeIntro: "The permanent faces and responsible people behind Provatferi's journey.",
     homeLink: "View Leadership",
+    actionsLabel: (name) => `Share and link options for ${name}`,
+    shareProfile: "Share profile",
+    copyProfileLink: "Copy profile link",
+    linkCopied: "Link copied",
+    shareVia: "Share via",
+    copyFailed: "The link could not be copied automatically. Copy it from the box below.",
   },
   notFound: {
     title: "Page not found",

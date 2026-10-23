@@ -937,6 +937,36 @@ h1, h2, h3, h4 { color: var(--heading); }
 .leader-back { margin: 40px 0 0; }
 .leader-back .icon-back { display: inline-block; transform: scaleX(-1); margin-right: 8px; }
 .home-leadership-intro { margin: 8px 0 0; max-width: 560px; font-size: 15px; line-height: 1.75; color: var(--muted); }
+
+/*
+ * SHARE / COPY-LINK MENU (2026-10-23): a small vertical three-dot button over the top-right corner of the PHOTO — of a card's
+ * photo (whatever the layout: on top, or on the left) and of a profile page's portrait — and the menu it opens
+ * (components/LeaderActions.tsx). The photo frame is already `position: relative`; the button is absolute inside it, above the
+ * stretched name link (z-index 2, the same layering as the social icons), so no card, photo or line of text moves, and it never
+ * lies over a name or a line of text (there is no text on a photo), so nothing existing needed a new gutter or wraps differently.
+ * The button looks like the card's social icons: a thin outlined circle in the muted colour, accent on hover and focus. Hidden
+ * until the page is interactive. The menu is a fixed-position panel drawn on <body> (a card clips its overflow); theme tokens
+ * only, so light and dark follow.
+ */
+.leader-actions { position: absolute; top: 10px; right: 10px; z-index: 2; }
+.leader-actions:not(.is-ready) { visibility: hidden; }
+.leader-actions-trigger { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--card); background: color-mix(in srgb, var(--card) 88%, transparent); color: var(--muted); cursor: pointer; transition: color .18s, border-color .18s, background-color .18s; }
+/* The visible circle stays 32 px; the pressable area is 44 px (inset is measured from the padding box, inside the 1 px border). */
+.leader-actions-trigger::before { content: ""; position: absolute; inset: -7px; }
+.leader-actions-trigger:hover, .leader-actions-trigger[aria-expanded="true"] { color: var(--accent-text); border-color: var(--accent-text); background: var(--card); }
+.leader-actions-trigger:focus-visible { color: var(--accent-text); border-color: var(--accent-text); background: var(--card); outline: 2px solid var(--accent-text); outline-offset: 2px; }
+.leader-menu { position: fixed; z-index: 1000; box-sizing: border-box; width: max-content; min-width: 224px; max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); overflow-y: auto; padding: 6px; background: var(--card); border: 1px solid var(--border-strong); border-radius: 12px; box-shadow: 0 12px 32px rgba(0, 0, 0, .2); }
+.leader-menu-item { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; color: var(--heading); font: inherit; font-size: 15px; font-weight: 600; line-height: 1.4; text-align: start; text-decoration: none; cursor: pointer; }
+.leader-menu-item .social-icon { flex: 0 0 auto; color: var(--muted); }
+.leader-menu-item:hover, .leader-menu-item:focus-visible { background: var(--soft); color: var(--accent-text); }
+.leader-menu-item:hover .social-icon, .leader-menu-item:focus-visible .social-icon { color: var(--accent-text); }
+.leader-menu-item:focus-visible { outline: 2px solid var(--accent-text); outline-offset: -2px; }
+.leader-menu-item[aria-disabled="true"] { cursor: default; color: var(--accent-text); }
+.leader-menu-group { margin: 0 0 4px; padding-inline-start: 14px; border-inline-start: 2px solid var(--border); margin-inline-start: 18px; }
+.leader-menu-manual { margin: 4px 0 2px; padding: 4px 6px 6px; border-top: 1px solid var(--border); }
+.leader-menu-note { margin: 8px 6px; font-size: 13px; line-height: 1.6; color: var(--muted); }
+.leader-menu-url { box-sizing: border-box; width: 100%; padding: 8px 10px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--soft); color: var(--heading); font: inherit; font-size: 13px; }
+.leader-menu-url:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 1px; }
 @media (max-width: 1050px) {
   .leader-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .leader-grid.is-home .leader-card { flex-basis: calc(50% - 10px); }
@@ -948,6 +978,7 @@ h1, h2, h3, h4 { color: var(--heading); }
   .leader-card, .leader-card.is-featured { flex-direction: row; }
   .leader-photo-card, .leader-card.is-featured .leader-photo-card, .leader-card.is-compact .leader-photo-card { flex: 0 0 34%; max-width: 150px; min-height: 0; aspect-ratio: 4 / 5; align-self: flex-start; }
   .leader-card-body { padding: 16px; }
+  .leader-actions { top: 8px; right: 8px; }
   .leader-grid.is-home, .leader-grid.is-home.is-few { gap: 16px; }
   .leader-grid.is-home .leader-card { flex: 1 1 100%; min-width: 0; }
   .leader-grid.is-home.is-few { grid-template-columns: minmax(0, 1fr); }

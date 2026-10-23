@@ -10,25 +10,33 @@ import type { LeaderView } from "@/lib/leadership";
  *
  * `alt` is the person's name (from the admin's data, never invented). The initials are decorative: the name is always
  * written next to them.
+ *
+ * `actions` (the share / copy-link button, 2026-10-23) is drawn over the frame's top-right corner, on the photo — the one place
+ * on a card where no text ever is, so it can neither cover a name nor make one wrap. It is absolutely positioned inside the
+ * frame, which already is `position: relative`, so it changes nothing about the frame's size, the picture or the card. Only
+ * the initials are `aria-hidden`; the frame itself is not, because a button must never sit inside a hidden subtree.
  */
 export default function LeaderPhoto({
   leader,
   alt,
   variant,
   priority = false,
+  actions = null,
 }: {
   leader: Pick<LeaderView, "photo" | "initials">;
   alt: string;
   variant: "card" | "page";
   /** The first card(s) on a page: load now rather than when scrolled near. */
   priority?: boolean;
+  actions?: React.ReactNode;
 }) {
   const { photo, initials } = leader;
 
   if (photo === null) {
     return (
-      <div className={`leader-photo-frame leader-photo-${variant} leader-initials`} aria-hidden="true">
-        <span>{initials}</span>
+      <div className={`leader-photo-frame leader-photo-${variant} leader-initials`}>
+        <span aria-hidden="true">{initials}</span>
+        {actions}
       </div>
     );
   }
@@ -38,6 +46,7 @@ export default function LeaderPhoto({
       <div className="leader-photo-frame leader-photo-page">
         {/* eslint-disable-next-line @next/next/no-img-element -- a resized copy on admin.provatferi.org's public disk (LeadershipPhotoService). */}
         <img src={photo.src} width={photo.width} height={photo.height} alt={alt} decoding="async" fetchPriority="high" />
+        {actions}
       </div>
     );
   }
@@ -55,6 +64,7 @@ export default function LeaderPhoto({
         loading={priority ? "eager" : "lazy"}
         decoding="async"
       />
+      {actions}
     </div>
   );
 }

@@ -6,7 +6,7 @@ import type { SocialPlatform } from "@/lib/public-links";
  * follow the text colour in both themes, scale with `size`, and need no icon font or image request. Decorative: the link
  * around them carries the accessible name. Glyph outlines are from the Feather icon set (MIT licence).
  */
-export type IconName = SocialPlatform | "map-pin" | "external" | "mail" | "phone" | "globe" | "arrow-right";
+export type IconName = SocialPlatform | "map-pin" | "external" | "mail" | "phone" | "globe" | "arrow-right" | "more-vertical" | "share" | "link" | "check" | "message-circle";
 
 const GLYPHS: Record<IconName, React.ReactNode> = {
   facebook: <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />,
@@ -59,6 +59,32 @@ const GLYPHS: Record<IconName, React.ReactNode> = {
       <polyline points="12 5 19 12 12 19" />
     </>
   ),
+  // The share / copy-link menu of a Leadership card and profile (2026-10-23): the vertical three dots, share, link, a tick for
+  // "copied", and the speech bubble that stands for WhatsApp in the share-via fallback.
+  "more-vertical": (
+    <>
+      <circle cx="12" cy="5" r="1" />
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="12" cy="19" r="1" />
+    </>
+  ),
+  share: (
+    <>
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+    </>
+  ),
+  link: (
+    <>
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </>
+  ),
+  check: <polyline points="20 6 9 17 4 12" />,
+  "message-circle": <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />,
 };
 
 /** `inline` sits the icon in a line of text (a link's trailing marker) instead of as a block of its own. */

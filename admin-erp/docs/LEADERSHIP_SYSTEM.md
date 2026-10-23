@@ -149,6 +149,81 @@ The **contact card** shows only what was entered: e-mail (`mailto:`), phone (`te
 Social and website links are `https://` only, open in a new tab with `rel="noopener noreferrer"`, use the platform's own
 SVG icon (no emoji), and have an accessible name.
 
+## Share menu and search/share-card data (2026-10-23)
+
+Site only (`institutional/`): no ERP code, API field or migration changed. **The approved visual design is frozen**; the only
+visual addition is the new button and its menu.
+
+**What the audit found on production before the change** (`scripts/leadership-seo-qa.mjs --phase seo`, 195 checks over the
+five active profiles in both languages): present and correct — status 200 and indexable, `<title>` *name — designation | Provatferi*,
+meta description, exactly one canonical (Bangla bare, English `/en/…` only where the English page exists), `hreflang` bn /
+x-default / en, Open Graph title / description / url / locale / alternate locale / image / width / height / alt, Twitter card
+`summary_large_image` with title, description and image, the sitemap (index + active profiles, English alternates only where
+they exist), crawlable text links from the index and the homepage, the portrait's alt text and real width and height, no
+private path or contact data in the head, a 404 for an unknown profile. **Missing** — `og:type` (it said `website` for a page
+about one person), `og:site_name` (a page's own `openGraph` replaces the layout's wholesale), `og:image:type`,
+`twitter:image:alt`, a schema.org **Person**, a **BreadcrumbList** on profile pages (the index had one; the visible breadcrumb
+had no structured twin), and of course the share menu.
+
+**Share / copy-link menu** (`components/LeaderActions.tsx`, words in `lib/i18n/*` under `leadership`). A 32 px outlined circle
+with three vertical dots (inline SVG, no emoji; exactly 44 px pressable) over the top-right corner of the **photo** of every
+card — the Leadership page and the homepage section — and of the portrait on a profile page. It is absolutely positioned inside
+the photo frame (which already was `position: relative`), above the card's stretched name link (the same layering as the social
+icons), so nothing moves; it is not part of the link or the heading, and it is drawn by `LeaderPhoto`, so a profile without a
+photo (initials only; only the initials are `aria-hidden`) gets it in the same place.
+
+*Why the photo and not the card's corner.* The first version put the button at the card's top-right corner and gave the
+heading a 28 px right gutter so that a long name could not run under it. The design guard (below) caught that this **re-wrapped
+existing names** in five of the 64 captured views (the Bangla index on a tablet grew by 56 px; a name wrapped onto a second
+line on the English index and homepage section on a phone and tablet) — which the frozen design does not allow. On a photo there
+is never any text, so the button needs no gutter and no existing line moves. The gutter rules were removed; a test forbids any padding on a card heading and any wrapper box.
+
+It opens a menu with two entries, each with an icon and a label:
+
+| Entry | Does |
+|---|---|
+| Share profile | the browser's Web Share sheet (`navigator.share`) with the **name, designation and canonical address**. Cancelling the sheet is not an error. Any other failure, or no Web Share at all, opens a short list of plain links inside the menu — WhatsApp, Facebook, LinkedIn, e-mail — each `https` (or `mailto`) to a fixed host, the values percent-encoded, opened in a new tab with `rel="noopener noreferrer"`. Nothing fails silently. |
+| Copy profile link | the canonical address on the clipboard (Clipboard API, then the legacy `execCommand` path). The entry itself turns into "Link copied" / "লিংক কপি হয়েছে" for 1.5 s (also spoken through a polite live region) and the menu closes; nothing on the page moves. If both ways fail the address is shown in a box, already selected, with an honest message — never a false "copied". |
+
+Behaviour: the menu is a real ARIA menu button (`aria-haspopup="menu"`, `aria-expanded`, `aria-controls`, `role="menu"`,
+`role="menuitem"`); Enter/Space/ArrowDown open on the first entry, ArrowUp on the last; Arrow keys, Home and End move; Escape
+closes and returns focus to the button; Tab closes and moves on; an outside press closes; scrolling keeps it attached to its
+button. It is drawn on `<body>` (a card clips its own overflow) at a fixed position computed by `lib/menu-navigation.ts
+placeMenu`, which keeps it inside the viewport (below the button, or above when there is no room, pinned when neither).
+The button stays hidden until the page is interactive.
+
+**The canonical address rule** (`lib/leadership-share.ts`). The address shared and copied is built on the server from the
+profile's *current* slug and the site's own origin (`org.website`): `https://provatferi.org/leadership/{slug}`, and
+`https://provatferi.org/en/leadership/{slug}` only when the English page exists (English name **and** designation) — otherwise
+the English page is a fallback render and the Bangla address (its canonical) is what is shared. It never comes from
+`window.location`, so no query string, hash, `www.` or preview host, `/bn/…` rewrite, API address or retired slug can be copied.
+The component validates the address once more (`isCanonicalProfileUrl`) before using it.
+
+**Person and BreadcrumbList JSON-LD** (`lib/leadership-seo.ts`, printed through `safeJsonLd`). Person: `name`,
+`alternateName` (the same person's name in the other language, only when stored and different), `jobTitle` (the
+designation), `description` (the stored short biography; absent when there is none), `image` (the photo as an `ImageObject`
+with its size), `url` (the canonical address), `worksFor` (Organization *Provatferi Literary and Cultural Center*, `PLCC`,
+`https://provatferi.org` — the same canonical name as the site's own Organization block) and `sameAs` (only the person's stored
+social profiles that passed the allow-list; not the personal website). A key is written only when its value exists. Nothing
+else can appear (a test pins the key list): no e-mail, telephone, birth date, education, awards, credentials. BreadcrumbList:
+Home → Leadership / Key Persons → the person, in the page's language with absolute addresses. Open Graph on a profile now says
+`og:type` *profile*, `og:site_name`, `og:image:type` and `twitter:image:alt`.
+
+**Privacy**: the share payload holds three values (name, designation, address). The profile's own public e-mail and phone
+appear only in the visible contact card, as before — never in a meta tag, structured data, the share payload or the menu.
+
+**Design guard.** A test pins every pre-existing Leadership CSS rule byte for byte (`__tests__/leadership-share.test.mts`),
+and `scripts/leadership-seo-qa.mjs --phase baseline` / `--phase compare` photograph and measure the Leadership pages (both
+languages, desktop / tablet / phone, light and dark, the five current profiles — 64 captures; every card's box, heading lines,
+fonts and colours) before and after; with the new button hidden every measurement must be identical and every pixel too, apart
+from decoding noise: a photograph is not bit-identical from one load to the next (production compared with itself differs by
+1/255 over whole photographs and up to ~20 on their edges), so a pixel differs only beyond 2/255 outside photographs and 32/255
+inside them. `--phase verify` also checks, at 390 px, 820 px and 1366 px in both languages, that on every card the button's
+44 px area lies inside the photo and over no text or control (V90).
+
+**Verification**: `scripts/leadership-seo-qa.mjs --phase seo|verify` (read-only; works for any profile the API lists, nothing is
+hard-coded) — see the script header. Unit tests: `leadership-share`, `leadership-seo`.
+
 ## Public API
 
 Read-only, no authentication, JSON. `GET /api/v1/public/leadership[?featured=1][&limit=N]` (limit capped at 50) and
