@@ -13,6 +13,12 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\HomepageCarouselController;
 use App\Http\Controllers\Admin\JobApplicationController;
 use App\Http\Controllers\Admin\LeadershipProfileController;
+use App\Http\Controllers\Admin\Mail\MailAuditController;
+use App\Http\Controllers\Admin\Mail\MailboxAccessController;
+use App\Http\Controllers\Admin\Mail\MailboxController;
+use App\Http\Controllers\Admin\Mail\MailCenterController;
+use App\Http\Controllers\Admin\Mail\MailComposeController;
+use App\Http\Controllers\Admin\Mail\MailMessageStateController;
 use App\Http\Controllers\Admin\MemberController;
 use App\Http\Controllers\Admin\MemberDuesController;
 use App\Http\Controllers\Admin\MembershipController;
@@ -162,6 +168,50 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
 
     Route::get('/system/permissions', [PermissionController::class, 'index'])
         ->middleware('permission:users.view')->name('permissions.index');
+
+    /*
+     * Mail Center (docs/MAIL_CENTER.md). `can:mail-center` only opens the door (mail.access or mail.manage_all); every
+     * action then resolves its mailbox and checks its capability for the signed-in account in App\Services\Mail\
+     * MailboxAccess — a mailbox it cannot use is a 404. `mail.private`: no-store, noindex, no referrer on every response.
+     * Writing is POST only; the throttle is a coarse per-account cap on top of the Mail Center's own per-mailbox limits.
+     */
+    Route::prefix('mail')->name('mail.')->middleware(['can:mail-center', 'mail.private'])->group(function () {
+        Route::get('/', [MailCenterController::class, 'index'])->name('index');
+        Route::get('/unread', [MailCenterController::class, 'unread'])->middleware('throttle:mail-center-poll')->name('unread');
+        Route::get('/{mailbox}', [MailCenterController::class, 'mailbox'])->whereNumber('mailbox')->name('mailbox');
+        Route::get('/{mailbox}/messages/{uid}', [MailCenterController::class, 'show'])->whereNumber(['mailbox', 'uid'])->name('message');
+        Route::get('/{mailbox}/messages/{uid}/attachments/{index}', [MailCenterController::class, 'attachment'])
+            ->whereNumber(['mailbox', 'uid', 'index'])->name('attachment');
+        Route::post('/{mailbox}/messages/{uid}/state', [MailMessageStateController::class, 'update'])
+            ->whereNumber(['mailbox', 'uid'])->middleware('throttle:mail-center-write')->name('state');
+
+        Route::get('/{mailbox}/compose', [MailComposeController::class, 'create'])->whereNumber('mailbox')->name('compose');
+        Route::post('/{mailbox}/compose', [MailComposeController::class, 'store'])->whereNumber('mailbox')->middleware('throttle:mail-center-write')->name('send');
+        Route::get('/{mailbox}/messages/{uid}/reply', [MailComposeController::class, 'reply'])->whereNumber(['mailbox', 'uid'])->name('reply');
+        Route::post('/{mailbox}/messages/{uid}/reply', [MailComposeController::class, 'sendReply'])
+            ->whereNumber(['mailbox', 'uid'])->middleware('throttle:mail-center-write')->name('reply.send');
+        Route::get('/{mailbox}/messages/{uid}/forward', [MailComposeController::class, 'forward'])->whereNumber(['mailbox', 'uid'])->name('forward');
+        Route::post('/{mailbox}/messages/{uid}/forward', [MailComposeController::class, 'sendForward'])
+            ->whereNumber(['mailbox', 'uid'])->middleware('throttle:mail-center-write')->name('forward.send');
+    });
+
+    /*
+     * Mailbox registry, mailbox access and the mail audit trail: `mail.manage_access`. Every change also needs a two-step
+     * confirmation from the last fifteen minutes (`mfa.recent`, strict: an account without two-step verification cannot
+     * hand out mailbox access at all).
+     */
+    Route::prefix('mail-admin')->name('mail.')->middleware(['permission:mail.manage_access', 'mail.private'])->group(function () {
+        Route::get('/mailboxes', [MailboxController::class, 'index'])->name('mailboxes.index');
+        Route::get('/mailboxes/create', [MailboxController::class, 'create'])->middleware('mfa.recent')->name('mailboxes.create');
+        Route::post('/mailboxes', [MailboxController::class, 'store'])->middleware('mfa.recent')->name('mailboxes.store');
+        Route::get('/mailboxes/{mailbox}/edit', [MailboxController::class, 'edit'])->whereNumber('mailbox')->middleware('mfa.recent')->name('mailboxes.edit');
+        Route::put('/mailboxes/{mailbox}', [MailboxController::class, 'update'])->whereNumber('mailbox')->middleware('mfa.recent')->name('mailboxes.update');
+        Route::post('/mailboxes/{mailbox}/check', [MailboxController::class, 'recheck'])->whereNumber('mailbox')->middleware('mfa.recent')->name('mailboxes.check');
+        Route::post('/mailboxes/{mailbox}/archive-folder', [MailboxController::class, 'createArchive'])->whereNumber('mailbox')->middleware('mfa.recent')->name('mailboxes.archive-folder');
+        Route::get('/audit', [MailAuditController::class, 'index'])->name('audit');
+        Route::put('/roles/{role}/mailboxes', [MailboxAccessController::class, 'updateRole'])->middleware('mfa.recent')->name('access.role');
+        Route::put('/users/{user}/mailboxes', [MailboxAccessController::class, 'updateUser'])->middleware('mfa.recent')->name('access.user');
+    });
 
     /* Activity Types */
     Route::prefix('activity-types')->name('activities.types.')->group(function () {

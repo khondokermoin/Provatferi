@@ -15,6 +15,24 @@
         </div>
 
         <div class="d-flex align-items-center gap-2">
+            {{-- Unread mail (docs/MAIL_CENTER.md, "Unread badge"): only for Mail Center users. The page never waits for the
+                 mail provider — public/js/provatferi-mail.js fills the count in afterwards, and refreshes it only while
+                 the tab is visible. --}}
+            @can('mail-center')
+                <div class="topbar-item">
+                    <a href="{{ route('admin.mail.index') }}" class="topbar-link position-relative pf-mail-badge-link"
+                       data-mail-unread-url="{{ route('admin.mail.unread') }}" data-mail-poll="{{ (int) config('mail_center.poll_seconds', 90) }}"
+                       data-mail-unread-label="{{ __('admin.mail.badge.unread', ['count' => ':count']) }}"
+                       aria-label="{{ __('admin.mail.badge.label') }}" title="{{ __('admin.mail.badge.label') }}">
+                        <i class="ti ti-mail fs-22" aria-hidden="true"></i>
+                        <span class="pf-mail-badge" data-mail-unread-count hidden></span>
+                    </a>
+                </div>
+                @pushOnce('scripts', 'provatferi-mail-js')
+                    <script src="{{ asset('js/provatferi-mail.js') }}"></script>
+                @endPushOnce
+            @endcan
+
             {{-- Phase 3: UI language. Sits beside the theme control because both
                  are personal display preferences, not data operations. --}}
             <x-admin.language-switcher />

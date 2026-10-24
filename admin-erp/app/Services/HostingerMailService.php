@@ -27,6 +27,13 @@ use RuntimeException;
  * Deliberately thin: it does not cache or store message content anywhere.
  * Every read hits the live Mail API. See docs on the Mail Center controllers
  * for why (never mirroring the mailbox locally, per the rollout brief).
+ *
+ * The Mail Center itself does NOT use this class (2026-10-24, docs/MAIL_CENTER.md):
+ * against the live API, SDK 1.18.x sends snake_case request fields that the API
+ * refuses or ignores (flags, moves, threading, the sender name) and cannot decode
+ * messages whose documented fields are null. It talks to the API through
+ * App\Services\Mail\HostingerMailApiClient instead. This class remains for the
+ * artisan tooling (mail:discover, the webhook commands).
  */
 class HostingerMailService
 {
@@ -59,13 +66,16 @@ class HostingerMailService
     {
         $token = (string) (config('services.hostinger_mail.token') ?? '');
         $config = Configuration::getDefaultConfiguration()->setAccessToken($token);
+        // The SDK's default HTTP client has no time limit: a provider that stops answering would hold the process until
+        // the server kills it.
+        $client = new \GuzzleHttp\Client(['base_uri' => $config->getHost(), 'connect_timeout' => 6, 'timeout' => 30]);
 
         return new self(
-            new AccountApi($config),
-            new FoldersApi($config),
-            new MessagesApi($config),
-            new SendApi($config),
-            new WebhooksApi($config),
+            new AccountApi($config, $client),
+            new FoldersApi($config, $client),
+            new MessagesApi($config, $client),
+            new SendApi($config, $client),
+            new WebhooksApi($config, $client),
         );
     }
 
@@ -248,7 +258,7 @@ class HostingerMailService
     {
         $request = new V1WebhooksCreateRequest();
         $request->setName('Provatferi ERP — new message notifier');
-        $request->setDescription('Notifies the admin ERP so it can create an in-panel notification. Registered via mail:webhook:register.');
+        $request->setDescription('Tells the admin ERP Mail Center that mail arrived, so it refreshes unread counts. Registered via mail:webhook:register.');
         $request->setEvents(['message.received']);
         $request->setUrl($callbackUrl);
         $request->setStatus('active');

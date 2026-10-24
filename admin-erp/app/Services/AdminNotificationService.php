@@ -26,11 +26,6 @@ class AdminNotificationService
         ]);
     }
 
-    public function mailReceived(string $mailbox, ?string $link = null): AdminNotification
-    {
-        return $this->create('mail_received', 'mail.view', ['mailbox' => $mailbox], $link);
-    }
-
     public function volunteerApplicationReceived(string $applicantName, string $postingTitle, ?string $link = null): AdminNotification
     {
         return $this->create('recruitment_application', 'recruitment.view', [

@@ -22,6 +22,17 @@
             ],
         ],
         [
+            // Mail Center (docs/MAIL_CENTER.md): 'mail-center' is mail.access or mail.manage_all; which mailboxes appear
+            // inside is decided per mailbox. The registry and the mail audit trail are for mail.manage_access.
+            'title' => __('admin.nav.groups.mail'),
+            'items' => [
+                ['label' => __('admin.nav.mail_center'), 'icon' => 'ti-mail', 'route' => 'admin.mail.index', 'permission' => 'mail-center',
+                    'active' => ['admin.mail.index', 'admin.mail.mailbox', 'admin.mail.message', 'admin.mail.compose', 'admin.mail.reply', 'admin.mail.forward']],
+                ['label' => __('admin.nav.mailboxes'), 'icon' => 'ti-settings', 'route' => 'admin.mail.mailboxes.index', 'permission' => 'mail.manage_access', 'active' => 'admin.mail.mailboxes.*'],
+                ['label' => __('admin.nav.mail_audit'), 'icon' => 'ti-clipboard-list', 'route' => 'admin.mail.audit', 'permission' => 'mail.manage_access'],
+            ],
+        ],
+        [
             'title' => __('admin.nav.groups.organization'),
             'permission' => 'organization.view',
             'items' => [
@@ -138,7 +149,26 @@
     ];
 
     $canSee = fn (array $entry) => ! isset($entry['permission']) || auth()->user()->can($entry['permission']);
-    $isActive = fn (?string $route) => $route && request()->routeIs($route);
+    // 'active' may list several route names (or patterns): the item stays highlighted on all of them.
+    $isActive = fn (string|array|null $route) => $route && request()->routeIs(...(array) $route);
+    // A group is shown only when at least one of its items is: an account with few permissions sees no empty headings.
+    $groupHasVisibleItem = function (array $group) use ($canSee) {
+        foreach ($group['items'] as $item) {
+            if (! $canSee($item)) {
+                continue;
+            }
+            if (empty($item['children'])) {
+                return true;
+            }
+            foreach ($item['children'] as $child) {
+                if ($canSee($child)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    };
     $isChildActive = function (array $child) use ($isActive) {
         if (! $isActive($child['route'])) {
             return false;
@@ -185,6 +215,7 @@
             <ul class="side-nav">
                 @foreach ($groups as $group)
                     @continue(isset($group['permission']) && ! auth()->user()->can($group['permission']))
+                    @continue(! $groupHasVisibleItem($group))
 
                     <li class="side-nav-title">{{ $group['title'] }}</li>
 

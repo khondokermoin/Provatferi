@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Mailbox;
 use App\Models\MailWebhookEvent;
-use App\Services\AdminNotificationService;
-use App\Services\HostingerMailService;
+use App\Services\Mail\MailFolders;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -29,19 +29,24 @@ use Illuminate\Support\Str;
  *
  * Content policy: this controller NEVER logs or persists a message subject
  * or body. `mail_webhook_events` stores identifiers only (mailbox, folder,
- * uid). The notification it creates carries only the mailbox address — an
- * admin opens the Mail Center to read anything about the message itself,
- * which re-fetches live from the Mail API rather than trusting the webhook
- * payload's own content fields (some webhook providers include a body
- * preview; this one is treated as a pure "something changed, go look"
- * trigger regardless of what it contains).
+ * uid). The payload is treated as a pure "something changed, go look"
+ * trigger regardless of what it contains.
+ *
+ * Effect (Mail Center, 2026-10-24, docs/MAIL_CENTER.md "Unread badge"): the
+ * registered mailbox the event names has its cached folder counts dropped, so
+ * the next unread badge or folder list asks the provider again — the counts
+ * shown always come from the provider, never from the payload. It creates NO
+ * admin notification: the earlier broadcast one (visible to every holder of a
+ * single mail permission) would have told people about mailboxes they cannot
+ * open; each person's badge already counts only their own mailboxes. Polling
+ * alone keeps the badge correct when no webhook is registered.
  *
  * Speed: everything here is local Eloquent writes — no outbound HTTP call
  * back to the Mail API — so a 2xx returns in single-digit milliseconds.
  */
 class HostingerMailWebhookController extends Controller
 {
-    public function handle(Request $request, AdminNotificationService $notifications): JsonResponse
+    public function handle(Request $request, MailFolders $folders): JsonResponse
     {
         $expected = config('services.hostinger_mail.webhook_secret');
         $given = $this->bearerToken($request);
@@ -99,22 +104,15 @@ class HostingerMailWebhookController extends Controller
             throw $e;
         }
 
-        $mailboxAddress = $this->resolveMailboxAddress($mailboxResourceId);
-
-        // admin.mail.index doesn't exist yet at this point in the rollout
-        // (Mail Center UI is still being built) — degrade to a null link
-        // rather than a RouteNotFoundException taking the whole webhook
-        // down. Once the route exists this resolves normally with no
-        // further change needed here.
-        $link = \Illuminate\Support\Facades\Route::has('admin.mail.index')
-            ? route('admin.mail.index', ['mailbox' => $mailboxAddress], false)
-            : null;
-
-        $notification = $notifications->mailReceived($mailboxAddress ?? $mailboxResourceId, $link);
+        // The registry row whose provider id the event names (no provider call: the id was recorded by the connection check).
+        $mailbox = $mailboxResourceId !== '' ? Mailbox::query()->where('provider_mailbox_id', $mailboxResourceId)->first() : null;
+        if ($mailbox !== null) {
+            $folders->forget($mailbox);
+        }
 
         $event->forceFill(['processed_at' => now()])->save();
 
-        return response()->json(['ok' => true, 'notification_id' => $notification->id]);
+        return response()->json(['ok' => true, 'refreshed' => $mailbox !== null]);
     }
 
     private function bearerToken(Request $request): ?string
@@ -122,21 +120,5 @@ class HostingerMailWebhookController extends Controller
         $header = $request->header('Authorization', '');
 
         return Str::startsWith($header, 'Bearer ') ? substr($header, 7) : null;
-    }
-
-    /** Best-effort address lookup for a friendlier notification — never fatal if the Mail API itself is unreachable right now. */
-    private function resolveMailboxAddress(string $resourceId): ?string
-    {
-        if ($resourceId === '' || ! app(HostingerMailService::class)->isConfigured()) {
-            return null;
-        }
-
-        try {
-            $map = array_flip(app(HostingerMailService::class)->mailboxes());
-
-            return $map[$resourceId] ?? null;
-        } catch (\Throwable) {
-            return null;
-        }
     }
 }

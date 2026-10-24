@@ -1,6 +1,9 @@
 @extends('layouts.admin')
 
 @section('content')
+    @include('admin.partials.staff-dashboard')
+
+    @if ($stats !== [])
     <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-3 g-3 mb-2">
         @foreach ($stats as $stat)
             @continue(! auth()->user()->can($stat['permission']))
@@ -24,6 +27,7 @@
             </div>
         @endforeach
     </div>
+    @endif
 
     @canany(['organization.create', 'activities.create', 'membership.view', 'recruitment.create'])
         <x-admin.card title="{{ __('admin.dashboard.quick_actions') }}" class="mb-3">

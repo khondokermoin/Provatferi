@@ -5,12 +5,17 @@ namespace App\Providers;
 use App\Models\Permission;
 use App\Models\User;
 use App\Services\HostingerMailService;
+use App\Services\Mail\HostingerMailProvider;
+use App\Services\Mail\MailProvider;
 use App\Services\PublicSiteRevalidator;
 use App\Support\InstitutionMail;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Lang;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -21,6 +26,9 @@ class AppServiceProvider extends ServiceProvider
         // whole request; HostingerMailService::mailboxes() also memoizes its
         // one /me call, which a fresh instance per resolution would defeat.
         $this->app->singleton(HostingerMailService::class, fn () => HostingerMailService::make());
+
+        // The Mail Center talks to its provider only through this contract (docs/MAIL_CENTER.md); tests bind a fake.
+        $this->app->bind(MailProvider::class, HostingerMailProvider::class);
 
         // Singleton so several model saves in one request (a reorder is two)
         // collapse into one revalidation call — the de-duplication lives in
@@ -39,6 +47,16 @@ class AppServiceProvider extends ServiceProvider
             $ability = "{$module}.{$action}";
             Gate::define($ability, fn (User $user) => $user->hasPermission($ability));
         }
+
+        // Opening the Mail Center at all (docs/MAIL_CENTER.md). Which mailboxes it then shows is decided per mailbox by
+        // App\Services\Mail\MailboxAccess; this ability only keeps everyone else out of the routes and the menu.
+        Gate::define('mail-center', fn (User $user) => $user->hasPermission('mail.access') || $user->hasPermission('mail.manage_all'));
+
+        // Coarse per-ACCOUNT caps on the Mail Center routes (the per-mailbox, per-action limits live in
+        // App\Services\Mail\MailSender and config/mail_center.php). Keyed by the account, never by IP address alone.
+        // Every admin page asks once on load, then every 90 s while visible: a person clicking quickly stays far below 60.
+        RateLimiter::for('mail-center-poll', fn (Request $request) => Limit::perMinute(60)->by('mail-poll:'.($request->user()?->getKey() ?? $request->ip())));
+        RateLimiter::for('mail-center-write', fn (Request $request) => Limit::perMinute(30)->by('mail-write:'.($request->user()?->getKey() ?? $request->ip())));
 
         $this->bootPasswordResetMail();
     }

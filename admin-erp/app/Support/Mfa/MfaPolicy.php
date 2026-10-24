@@ -2,6 +2,7 @@
 
 namespace App\Support\Mfa;
 
+use App\Models\MailboxGrant;
 use App\Models\Role;
 use App\Models\Setting;
 use App\Models\User;
@@ -27,12 +28,17 @@ final class MfaPolicy
 
     public const ENFORCEMENT_SETTING = 'security.mfa_privileged_enforced';
 
-    /** Capabilities that make an account privileged: users/permissions, security-sensitive settings, money, the mailbox. */
+    /**
+     * Capabilities that make an account privileged: users/permissions, security-sensitive settings, money, the mailboxes.
+     * Every Mail Center permission counts (docs/MAIL_CENTER.md, "Two-step verification"): opening the Mail Center, every
+     * mailbox, and managing mailbox access. So does holding a grant on any mailbox (hasMailboxGrant), whether through a role
+     * or directly — reading institutional mail is never an unprivileged act.
+     */
     public const PRIVILEGED_CAPABILITIES = [
         'users.create', 'users.update', 'users.delete',
         'settings.update',
         'payments.create', 'payments.update', 'payments.delete', 'payments.approve',
-        'mail.manage',
+        'mail.access', 'mail.manage_all', 'mail.manage_access',
     ];
 
     public const REASON_ROLE = 'role';
@@ -46,8 +52,11 @@ final class MfaPolicy
         if ($user->hasRole(self::PRIVILEGED_ROLE)) {
             return true;
         }
+        if (array_intersect(self::PRIVILEGED_CAPABILITIES, $user->permissionSlugs()) !== []) {
+            return true;
+        }
 
-        return array_intersect(self::PRIVILEGED_CAPABILITIES, $user->permissionSlugs()) !== [];
+        return self::hasMailboxGrant($user);
     }
 
     public static function roleIsPrivileged(Role $role): bool
@@ -55,8 +64,17 @@ final class MfaPolicy
         if ($role->slug === self::PRIVILEGED_ROLE) {
             return true;
         }
+        if ($role->permissions()->whereIn('slug', self::PRIVILEGED_CAPABILITIES)->exists()) {
+            return true;
+        }
 
-        return $role->permissions()->whereIn('slug', self::PRIVILEGED_CAPABILITIES)->exists();
+        return MailboxGrant::existsForRole($role);
+    }
+
+    /** Access to any mailbox, through a role or directly (a grant row exists only when it grants something). */
+    public static function hasMailboxGrant(User $user): bool
+    {
+        return MailboxGrant::existsForAccount($user);
     }
 
     public static function privilegedEnforcementActive(): bool

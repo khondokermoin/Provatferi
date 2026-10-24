@@ -1208,3 +1208,352 @@ input:-webkit-autofill:focus {
     padding: 0 !important;
   }
 }
+
+/*
+ * MAIL CENTER (2026-10-24, docs/MAIL_CENTER.md). Three panes on wide screens — mailboxes and folders, the message list,
+ * the open message — that take turns on narrower ones: below 1200px the list and the message share the main column
+ * (whichever the page is about), below 768px the mailbox/folder pane sits on top. Theme tokens only, so light and dark
+ * follow the panel's own palette. The message itself is in a sandboxed frame on a light "paper" surface in both themes
+ * (e-mail is written for white), framed by the card.
+ */
+.pf-mail {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(200px, 240px) minmax(280px, 380px) minmax(0, 1fr);
+  align-items: start;
+}
+.pf-mail-pane {
+  margin-bottom: 0;
+  min-width: 0;
+}
+.pf-mail-heading {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ct-secondary-color);
+  margin: 0.5rem 0.5rem 0.35rem;
+}
+.pf-mail-boxes a,
+.pf-mail-folders a {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 0.375rem;
+  color: var(--ct-body-color);
+  text-decoration: none;
+}
+.pf-mail-boxes a:hover,
+.pf-mail-folders a:hover {
+  background: var(--ct-tertiary-bg);
+}
+.pf-mail-boxes a.is-active,
+.pf-mail-folders a.is-active {
+  background: var(--ct-primary-bg-subtle);
+  color: var(--ct-primary-text-emphasis);
+  font-weight: 600;
+}
+[data-bs-theme="dark"] .pf-mail-boxes a.is-active,
+[data-bs-theme="dark"] .pf-mail-folders a.is-active {
+  background: rgba(var(--ct-primary-rgb), 0.14);
+}
+.pf-mail-box-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.pf-mail-box-name,
+.pf-mail-box-address {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pf-mail-box-address {
+  font-size: 0.75rem;
+  color: var(--ct-secondary-color);
+  font-weight: 400;
+}
+.pf-mail-count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.pf-mail-search {
+  display: flex;
+  gap: 0.35rem;
+}
+.pf-mail-search input[type="search"] {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.pf-mail-search select {
+  flex: 0 0 auto;
+  width: auto;
+}
+.pf-mail-rows {
+  max-height: calc(100vh - 260px);
+  min-height: 240px;
+  overflow-y: auto;
+}
+.pf-mail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--ct-secondary-border-subtle);
+  color: var(--ct-body-color);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+.pf-mail-row:hover {
+  background: var(--ct-tertiary-bg);
+  color: var(--ct-body-color);
+}
+.pf-mail-row.is-active {
+  background: var(--ct-primary-bg-subtle);
+  border-left-color: var(--ct-primary);
+}
+[data-bs-theme="dark"] .pf-mail-row.is-active {
+  background: rgba(var(--ct-primary-rgb), 0.12);
+}
+.pf-mail-row-top {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.pf-mail-row-from {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pf-mail-row-date {
+  flex: 0 0 auto;
+  font-size: 0.75rem;
+  color: var(--ct-secondary-color);
+  font-variant-numeric: tabular-nums;
+}
+.pf-mail-row-subject {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+}
+.pf-mail-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  font-size: 0.75rem;
+  color: var(--ct-secondary-color);
+}
+.pf-mail-row.is-unread .pf-mail-row-from,
+.pf-mail-row.is-unread .pf-mail-row-subject {
+  font-weight: 700;
+  color: var(--ct-heading-color);
+}
+.pf-mail-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.35rem;
+  border-radius: 50%;
+  background: var(--ct-primary);
+  vertical-align: middle;
+}
+.pf-mail-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+.pf-mail-toolbar-gap {
+  flex: 1 1 auto;
+}
+.pf-mail-toolbar-label {
+  margin-left: 0.25rem;
+}
+.pf-mail-back {
+  display: none;
+}
+.pf-mail-subject {
+  font-size: 1.15rem;
+  margin-bottom: 0.75rem;
+  overflow-wrap: anywhere;
+}
+.pf-mail-headers {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.15rem 0.75rem;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+.pf-mail-headers dt {
+  color: var(--ct-secondary-color);
+  font-weight: 500;
+}
+.pf-mail-headers dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.pf-mail-frame {
+  display: block;
+  width: 100%;
+  height: 240px;
+  border: 1px solid var(--ct-secondary-border-subtle);
+  border-radius: 0.375rem;
+  background: #fff;
+}
+.pf-mail-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.925rem;
+  line-height: 1.6;
+}
+.pf-mail-attachments li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--ct-secondary-border-subtle);
+}
+.pf-mail-attachment-name {
+  overflow-wrap: anywhere;
+}
+.pf-mail-quote {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.8rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  color: var(--ct-secondary-color);
+}
+.pf-mail-from {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: baseline;
+}
+.pf-mail-access td,
+.pf-mail-access th {
+  vertical-align: middle;
+}
+.pf-mail-badge-link {
+  position: relative;
+}
+.pf-mail-badge {
+  position: absolute;
+  top: 0.1rem;
+  right: -0.35rem;
+  box-shadow: 0 0 0 2px var(--ct-topbar-bg, #fff);
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--ct-danger);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.15rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.pf-mail-sending {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+.pf-mail-sending-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-radius: 0.5rem;
+  background: var(--ct-secondary-bg, #fff);
+  color: var(--ct-body-color);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  font-weight: 600;
+}
+.pf-dl-compact {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+}
+.pf-dl-compact dt {
+  color: var(--ct-secondary-color);
+  font-weight: 500;
+}
+.pf-dl-compact dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1199.98px) {
+  .pf-mail {
+    grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
+  }
+  .pf-mail[data-view="list"] .pf-mail-detail,
+  .pf-mail[data-view="message"] .pf-mail-list {
+    display: none;
+  }
+  .pf-mail[data-view="message"] .pf-mail-back {
+    display: inline-flex;
+    align-items: center;
+  }
+}
+@media (max-width: 767.98px) {
+  .pf-mail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pf-mail-nav .card-body {
+    display: grid;
+    gap: 0.25rem;
+  }
+  .pf-mail-boxes,
+  .pf-mail-folders {
+    display: flex;
+    gap: 0.25rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+  }
+  .pf-mail-boxes a,
+  .pf-mail-folders a {
+    white-space: nowrap;
+  }
+  .pf-mail-box-address {
+    display: none;
+  }
+  .pf-mail-heading {
+    display: none;
+  }
+  .pf-mail-rows {
+    max-height: none;
+  }
+  /* Icon-only buttons on a phone; the label stays for screen readers. */
+  .pf-mail-toolbar-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .pf-mail-search select {
+    max-width: 7.5rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pf-mail-row,
+  .pf-mail-boxes a,
+  .pf-mail-folders a {
+    transition: none;
+  }
+}

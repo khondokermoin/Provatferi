@@ -24,6 +24,11 @@ The code that enforces this lives in three places:
 
 No other address is used. A new mailbox is an owner decision, not a code change.
 
+Mailboxes that **staff** read and write through the admin panel (for example the departmental `partnerships@`) are a
+separate subject: `docs/MAIL_CENTER.md`. The Mail Center sends a person's own messages from such a mailbox; it never
+changes the identities above, and the application's automated mail never uses a Mail Center mailbox as its From or
+Reply-To.
+
 ## Four concepts, never mixed
 
 | Concept | Where it is set | Production value |

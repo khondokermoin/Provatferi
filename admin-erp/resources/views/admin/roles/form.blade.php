@@ -95,5 +95,19 @@
                 </x-admin.card>
             </div>
         </div>
+
+        {{-- Which mailboxes this role may use, and how (docs/MAIL_CENTER.md): its own form and route, behind
+             mail.manage_access and a fresh two-step confirmation — never a side effect of saving the role above. --}}
+        @can('mail.manage_access')
+            <div class="row">
+                <div class="col-xl-10">
+                    @include('admin.mail.partials.access-grid', [
+                        'grid' => \App\Support\MailAccessGrid::forRole($role),
+                        'action' => route('admin.mail.access.role', $role),
+                        'subject' => 'role',
+                    ])
+                </div>
+            </div>
+        @endcan
     @endif
 @endsection

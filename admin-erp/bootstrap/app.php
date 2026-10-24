@@ -55,6 +55,8 @@ $app = Application::configure(basePath: dirname(__DIR__))
             'mfa.recent' => \App\Http\Middleware\RequireRecentMfa::class,
             // The two-step rule for staff API tokens (App\Http\Middleware\EnsureApiMfa).
             'mfa.api' => \App\Http\Middleware\EnsureApiMfa::class,
+            // no-store / noindex / no-referrer on every Mail Center response (App\Http\Middleware\MailCenterPrivacy).
+            'mail.private' => \App\Http\Middleware\MailCenterPrivacy::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

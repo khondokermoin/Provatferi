@@ -38,6 +38,13 @@
         <env name="DB_COLLATION" value="utf8mb4_unicode_ci"/>
         <env name="DB_URL" value=""/>
         <env name="MAIL_MAILER" value="array"/>
+        <!--
+            The Mail API SDK talks to Hostinger through its own HTTP client, which Http::preventStrayRequests() cannot see.
+            A developer .env may hold a real token: the test run never inherits it. Mail Center tests bind
+            Tests\Support\FakeMailProvider instead (docs/MAIL_CENTER.md, "Tests").
+        -->
+        <env name="HOSTINGER_MAIL_API_TOKEN" value=""/>
+        <env name="HOSTINGER_MAIL_WEBHOOK_SECRET" value=""/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="PULSE_ENABLED" value="false"/>

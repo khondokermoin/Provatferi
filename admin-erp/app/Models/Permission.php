@@ -36,12 +36,13 @@ class Permission extends Model
      */
     public const MODULE_ACTIONS = [
         'notices' => ['view', 'create', 'update', 'delete', 'publish', 'archive'],
-        // The Mail Center reads/writes a live external mailbox, not a local
-        // CRUD resource — 'read' (open a message body) is kept separate from
-        // 'view' (see the mailbox/message list) because a role might list
-        // subjects/senders for triage without being trusted to open bodies
-        // that may contain sensitive applicant/member correspondence.
-        'mail' => ['view', 'read', 'send', 'manage', 'delete'],
+        // The Mail Center (2026-10-24, docs/MAIL_CENTER.md). What a person may do INSIDE a mailbox (read, send, reply,
+        // forward, message state) is not a role permission but a per-mailbox grant (mailbox_grants), so access to one
+        // mailbox never implies another. A role holds only these: `access` opens the Mail Center (showing just the
+        // mailboxes granted), `manage_all` is every enabled mailbox and every action (Super Admin level), and
+        // `manage_access` registers mailboxes and assigns access. The 2026-09 actions (view/read/send/manage/delete)
+        // were retired by the 2026_10_24_100300 migration; none of them was ever enforced.
+        'mail' => ['access', 'manage_all', 'manage_access'],
         // Leadership / Key Persons (2026-10-15): permanent institutional profiles, separate from Committees. There is no
         // delete — a profile is archived. `publish` is what makes a profile public (activate, feature, order), so a role
         // can be trusted to write profiles without being trusted to put them on the website.

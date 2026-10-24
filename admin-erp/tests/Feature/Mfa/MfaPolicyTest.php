@@ -187,7 +187,7 @@ class MfaPolicyTest extends MfaTestCase
 
         $superAdmin = $this->superAdmin();
         $treasurer = $this->staffWithRole($this->roleWith(['payments.view', 'payments.approve'], name: 'Treasurer'));
-        $mailbox = $this->staffWithRole($this->roleWith(['mail.manage'], name: 'Mail'));
+        $mailbox = $this->staffWithRole($this->roleWith(['mail.access'], name: 'Mail'));
         $settings = $this->staffWithRole($this->roleWith(['settings.update'], name: 'Settings'));
         $editor = $this->staffWithRole($this->roleWith(['activities.view', 'activities.update'], name: 'Editor'));
 

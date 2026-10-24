@@ -67,4 +67,17 @@
             </x-admin.card>
         </div>
     </div>
+
+    {{-- Mailbox access of this account (docs/MAIL_CENTER.md): its own grants, plus what its roles already give it. --}}
+    @can('mail.manage_access')
+        <div class="row">
+            <div class="col-xl-9">
+                @include('admin.mail.partials.access-grid', [
+                    'grid' => \App\Support\MailAccessGrid::forUser($user),
+                    'action' => route('admin.mail.access.user', $user),
+                    'subject' => 'user',
+                ])
+            </div>
+        </div>
+    @endcan
 @endsection

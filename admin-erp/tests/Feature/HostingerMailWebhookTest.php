@@ -2,9 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\AdminNotification;
+use App\Models\Mailbox;
 use App\Models\MailWebhookEvent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Tests\TestCase;
 
@@ -36,8 +37,15 @@ class HostingerMailWebhookTest extends TestCase
         $this->assertDatabaseCount('mail_webhook_events', 0);
     }
 
-    public function test_valid_delivery_is_recorded_and_creates_a_notification(): void
+    public function test_valid_delivery_is_recorded_and_refreshes_the_registered_mailbox_without_a_broadcast_notification(): void
     {
+        $mailbox = new Mailbox(['display_name' => 'Partnerships', 'enabled' => true, 'sort_order' => 1]);
+        $mailbox->address = 'partnerships@example.test';
+        $mailbox->provider = 'hostinger_mail_api';
+        $mailbox->provider_mailbox_id = 'AC5804faf062c6d1aa21776e452e7f';
+        $mailbox->save();
+        Cache::put('mail-center:folders:'.$mailbox->id, [['INBOX', '\\Inbox', 3, 1]], 600);
+
         $response = $this->withHeader('Authorization', 'Bearer test-secret-value')
             ->postJson('/api/webhooks/hostinger-mail', [
                 'id' => 'evt_123',
@@ -47,7 +55,7 @@ class HostingerMailWebhookTest extends TestCase
             ]);
 
         $response->assertStatus(200);
-        $response->assertJson(['ok' => true]);
+        $response->assertJson(['ok' => true, 'refreshed' => true]);
 
         $this->assertDatabaseCount('mail_webhook_events', 1);
         $event = MailWebhookEvent::first();
@@ -57,10 +65,20 @@ class HostingerMailWebhookTest extends TestCase
         $this->assertSame(42, $event->message_uid);
         $this->assertNotNull($event->processed_at);
 
-        $this->assertDatabaseCount('admin_notifications', 1);
-        $notification = AdminNotification::first();
-        $this->assertSame('mail_received', $notification->type);
-        $this->assertSame('mail.view', $notification->required_permission);
+        // The cached counts are gone (the next badge asks the provider), and nobody is told about a mailbox in a
+        // notification feed that is not filtered by mailbox access.
+        $this->assertFalse(Cache::has('mail-center:folders:'.$mailbox->id));
+        $this->assertDatabaseCount('admin_notifications', 0);
+    }
+
+    public function test_an_event_for_an_unregistered_mailbox_changes_nothing_else(): void
+    {
+        $this->withHeader('Authorization', 'Bearer test-secret-value')
+            ->postJson('/api/webhooks/hostinger-mail', ['id' => 'evt_unknown', 'accountResourceId' => 'ACnot-registered'])
+            ->assertStatus(200)
+            ->assertJson(['ok' => true, 'refreshed' => false]);
+
+        $this->assertDatabaseCount('admin_notifications', 0);
     }
 
     public function test_redelivery_of_the_same_event_id_is_a_no_op(): void
@@ -81,9 +99,9 @@ class HostingerMailWebhookTest extends TestCase
         $response->assertStatus(200);
         $response->assertJson(['ok' => true, 'duplicate' => true]);
 
-        // Still exactly one of each — the second delivery did nothing.
+        // Still exactly one event — the second delivery did nothing.
         $this->assertDatabaseCount('mail_webhook_events', 1);
-        $this->assertDatabaseCount('admin_notifications', 1);
+        $this->assertDatabaseCount('admin_notifications', 0);
     }
 
     public function test_payload_with_no_event_id_still_dedupes_via_content_hash(): void

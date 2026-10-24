@@ -169,9 +169,10 @@ holds:
    role form itself cannot change it.
 2. **The privileged-account rule is on** (Account security → *Privileged accounts*, Super Admin only, with a recent code),
    and the account is privileged: it holds `super_admin`, or any of `users.create`, `users.update`, `users.delete`,
-   `settings.update`, `payments.create`, `payments.update`, `payments.delete`, `payments.approve`, `mail.manage`. A future
-   financial or user-management role is covered the moment it gets such a permission. The setting is
-   `security.mfa_privileged_enforced` (never public).
+   `settings.update`, `payments.create`, `payments.update`, `payments.delete`, `payments.approve`, `mail.access`,
+   `mail.manage_all`, `mail.manage_access`, or any mailbox grant (directly or through a role — docs/MAIL_CENTER.md). A
+   future financial, user-management or mailbox role is covered the moment it gets such a permission or grant. The setting
+   is `security.mfa_privileged_enforced` (never public). (Until 2026-10-24 the list named `mail.manage`, which no role had.)
 3. **A break-glass reset** happened (`mfa_enrollment_required_at`).
 
 **After deployment nothing is required of anyone.** No role has the flag and the privileged rule is off, so no deployment
