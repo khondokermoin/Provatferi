@@ -339,6 +339,8 @@ try {
     secret: /token|password/i.test(document.querySelector("#mailbox-access")?.textContent ?? ""),
   }), P_ID);
   check("M1", "Users & Permissions → the role → Mailbox access shows Read/Send/Reply/Forward/Message state, all ticked for partnerships", roleEdit.status === 200 && grid.card && grid.row.length === 5 && grid.row.every(([, on]) => on) && !grid.secret, JSON.stringify(grid));
+  const recommendation = await A.page.evaluate(() => document.querySelector("#role-mfa-card .text-warning-emphasis")?.textContent.trim() ?? "");
+  check("M1b", "the role's two-step card recommends it because the role uses institutional mail", /institutional mail/.test(recommendation), recommendation);
   evidence.screenshots.push(await capture(A.page, "06-admin-role-mailbox-access"));
 
   // Without two-step verification, handing out mailbox access is refused outright.

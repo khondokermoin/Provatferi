@@ -166,6 +166,21 @@ class MailCenterAdministrationTest extends MailCenterTestCase
         $this->actingAs($limited->fresh())->get(route('admin.mail.unread'))->assertRedirect(route('admin.account.security'));
     }
 
+    public function test_the_two_step_texts_say_that_institutional_mail_counts_as_privileged(): void
+    {
+        // The sentences that tell the owner and administrators what the privileged rule covers listed only users,
+        // permissions, security settings and payments; since mail access counts too, each one names it, in both languages.
+        foreach (['en' => 'institutional mail', 'bn' => 'প্রাতিষ্ঠানিক মেইল'] as $locale => $words) {
+            foreach (['reason_privileged', 'enforcement_off_text', 'enforcement_on_text', 'role_recommended'] as $key) {
+                $this->assertStringContainsString($words, __('admin.mfa.'.$key, [], $locale), "{$locale}: admin.mfa.{$key}");
+            }
+        }
+
+        // A mail-only role's page recommends two-step verification.
+        $this->actingAs($this->superAdmin())->get(route('admin.roles.edit', $this->partnershipsRole()))
+            ->assertOk()->assertSee(__('admin.mfa.role_recommended'));
+    }
+
     public function test_a_role_that_requires_two_step_verification_keeps_its_mail_staff_out_until_they_enrol(): void
     {
         $role = $this->partnershipsRole();

@@ -44,6 +44,10 @@
  *       Read-only: the QA rows and what the run left (grants, audit rows by action, sessions, two-step state — no secret).
  *   qa-cleanup <tag> [go]
  *       Deletes exactly the QA rows above (a dry run without "go").
+ *   forget <tag>
+ *       Last, after `diff`: removes this tag's state files (snapshot, setup report) from storage/app/mail-center-qa, and
+ *       the folder once it is empty — state left under the live storage/app would be retired with the tree at the next
+ *       switch and keep housekeeping from pruning it. Refuses while QA rows of the tag still exist.
  */
 if (PHP_SAPI !== 'cli') {
     http_response_code(404);
@@ -828,6 +832,27 @@ switch ($mode) {
         }
         out($report);
 
+    case 'forget':
+        $tag = (string) ($argv[2] ?? '');
+        if (! tagOk($tag)) {
+            out(['error' => 'usage: forget <tag>'], 2);
+        }
+        bootLaravel($APP);
+        $rows = qaRows($tag);
+        $remaining = ['users' => $rows['users']->count(), 'roles' => $rows['roles']->count(), 'mailboxes' => $rows['mailboxes']->count()];
+        if (array_sum($remaining) > 0) {
+            out(['mode' => 'forget', 'tag' => $tag, 'refused' => 'QA rows of this tag still exist: run qa-cleanup <tag> go first', 'remaining' => $remaining], 1);
+        }
+        $removed = [];
+        foreach (glob($STATE.'/*-'.$tag.'.json') ?: [] as $file) {
+            unlink($file);
+            $removed[] = basename($file);
+        }
+        if (is_dir($STATE) && (glob($STATE.'/*') ?: []) === []) {
+            rmdir($STATE);
+        }
+        out(['mode' => 'forget', 'tag' => $tag, 'removed' => $removed, 'state_dir_left' => is_dir($STATE), 'state_files_left' => is_dir($STATE) ? count(glob($STATE.'/*') ?: []) : 0]);
+
     default:
-        out(['error' => 'modes: audit | rcpt | dsn-send <tag> <roles> | dsn-read <tag> | dsn-cleanup <tag> | snapshot <tag> | diff <tag> | qa-setup <tag> <hash-file> | qa-inventory <tag> | qa-cleanup <tag> [go]'], 2);
+        out(['error' => 'modes: audit | rcpt | dsn-send <tag> <roles> | dsn-read <tag> | dsn-cleanup <tag> | snapshot <tag> | diff <tag> | qa-setup <tag> <hash-file> | qa-inventory <tag> | qa-cleanup <tag> [go] | forget <tag>'], 2);
 }
