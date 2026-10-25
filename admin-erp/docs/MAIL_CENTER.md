@@ -80,6 +80,9 @@ shown, stored or logged (the server log gets the kind, the status and the except
 
 ### Connecting the mail service (owner, once)
 
+0. On 2026-10-24 partnerships@ was an **alias** delivered into another mailbox, not a mailbox of its own (see "Production
+   state" below): first make it a real mailbox (hPanel → **Emails** → provatferi.org: remove the alias, create the
+   mailbox `partnerships@`). The Mail API reads and sends for mailboxes; an alias has no mailbox of its own.
 1. hPanel → **Emails** → provatferi.org → **Agentic Mail** → **API access** → **Create API token**: a descriptive name,
    **Selected mailboxes** (tick every mailbox the Mail Center should offer — at least `partnerships@`), create. The token
    is shown **once**.
@@ -326,6 +329,39 @@ messages and reports were deleted afterwards):
   Center therefore needs partnerships@ to become a real mailbox first (hPanel → Emails: remove the alias, create the
   mailbox), then the token above. Serving partnerships@ out of the internal mailbox was rejected: it would expose that
   private mailbox and could not send as partnerships@.
+
+## Production acceptance (2026-10-24)
+
+Live since **19:00:06Z** (release `5679348`; its four migrations were applied at 16:02Z) and **20:14:03Z** (`86b8262`: the
+sentences that say what the privileged two-step rule covers now name institutional mail — production showed a
+partnerships-only role recommended two-step verification "because it can manage users, permissions, security settings or
+payments"). Production still has no Mail API token, so the provider's side was accepted locally (below); production proves
+everything else in real Chrome with disposable QA accounts and QA registry rows the provider cannot reach (made by
+`deploy/qa/mail-center-qa.php qa-setup`), never with the owner's account:
+
+- `institutional/scripts/mail-center-qa.mjs --phase production`: **36/36** on `5679348` (tag mc2887df) and **37/37** on
+  `86b8262` (tag mc1d69c5; check M1b added). The partnerships account signs in with its password; its dashboard shows its
+  own panels and no organisation figures; its menu is Overview / Mail / Account; the Mail Center lists only its
+  partnerships row and says "not connected to the mail service yet" (200, not an error page); another mailbox, a guessed id
+  and forged POSTs answer 404; a POST naming another sender or mailbox is handled for the authorised mailbox only; users,
+  roles, permissions, settings, membership, leadership, recruitment, the registry and the audit log answer 403; the unread
+  badge counts only partnerships; compose shows the partnerships sender and has no sender field; a send while not
+  connected says "not connected … not sent"; no credential or provider detail in any page; every Mail Center answer is
+  no-store / noindex / no-referrer / nosniff; Bangla renders. The mail administrator cannot change access without two-step
+  verification; after enrolling through the real screens, revoking partnerships takes effect on the limited account's very
+  next request (404, "no mailbox has been assigned") and re-granting works at once; the user page shows the access given
+  through the role; the audit log lists the access changes and the refused send, without content; the registry says no
+  token is configured and shows no credential; a role that requires two-step verification sends its staff to enrol
+  first; `mail.manage_all` sees every enabled mailbox and nothing beyond mail; no console error. Screenshots: desktop and
+  phone, light and dark, English and Bangla.
+- Kit, per tag: `snapshot` → run → `qa-cleanup <tag>` (dry run, then `go`: 0 users, roles and mailboxes left) → `diff`
+  (identical) → `forget` (state folder removed). Then the kit and its hash file were deleted and the docroot listed.
+- Locally, against the real Hostinger Mail API (the developer token reaches one internal mailbox, standing in for
+  partnerships@; only messages whose subject carries the QA tag were opened or changed, and all were deleted afterwards):
+  **52/52** — send with attachments, delivery, one copy despite a double click, read, preview vs download headers, reply /
+  reply all / forward with the provider's threading flags, flag / unread / Trash / restore, hostile HTML inert in the
+  sandboxed frame, remote images held back, CR/LF refused, access administration with two-step enrolment, step-up,
+  revoke and re-grant, the role's two-step requirement, `mail.manage_all`.
 
 ## Tests
 
