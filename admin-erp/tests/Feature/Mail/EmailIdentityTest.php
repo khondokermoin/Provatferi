@@ -206,7 +206,11 @@ class EmailIdentityTest extends TestCase
         foreach ([app_path(), resource_path('views'), base_path('routes')] as $dir) {
             foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)) as $file) {
                 $path = $file->getPathname();
-                if (! str_ends_with($path, '.php') || str_ends_with($path, 'InstitutionMail.php')) {
+                // The canonical identity layer, and only it, may set identity headers. Two classes, two workflows:
+                // InstitutionMail owns AUTOMATED application mail; MailCenterIdentityMail owns the mail a member of
+                // staff writes in the Mail Center, which goes out as a chosen institutional identity. Everything else
+                // — controllers, services, notifications, views, routes — must go through one of them.
+                if (! str_ends_with($path, '.php') || str_ends_with($path, 'InstitutionMail.php') || str_ends_with($path, 'MailCenterIdentityMail.php')) {
                     continue;
                 }
                 $code = $this->codeWithoutComments((string) file_get_contents($path));

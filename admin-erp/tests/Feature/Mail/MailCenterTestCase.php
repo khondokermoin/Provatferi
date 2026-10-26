@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Mail;
 
+use App\Models\MailIdentity;
 use App\Models\Mailbox;
 use App\Models\MailboxGrant;
 use App\Models\Role;
@@ -60,7 +61,37 @@ abstract class MailCenterTestCase extends MfaTestCase
         $box->status = Mailbox::STATUS_CONNECTED;
         $box->save();
 
+        // Every mailbox sends as itself unless more identities are registered for it: the sender of a Mail Center
+        // message is always a registered identity, never the bare registry row.
+        $this->addIdentity($box, $address, 'Provatferi / '.$name);
+
         return $box;
+    }
+
+    /** One institutional address the mailbox sends as and receives for. */
+    protected function addIdentity(Mailbox $box, string $address, string $name, array $attributes = []): MailIdentity
+    {
+        $identity = new MailIdentity(array_merge([
+            'display_name' => $name,
+            'purpose' => MailIdentity::PURPOSE_OTHER,
+            'can_receive' => true,
+            'can_send_manual' => true,
+            'is_automated' => false,
+            'enabled' => true,
+            'sort_order' => (int) (MailIdentity::query()->where('mailbox_id', $box->getKey())->count() * 10),
+        ], $attributes));
+        $identity->mailbox_id = $box->getKey();
+        $identity->address = strtolower($address);
+        $identity->save();
+
+        return $identity;
+    }
+
+    /** The identity a mailbox sends as by default: its own address. */
+    protected function ownIdentity(Mailbox $box): MailIdentity
+    {
+        return MailIdentity::query()->where('mailbox_id', $box->getKey())
+            ->where('address', strtolower((string) $box->address))->firstOrFail();
     }
 
     /** @param array<string, bool> $flags */

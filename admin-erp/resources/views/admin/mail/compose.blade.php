@@ -29,11 +29,31 @@
         <div class="row">
             <div class="col-xl-8">
                 <x-admin.card>
-                    <div class="pf-mail-from mb-3">
-                        <span class="text-muted">{{ __('admin.mail.fields.from') }}</span>
-                        <strong>{{ $mailbox->label() }}</strong>
-                        <span class="text-muted">&lt;{{ $mailbox->address }}&gt;</span>
-                    </div>
+                    {{-- The sender is chosen from the institutional identities this account may write as; there is no
+                         free-text sender field anywhere, and the server resolves this id again before it sends. --}}
+                    @if ($identities->count() > 1)
+                        <div class="mb-3">
+                            <label class="form-label" for="identity-id">{{ __('admin.mail.fields.from') }}</label>
+                            <select class="form-select @error('identity_id') is-invalid @enderror" id="identity-id" name="identity_id" required>
+                                @foreach ($identities as $identity)
+                                    <option value="{{ $identity->id }}" @selected((int) old('identity_id', $prefill['identity_id'] ?? 0) === (int) $identity->id)>
+                                        {{ $identity->label() }} &lt;{{ $identity->address }}&gt;
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('identity_id')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                            <div class="form-text">{{ __('admin.mail.compose.identity_help') }}</div>
+                        </div>
+                    @elseif ($identities->count() === 1)
+                        <input type="hidden" name="identity_id" value="{{ $identities->first()->id }}">
+                        <div class="pf-mail-from mb-3">
+                            <span class="text-muted">{{ __('admin.mail.fields.from') }}</span>
+                            <strong>{{ $identities->first()->label() }}</strong>
+                            <span class="text-muted">&lt;{{ $identities->first()->address }}&gt;</span>
+                        </div>
+                    @else
+                        <div class="alert alert-warning mb-3">{{ __('admin.mail.compose.no_identity') }}</div>
+                    @endif
 
                     <x-admin.form-input name="to" :label="__('admin.mail.fields.to')" :value="old('to', $prefill['to'] ?? '')" required
                         :help="__('admin.mail.compose.recipients_help')" autocomplete="off" />

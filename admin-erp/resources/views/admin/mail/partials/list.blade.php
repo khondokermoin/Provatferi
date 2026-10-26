@@ -45,6 +45,10 @@
                 <span class="pf-mail-row-subject">{{ $m->subject !== '' ? $m->subject : __('admin.mail.list.no_subject') }}</span>
                 <span class="pf-mail-row-meta">
                     @if ($counterpart && $counterpart->name)<span class="text-truncate">{{ $counterpart->address }}</span>@endif
+                    {{-- The institutional address this one came through, when the message names one. --}}
+                    @foreach (($identityOf[$m->uid] ?? []) as $through)
+                        <span class="badge bg-primary-subtle text-primary-emphasis">{{ $through->label() }}</span>
+                    @endforeach
                     @if ($files > 0)<span title="{{ trans_choice('admin.mail.list.attachments', $files, ['count' => bn_number($files)]) }}"><i class="ti ti-paperclip" aria-hidden="true"></i><span class="visually-hidden">{{ trans_choice('admin.mail.list.attachments', $files, ['count' => bn_number($files)]) }}</span></span>@endif
                     @if ($m->isFlagged())<span title="{{ __('admin.mail.list.flagged') }}"><i class="ti ti-star-filled text-warning" aria-hidden="true"></i><span class="visually-hidden">{{ __('admin.mail.list.flagged') }}</span></span>@endif
                     @if ($m->isAnswered())<span title="{{ __('admin.mail.list.answered') }}"><i class="ti ti-arrow-back-up" aria-hidden="true"></i><span class="visually-hidden">{{ __('admin.mail.list.answered') }}</span></span>@endif

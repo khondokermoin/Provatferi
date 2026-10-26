@@ -2,6 +2,7 @@
 
 namespace App\Services\Mail;
 
+use App\Models\MailIdentity;
 use App\Models\Mailbox;
 use App\Models\MailboxGrant;
 use App\Models\User;
@@ -89,6 +90,36 @@ final class MailboxAccess
         }
 
         return $mailbox;
+    }
+
+    /**
+     * The institutional identity a request names, if this account may really send as it from this mailbox. Two
+     * independent things must both hold, and the server checks both however the form was submitted:
+     *
+     *   1. the account has the capability on the MAILBOX (send / reply / forward), and
+     *   2. the identity belongs to that mailbox, is enabled, and is one a person may write as — an automated sender
+     *      such as no-reply@ never is, no matter how broad the account's grant.
+     *
+     * An identity of another mailbox, a disabled one or an unknown id is a 404: a guessed id tells nothing. One that
+     * exists but may not be written as is a 403 with a plain reason.
+     *
+     * @param  string  $capability  send | reply | forward
+     */
+    public function resolveIdentity(User $user, Mailbox $mailbox, mixed $identityId, string $capability): MailIdentity
+    {
+        if (! $this->capabilities($user, $mailbox)->allows($capability)) {
+            throw new HttpException(403, __('admin.mail.errors.not_allowed'));
+        }
+        $id = filter_var($identityId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $identity = $id === false ? null : MailIdentity::query()->where('mailbox_id', $mailbox->getKey())->find($id);
+        if ($identity === null) {
+            throw new NotFoundHttpException();
+        }
+        if (! $identity->allowsManualSending()) {
+            throw new HttpException(403, __('admin.mail.errors.identity_not_sendable'));
+        }
+
+        return $identity;
     }
 
     /** Restricts a grants query to the account's own grant and its roles' grants. */

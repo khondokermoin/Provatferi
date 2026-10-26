@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\Mail\MailboxAccessController;
 use App\Http\Controllers\Admin\Mail\MailboxController;
 use App\Http\Controllers\Admin\Mail\MailCenterController;
 use App\Http\Controllers\Admin\Mail\MailComposeController;
+use App\Http\Controllers\Admin\Mail\MailIdentityController;
 use App\Http\Controllers\Admin\Mail\MailMessageStateController;
 use App\Http\Controllers\Admin\MemberController;
 use App\Http\Controllers\Admin\MemberDuesController;
@@ -208,6 +209,12 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         Route::put('/mailboxes/{mailbox}', [MailboxController::class, 'update'])->whereNumber('mailbox')->middleware('mfa.recent')->name('mailboxes.update');
         Route::post('/mailboxes/{mailbox}/check', [MailboxController::class, 'recheck'])->whereNumber('mailbox')->middleware('mfa.recent')->name('mailboxes.check');
         Route::post('/mailboxes/{mailbox}/archive-folder', [MailboxController::class, 'createArchive'])->whereNumber('mailbox')->middleware('mfa.recent')->name('mailboxes.archive-folder');
+        // The institutional addresses of a mailbox. Registering one records an address the provider already has; it
+        // never creates anything there, and no credential is entered.
+        Route::get('/mailboxes/{mailbox}/identities/create', [MailIdentityController::class, 'create'])->whereNumber('mailbox')->middleware('mfa.recent')->name('identities.create');
+        Route::post('/mailboxes/{mailbox}/identities', [MailIdentityController::class, 'store'])->whereNumber('mailbox')->middleware('mfa.recent')->name('identities.store');
+        Route::get('/mailboxes/{mailbox}/identities/{identity}/edit', [MailIdentityController::class, 'edit'])->whereNumber(['mailbox', 'identity'])->middleware('mfa.recent')->name('identities.edit');
+        Route::put('/mailboxes/{mailbox}/identities/{identity}', [MailIdentityController::class, 'update'])->whereNumber(['mailbox', 'identity'])->middleware('mfa.recent')->name('identities.update');
         Route::get('/audit', [MailAuditController::class, 'index'])->name('audit');
         Route::put('/roles/{role}/mailboxes', [MailboxAccessController::class, 'updateRole'])->middleware('mfa.recent')->name('access.role');
         Route::put('/users/{user}/mailboxes', [MailboxAccessController::class, 'updateUser'])->middleware('mfa.recent')->name('access.user');

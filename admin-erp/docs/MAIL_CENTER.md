@@ -27,8 +27,45 @@ browser ──► Laravel (admin.provatferi.org, session + two-step) ──► M
   number only.
 
 Code: `app/Services/Mail/`, `app/Http/Controllers/Admin/Mail/`, `app/Http/Middleware/MailCenterPrivacy.php`,
-`app/Models/{Mailbox,MailboxGrant,MailAuditEvent}.php`, `config/mail_center.php`, `resources/views/admin/mail/`,
-`public/js/provatferi-mail.js`.
+`app/Models/{Mailbox,MailIdentity,MailboxGrant,MailAuditEvent}.php`, `app/Support/MailCenterIdentityMail.php`,
+`config/mail_center.php`, `resources/views/admin/mail/`, `public/js/provatferi-mail.js`.
+
+## Mail account and identities
+
+**provatferi.org has one real mailbox.** The institution's other addresses — `info@`, `support@`, `security@`,
+`no-reply@`, `partnerships@` — are **aliases** the provider delivers into it. Proven twice: by delivery-status reports on
+2026-10-24 (`alias expanded`), and by the send matrix of 2026-10-26.
+
+So the Mail Center keeps two things apart, and they must not be confused:
+
+| | What it is | Table |
+|---|---|---|
+| **Mail account** | a mailbox that is really opened and read at the provider | `mailboxes` (one row) |
+| **Identity** | an address that mailbox sends as and receives for | `mail_identities` (one row each) |
+
+Registering an alias as its own `mailboxes` row would be wrong twice over: the Mail API has no mailbox to open for it
+(it would answer `not_in_scope`), and the same physical inbox would appear several times in the panel. **The same inbox is
+never shown more than once.**
+
+Table `mail_identities`:
+
+| Column | Meaning |
+|---|---|
+| `mailbox_id` | the mail account this address belongs to |
+| `address` | lower case, unique across the whole table — an address is an identity of one account at most, so "which identity received this?" always has one answer |
+| `display_name` | the name recipients see, e.g. `Provatferi Partnerships` |
+| `purpose` | administration / general / support / security / partnerships / automated / other — wording only, never an authorisation decision |
+| `can_receive` | its mail is shown under its filter |
+| `can_send_manual` | a person may choose it when writing |
+| `is_automated` | the application's own sender (`no-reply@`); never offered for manual writing, whatever the grant |
+| `enabled`, `sort_order` | offered in the Mail Center or not; order in the list |
+
+No credential belongs here either. **Registering an identity creates nothing at the provider**: the address must already
+exist there, as the mailbox itself or as an alias of it. The panel says so on the form, and no mailbox password is ever
+asked for.
+
+Admin → Mail → Mailboxes → a mailbox → **Institutional addresses** (permission `mail.manage_access`, each change behind a
+fresh two-step code).
 
 ## Mailbox registry
 
@@ -80,19 +117,78 @@ shown, stored or logged (the server log gets the kind, the status and the except
 
 ### Connecting the mail service (owner, once)
 
-0. On 2026-10-24 partnerships@ was an **alias** delivered into another mailbox, not a mailbox of its own (see "Production
-   state" below): first make it a real mailbox (hPanel → **Emails** → provatferi.org: remove the alias, create the
-   mailbox `partnerships@`). The Mail API reads and sends for mailboxes; an alias has no mailbox of its own.
+*(Since 2026-10-26 an alias no longer needs to become a real mailbox: aliases are modelled as identities of the one real
+mailbox, and alias sending goes over SMTP, which the provider supports. Only the real mailbox needs to be in the token.)*
+
 1. hPanel → **Emails** → provatferi.org → **Agentic Mail** → **API access** → **Create API token**: a descriptive name,
-   **Selected mailboxes** (tick every mailbox the Mail Center should offer — at least `partnerships@`), create. The token
-   is shown **once**.
+   **Selected mailboxes** — tick the institution's real administration mailbox. The token is shown **once**.
 2. Put it in the server's `.env` — `/home/u951246149/domains/provatferi.org/laravel-admin/.env`, through hPanel's File
    Manager — as `HOSTINGER_MAIL_API_TOKEN=<token>`. Never in chat, e-mail, Git, a ticket or this panel.
 3. Rebuild the configuration cache (`php artisan config:cache` — a one-shot cron, or the next release does it).
-4. Admin → Mail → Mailboxes → **Check connection** on each mailbox: `connected`.
+4. Admin → Mail → **Mailboxes** → register that mailbox → **Check connection**: `connected`.
+5. On that mailbox, add its **Institutional addresses**: the mailbox's own address, then `info@`, `support@`,
+   `security@`, `partnerships@` (each with its sender name and purpose), and `no-reply@` marked **Automated sender**.
+   They must already exist at the provider as aliases of it — this step only records them.
 
 The token is never entered in, shown by, or sent to the panel; `deploy/qa/mail-center-qa.php audit` reports only whether
 it is set.
+
+## Which identity received a message
+
+One mailbox holds the mail of every alias, so the only way to tell them apart is the addressing on the message itself
+(`App\Services\Mail\MailIdentityResolver`). Nothing is guessed:
+
+- Candidates come from **every** recipient field the provider reports — To, Cc, Bcc — and, where the caller has the raw
+  source, from the envelope headers `Delivered-To`, `Envelope-To`, `X-Original-To`, `X-Forwarded-To`. Headers only: the
+  body may quote any address it likes.
+- A message may match **several** identities (addressed to support@ and partnerships@ together), exactly one, or none.
+- **None is normal.** Mail delivered only by envelope — a bare Bcc, a mailing list, a forward — names no institutional
+  address in its headers. Such a message is shown as unclassified; it is never hidden and never attributed to an identity
+  it did not come through.
+- **"All mail" always shows everything the mailbox holds.** An identity filter only narrows it.
+
+Picking an identity asks the **provider** for the mail addressed to it (its own recipient criterion, one page at a time),
+so a filter costs one request instead of downloading the folder and sifting it here.
+
+*Limitation.* A message that reached an alias purely through the envelope will not match that alias's filter, because the
+provider can only search what is in the headers. It still appears under "All mail".
+
+## Sending as an identity
+
+The provider decides the transport, not a preference:
+
+| Sender | Transport | Why |
+|---|---|---|
+| the mailbox's own address | **Mail API** | the API sends as the mailbox and files its own copy in `INBOX.Sent`, and it flags the answered/forwarded source natively |
+| any alias identity | **SMTP** | the Mail API's send request carries a display name and **no sender address**, so it cannot send as an alias |
+
+Verified against the live provider on 2026-10-26, one controlled message per identity to an external inbox, raw sources
+read back. For every identity — admin@, info@, support@, security@, partnerships@ and no-reply@ — Hostinger **preserved
+the sender exactly**: the visible `From`, the envelope `Return-Path` and the DKIM signature (`d=provatferi.org`,
+`s=hostingermail-a`, covering the `from` header) all carried the chosen address, with no `Sender:` or rewriting, and
+`X-MC-Relay: Neutral`. From domain and DKIM domain are identical, so SPF, DKIM and DMARC align for every identity. **No
+header is faked: the provider genuinely supports this.** The authenticated login is stamped only in
+`X-MailChannels-SenderId` / `X-AuthUser`, never in `From` or `Return-Path`.
+
+Both the sender and the reply address are the **same** chosen identity, so an answer comes back to the address the
+conversation belongs to. This is deliberately *not* the automated rule — see "Two workflows" below.
+
+*Limitation.* SMTP leaves no copy in Sent, and the Mail API offers no way to append one. So an alias send Bcc's the
+mailbox itself, keeping a verbatim copy of what went out under an institutional name
+(`mail_center.sending.keep_alias_copy_in_mailbox`, on by default; turning it off leaves only the audit record). Those
+copies arrive in the mailbox like any other delivery.
+
+### Two workflows, kept apart
+
+| | Automated application mail | Mail Center |
+|---|---|---|
+| Set by | `App\Support\InstitutionMail` | `App\Support\MailCenterIdentityMail` |
+| From | always the no-reply sender | the chosen institutional identity |
+| Reply-To | the support or security role | the same chosen identity |
+| The administration mailbox | private: never a From or Reply-To | a legitimate identity — a person really reads it |
+
+They never mix: nothing in the Mail Center path is reachable from a notification, and `InstitutionMail` is not used for
+Mail Center mail. `EmailIdentityTest` fails the build if identity headers are set anywhere outside those two classes.
 
 ## Permission model
 
@@ -313,6 +409,17 @@ unread badge is loaded after the page, and a provider failure in one request sto
 - The test suite cannot inherit a developer's token: `phpunit.xml` blanks both variables, and the Mail Center tests use
   `Tests\Support\FakeMailProvider` (the SDK's own HTTP client is invisible to `Http::preventStrayRequests()`).
 - This repository is public: no credential, and no statement of which mailbox the SMTP transport logs in as, belongs in it.
+
+## Deferred: a dedicated partnerships account (Google Workspace)
+
+Access for the Director of Social Development & Partnerships is **deferred by the owner** and is deliberately **not**
+built: no account, no role and no grant was created for him, and no permission of his was changed. The owner intends to
+handle it separately, possibly after buying Google Workspace / Google Mail, at which point `partnerships@` may become a
+mailbox of its own rather than an alias.
+
+Nothing here is designed against that hypothetical. If it happens, the model already fits: `partnerships@` becomes its
+own `mailboxes` row with its own identity, and the grants that exist today keep working — the address moves from being an
+identity of the administration mailbox to being an account in its own right.
 
 ## Production state found on 2026-10-24 (before this release)
 

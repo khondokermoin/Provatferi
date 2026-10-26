@@ -17,6 +17,13 @@ final readonly class MailSearch
 
     public const IN_SUBJECT = 'subject';
 
+    /**
+     * The recipient a message was addressed to. Not offered as a free search field — a person searches words, not
+     * envelopes — but it is how the Mail Center asks the provider for the mail of ONE institutional identity, so the
+     * filtering happens on the provider's side instead of by downloading the whole folder.
+     */
+    public const IN_TO = 'to';
+
     public const FIELDS = [self::IN_ANYWHERE, self::IN_FROM, self::IN_SUBJECT];
 
     public const MAX_LENGTH = 100;
@@ -25,6 +32,12 @@ final readonly class MailSearch
         public string $field,
         public string $value,
     ) {}
+
+    /** Every message addressed to one institutional address, asked for by the provider's own recipient criterion. */
+    public static function addressedTo(string $address): self
+    {
+        return new self(self::IN_TO, mb_substr(strtolower(trim($address)), 0, self::MAX_LENGTH));
+    }
 
     /** Null when nothing searchable is left after control characters and surplus spaces are removed. */
     public static function normalize(?string $words, ?string $field = null): ?self

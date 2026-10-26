@@ -27,7 +27,7 @@ class MailCenterSendingTest extends MailCenterTestCase
             'cc' => 'copy@example.org',
             'subject' => 'Partnership meeting',
             'body' => "Dear partner,\n\nLet us meet on Monday.",
-            'form_key' => (string) Str::uuid(),
+            'identity_id' => $this->ownIdentity($box)->id, 'form_key' => (string) Str::uuid(),
             // R: every way a browser could try to choose the sender is ignored.
             'from' => $this->boxes['internal']->address,
             'from_address' => $this->boxes['internal']->address,
@@ -65,7 +65,7 @@ class MailCenterSendingTest extends MailCenterTestCase
         $all->assertSee('value="colleague@example.org, boss@example.org"', false)->assertDontSee('value="'.$box->address, false);
 
         $this->actingAs($staff)->post(route('admin.mail.reply.send', [$box, 30, 'folder' => 'INBOX']), [
-            'to' => 'partner@example.org', 'subject' => 'Re: Collaboration', 'body' => 'Thank you.', 'include_quote' => '1', 'form_key' => (string) Str::uuid(),
+            'to' => 'partner@example.org', 'subject' => 'Re: Collaboration', 'body' => 'Thank you.', 'include_quote' => '1', 'identity_id' => $this->ownIdentity($box)->id, 'form_key' => (string) Str::uuid(),
         ])->assertRedirect(route('admin.mail.message', [$box, 30, 'folder' => 'INBOX']));
 
         $message = $this->fake->sent[0]['message'];
@@ -85,7 +85,7 @@ class MailCenterSendingTest extends MailCenterTestCase
         $this->fake->addMessage($box->address, 'INBOX', 31, ['subject' => 'Original'], 'The real original text');
 
         $this->actingAs($staff)->post(route('admin.mail.reply.send', [$box, 31, 'folder' => 'INBOX']), [
-            'to' => 'partner@example.org', 'subject' => 'Re: Original', 'body' => 'Answer', 'quote' => '> forged quote', 'original_text' => 'forged', 'form_key' => (string) Str::uuid(),
+            'to' => 'partner@example.org', 'subject' => 'Re: Original', 'body' => 'Answer', 'quote' => '> forged quote', 'original_text' => 'forged', 'identity_id' => $this->ownIdentity($box)->id, 'form_key' => (string) Str::uuid(),
         ])->assertRedirect();
 
         $text = $this->fake->sent[0]['message']->text;
@@ -106,7 +106,7 @@ class MailCenterSendingTest extends MailCenterTestCase
             ->assertSee('Fwd: Budget')->assertSee('budget.xlsx')->assertSee(__('admin.mail.compose.forward_attachments_help'));
 
         $this->actingAs($staff)->post(route('admin.mail.forward.send', [$box, 40, 'folder' => 'INBOX']), [
-            'to' => 'board@example.org', 'subject' => 'Fwd: Budget', 'body' => 'For your review.', 'forward_attachments' => ['1'], 'form_key' => (string) Str::uuid(),
+            'to' => 'board@example.org', 'subject' => 'Fwd: Budget', 'body' => 'For your review.', 'forward_attachments' => ['1'], 'identity_id' => $this->ownIdentity($box)->id, 'form_key' => (string) Str::uuid(),
         ])->assertRedirect();
 
         $message = $this->fake->sent[0]['message'];
@@ -127,7 +127,7 @@ class MailCenterSendingTest extends MailCenterTestCase
         $box = $this->boxes['partnerships'];
 
         $this->actingAs($staff)->get(route('admin.mail.forward', [$box, 1, 'folder' => 'INBOX']))->assertForbidden();
-        $this->actingAs($staff)->post(route('admin.mail.forward.send', [$box, 1, 'folder' => 'INBOX']), ['to' => 'x@example.org', 'subject' => 'Fwd', 'form_key' => (string) Str::uuid()])->assertForbidden();
+        $this->actingAs($staff)->post(route('admin.mail.forward.send', [$box, 1, 'folder' => 'INBOX']), ['to' => 'x@example.org', 'subject' => 'Fwd', 'identity_id' => $this->ownIdentity($box)->id, 'form_key' => (string) Str::uuid()])->assertForbidden();
         $this->assertSame([], $this->fake->sent);
     }
 
@@ -151,7 +151,7 @@ class MailCenterSendingTest extends MailCenterTestCase
         ];
         foreach ($attacks as $attack) {
             $response = $this->actingAs($staff)->from(route('admin.mail.compose', $box))->post(route('admin.mail.send', $box), $attack + [
-                'to' => 'ok@example.org', 'subject' => 'Fine', 'body' => 'Body', 'form_key' => (string) Str::uuid(),
+                'to' => 'ok@example.org', 'subject' => 'Fine', 'body' => 'Body', 'identity_id' => $this->ownIdentity($box)->id, 'form_key' => (string) Str::uuid(),
             ]);
             $this->assertSame(route('admin.mail.compose', $box), $response->headers->get('Location'), 'not refused: '.json_encode($attack));
             $response->assertSessionHasErrors();
@@ -161,7 +161,7 @@ class MailCenterSendingTest extends MailCenterTestCase
         // Control characters at the very END of a field are removed by the framework (TrimStrings) before anything else
         // sees them: what is sent is only the clean address, never a second header.
         $this->actingAs($staff)->post(route('admin.mail.send', $box), [
-            'to' => "ok@example.org\r\n", 'bcc' => "hidden@example.org\0", 'subject' => "Fine\r\n", 'body' => 'Body', 'form_key' => (string) Str::uuid(),
+            'to' => "ok@example.org\r\n", 'bcc' => "hidden@example.org\0", 'subject' => "Fine\r\n", 'body' => 'Body', 'identity_id' => $this->ownIdentity($box)->id, 'form_key' => (string) Str::uuid(),
         ])->assertSessionHas('success');
         $this->assertSame(['ok@example.org'], $this->fake->sent[0]['message']->to);
         $this->assertSame(['hidden@example.org'], $this->fake->sent[0]['message']->bcc);
@@ -172,7 +172,7 @@ class MailCenterSendingTest extends MailCenterTestCase
     {
         $staff = $this->limitedStaff();
         $box = $this->boxes['partnerships'];
-        $form = ['to' => 'partner@example.org', 'subject' => 'Once', 'body' => 'Only once', 'form_key' => (string) Str::uuid()];
+        $form = ['to' => 'partner@example.org', 'subject' => 'Once', 'body' => 'Only once', 'identity_id' => $this->ownIdentity($box)->id, 'form_key' => (string) Str::uuid()];
 
         $this->actingAs($staff)->post(route('admin.mail.send', $box), $form)->assertSessionHas('success');
         $again = $this->actingAs($staff)->post(route('admin.mail.send', $box), $form);
@@ -181,7 +181,7 @@ class MailCenterSendingTest extends MailCenterTestCase
         $this->assertCount(1, $this->fake->sent);
         $this->assertDatabaseHas('mail_audit_events', ['action' => MailAuditEvent::SEND_DUPLICATE_BLOCKED, 'mailbox_id' => $box->id]);
         // A new form (a new key) is a new message.
-        $this->actingAs($staff)->post(route('admin.mail.send', $box), ['form_key' => (string) Str::uuid()] + $form)->assertSessionHas('success');
+        $this->actingAs($staff)->post(route('admin.mail.send', $box), ['identity_id' => $this->ownIdentity($box)->id, 'form_key' => (string) Str::uuid()] + $form)->assertSessionHas('success');
         $this->assertCount(2, $this->fake->sent);
     }
 
@@ -191,14 +191,14 @@ class MailCenterSendingTest extends MailCenterTestCase
         $box = $this->boxes['partnerships'];
 
         $this->fake->failOn['send'] = MailProviderException::of(MailProviderException::UNAVAILABLE);
-        $form = ['to' => 'partner@example.org', 'subject' => 'Timeout', 'body' => 'x', 'form_key' => (string) Str::uuid()];
+        $form = ['to' => 'partner@example.org', 'subject' => 'Timeout', 'body' => 'x', 'identity_id' => $this->ownIdentity($box)->id, 'form_key' => (string) Str::uuid()];
         $this->actingAs($staff)->post(route('admin.mail.send', $box), $form)->assertSessionHas('warning', __('admin.mail.send.unknown'));
         unset($this->fake->failOn['send']);
         $this->actingAs($staff)->post(route('admin.mail.send', $box), $form)->assertSessionHas('warning', __('admin.mail.send.duplicate_unknown'));
         $this->assertSame([], $this->fake->sent, 'never resent automatically');
 
         $this->fake->failOn['send'] = MailProviderException::of(MailProviderException::REJECTED, 422);
-        $refused = ['form_key' => (string) Str::uuid()] + $form;
+        $refused = ['identity_id' => $this->ownIdentity($box)->id, 'form_key' => (string) Str::uuid()] + $form;
         $this->actingAs($staff)->from(route('admin.mail.compose', $box))->post(route('admin.mail.send', $box), $refused)->assertSessionHas('error', __('admin.mail.send.failed'));
         unset($this->fake->failOn['send']);
         $this->actingAs($staff)->post(route('admin.mail.send', $box), $refused)->assertSessionHas('success');
@@ -212,7 +212,7 @@ class MailCenterSendingTest extends MailCenterTestCase
         $staff = $this->limitedStaff();
         $colleague = $this->staffWithRole($staff->roles->first());
         $box = $this->boxes['partnerships'];
-        $send = fn ($who) => $this->actingAs($who)->from(route('admin.mail.compose', $box))->post(route('admin.mail.send', $box), ['to' => 'p@example.org', 'subject' => 'n', 'body' => 'b', 'form_key' => (string) Str::uuid()]);
+        $send = fn ($who) => $this->actingAs($who)->from(route('admin.mail.compose', $box))->post(route('admin.mail.send', $box), ['to' => 'p@example.org', 'subject' => 'n', 'body' => 'b', 'identity_id' => $this->ownIdentity($box)->id, 'form_key' => (string) Str::uuid()]);
 
         foreach (range(1, 3) as $i) {
             $send($staff)->assertSessionHas('success');
@@ -233,7 +233,7 @@ class MailCenterSendingTest extends MailCenterTestCase
         $role = $this->partnershipsRole();
         foreach (range(1, 3) as $i) {
             $this->actingAs($this->staffWithRole($role))->from(route('admin.mail.compose', $box))
-                ->post(route('admin.mail.send', $box), ['to' => 'p@example.org', 'subject' => 'n', 'body' => 'b', 'form_key' => (string) Str::uuid()]);
+                ->post(route('admin.mail.send', $box), ['to' => 'p@example.org', 'subject' => 'n', 'body' => 'b', 'identity_id' => $this->ownIdentity($box)->id, 'form_key' => (string) Str::uuid()]);
         }
         $this->assertCount(2, $this->fake->sent);
     }
@@ -245,17 +245,17 @@ class MailCenterSendingTest extends MailCenterTestCase
         $base = ['to' => 'p@example.org', 'subject' => 's', 'body' => 'b'];
 
         $this->actingAs($staff)->from(route('admin.mail.compose', $box))->post(route('admin.mail.send', $box), $base + [
-            'form_key' => (string) Str::uuid(), 'attachments' => [UploadedFile::fake()->create('setup.exe', 10)],
+            'identity_id' => $this->ownIdentity($box)->id, 'form_key' => (string) Str::uuid(), 'attachments' => [UploadedFile::fake()->create('setup.exe', 10)],
         ])->assertSessionHasErrors('attachments');
 
         config(['mail_center.compose.max_total_attachment_kb' => 30]);
         $this->actingAs($staff)->from(route('admin.mail.compose', $box))->post(route('admin.mail.send', $box), $base + [
-            'form_key' => (string) Str::uuid(), 'attachments' => [UploadedFile::fake()->create('a.pdf', 20), UploadedFile::fake()->create('b.pdf', 20)],
+            'identity_id' => $this->ownIdentity($box)->id, 'form_key' => (string) Str::uuid(), 'attachments' => [UploadedFile::fake()->create('a.pdf', 20), UploadedFile::fake()->create('b.pdf', 20)],
         ])->assertSessionHasErrors('attachments');
         $this->assertSame([], $this->fake->sent);
 
         $this->actingAs($staff)->post(route('admin.mail.send', $box), $base + [
-            'form_key' => (string) Str::uuid(), 'attachments' => [UploadedFile::fake()->create('brief.pdf', 10, 'application/pdf')],
+            'identity_id' => $this->ownIdentity($box)->id, 'form_key' => (string) Str::uuid(), 'attachments' => [UploadedFile::fake()->create('brief.pdf', 10, 'application/pdf')],
         ])->assertSessionHas('success');
         $this->assertSame('brief.pdf', $this->fake->sent[0]['message']->attachments[0]->filename);
     }

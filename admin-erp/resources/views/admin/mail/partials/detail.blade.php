@@ -80,6 +80,16 @@
                 <dt>{{ __('admin.mail.fields.from') }}</dt><dd>{{ $selected->from?->full() ?? '—' }}</dd>
                 @if ($selected->to !== [])<dt>{{ __('admin.mail.fields.to') }}</dt><dd>{{ $people($selected->to) }}</dd>@endif
                 @if ($selected->cc !== [])<dt>{{ __('admin.mail.fields.cc') }}</dt><dd>{{ $people($selected->cc) }}</dd>@endif
+                {{-- Which institutional address this message arrived through. One mailbox holds them all, so the
+                     answer may be several addresses, or none when only the envelope named one. --}}
+                <dt>{{ __('admin.mail.identities.received_through') }}</dt>
+                <dd>
+                    @forelse ($selectedIdentities ?? [] as $through)
+                        <span class="badge bg-primary-subtle text-primary-emphasis">{{ $through->label() }} &lt;{{ $through->address }}&gt;</span>
+                    @empty
+                        <span class="text-muted">{{ __('admin.mail.identities.unclassified') }}</span>
+                    @endforelse
+                </dd>
                 <dt>{{ __('admin.mail.fields.date') }}</dt><dd>{{ $selected->date ? admin_datetime($selected->date) : '—' }}</dd>
             </dl>
 

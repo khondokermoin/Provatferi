@@ -50,4 +50,67 @@
             </div>
         @endif
     </div>
+
+    {{-- The institutional addresses this one mailbox sends as and receives for. --}}
+    @if ($isEdit)
+        <div class="row">
+            <div class="col-xl-9">
+                <x-admin.card :title="__('admin.mail.identities.title')" :subtitle="__('admin.mail.identities.subtitle')">
+                    <x-slot:actions>
+                        <a href="{{ route('admin.mail.identities.create', $box) }}" class="btn btn-primary btn-sm">
+                            <i class="ti ti-plus me-1" aria-hidden="true"></i>{{ __('admin.mail.identities.add') }}
+                        </a>
+                    </x-slot:actions>
+
+                    <p class="fs-13 text-muted">{{ __('admin.mail.identities.provider_note') }}</p>
+
+                    @php $identities = $box->identities()->ordered()->get(); @endphp
+                    @if ($identities->isEmpty())
+                        <p class="fs-13 mb-0">{{ __('admin.mail.identities.empty') }}</p>
+                    @else
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>{{ __('admin.mail.identities.fields.address') }}</th>
+                                        <th>{{ __('admin.mail.identities.fields.display_name') }}</th>
+                                        <th>{{ __('admin.mail.identities.fields.purpose') }}</th>
+                                        <th>{{ __('admin.mail.identities.column_sending') }}</th>
+                                        <th><span class="visually-hidden">{{ __('admin.actions.edit') }}</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($identities as $identity)
+                                        <tr>
+                                            <td>
+                                                {{ $identity->address }}
+                                                @unless ($identity->enabled)
+                                                    <span class="badge bg-secondary-subtle text-secondary-emphasis">{{ __('admin.common.inactive') }}</span>
+                                                @endunless
+                                            </td>
+                                            <td>{{ $identity->display_name }}</td>
+                                            <td>{{ __('admin.mail.identities.purposes.'.$identity->purpose) }}</td>
+                                            <td>
+                                                @if ($identity->is_automated)
+                                                    <span class="badge bg-secondary-subtle text-secondary-emphasis">{{ __('admin.mail.identities.automated_short') }}</span>
+                                                @elseif ($identity->can_send_manual)
+                                                    <i class="ti ti-check text-success" aria-hidden="true"></i>
+                                                    <span class="visually-hidden">{{ __('admin.mail.identities.fields.can_send_manual') }}</span>
+                                                @else
+                                                    <span aria-hidden="true">—</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-end">
+                                                <a href="{{ route('admin.mail.identities.edit', [$box, $identity]) }}" class="btn btn-light border btn-sm">{{ __('admin.actions.edit') }}</a>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+                </x-admin.card>
+            </div>
+        </div>
+    @endif
 @endsection

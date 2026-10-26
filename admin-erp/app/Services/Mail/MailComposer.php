@@ -2,7 +2,7 @@
 
 namespace App\Services\Mail;
 
-use App\Models\Mailbox;
+use App\Models\MailIdentity;
 use App\Services\Mail\Data\MailAddress;
 use App\Services\Mail\Data\MailMessage;
 use App\Services\Mail\Data\MailMessageText;
@@ -14,9 +14,10 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Builds the messages the Mail Center sends (docs/MAIL_CENTER.md, "Compose, reply, forward"). There is no From anywhere
- * in here: the provider sends from the mailbox the request was authorised for, under the display name from the registry.
- * A request's own "from", "sender" or "reply_to" field is never read.
+ * Builds the messages the Mail Center sends (docs/MAIL_CENTER.md, "Compose, reply, forward"). No address from the request
+ * ever becomes a sender: the institutional identity was resolved and authorised by MailboxAccess::resolveIdentity()
+ * before anything here runs, and only its registered name travels into the message. A request's own "from", "sender" or
+ * "reply_to" field is never read.
  *
  * Recipients are typed as one line per field, separated by commas or semicolons. A line break, a NUL or any other control
  * character in a recipient or subject field is refused outright (header injection), and every address must pass strict
@@ -31,19 +32,19 @@ final class MailComposer
      * @param  array<string, mixed>  $input  validated request data (to, cc, bcc, subject, body)
      * @param  list<UploadedFile>  $uploads
      */
-    public function compose(Mailbox $mailbox, array $input, array $uploads = []): OutgoingMessage
+    public function compose(MailIdentity $identity, array $input, array $uploads = []): OutgoingMessage
     {
         [$to, $cc, $bcc] = $this->recipients($input);
         $body = $this->body($input);
 
-        return new OutgoingMessage($this->displayName($mailbox), $to, $cc, $bcc, $this->subject($input), $body, self::htmlFromText($body), $this->uploaded($uploads));
+        return new OutgoingMessage($this->displayName($identity), $to, $cc, $bcc, $this->subject($input), $body, self::htmlFromText($body), $this->uploaded($uploads));
     }
 
     /**
      * @param  array<string, mixed>  $input
      * @param  list<UploadedFile>  $uploads
      */
-    public function reply(Mailbox $mailbox, MailMessage $original, MailMessageText $originalText, array $input, array $uploads = []): OutgoingMessage
+    public function reply(MailIdentity $identity, MailMessage $original, MailMessageText $originalText, array $input, array $uploads = []): OutgoingMessage
     {
         [$to, $cc, $bcc] = $this->recipients($input);
         $body = $this->body($input);
@@ -51,8 +52,10 @@ final class MailComposer
         $text = trim($body)."\n\n".$quoted;
         $html = self::htmlFromText($body).($quoted !== '' ? self::quoteHtml($original, $originalText) : '');
 
-        return new OutgoingMessage($this->displayName($mailbox), $to, $cc, $bcc, $this->subject($input), rtrim($text)."\n", $html, $this->uploaded($uploads),
-            inReplyTo: ['uid' => $original->uid, 'folder' => $original->folder]);
+        return new OutgoingMessage($this->displayName($identity), $to, $cc, $bcc, $this->subject($input), rtrim($text)."\n", $html, $this->uploaded($uploads),
+            inReplyTo: ['uid' => $original->uid, 'folder' => $original->folder],
+            inReplyToMessageId: $original->messageId,
+            references: array_values(array_filter([$original->messageId])));
     }
 
     /**
@@ -60,7 +63,7 @@ final class MailComposer
      * @param  list<UploadedFile>  $uploads
      * @param  list<OutgoingAttachment>  $forwarded  the original's attachments the person chose to include
      */
-    public function forward(Mailbox $mailbox, MailMessage $original, MailMessageText $originalText, array $input, array $uploads = [], array $forwarded = []): OutgoingMessage
+    public function forward(MailIdentity $identity, MailMessage $original, MailMessageText $originalText, array $input, array $uploads = [], array $forwarded = []): OutgoingMessage
     {
         [$to, $cc, $bcc] = $this->recipients($input);
         $body = $this->body($input, required: false);
@@ -68,8 +71,10 @@ final class MailComposer
         $text = (trim($body) !== '' ? trim($body)."\n\n" : '').$block;
         $html = (trim($body) !== '' ? self::htmlFromText($body) : '').self::forwardHtml($original, $originalText);
 
-        return new OutgoingMessage($this->displayName($mailbox), $to, $cc, $bcc, $this->subject($input), $text, $html, [...$forwarded, ...$this->uploaded($uploads)],
-            forwardOf: ['uid' => $original->uid, 'folder' => $original->folder]);
+        return new OutgoingMessage($this->displayName($identity), $to, $cc, $bcc, $this->subject($input), $text, $html, [...$forwarded, ...$this->uploaded($uploads)],
+            forwardOf: ['uid' => $original->uid, 'folder' => $original->folder],
+            inReplyToMessageId: $original->messageId,
+            references: array_values(array_filter([$original->messageId])));
     }
 
     /**
@@ -78,18 +83,22 @@ final class MailComposer
      *
      * @return array{to: list<string>, cc: list<string>}
      */
-    public static function replyRecipients(MailMessage $original, Mailbox $mailbox, bool $all): array
+    public static function replyRecipients(MailMessage $original, array $ownAddresses, bool $all): array
     {
-        $own = strtolower((string) $mailbox->address);
-        $to = $original->from !== null && $original->from->address !== $own ? [$original->from->address] : [];
+        // Every address this mailbox answers to — its own and all of its institutional identities. A reply to a message
+        // addressed to support@ must not be sent back to support@, whichever identity it goes out as.
+        $own = array_map('strtolower', $ownAddresses);
+        $isOwn = fn (string $address) => in_array(strtolower($address), $own, true);
+
+        $to = $original->from !== null && ! $isOwn($original->from->address) ? [$original->from->address] : [];
         if ($to === [] && $original->to !== []) {
             // A message the mailbox itself sent (in Sent): answering it means writing to its recipients again.
-            $to = array_values(array_unique(array_filter(array_map(fn (MailAddress $a) => $a->address, $original->to), fn ($a) => $a !== $own)));
+            $to = array_values(array_unique(array_filter(array_map(fn (MailAddress $a) => $a->address, $original->to), fn ($a) => ! $isOwn($a))));
         }
         $cc = [];
         if ($all) {
             foreach ([...$original->to, ...$original->cc] as $address) {
-                if ($address->address !== $own && ! in_array($address->address, $to, true) && ! in_array($address->address, $cc, true)) {
+                if (! $isOwn($address->address) && ! in_array($address->address, $to, true) && ! in_array($address->address, $cc, true)) {
                     $cc[] = $address->address;
                 }
             }
@@ -266,9 +275,9 @@ final class MailComposer
         return $name;
     }
 
-    private function displayName(Mailbox $mailbox): string
+    private function displayName(MailIdentity $identity): string
     {
-        return self::oneLine($mailbox->label());
+        return self::oneLine($identity->label());
     }
 
     private static function oneLine(string $value): string

@@ -50,5 +50,39 @@
                 @endforeach
             </ul>
         @endif
+
+        {{-- The institutional addresses this ONE mailbox receives for. They are filters over the same folder, not
+             separate inboxes, and the heading says so: picking one asks the provider for the mail addressed to it. --}}
+        @if ($mailbox && ($capabilities ?? null)?->read && ($identities ?? collect())->isNotEmpty())
+            <h2 class="pf-mail-heading">{{ __('admin.mail.nav.identities') }}</h2>
+            <p class="pf-mail-note">{{ __('admin.mail.nav.identities_help') }}</p>
+            <ul class="pf-mail-identities list-unstyled mb-0">
+                @php $folderQuery = $folder ? ['folder' => $folder->path] : []; @endphp
+                <li>
+                    <a href="{{ route('admin.mail.mailbox', [$mailbox] + $folderQuery) }}"
+                       class="pf-mail-identity {{ empty($identity) ? 'is-active' : '' }}" @if (empty($identity)) aria-current="true" @endif>
+                        <i class="ti ti-mailbox" aria-hidden="true"></i>
+                        <span class="flex-grow-1 text-truncate">{{ __('admin.mail.nav.all_identities') }}</span>
+                    </a>
+                </li>
+                @foreach ($identities as $i)
+                    @php $isIdentity = ! empty($identity) && (int) $identity->id === (int) $i->id; @endphp
+                    <li>
+                        <a href="{{ route('admin.mail.mailbox', [$mailbox, 'identity' => $i->id] + $folderQuery) }}"
+                           class="pf-mail-identity {{ $isIdentity ? 'is-active' : '' }}" @if ($isIdentity) aria-current="true" @endif
+                           title="{{ $i->address }}">
+                            <i class="ti ti-at" aria-hidden="true"></i>
+                            <span class="flex-grow-1 text-truncate">
+                                <span class="pf-mail-box-name">{{ $i->label() }}</span>
+                                <span class="pf-mail-box-address">{{ $i->address }}</span>
+                            </span>
+                            @if ($i->is_automated)
+                                <span class="badge bg-secondary-subtle text-secondary-emphasis">{{ __('admin.mail.identities.automated_short') }}</span>
+                            @endif
+                        </a>
+                    </li>
+                @endforeach
+            </ul>
+        @endif
     </div>
 </nav>

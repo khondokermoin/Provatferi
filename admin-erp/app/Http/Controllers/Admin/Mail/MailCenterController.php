@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Mail;
 
 use App\Models\MailAuditEvent;
+use App\Models\MailIdentity;
 use App\Models\Mailbox;
 use App\Services\Mail\Data\MailAttachment;
 use App\Services\Mail\Data\MailFolder;
@@ -13,6 +14,7 @@ use App\Services\Mail\MailBodyRenderer;
 use App\Services\Mail\MailboxAccess;
 use App\Services\Mail\MailComposer;
 use App\Services\Mail\MailFolders;
+use App\Services\Mail\MailIdentityResolver;
 use App\Services\Mail\MailProvider;
 use App\Services\Mail\MailProviderException;
 use Illuminate\Http\JsonResponse;
@@ -38,6 +40,7 @@ class MailCenterController extends MailController
         private readonly MailProvider $provider,
         private readonly MailBodyRenderer $renderer,
         private readonly MailAuditLogger $audit,
+        private readonly MailIdentityResolver $identities,
     ) {
         parent::__construct($access, $folders);
     }
@@ -145,7 +148,8 @@ class MailCenterController extends MailController
         $user = $request->user();
         $capabilities = $this->access->capabilities($user, $box);
         $data = $this->frame($request, $box) + ['capabilities' => $capabilities, 'failure' => null, 'failureKind' => null,
-            'folders' => [], 'folder' => null, 'list' => null, 'search' => null, 'selected' => null, 'body' => null, 'attachments' => []];
+            'folders' => [], 'folder' => null, 'list' => null, 'search' => null, 'selected' => null, 'body' => null, 'attachments' => [],
+            'identities' => collect(), 'identity' => null, 'identityOf' => [], 'selectedIdentities' => []];
 
         if (! $capabilities->read) {
             // A send-only grant: the mailbox can be written from, not read.
@@ -159,13 +163,23 @@ class MailCenterController extends MailController
             $search = MailSearch::normalize($this->scalar($request, 'q'), in_array($this->scalar($request, 'in'), MailSearch::FIELDS, true) ? $this->scalar($request, 'in') : null);
             $pageNumber = max(1, min(10000, (int) $this->scalar($request, 'page')));
             $perPage = (int) config('mail_center.list.per_page', 25);
+            // One physical mailbox holds the mail of every institutional address, so "show me partnerships@" is a
+            // question about the RECIPIENT. The provider answers it in its own search, one page at a time, instead of
+            // the whole folder being downloaded and sifted here.
+            $data['identities'] = $this->identities->receivingIdentities($box)->values();
+            $data['identity'] = $this->selectedIdentity($request, $box);
             if ($search !== null) {
                 $this->searchLimit($request, $box);
                 $data['search'] = $search;
                 $data['list'] = $this->provider->search($box, $folder->path, $search, $pageNumber, $perPage);
+            } elseif ($data['identity'] !== null) {
+                $this->searchLimit($request, $box);
+                $data['list'] = $this->provider->search($box, $folder->path, MailSearch::addressedTo((string) $data['identity']->address), $pageNumber, $perPage);
             } else {
                 $data['list'] = $this->provider->messages($box, $folder->path, $pageNumber, $perPage);
             }
+            // Which identity each listed message came through, so the list says it without a request per message.
+            $data['identityOf'] = $this->classify($box, $data['list']?->messages ?? []);
             $this->audit->mailboxOpened($box, $user, $capabilities->viaManageAll);
 
             if ($uid !== null) {
@@ -174,6 +188,7 @@ class MailCenterController extends MailController
                 $data['selected'] = $message;
                 $data['attachments'] = $message->downloadableAttachments();
                 $data['body'] = $this->renderer->render($text, $request->boolean('images'), $this->inlineImages($box, $folder, $message));
+                $data['selectedIdentities'] = $this->identities->identitiesFor($box, $message);
                 $this->audit->record(MailAuditEvent::MESSAGE_OPENED, $box, ['remote_images' => $request->boolean('images')], $folder->path, $uid, $user);
                 if ($message->unseen) {
                     $this->folders->forget($box);
@@ -248,6 +263,36 @@ class MailCenterController extends MailController
         $actual = is_array($info) ? strtolower((string) ($info['mime'] ?? '')) : '';
 
         return in_array($actual, (array) config('mail_center.reading.preview_types', []), true) ? $actual : null;
+    }
+
+    /** The identity whose mail the list is narrowed to, or null for everything the mailbox holds. */
+    private function selectedIdentity(Request $request, Mailbox $box): ?MailIdentity
+    {
+        $id = filter_var($this->scalar($request, 'identity'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        if ($id === false) {
+            return null;
+        }
+
+        // Only an identity of THIS mailbox, and only one the reader is allowed to see mail for.
+        return $this->identities->receivingIdentities($box)->first(fn (MailIdentity $i) => (int) $i->getKey() === $id);
+    }
+
+    /**
+     * Which identity each message in a list came through, keyed by UID. Resolved from the recipients the provider
+     * already reported with the list, so classifying a page costs no extra provider request. A message that names no
+     * institutional address stays unclassified rather than being attributed to one.
+     *
+     * @param  list<MailMessage>  $messages
+     * @return array<int, list<MailIdentity>>
+     */
+    private function classify(Mailbox $box, array $messages): array
+    {
+        $byUid = [];
+        foreach ($messages as $message) {
+            $byUid[$message->uid] = $this->identities->identitiesFor($box, $message);
+        }
+
+        return $byUid;
     }
 
     private function searchLimit(Request $request, Mailbox $box): void

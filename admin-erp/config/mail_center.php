@@ -48,6 +48,15 @@ return [
         'attachment' => [60, 60],
     ],
 
+    'sending' => [
+        // The provider API sends only as the mailbox itself and files its own copy in Sent. Any OTHER institutional
+        // identity is an alias the API cannot send as, so it goes over SMTP — which leaves no copy behind, and the API
+        // has no endpoint to append one. The mailbox is therefore Bcc'd on an alias send, so what went out under an
+        // institutional name is still retrievable. Turn this off to keep those copies out of the Inbox, accepting that
+        // only the audit trail will then record the send.
+        'keep_alias_copy_in_mailbox' => true,
+    ],
+
     'compose' => [
         'max_recipients' => 50,
         'max_subject' => 255,

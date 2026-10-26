@@ -3,10 +3,18 @@
 namespace App\Services\Mail\Data;
 
 /**
- * A message the Mail Center hands the provider to send. It has NO sender field on purpose: the provider sends from the
- * mailbox the call is made for, and the only thing the ERP chooses is the display name, from the registry. A reply or a
- * forward names its source message ({uid, folder} of the same mailbox), so the provider sets the threading headers and
- * flags the source answered or forwarded.
+ * A message the Mail Center hands a transport to send. It carries NO sender address on purpose: which institutional
+ * identity it goes out as is decided by the server from the registry (App\Services\Mail\MailSender), never by a field a
+ * request could set. The display name that goes with that identity travels here.
+ *
+ * Two transports read this object, because the provider supports two different things:
+ *
+ *   the Mail API   sends as the mailbox itself. A reply or forward names its source message ({uid, folder} of the same
+ *                  mailbox) in `inReplyTo` / `forwardOf`, and the provider writes the threading headers and flags the
+ *                  source answered or forwarded.
+ *   SMTP           sends as any identity of that mailbox, which the API cannot do. It has no notion of the source
+ *                  message, so threading is carried here as the original's own RFC identifiers — `inReplyToMessageId`
+ *                  and `references`, taken from the message being answered, never assembled by hand.
  */
 final readonly class OutgoingMessage
 {
@@ -17,6 +25,8 @@ final readonly class OutgoingMessage
      * @param  list<OutgoingAttachment>  $attachments
      * @param  array{uid: int, folder: string}|null  $inReplyTo
      * @param  array{uid: int, folder: string}|null  $forwardOf
+     * @param  string|null  $inReplyToMessageId  the answered/forwarded message's own Message-ID (SMTP threading)
+     * @param  list<string>  $references  its References chain, oldest first (SMTP threading)
      */
     public function __construct(
         public string $displayName,
@@ -29,6 +39,8 @@ final readonly class OutgoingMessage
         public array $attachments = [],
         public ?array $inReplyTo = null,
         public ?array $forwardOf = null,
+        public ?string $inReplyToMessageId = null,
+        public array $references = [],
     ) {}
 
     public function recipientCount(): int

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 /**
  * One institutional mailbox the Mail Center offers (docs/MAIL_CENTER.md, "Mailbox registry"). Operational metadata only:
@@ -47,6 +48,21 @@ class Mailbox extends Model
     public function grants(): HasMany
     {
         return $this->hasMany(MailboxGrant::class);
+    }
+
+    /**
+     * The institutional addresses this one physical mailbox sends as and receives for (docs/MAIL_CENTER.md). The
+     * mailbox's own address is one of them; the others are aliases the provider delivers into it.
+     */
+    public function identities(): HasMany
+    {
+        return $this->hasMany(MailIdentity::class);
+    }
+
+    /** The identities a person may choose as the sender of a message they write, in registry order. */
+    public function sendableIdentities(): Collection
+    {
+        return $this->identities()->manuallySendable()->ordered()->get();
     }
 
     /** @param Builder<Mailbox> $query */

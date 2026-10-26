@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin\Mail;
 
+use App\Models\MailIdentity;
 use App\Models\Mailbox;
 use App\Services\Mail\Data\MailMessage;
 use App\Services\Mail\Data\MailMessageText;
@@ -9,6 +10,7 @@ use App\Services\Mail\Data\OutgoingAttachment;
 use App\Services\Mail\MailboxAccess;
 use App\Services\Mail\MailComposer;
 use App\Services\Mail\MailFolders;
+use App\Services\Mail\MailIdentityResolver;
 use App\Services\Mail\MailProvider;
 use App\Services\Mail\MailProviderException;
 use App\Services\Mail\MailSender;
@@ -34,24 +36,66 @@ class MailComposeController extends MailController
         private readonly MailProvider $provider,
         private readonly MailComposer $composer,
         private readonly MailSender $sender,
+        private readonly MailIdentityResolver $identities,
     ) {
         parent::__construct($access, $folders);
+    }
+
+    /**
+     * Which identity a form starts on. For an answer or a forward it is the institutional address the original came
+     * through — the conversation's own address — so replying to partnerships@ answers as partnerships@ and never as the
+     * physical mailbox just because that is where the mail is kept. A message that names no identity (or one that may
+     * not be written as, such as the automated sender) falls back to the mailbox's own identity, then to the first
+     * identity offered.
+     */
+    private function defaultIdentityId(Mailbox $box, ?MailMessage $original): ?int
+    {
+        $sendable = $box->sendableIdentities();
+        if ($sendable->isEmpty()) {
+            return null;
+        }
+        if ($original !== null) {
+            foreach ($this->identities->identitiesFor($box, $original) as $received) {
+                $match = $sendable->firstWhere('id', $received->getKey());
+                if ($match !== null) {
+                    return (int) $match->getKey();
+                }
+            }
+        }
+        $own = $sendable->first(fn (MailIdentity $i) => strtolower((string) $i->address) === strtolower((string) $box->address));
+
+        return (int) ($own?->getKey() ?? $sendable->first()->getKey());
+    }
+
+    /** Every address this mailbox answers to: its own and all of its identities. */
+    private function ownAddresses(Mailbox $box): array
+    {
+        return array_values(array_unique(array_filter([
+            strtolower((string) $box->address),
+            ...$box->identities()->pluck('address')->map(fn ($a) => strtolower((string) $a))->all(),
+        ])));
     }
 
     public function create(Request $request, string $mailbox): View
     {
         $box = $this->resolveMailbox($request, $mailbox, 'send');
 
-        return $this->form($request, $box, 'send', null, null, ['to' => (string) $request->query('to', '')]);
+        return $this->form($request, $box, 'send', null, null, [
+            'to' => (string) $request->query('to', ''),
+            'identity_id' => $this->defaultIdentityId($box, null),
+        ]);
     }
 
     public function store(Request $request, string $mailbox): RedirectResponse
     {
         $box = $this->resolveMailbox($request, $mailbox, 'send');
         $input = $this->validated($request);
-        $message = $this->composer->compose($box, $input, $this->uploads($request));
+        // The sender is re-resolved from the registry on the POST, whatever the form carried: a form opened while an
+        // identity was still offered cannot be used to send as it once it has been withdrawn.
+        $identity = $this->access->resolveIdentity($request->user(), $box, $input['identity_id'], 'send');
+        $message = $this->composer->compose($identity, $input, $this->uploads($request));
 
-        return $this->deliver($request, $box, $message, MailSender::SEND, $input['form_key'], null);
+        return $this->deliver($request, $box, $message, MailSender::SEND, $input['form_key'], null, $identity);
     }
 
     public function reply(Request $request, string $mailbox, string $uid): View|RedirectResponse
@@ -63,7 +107,7 @@ class MailComposeController extends MailController
         } catch (MailProviderException $e) {
             return $this->failed($box, $e);
         }
-        $recipients = MailComposer::replyRecipients($original, $box, $all);
+        $recipients = MailComposer::replyRecipients($original, $this->ownAddresses($box), $all);
 
         return $this->form($request, $box, 'reply', $original, $text, [
             'to' => implode(', ', $recipients['to']),
@@ -71,6 +115,9 @@ class MailComposeController extends MailController
             'subject' => MailComposer::replySubject($original->subject),
             'all' => $all,
             'folder' => $folder,
+            // An answer goes out as the address the conversation was held at, not as the mailbox merely because it is
+            // the physical one. The writer may still choose another permitted identity before sending.
+            'identity_id' => $this->defaultIdentityId($box, $original),
         ]);
     }
 
@@ -78,14 +125,15 @@ class MailComposeController extends MailController
     {
         $box = $this->resolveMailbox($request, $mailbox, 'reply');
         $input = $this->validated($request) + ['include_quote' => $request->boolean('include_quote', true)];
+        $identity = $this->access->resolveIdentity($request->user(), $box, $input['identity_id'], 'reply');
         try {
             [$original, $text, $folder] = $this->original($request, $box, $uid);
         } catch (MailProviderException $e) {
             return $this->failed($box, $e);
         }
-        $message = $this->composer->reply($box, $original, $text, $input, $this->uploads($request));
+        $message = $this->composer->reply($identity, $original, $text, $input, $this->uploads($request));
 
-        return $this->deliver($request, $box, $message, MailSender::REPLY, $input['form_key'], ['uid' => $original->uid, 'folder' => $folder]);
+        return $this->deliver($request, $box, $message, MailSender::REPLY, $input['form_key'], ['uid' => $original->uid, 'folder' => $folder], $identity);
     }
 
     public function forward(Request $request, string $mailbox, string $uid): View|RedirectResponse
@@ -100,6 +148,7 @@ class MailComposeController extends MailController
         return $this->form($request, $box, 'forward', $original, $text, [
             'subject' => MailComposer::forwardSubject($original->subject),
             'folder' => $folder,
+            'identity_id' => $this->defaultIdentityId($box, $original),
         ]);
     }
 
@@ -107,6 +156,7 @@ class MailComposeController extends MailController
     {
         $box = $this->resolveMailbox($request, $mailbox, 'forward');
         $input = $this->validated($request, bodyRequired: false);
+        $identity = $this->access->resolveIdentity($request->user(), $box, $input['identity_id'], 'forward');
         $chosen = array_values(array_unique(array_map('intval', array_filter((array) $request->input('forward_attachments', []), 'is_numeric'))));
         try {
             [$original, $text, $folder] = $this->original($request, $box, $uid);
@@ -114,9 +164,9 @@ class MailComposeController extends MailController
         } catch (MailProviderException $e) {
             return $this->failed($box, $e);
         }
-        $message = $this->composer->forward($box, $original, $text, $input, $this->uploads($request), $forwarded);
+        $message = $this->composer->forward($identity, $original, $text, $input, $this->uploads($request), $forwarded);
 
-        return $this->deliver($request, $box, $message, MailSender::FORWARD, $input['form_key'], ['uid' => $original->uid, 'folder' => $folder]);
+        return $this->deliver($request, $box, $message, MailSender::FORWARD, $input['form_key'], ['uid' => $original->uid, 'folder' => $folder], $identity);
     }
 
     /**
@@ -132,6 +182,8 @@ class MailComposeController extends MailController
             'original' => $original,
             'quote' => $original !== null && $text !== null ? ($mode === 'forward' ? MailComposer::forwardBlock($original, $text) : MailComposer::quote($original, $text)) : null,
             'prefill' => $prefill,
+            // The identities this person may send as, for the From selector. Never a free-text field.
+            'identities' => $box->sendableIdentities(),
             // One key per form: MailSender sends a form at most once, however often it is submitted.
             'formKey' => (string) Str::uuid(),
             'limits' => config('mail_center.compose'),
@@ -151,6 +203,8 @@ class MailComposeController extends MailController
             'attachments' => ['nullable', 'array', 'max:'.(int) ($compose['max_attachments'] ?? 10)],
             'attachments.*' => ['file', 'max:'.(int) ($compose['max_attachment_kb'] ?? 10240)],
             'form_key' => ['required', 'uuid'],
+            // Which identity, never which address: the id is looked up in this mailbox's own registry afterwards.
+            'identity_id' => ['required', 'integer', 'min:1'],
         ], [], [
             'to' => __('admin.mail.fields.to'), 'cc' => __('admin.mail.fields.cc'), 'bcc' => __('admin.mail.fields.bcc'),
             'subject' => __('admin.mail.fields.subject'), 'body' => __('admin.mail.fields.body'), 'attachments' => __('admin.mail.fields.attachments'),
@@ -223,10 +277,10 @@ class MailComposeController extends MailController
     }
 
     /** @param array{uid: int, folder: string}|null $source */
-    private function deliver(Request $request, Mailbox $box, \App\Services\Mail\Data\OutgoingMessage $message, string $kind, string $formKey, ?array $source): RedirectResponse
+    private function deliver(Request $request, Mailbox $box, \App\Services\Mail\Data\OutgoingMessage $message, string $kind, string $formKey, ?array $source, ?MailIdentity $identity = null): RedirectResponse
     {
         try {
-            $this->sender->send($request->user(), $box, $message, $kind, $formKey, $source);
+            $this->sender->send($request->user(), $box, $message, $kind, $formKey, $source, $identity);
         } catch (MailSendRefused $refused) {
             $text = match ($refused->reason) {
                 MailSendRefused::DUPLICATE => __('admin.mail.send.duplicate_'.($refused->detail === 'sent' ? 'sent' : ($refused->detail === 'unknown' ? 'unknown' : 'pending'))),

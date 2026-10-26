@@ -103,7 +103,7 @@ class MailCenterPrivacyTest extends MailCenterTestCase
         $this->fake->addMessage($box->address, 'INBOX', 3, ['subject' => 'Confidential subject line'], 'Confidential body text', '', [['filename' => 'private-name.pdf', 'contentType' => 'application/pdf', 'content' => 'PDF-BYTES']]);
         $this->actingAs($staff)->get(route('admin.mail.message', [$box, 3, 'folder' => 'INBOX']));
         $this->actingAs($staff)->get(route('admin.mail.attachment', [$box, 3, 0, 'folder' => 'INBOX']));
-        $this->actingAs($staff)->post(route('admin.mail.reply.send', [$box, 3, 'folder' => 'INBOX']), ['to' => 'p@example.org', 'subject' => 'Re: Confidential subject line', 'body' => 'Reply body text', 'form_key' => (string) Str::uuid()]);
+        $this->actingAs($staff)->post(route('admin.mail.reply.send', [$box, 3, 'folder' => 'INBOX']), ['to' => 'p@example.org', 'subject' => 'Re: Confidential subject line', 'body' => 'Reply body text', 'identity_id' => $this->ownIdentity($box)->id, 'form_key' => (string) Str::uuid()]);
 
         $rows = MailAuditEvent::query()->get();
         $this->assertGreaterThanOrEqual(4, $rows->count());
