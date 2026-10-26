@@ -51,10 +51,14 @@ return [
     'sending' => [
         // The provider API sends only as the mailbox itself and files its own copy in Sent. Any OTHER institutional
         // identity is an alias the API cannot send as, so it goes over SMTP — which leaves no copy behind, and the API
-        // has no endpoint to append one. The mailbox is therefore Bcc'd on an alias send, so what went out under an
-        // institutional name is still retrievable. Turn this off to keep those copies out of the Inbox, accepting that
-        // only the audit trail will then record the send.
-        'keep_alias_copy_in_mailbox' => true,
+        // has no endpoint to append one.
+        //
+        // What went out is recorded in `mail_sent_messages` (identity, recipients, time, transport, Message-ID — never
+        // a subject or a body). Mirroring the message back into the mailbox by Bcc is OFF by default: the copy arrives
+        // in the INBOX, where it would inflate unread counts, appear under the identity filters as though it had been
+        // received, and clutter the conversation it belongs to. Turn it on only if a provider-side copy is genuinely
+        // wanted and that cost is accepted; mirrored copies are not distinguishable from received mail.
+        'keep_alias_copy_in_mailbox' => false,
     ],
 
     'compose' => [

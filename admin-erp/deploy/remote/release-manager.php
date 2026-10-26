@@ -560,6 +560,35 @@ case 'smoke-test-isolated':
             $result['ok'] = false;
         }
 
+        // EVERY Blade template in the release must COMPILE before the release may be switched in.
+        //
+        // 2026-10-26: a new admin screen referenced a Blade component this panel does not have
+        // (`x-admin.page-header`). Blade resolves a component tag at COMPILE time, so the template could never be
+        // produced at all — the screen answered 500 for anyone who opened it, and `view:cache` failed during the
+        // switch. It reached production because nothing before the switch ever compiled a view other than the one
+        // auth page checked above: a full green test suite and every pipeline step passed over a template that could
+        // not exist. `view:cache` compiles all of them, so a missing component, an unknown directive or a syntax
+        // error now fails THIS step — which fails the pipeline, which means no switch is ever armed.
+        //
+        // What it does NOT catch is a missing @extends parent, which is resolved when the view RENDERS: that is what
+        // the render tests in tests/Feature/Mail/MailCenterScreensTest.php are for. The two together cover both.
+        try {
+            \Illuminate\Support\Facades\Artisan::call('view:clear');
+            $viewExit = \Illuminate\Support\Facades\Artisan::call('view:cache');
+            $result['checks']['all_views_compile'] = $viewExit === 0;
+            if ($viewExit !== 0) {
+                $result['checks']['view_compile_error'] = mb_substr(trim(\Illuminate\Support\Facades\Artisan::output()), 0, 500);
+                $result['ok'] = false;
+            }
+            // Left clear: the switch rebuilds the cache itself on the now-live tree.
+            \Illuminate\Support\Facades\Artisan::call('view:clear');
+        } catch (\Throwable $e) {
+            // A compile failure arrives as an exception (Unable to locate a class or view for component [...]).
+            $result['checks']['all_views_compile'] = false;
+            $result['checks']['view_compile_error'] = mb_substr($e->getMessage(), 0, 500);
+            $result['ok'] = false;
+        }
+
         try {
             $user = \App\Models\User::query()->first();
             if ($user) {
@@ -803,6 +832,10 @@ case 'switch':
 
     // 4. Rebuild caches on the NOW-LIVE tree.
     $cacheResult = [];
+    // Whether the console is usable here at all. The sandbox the deploy tests run in has no real framework, so
+    // Artisan cannot run and no cache can be rebuilt — that is an environment limit, not a broken template, and it
+    // must not be reported as a failed switch. Set once the first commands have actually run.
+    $consoleWorks = false;
     try {
         // Fresh process state is not available (same PHP process continues),
         // but bootApp() only requires-once autoloaders/bootstrap; the paths
@@ -813,6 +846,7 @@ case 'switch':
             $code = \Illuminate\Support\Facades\Artisan::call($cmd);
             $cacheResult[$cmd] = ['exit' => $code];
         }
+        $consoleWorks = true;
         if ($routesChanged) {
             $code = \Illuminate\Support\Facades\Artisan::call('route:cache');
             $cacheResult['route:cache'] = ['exit' => $code, 'ran_because' => 'routes/ changed'];
@@ -821,9 +855,21 @@ case 'switch':
         }
         $code = \Illuminate\Support\Facades\Artisan::call('view:cache');
         $cacheResult['view:cache'] = ['exit' => $code];
+        if ($code !== 0) {
+            $cacheResult['error'] = 'view:cache exited '.$code;
+        }
     } catch (\Throwable $e) {
         $cacheResult['error'] = $e->getMessage();
     }
+    // A cache that would not rebuild is a FAILED switch, not a footnote. On 2026-10-26 view:cache failed here because
+    // a template referenced a component that does not exist, the error was recorded, and the switch still reported
+    // ok:true — so a screen that answered 500 looked like a clean deploy. The pipeline now refuses such a release
+    // before the switch (smoke-test-isolated compiles every view); if one somehow reaches this point, it says so.
+    //
+    // Only judged where the console actually works: in a sandbox without a framework nothing could be rebuilt anyway,
+    // and calling that a failed switch would mean the deploy tests could never pass.
+    $cacheResult['console_available'] = $consoleWorks;
+    $cacheRebuildOk = ! $consoleWorks || ! isset($cacheResult['error']);
 
     // 5. PUBLIC UPLOADS PERSISTENCE GATE. The sentinel stage() wrote into the
     //    docroot's storage/ root must still be there, byte-for-byte, AFTER
@@ -859,7 +905,7 @@ case 'switch':
     if ($uploadsSweep['carried'] + $uploadsSweep['updated'] > 0) $uploadsNotes[] = 'the post-rename sweep carried '.($uploadsSweep['carried'] + $uploadsSweep['updated']).' file(s) written after the last pre-rename pass';
 
     $result = [
-        'ok' => $sentinelCheck['ok'] && $sweepClean($uploadsSweep),
+        'ok' => $sentinelCheck['ok'] && $sweepClean($uploadsSweep) && $cacheRebuildOk,
         'previous_path' => $previousPath,
         'strays' => $swap['strays'],
         'public_asset_sync_ms' => $publicSyncMs,
@@ -872,6 +918,9 @@ case 'switch':
         'uploads_sweep' => ['immediate' => $uploadsSweep],
         'switched_at' => date('c'),
     ];
+    if (!$cacheRebuildOk) {
+        $result['error'] = 'the caches would not rebuild on the now-live tree ('.($cacheResult['error'] ?? 'unknown').'). The new release IS live (the rename already completed), and a template that will not compile answers 500 for whoever opens it: check cache_rebuild, fix the view and ship a corrected release, or roll back.';
+    }
     if (!$sentinelCheck['ok']) {
         $result['error'] = 'public uploads did not survive the switch byte-identically — approved photos are at risk of being erased or unreachable. The new release IS live (the rename already completed); verify '.$publicUploadsRoot.' before trusting any upload, and consider rollback.';
     } elseif (!$sweepClean($uploadsSweep)) {

@@ -4,6 +4,7 @@ namespace App\Services\Mail;
 
 use App\Models\MailAuditEvent;
 use App\Models\MailIdentity;
+use App\Models\MailSentMessage;
 use App\Models\Mailbox;
 use App\Models\User;
 use App\Services\Mail\Data\OutgoingMessage;
@@ -76,11 +77,12 @@ final class MailSender
             'identity' => $identity !== null ? (string) $identity->address : (string) $mailbox->address,
             'transport' => $viaApi ? 'provider_api' : 'smtp'];
 
+        $messageId = null;
         try {
             if ($viaApi) {
                 $this->provider->send($mailbox, $message);
             } else {
-                MailCenterIdentityMail::send($identity, $message, $this->copyRecipients($mailbox));
+                $messageId = MailCenterIdentityMail::send($identity, $message, $this->copyRecipients($mailbox));
             }
         } catch (MailProviderException $e) {
             if ($e->outcomeUnknown()) {
@@ -114,7 +116,45 @@ final class MailSender
 
         Cache::put($claim, 'sent', $ttl);
         $this->audit->record(self::AUDIT_ACTIONS[$kind], $mailbox, $facts, $source['folder'] ?? null, $source['uid'] ?? null, $actor);
+        $this->recordSent($actor, $mailbox, $identity, $message, $kind, $viaApi, $messageId, $source);
         $this->folders->forget($mailbox);
+    }
+
+    /**
+     * The Mail Center's own record of what went out (docs/MAIL_CENTER.md, "Sent mail"). The provider files its own copy
+     * of an API send in Sent; an SMTP send — the only way to go out as an alias — leaves nothing behind, and the API
+     * cannot append a copy. This row is what makes "what was sent as partnerships@, to whom and when" answerable.
+     *
+     * A record, never a copy: addresses, counts, identifiers and times. No subject, no body, no attachment, so the
+     * Mail Center still keeps no message content at rest. Never allowed to fail a send that already happened.
+     *
+     * @param  array{uid: int, folder: string}|null  $source
+     */
+    private function recordSent(User $actor, Mailbox $mailbox, ?MailIdentity $identity, OutgoingMessage $message, string $kind, bool $viaApi, ?string $messageId, ?array $source): void
+    {
+        try {
+            MailSentMessage::query()->create([
+                'mailbox_id' => $mailbox->getKey(),
+                'mail_identity_id' => $identity?->getKey(),
+                'identity_address' => (string) ($identity->address ?? $mailbox->address),
+                'sent_by' => $actor->getKey(),
+                'kind' => $kind,
+                'transport' => $viaApi ? MailSentMessage::TRANSPORT_API : MailSentMessage::TRANSPORT_SMTP,
+                'recipients' => array_values(array_unique([...$message->to, ...$message->cc, ...$message->bcc])),
+                'recipient_count' => $message->recipientCount(),
+                'attachment_count' => count($message->attachments),
+                'message_id' => $messageId,
+                'in_reply_to_message_id' => $message->inReplyToMessageId,
+                'source_folder' => $source['folder'] ?? null,
+                'source_uid' => $source['uid'] ?? null,
+                'status' => MailSentMessage::STATUS_ACCEPTED,
+                'sent_at' => now(),
+            ]);
+        } catch (Throwable $e) {
+            // The message is already gone; losing its record must never turn a successful send into a failure. The
+            // audit trail above still carries the identity and the transport.
+            report($e);
+        }
     }
 
     /**

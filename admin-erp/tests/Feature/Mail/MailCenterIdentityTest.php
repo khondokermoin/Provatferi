@@ -329,6 +329,65 @@ class MailCenterIdentityTest extends MailCenterTestCase
             'The two switches cannot disagree: an automated sender is never writable by hand.');
     }
 
+    // --- Sent mail -------------------------------------------------------------------------------------------------
+
+    public function test_a_send_is_recorded_with_its_identity_and_no_message_content(): void
+    {
+        $owner = $this->owner();
+        $this->actingAs($owner)->post(route('admin.mail.send', $this->account), [
+            'to' => 'partner@example.org, second@example.org', 'cc' => 'copied@example.org',
+            'subject' => 'A revealing subject line', 'body' => 'Secret body',
+            'identity_id' => $this->partnerships->getKey(), 'form_key' => (string) Str::uuid(),
+        ])->assertSessionHas('success');
+
+        $sent = \App\Models\MailSentMessage::query()->latest('id')->firstOrFail();
+        $this->assertSame($this->partnerships->address, $sent->identity_address);
+        $this->assertSame(\App\Models\MailSentMessage::TRANSPORT_SMTP, $sent->transport, 'An alias goes out over SMTP.');
+        $this->assertSame($this->account->getKey(), $sent->mailbox_id);
+        $this->assertSame($owner->getKey(), $sent->sent_by);
+        $this->assertSame(3, $sent->recipient_count);
+        $this->assertEqualsCanonicalizing(['partner@example.org', 'second@example.org', 'copied@example.org'], $sent->recipients);
+
+        // A record, not a copy: no subject, no body, anywhere in the row.
+        $row = json_encode($sent->getAttributes());
+        $this->assertStringNotContainsString('A revealing subject line', $row);
+        $this->assertStringNotContainsString('Secret body', $row);
+        $this->assertArrayNotHasKey('subject', $sent->getAttributes());
+        $this->assertArrayNotHasKey('body', $sent->getAttributes());
+    }
+
+    public function test_the_mailbox_is_not_bcc_mirrored_by_default(): void
+    {
+        // Mirroring an alias send back into the mailbox would land in the INBOX, inflating unread counts and showing
+        // under the identity filters as though it had been received. It is off unless someone turns it on.
+        $this->assertFalse((bool) config('mail_center.sending.keep_alias_copy_in_mailbox'));
+
+        $owner = $this->owner();
+        $this->actingAs($owner)->post(route('admin.mail.send', $this->account), [
+            'to' => 'partner@example.org', 'subject' => 'No mirror', 'body' => 'Body',
+            'identity_id' => $this->partnerships->getKey(), 'form_key' => (string) Str::uuid(),
+        ])->assertSessionHas('success');
+
+        $sent = \App\Models\MailSentMessage::query()->latest('id')->firstOrFail();
+        $this->assertNotContains(strtolower((string) $this->account->address), array_map('strtolower', $sent->recipients),
+            'The mailbox must not be a recipient of its own outgoing alias mail while mirroring is off.');
+    }
+
+    public function test_sent_records_can_be_read_back_per_identity(): void
+    {
+        $owner = $this->owner();
+        foreach ([[$this->partnerships, 'one@example.org'], [$this->support, 'two@example.org'], [$this->partnerships, 'three@example.org']] as [$identity, $to]) {
+            $this->actingAs($owner)->post(route('admin.mail.send', $this->account), [
+                'to' => $to, 'subject' => 'S', 'body' => 'B',
+                'identity_id' => $identity->getKey(), 'form_key' => (string) Str::uuid(),
+            ])->assertSessionHas('success');
+        }
+
+        $this->assertSame(2, \App\Models\MailSentMessage::query()->asIdentity($this->partnerships)->count());
+        $this->assertSame(1, \App\Models\MailSentMessage::query()->asIdentity($this->support)->count());
+        $this->assertSame(3, \App\Models\MailSentMessage::query()->forMailbox($this->account)->count());
+    }
+
     // --- Replying --------------------------------------------------------------------------------------------------
 
     public function test_a_reply_defaults_to_the_identity_the_conversation_came_through(): void

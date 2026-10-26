@@ -120,15 +120,38 @@ shown, stored or logged (the server log gets the kind, the status and the except
 *(Since 2026-10-26 an alias no longer needs to become a real mailbox: aliases are modelled as identities of the one real
 mailbox, and alias sending goes over SMTP, which the provider supports. Only the real mailbox needs to be in the token.)*
 
-1. hPanel → **Emails** → provatferi.org → **Agentic Mail** → **API access** → **Create API token**: a descriptive name,
-   **Selected mailboxes** — tick the institution's real administration mailbox. The token is shown **once**.
-2. Put it in the server's `.env` — `/home/u951246149/domains/provatferi.org/laravel-admin/.env`, through hPanel's File
-   Manager — as `HOSTINGER_MAIL_API_TOKEN=<token>`. Never in chat, e-mail, Git, a ticket or this panel.
-3. Rebuild the configuration cache (`php artisan config:cache` — a one-shot cron, or the next release does it).
+**A token already exists** — `provatferi-erp-mail-center`, scope *All mailboxes*. **Do not create a second one.** The
+step is to make sure the existing one is configured on the server and loaded by the running application.
+
+1. **Put the existing token in the server's `.env`** — `/home/u951246149/domains/provatferi.org/laravel-admin/.env`,
+   through hPanel's File Manager — as `HOSTINGER_MAIL_API_TOKEN=<the existing token>`. Never in chat, e-mail, Git, a
+   ticket or this panel. *(Checked on 2026-10-26: the production `.env` held 40 variables and not one of them contained
+   `HOSTINGER` or `TOKEN`, so the token had never been placed there — see "Why the token looked absent" below.)*
+2. Rebuild the configuration cache: **`php artisan config:cache`** (a one-shot cron, or the next release does it). This
+   is not optional — a cached configuration is what the application reads, and a token added after the last cache was
+   built is invisible until the cache is rebuilt.
+3. Prove it: `php deploy/qa/mail-token-doctor.php doctor` reports whether the `.env` and the running application hold
+   the same value (as a keyed digest, never the value), and `php artisan mail:discover` lists the mailboxes the token
+   reaches. Neither ever prints the token.
 4. Admin → Mail → **Mailboxes** → register that mailbox → **Check connection**: `connected`.
 5. On that mailbox, add its **Institutional addresses**: the mailbox's own address, then `info@`, `support@`,
    `security@`, `partnerships@` (each with its sender name and purpose), and `no-reply@` marked **Automated sender**.
    They must already exist at the provider as aliases of it — this step only records them.
+
+### Why the token looked absent (2026-10-26)
+
+A token existed in hPanel and showed recent usage, so "production has no Mail API token" looked like a detection bug. It
+was not. `deploy/qa/mail-token-doctor.php` traced the whole chain and found the key simply was not on the server:
+
+| Link | Finding |
+|---|---|
+| the `.env` the app reads | exists, 40 variables, **0** lines matching `HOSTINGER_MAIL_API_TOKEN`, not commented out |
+| a differently spelled key | none — no variable name contains `HOSTINGER` or `TOKEN` at all |
+| another `.env` on the server | none (domain root, releases, docroot: absent) |
+| the cached configuration | built at the last switch, also holds no value, so web and CLI agree |
+
+The recent usage was the **development** environment: its `.env` holds a token that authenticates and reaches the one
+real mailbox. The token existing at the provider and the token being configured on the server are two different things.
 
 The token is never entered in, shown by, or sent to the panel; `deploy/qa/mail-center-qa.php audit` reports only whether
 it is set.
@@ -173,10 +196,27 @@ header is faked: the provider genuinely supports this.** The authenticated login
 Both the sender and the reply address are the **same** chosen identity, so an answer comes back to the address the
 conversation belongs to. This is deliberately *not* the automated rule — see "Two workflows" below.
 
-*Limitation.* SMTP leaves no copy in Sent, and the Mail API offers no way to append one. So an alias send Bcc's the
-mailbox itself, keeping a verbatim copy of what went out under an institutional name
-(`mail_center.sending.keep_alias_copy_in_mailbox`, on by default; turning it off leaves only the audit record). Those
-copies arrive in the mailbox like any other delivery.
+## Sent mail
+
+The provider files its own copy of anything the **API** sends into the mailbox's Sent folder. **SMTP leaves no copy**,
+and the API has no endpoint to append one — so for alias mail the ERP keeps the **record** of the send, in
+`mail_sent_messages`:
+
+| Kept | Not kept |
+|---|---|
+| the identity it went out as, who sent it, the recipients, the time | the subject |
+| the transport (API or SMTP), the Message-ID, the message answered or forwarded | the body |
+| the recipient and attachment counts, and that the transport accepted it | the attachments |
+
+So "what was sent as partnerships@, to whom and when" is answerable for SMTP mail, and the Mail Center still stores **no
+message content at rest**. The row is written once, when a send succeeds, and is never edited; a failure to write it
+never turns a successful send into a failure.
+
+**Mirroring an alias send back into the mailbox by Bcc is OFF**
+(`mail_center.sending.keep_alias_copy_in_mailbox`). It was tried and rejected: the copy arrives in the **Inbox**, where
+it inflates unread counts, appears under the identity filters as though it had been *received*, and clutters the
+conversation it belongs to. Turning it on is possible where a provider-side copy is genuinely wanted, accepting that a
+mirrored copy is not distinguishable from received mail.
 
 ### Two workflows, kept apart
 
@@ -469,6 +509,38 @@ everything else in real Chrome with disposable QA accounts and QA registry rows 
   reply all / forward with the provider's threading flags, flag / unread / Trash / restore, hostile HTML inert in the
   sandboxed frame, remote images held back, CR/LF refused, access administration with two-step enrolment, step-up,
   revoke and re-grant, the role's two-step requirement, `mail.manage_all`.
+
+## Release gates (why a screen cannot ship broken again)
+
+On 2026-10-26 a new administration screen reached production and answered **500 for about an hour and three quarters**.
+It extended a layout this panel does not have and used a Blade component that has never existed. 1,736 tests were green:
+the model, the resolver, the transport routing and the authorisation were all covered, and **not one test asked for the
+page**. A template that could never be produced passed the whole suite and every pipeline step.
+
+Two gates now stand in the way, because neither alone is enough:
+
+| Gate | Where | Catches | Misses |
+|---|---|---|---|
+| **compile** — `view:cache` over every template | `smoke-test-isolated`, i.e. inside the pipeline, **before any switch is armed** | a missing component, an unknown directive, a syntax error (Blade resolves component tags at compile time) | a missing `@extends` parent, which resolves only when the view renders |
+| **render** — every Mail Center GET route opened for real | `tests/Feature/Mail/MailCenterScreensTest.php` | a missing layout, a missing view variable, anything that only fails at render | templates no route reaches |
+
+`MailCenterScreensTest` reads the **route table** rather than a hand-written list: every GET route named `admin.mail.*`
+must appear in its `screens()` map with the parameters needed to open it, or the test fails. A screen added later is
+covered the day it is added — the previous failure happened precisely because a new screen was nobody's job to check.
+
+A failed cache rebuild is also no longer a footnote: `switch` reports `ok: false` and names the error, instead of
+recording it beside a successful-looking deploy.
+
+**Both gates were verified by reintroducing the original defect**: `view:cache` failed with
+`Unable to locate a class or view for component [admin.page-header]`, and the render test failed naming
+`admin.mail.identities.create` and `admin.mail.identities.edit` as HTTP 500. The defect was then reverted.
+
+### Before a production switch may be armed
+
+1. the full test suite passes,
+2. the pipeline reports `ok: true` — which now includes every Blade template compiling,
+3. the pipeline output has been read, not assumed,
+4. and for Mail Center work, `mail-token-doctor` and `mail:discover` agree the provider is configured.
 
 ## Tests
 
