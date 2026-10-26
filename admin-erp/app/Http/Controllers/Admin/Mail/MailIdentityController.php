@@ -106,7 +106,7 @@ class MailIdentityController extends Controller
             'title' => $title.' — '.$box->address,
             'breadcrumbs' => [
                 ['label' => __('admin.mail.registry.title'), 'route' => 'admin.mail.mailboxes.index'],
-                ['label' => $box->address, 'route' => 'admin.mail.mailboxes.edit', 'parameters' => [$box]],
+                ['label' => $box->address, 'route' => 'admin.mail.mailboxes.edit', 'params' => [$box]],
                 ['label' => $title],
             ],
             'box' => $box,

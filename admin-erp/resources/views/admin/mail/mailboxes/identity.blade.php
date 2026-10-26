@@ -1,8 +1,10 @@
-@extends('admin.layouts.app')
+@extends('layouts.admin')
+
+@push('styles')
+    <meta name="robots" content="noindex, nofollow">
+@endpush
 
 @section('content')
-    <x-admin.page-header :title="$title" :breadcrumbs="$breadcrumbs" />
-
     <form method="POST" action="{{ $identity->exists ? route('admin.mail.identities.update', [$box, $identity]) : route('admin.mail.identities.store', $box) }}">
         @csrf
         @if ($identity->exists)

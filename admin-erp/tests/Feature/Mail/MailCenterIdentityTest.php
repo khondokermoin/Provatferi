@@ -270,6 +270,65 @@ class MailCenterIdentityTest extends MailCenterTestCase
         $this->assertStringNotContainsString('Secret body', $context);
     }
 
+    // --- The registry screens --------------------------------------------------------------------------------------
+
+    public function test_the_identity_screens_render_and_say_the_provider_must_already_have_the_address(): void
+    {
+        $admin = $this->accessAdmin();
+
+        // The mailbox screen lists its identities and offers to add one.
+        $this->asVerified($admin)->get(route('admin.mail.mailboxes.edit', $this->account))
+            ->assertOk()
+            ->assertSee(__('admin.mail.identities.title'))
+            ->assertSee($this->partnerships->address);
+
+        // The add screen renders, and states plainly that nothing is created at the provider.
+        $this->asVerified($admin)->get(route('admin.mail.identities.create', $this->account))
+            ->assertOk()
+            ->assertSee(__('admin.mail.identities.provider_note'));
+
+        $this->asVerified($admin)->get(route('admin.mail.identities.edit', [$this->account, $this->partnerships]))
+            ->assertOk()
+            ->assertSee($this->partnerships->address);
+    }
+
+    public function test_registering_an_identity_needs_the_permission_a_fresh_code_and_the_right_domain(): void
+    {
+        $admin = $this->accessAdmin();
+        $payload = ['display_name' => 'Provatferi Programmes', 'purpose' => MailIdentity::PURPOSE_OTHER,
+            'can_receive' => '1', 'can_send_manual' => '1', 'enabled' => '1', 'sort_order' => '50'];
+
+        // Another domain is refused outright.
+        $this->asVerified($admin)->post(route('admin.mail.identities.store', $this->account),
+            $payload + ['address' => 'programmes@example.org'])->assertSessionHasErrors('address');
+
+        // The institution's own domain is accepted.
+        $this->asVerified($admin)->post(route('admin.mail.identities.store', $this->account),
+            $payload + ['address' => 'programmes@'.$this->domain])->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('mail_identities', ['address' => 'programmes@'.$this->domain, 'mailbox_id' => $this->account->getKey()]);
+
+        // The same address cannot become an identity of a second mailbox.
+        $this->asVerified($admin)->post(route('admin.mail.identities.store', $this->boxes['security']),
+            $payload + ['address' => 'programmes@'.$this->domain])->assertSessionHasErrors('address');
+
+        // An account that can use the Mail Center but not administer it cannot reach the screen at all.
+        $reader = $this->staffWithRole($this->roleWith(['mail.access'], name: 'Mail readers'));
+        $this->actingAs($reader)->get(route('admin.mail.identities.create', $this->account))->assertForbidden();
+    }
+
+    public function test_an_identity_marked_automated_can_never_also_be_manually_sendable(): void
+    {
+        $admin = $this->accessAdmin();
+
+        $this->asVerified($admin)->put(route('admin.mail.identities.update', [$this->account, $this->partnerships]), [
+            'display_name' => 'Provatferi Partnerships', 'purpose' => MailIdentity::PURPOSE_AUTOMATED,
+            'can_receive' => '1', 'can_send_manual' => '1', 'is_automated' => '1', 'enabled' => '1', 'sort_order' => '10',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertFalse($this->partnerships->fresh()->can_send_manual,
+            'The two switches cannot disagree: an automated sender is never writable by hand.');
+    }
+
     // --- Replying --------------------------------------------------------------------------------------------------
 
     public function test_a_reply_defaults_to_the_identity_the_conversation_came_through(): void
