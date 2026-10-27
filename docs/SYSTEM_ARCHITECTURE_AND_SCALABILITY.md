@@ -275,6 +275,20 @@ exist and are chosen: `leadership_profiles_status_display_order_index`, `activit
 is the correct plan; an index would be slower and would cost write time. They appear in the audit output flagged, and
 they are deliberately left alone.
 
+**Referential integrity is explicit and consistent** (105 foreign keys read from `information_schema`). The pattern is
+deliberate rather than accidental: `RESTRICT` where deleting the parent would falsify a record (a `membership_type`
+that dues reference, a `payment` a receipt was issued for), `SET NULL` for attribution columns (`created_by`,
+`reviewed_by`, `approved_by` — a departed staff account must not take the record with it), and `CASCADE` only for
+genuinely owned children (`committee_positions` of a committee, `mail_identities` of a mailbox,
+`public_member_profile_versions` of a member). Nothing relies on application code to keep the graph honest.
+
+No **redundant** index was found. `leadership_profiles` carries both `(status, display_order)` and
+`(status, featured, display_order)`, which looks duplicated but is not — the second serves `?featured=1` and cannot
+serve the unfiltered ordering, because `featured` sits between the two columns the unfiltered query needs. Worth
+noting for write cost: `payments` has **ten** indexes (82 % of its size), six of them single-column foreign-key
+indexes. That is correct — a foreign key needs one — but it means every payment insert maintains ten index entries,
+so the ledger tables will stay index-heavy as they grow.
+
 Three findings that are real:
 
 1. **`committees` has no index on `status`** — measured `type=ALL ... Using filesort` on production. Irrelevant today
