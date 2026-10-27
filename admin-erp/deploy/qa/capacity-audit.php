@@ -109,6 +109,107 @@ if ($mode === 'host') {
     ]);
 }
 
+// --------------------------------------------------------------------------------- probe (no framework): load from HERE
+// WHY FROM THE SERVER. Measuring the public site from a laptop measures the laptop's uplink: a Cloudflare cache HIT and
+// a dynamically rendered page came back equally slowly from Bangladesh at concurrency 10, which proves the client was
+// the limit, not the origin. Run from the server, the network term nearly disappears and what is left is the origin's
+// own capacity. Budgets are small and fixed, and every URL is read-only.
+//
+//   probe [requests:concurrency]   default 24:1 — e.g. `probe 24:6`
+if ($mode === 'probe') {
+    if (! function_exists('curl_multi_init')) {
+        out(['error' => 'curl is not available in this PHP'], 2);
+    }
+    [$total, $conc] = array_pad(array_map('intval', explode(':', (string) ($arg ?: '24:1'))), 2, 1);
+    $total = max(1, min(60, $total));          // never a flood: hard ceiling
+    $conc = max(1, min(12, $conc));
+
+    $urls = [
+        'site_home' => 'https://provatferi.org/',
+        'site_leadership' => 'https://provatferi.org/leadership',
+        'site_notices' => 'https://provatferi.org/notices',
+        'api_settings' => 'https://admin.provatferi.org/api/v1/settings',
+        'api_leadership' => 'https://admin.provatferi.org/api/v1/public/leadership',
+        'admin_login' => 'https://admin.provatferi.org/login',
+    ];
+
+    $loadBefore = function_exists('sys_getloadavg') ? sys_getloadavg() : null;
+    $report = [];
+    foreach ($urls as $label => $url) {
+        $times = [];
+        $statuses = [];
+        $bytes = 0;
+        $sent = 0;
+        $wall = microtime(true);
+        $multi = curl_multi_init();
+        $active = 0;
+        $starts = [];
+
+        $add = function () use ($multi, $url, &$sent, &$active, &$starts, $total, $conc) {
+            while ($active < $conc && $sent < $total) {
+                $h = curl_init($url);
+                curl_setopt_array($h, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_FOLLOWLOCATION => false,
+                    CURLOPT_TIMEOUT => 25,
+                    CURLOPT_ENCODING => '',
+                    CURLOPT_USERAGENT => 'provatferi-capacity-audit/1.0',
+                ]);
+                curl_multi_add_handle($multi, $h);
+                $starts[(int) $h] = microtime(true);
+                $sent++;
+                $active++;
+            }
+        };
+        $add();
+
+        do {
+            curl_multi_exec($multi, $running);
+            curl_multi_select($multi, 0.2);
+            while ($info = curl_multi_info_read($multi)) {
+                $h = $info['handle'];
+                $times[] = round((microtime(true) - ($starts[(int) $h] ?? microtime(true))) * 1000, 1);
+                $code = (int) curl_getinfo($h, CURLINFO_RESPONSE_CODE);
+                $key = $code === 0 ? 'error:'.curl_errno($h) : (string) $code;
+                $statuses[$key] = ($statuses[$key] ?? 0) + 1;
+                $bytes += strlen((string) curl_multi_getcontent($h));
+                curl_multi_remove_handle($multi, $h);
+                curl_close($h);
+                $active--;
+                $add();
+                curl_multi_exec($multi, $running);
+            }
+        } while ($running > 0 || $active > 0);
+        curl_multi_close($multi);
+
+        $wall = microtime(true) - $wall;
+        sort($times);
+        $at = fn (int $p) => $times === [] ? null : $times[min(count($times) - 1, (int) floor($p / 100 * count($times)))];
+        $report[$label] = [
+            'url' => $url,
+            'requests' => $total,
+            'concurrency' => $conc,
+            'rps' => round($total / max($wall, 0.001), 2),
+            'p50_ms' => $at(50),
+            'p95_ms' => $at(95),
+            'p99_ms' => $at(99),
+            'max_ms' => $times === [] ? null : end($times),
+            'mean_kb' => round($bytes / $total / 1024, 1),
+            'statuses' => $statuses,
+        ];
+    }
+
+    out([
+        'mode' => 'probe',
+        'checked_at_utc' => gmdate('c'),
+        'measured_from' => 'the hosting account itself, so the client network is not the limit',
+        'load_average_before' => $loadBefore,
+        'load_average_after' => function_exists('sys_getloadavg') ? sys_getloadavg() : null,
+        'caveat' => 'the load average belongs to the whole shared server, not this account',
+        'results' => $report,
+    ]);
+}
+
 // ------------------------------------------------------------------------------------------------ fs (no framework)
 if ($mode === 'fs') {
     $roots = [
@@ -571,4 +672,4 @@ if ($mode === 'agg') {
     out(['mode' => 'agg', 'checked_at_utc' => gmdate('c'), 'probes' => $results]);
 }
 
-out(['error' => 'modes: host | db | idx [tables|all] | fs [root] | routes | plan | agg'], 2);
+out(['error' => 'modes: host | db | idx [tables|all] | fs [root] | probe [n:c] | routes | plan | agg'], 2);
