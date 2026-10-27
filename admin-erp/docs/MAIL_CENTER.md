@@ -115,18 +115,23 @@ Every provider failure becomes a `MailProviderException` with a kind — `unconf
 shown, stored or logged (the server log gets the kind, the status and the exception class). Calls time out after 6 s
 (connect) / 30 s.
 
-### Connecting the mail service (owner, once)
+### Connecting the mail service (done 2026-10-27)
 
 *(Since 2026-10-26 an alias no longer needs to become a real mailbox: aliases are modelled as identities of the one real
 mailbox, and alias sending goes over SMTP, which the provider supports. Only the real mailbox needs to be in the token.)*
 
-**A token already exists** — `provatferi-erp-mail-center`, scope *All mailboxes*. **Do not create a second one.** The
-step is to make sure the existing one is configured on the server and loaded by the running application.
+**The mail service is connected.** The owner placed the existing token (`provatferi-erp-mail-center`, scope *All
+mailboxes* — no second token was created, and none was rotated or revoked) in the production `.env` on 2026-10-26 at
+19:43Z; the configuration cache was rebuilt and the whole chain proven on 2026-10-27. The real mailbox is registered and
+`connected`, and its six institutional addresses are recorded on it.
 
-1. **Put the existing token in the server's `.env`** — `/home/u951246149/domains/provatferi.org/laravel-admin/.env`,
-   through hPanel's File Manager — as `HOSTINGER_MAIL_API_TOKEN=<the existing token>`. Never in chat, e-mail, Git, a
-   ticket or this panel. *(Checked on 2026-10-26: the production `.env` held 40 variables and not one of them contained
-   `HOSTINGER` or `TOKEN`, so the token had never been placed there — see "Why the token looked absent" below.)*
+The procedure, kept here because it is what has to be repeated if the token is ever replaced:
+
+1. **Put the token in the server's `.env`** — `/home/u951246149/domains/provatferi.org/laravel-admin/.env`, through
+   hPanel's File Manager — as `HOSTINGER_MAIL_API_TOKEN=<the token>`. Never in chat, e-mail, Git, a ticket or this
+   panel. *(Checked on 2026-10-26, before the owner did this: the production `.env` held 40 variables and not one of
+   them contained `HOSTINGER` or `TOKEN`, so the token had never been placed there — see "Why the token looked absent"
+   below.)*
 2. Rebuild the configuration cache: **`php artisan config:cache`** (a one-shot cron, or the next release does it). This
    is not optional — a cached configuration is what the application reads, and a token added after the last cache was
    built is invisible until the cache is rebuilt.
@@ -152,6 +157,10 @@ was not. `deploy/qa/mail-token-doctor.php` traced the whole chain and found the 
 
 The recent usage was the **development** environment: its `.env` holds a token that authenticates and reaches the one
 real mailbox. The token existing at the provider and the token being configured on the server are two different things.
+
+**Resolved.** The owner pasted the token into the production `.env` on 2026-10-26 19:43Z. On 2026-10-27 the doctor read
+the same keyed digest from the file and from the running application (`file_and_application_agree: true`, 64 characters)
+and `mail:discover` authenticated against the real API and listed exactly one mailbox — the real administration one.
 
 The token is never entered in, shown by, or sent to the panel; `deploy/qa/mail-center-qa.php audit` reports only whether
 it is set.
@@ -510,6 +519,68 @@ everything else in real Chrome with disposable QA accounts and QA registry rows 
   sandboxed frame, remote images held back, CR/LF refused, access administration with two-step enrolment, step-up,
   revoke and re-grant, the role's two-step requirement, `mail.manage_all`.
 
+## Production acceptance (2026-10-27): the real mailbox
+
+The acceptance that had been blocked since 2026-10-24 — *does the Mail Center actually read, classify, open and answer
+the organisation's real mail?* — was completed on 2026-10-27, the first day production could reach the provider.
+
+**The token chain** (`deploy/qa/mail-token-doctor.php doctor`, run before and after `php artisan config:cache` at
+07:03:04Z, reporting only presence, length and a keyed digest):
+
+| | before the rebuild | after |
+|---|---|---|
+| the `.env` the app reads | present, 64 characters, digest `3a1d…` | unchanged |
+| the running application | same digest | same digest |
+| `file_and_application_agree` | true | true |
+
+The value was never printed, and no token was created, rotated, revoked or replaced. `php artisan mail:discover` then
+authenticated against the real Hostinger Mail API and listed exactly **one** mailbox: the real administration address.
+
+**The mailbox and its identities** (`deploy/qa/mail-inbound-qa.php register`, idempotent): the real mailbox was
+registered — `Check connection` → **connected** — and its six institutional addresses recorded on it as identities, with
+`no-reply@` marked **Automated sender** (`can_send_manual: false`). This is the owner's production configuration and was
+deliberately **not** removed by the QA cleanup.
+
+**Inbound acceptance — 23/23** (`deploy/qa/mail-inbound-qa.php verify <tag>`, walking the application's own
+`MailProvider`; five tagged messages were sent to five institutional addresses, one of them carrying hostile HTML and an
+attachment, and only those five were ever opened or changed):
+
+- the provider lists five folders (Inbox, Drafts, Sent, Junk, Trash) and the real inbox, 43 messages at the time;
+- all five seeded messages arrived in the one mailbox, and all six identities resolve: each message is attributed to the
+  address it was addressed to, and each identity filter asks the provider for that recipient and gets its own message;
+- the envelope and text come back, the raw source reads (5,787 bytes) and carries `Delivered-To: admin@provatferi.org`,
+  which is what makes envelope-based attribution possible;
+- sanitisation on the hostile message: `<script>`, event handlers and `javascript:` URLs removed, the `<iframe>` gone,
+  one remote image held back, the sandboxed frame's own CSP `script-src 'none'`;
+- the attachment's bytes match what was sent;
+- read/unread and flags round-trip through the provider;
+- a reply defaults to the identity the conversation arrived through (`partnerships@`) and **never** addresses one of the
+  mailbox's own identities back.
+
+Two checks were **reframed, not waived**, because the first wording asserted something the product correctly does not
+do: fetching a body does not by itself mark `\Seen` (the Mail Center sets the flag itself, which the next check proves),
+and a reply to a message our own `no-reply@` had sent has no recipients — refusing to write back to ourselves is right.
+
+**Real Chrome on the live mailbox — 20/20** (`institutional/scripts/mail-center-live-qa.mjs`, a disposable QA account
+with `mail.manage_all`, never the owner's): the mailbox opens and lists real mail; every Mail Center page is
+no-store / noindex / no-referrer / nosniff; the institutional addresses are listed as identities of **one** mailbox plus
+All mail; each identity filter shows the mail that came through that address; a message opens with its body in a
+sandboxed frame, says which institutional address it came through, offers its attachment (downloaded as an opaque file
+with `nosniff`) and holds remote images back until asked; Compose offers the identities with no free-text sender and
+does not offer the automated address; a reply defaults to the receiving identity and the forward form has an identity
+chooser; the folder list includes **Sent**; no credential or provider detail appears anywhere; no page or console error,
+desktop and phone. Captures blur every row that is not a controlled message.
+
+**A real send, end to end**: a message written in the Mail Center as `partnerships@` and read back from outside carried
+`From: Provatferi Partnerships <partnerships@provatferi.org>`, the same `Reply-To`, and
+`Return-Path: <partnerships@provatferi.org>`. It is signed **twice** — the relay signs as
+`d=relay.mail.hostinger.com`, and a second signature is `d=provatferi.org, s=hostingermail-a` covering `from`, so the
+alignment DMARC needs holds on the organisation's own domain. (A first reading saw only the relay signature; looking at
+every signature rather than the first is the lesson.)
+
+**Cleanup**: the five seeded messages were moved to `INBOX.Trash` by tag, and **38 real messages were left untouched**.
+No real mail was read, opened, flagged, moved or deleted.
+
 ## Release gates (why a screen cannot ship broken again)
 
 On 2026-10-26 a new administration screen reached production and answered **500 for about an hour and three quarters**.
@@ -552,5 +623,14 @@ message state (`MailCenterSendingTest`), registry, access grid, step-up, MFA pol
 (`MailCenterPrivacyTest`), and the permission migration (`MailPermissionsMigrationTest`). Plus `HostingerMailWebhookTest`
 and `MfaPolicyTest`.
 
-Production acceptance: `deploy/qa/mail-center-qa.php` (read-only audit, MX and delivery checks; QA accounts and grants for
-the browser run, removed afterwards) and `institutional/scripts/mail-center-qa.mjs` (real Chrome).
+Production acceptance kits (none of them part of the application artifact):
+
+| Kit | What it does |
+|---|---|
+| `deploy/qa/mail-center-qa.php` | read-only audit, MX and delivery checks; QA accounts and grants for the browser run, removed afterwards |
+| `institutional/scripts/mail-center-qa.mjs` | real Chrome, the role-based Mail Center without a provider |
+| `deploy/qa/mail-identity-qa.php` | the send matrix: one message per identity through the live transport, raw sources read back |
+| `institutional/scripts/mail-identity-qa.mjs` | real Chrome, registering institutional addresses |
+| `deploy/qa/mail-token-doctor.php` | traces the token from `.env` to config to cache; reports presence, length and a keyed digest only |
+| `deploy/qa/mail-inbound-qa.php` | `register` / `seed <tag>` / `verify <tag>` / `cleanup <tag>`: the real mailbox end to end through the application's own provider, touching only tagged messages |
+| `institutional/scripts/mail-center-live-qa.mjs` | real Chrome against the **live** mailbox; honours `SKIP_SEND=1`, blurs every row that is not a controlled message |
