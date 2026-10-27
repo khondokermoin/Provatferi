@@ -31,6 +31,9 @@ final class HostingerMailProvider implements MailProvider
     /** Attachments larger than this are not fetched through the ERP (the provider's limit for a whole message is lower). */
     private const MAX_ATTACHMENT_BYTES = 30 * 1024 * 1024;
 
+    /** Only the headers of a source are ever used, but the provider serves the whole message; this caps it. */
+    private const MAX_SOURCE_BYTES = 30 * 1024 * 1024;
+
     public function __construct(private readonly HostingerMailApiClient $api) {}
 
     public function isConfigured(): bool
@@ -98,6 +101,12 @@ final class HostingerMailProvider implements MailProvider
     public function attachmentContent(Mailbox $mailbox, string $folder, int $uid, string $attachmentId): string
     {
         return $this->api->download(HostingerMailApiClient::path('mailboxes', $this->id($mailbox), 'folders', $folder, 'messages', (string) $uid, 'attachments', $attachmentId), self::MAX_ATTACHMENT_BYTES);
+    }
+
+    public function messageSource(Mailbox $mailbox, string $folder, int $uid): string
+    {
+        // The provider serves this as a message/rfc822 attachment, so it is downloaded rather than decoded as JSON.
+        return $this->api->download(HostingerMailApiClient::path('mailboxes', $this->id($mailbox), 'folders', $folder, 'messages', (string) $uid, 'source'), self::MAX_SOURCE_BYTES);
     }
 
     public function setFlags(Mailbox $mailbox, string $folder, int $uid, array $add, array $remove): void

@@ -45,6 +45,13 @@ interface MailProvider
     /** The bytes of one attachment, by the provider's id from message()'s attachment list. */
     public function attachmentContent(Mailbox $mailbox, string $folder, int $uid, string $attachmentId): string;
 
+    /**
+     * The message's raw RFC822 source. Used for the envelope headers (Delivered-To, Envelope-To, X-Original-To) that
+     * say which institutional address a message was really delivered for — the only evidence there is when the visible
+     * recipients name none. Costs a whole extra provider request per message, so it is never fetched for a listing.
+     */
+    public function messageSource(Mailbox $mailbox, string $folder, int $uid): string;
+
     /** @param list<string> $add @param list<string> $remove IMAP flags such as \Seen, \Flagged */
     public function setFlags(Mailbox $mailbox, string $folder, int $uid, array $add, array $remove): void;
 

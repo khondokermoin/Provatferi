@@ -137,6 +137,27 @@ final class FakeMailProvider implements MailProvider
         return new MailMessageText($row['text'], $row['html']);
     }
 
+    /**
+     * The raw source, assembled from what the message was given. Only the envelope headers matter to the Mail Center,
+     * so those are what this reproduces: a message seeded with `delivered_to` presents it exactly as a server would.
+     */
+    public function messageSource(Mailbox $mailbox, string $folder, int $uid): string
+    {
+        $row = $this->row($mailbox, $folder, $uid, "source {$folder} {$uid}");
+        $m = $row['m'];
+        $head = [];
+        foreach ((array) ($m['delivered_to'] ?? []) as $address) {
+            $head[] = 'Delivered-To: '.$address;
+        }
+        $head[] = 'Subject: '.($m['subject'] ?? '');
+        $head[] = 'From: '.($m['from'][0] ?? 'sender@example.org');
+        foreach ((array) ($m['to'] ?? []) as $a) {
+            $head[] = 'To: '.(is_array($a) ? ($a[0] ?? '') : $a);
+        }
+
+        return implode("\r\n", $head)."\r\n\r\n".($row['text'] ?? '');
+    }
+
     public function attachmentContent(Mailbox $mailbox, string $folder, int $uid, string $attachmentId): string
     {
         $row = $this->row($mailbox, $folder, $uid, "attachment {$folder} {$uid} {$attachmentId}");
