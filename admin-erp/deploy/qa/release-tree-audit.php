@@ -88,7 +88,16 @@ $laravel->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-$recoveryRoot = rtrim((string) config('backup.root'), '/').'/recovery/retired-release-trees';
+/*
+ * The backup root, from config/backup.php when that release is live and from the same derivation otherwise — this
+ * kit has to be runnable BEFORE the backup release is deployed, which is exactly when the retained trees need
+ * classifying.
+ */
+$backupRoot = (string) config('backup.root');
+if ($backupRoot === '') {
+    $backupRoot = dirname($APP, 3).'/backups';
+}
+$recoveryRoot = rtrim($backupRoot, '/').'/recovery/retired-release-trees';
 
 $rescued = [];
 $rescueErrors = [];
@@ -145,7 +154,28 @@ if ($mode === 'rescue') {
  * than from a guess. Keyed on the last two path segments, the same way the backup's consistency check compares them.
  */
 $referenced = [];
-foreach ((array) config('backup.consistency', []) as $reference) {
+$references = (array) config('backup.consistency', []);
+if ($references === []) {
+    // The same list config/backup.php holds, repeated here only so this kit works before that release is live.
+    $references = [
+        ['table' => 'job_applications', 'column' => 'cv_path'],
+        ['table' => 'job_applications', 'column' => 'photo_path'],
+        ['table' => 'committee_submissions', 'column' => 'photo_path'],
+        ['table' => 'committee_submissions', 'column' => 'photo_approved_path'],
+        ['table' => 'members', 'column' => 'photo_path'],
+        ['table' => 'public_member_profile_versions', 'column' => 'photo_path'],
+        ['table' => 'public_member_profile_versions', 'column' => 'photo_approved_path'],
+        ['table' => 'leadership_profiles', 'column' => 'photo_path'],
+        ['table' => 'leadership_profiles', 'column' => 'photo_sm_path'],
+        ['table' => 'notices', 'column' => 'attachment_path'],
+        ['table' => 'notices', 'column' => 'cover_image_path'],
+        ['table' => 'notices', 'column' => 'share_image_path'],
+        ['table' => 'activities', 'column' => 'hero_image_path'],
+        ['table' => 'homepage_carousel_slides', 'column' => 'image_path'],
+        ['table' => 'job_postings', 'column' => 'share_image_path'],
+    ];
+}
+foreach ($references as $reference) {
     $table = $reference['table'] ?? null;
     $column = $reference['column'] ?? null;
     if (! is_string($table) || ! is_string($column) || ! Schema::hasTable($table) || ! Schema::hasColumn($table, $column)) {
