@@ -84,10 +84,16 @@ return [
     /*
      * The file trees to copy. Class B (private uploads) and C (public media) only: application code is reproducible
      * from Git and is deliberately NOT here, and neither is anything generated.
+     *
+     * NOTE on the public tree: it is derived from the SITE ROOT, not from public_path(). On this split-layout host the
+     * deployed `public/` lives in the subdomain's document root, and Laravel only learns that from the front
+     * controller (web) or a LARAVEL_PUBLIC_PATH environment variable (CLI). A console command therefore cannot rely
+     * on public_path() — the first production backup resolved it to `laravel-admin/public`, which does not exist, and
+     * silently recorded the public media as absent. The explicit path cannot drift that way.
      */
     'file_sets' => [
         'erp-private-uploads' => storage_path('app/private/uploads'),
-        'erp-public-uploads' => public_path('storage'),
+        'erp-public-uploads' => env('BACKUP_ERP_PUBLIC_UPLOADS', dirname(base_path()).'/public_html/admin/storage'),
         'cms-uploads' => dirname(base_path()).'/public_html/cms/wp-content/uploads',
         'archive-uploads' => dirname(base_path()).'/public_html/archive/wp-content/uploads',
     ],
@@ -107,8 +113,10 @@ return [
      */
     'config_files' => [
         'laravel.env' => base_path('.env'),
-        'admin-front-controller.php' => public_path('index.php'),
-        'admin-docroot.htaccess' => public_path('.htaccess'),
+        // From the site root for the same reason as the public upload tree above: public_path() is unreliable in a
+        // console command on this split layout.
+        'admin-front-controller.php' => dirname(base_path()).'/public_html/admin/index.php',
+        'admin-docroot.htaccess' => dirname(base_path()).'/public_html/admin/.htaccess',
         'apex-docroot.htaccess' => dirname(base_path()).'/public_html/.htaccess',
         'cms-wp-config.php' => dirname(base_path()).'/public_html/cms/wp-config.php',
         'archive-wp-config.php' => dirname(base_path()).'/public_html/archive/wp-config.php',
