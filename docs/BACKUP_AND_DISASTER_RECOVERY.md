@@ -373,6 +373,29 @@ appear in the output.**
 
 ---
 
+## 13a. Production verification, 2026-11-01
+
+The first real backups, taken on production:
+
+| | Result |
+|---|---|
+| ERP database | 61 tables, 310,855 bytes of SQL → **62,983** compressed, 0.05 s |
+| CMS database | 19 tables, 159,967 → 25,317 bytes |
+| Archive database | 29 tables, 141,665 → 23,190 bytes |
+| ERP private uploads | **23 files, 13,892,587 bytes** → 13,552,991 archived |
+| ERP public uploads | **20 files, 6,706,813 bytes** → 6,600,528 archived |
+| CMS / Archive media | present, 0 files (both WordPress sites hold no media yet) |
+| Configuration bundle | **skipped** — `BACKUP_ENCRYPTION_KEY` is not set, and the run says so rather than writing it in the clear |
+| Whole set | **20,276,456 bytes in 0.77 s**, verification ok over 11 artifacts |
+| Two sets on disk | 33,962,998 bytes — about the sum of both, confirming there is no hard-link dedupe on this host |
+| Permissions | root and subdirectories `drwx------`, every artifact `-rw-------` |
+| HTTP reachability | every backup path returns **404**; an encoded traversal returns 400. Checked over real HTTPS against both domains, for the directory, `state.json`, a dump and an archive |
+| File consistency on real data | **42 references across 15 columns, 0 missing live, 0 missing from the backup**, 1 unreferenced file |
+
+The failure path was exercised for real too, twice, before the run succeeded (§"What this host does not allow"): each
+failure was recorded in `state.json` with its reason, `last_success` was left untouched, and the partially written set
+was removed rather than published — which is exactly what the atomic-rename design is for.
+
 ## 14. Retained release trees
 
 **An old application release is not a backup.** Release retention exists to make a rollback possible; it keeps two
@@ -391,8 +414,38 @@ document root, `0600`, with a manifest of hashes), and only then classified:
 | `looks_like_a_qa_artifact` | referenced by nothing and too small to be a real document — almost certainly a test fixture |
 | `unexplained_keep_it` | referenced by nothing, not a duplicate, large enough to be real — **the owner decides**; nothing is deleted on this evidence |
 
-The findings are in the task report. **Nothing is ever deleted by this tool**, and the fail-closed release cleanup was
-not weakened to accommodate it.
+### What it found, 2026-11-01
+
+All four `_previous-*` trees were examined. **29 files were rescued** into
+`/home/u951246149/backups/recovery/retired-release-trees` (`0700`, outside every document root, with a manifest of
+hashes) before anything was judged:
+
+| Tree | Files rescued | Bytes |
+|---|---|---|
+| `_previous-20261003-194002` | 24 | 34,220,279 |
+| `_previous-20261018-195402` | 5 | 11,973,960 |
+
+| Verdict | Count |
+|---|---|
+| `referenced_by_a_live_row` | **0** |
+| `duplicate_of_a_live_file` | 0 |
+| `looks_like_a_qa_artifact` | 10 |
+| `unexplained_keep_it` | 19 |
+
+**The decisive detail is in the hashes.** Those 29 files hold only **six distinct documents**:
+
+- the 4 "CVs" are 2 distinct files (one repeated three times), all exactly 1,181,077 bytes;
+- the 20 "photographs" are 3 distinct files — one of them **328 bytes, repeated ten times**, which no camera produced;
+- the 5 committee photographs are **one** file repeated five times, 2,394,792 bytes each.
+
+Real applicants do not upload byte-identical documents three and seven and ten times over. Taken with
+`referenced_by_a_live_row: 0` for every one of them, the evidence says these are fixtures from the October QA runs,
+not records. **It still is not conclusive enough to delete them on**, which is why the classifier says
+`unexplained_keep_it` for the large ones: a 3.7 MB photograph repeated seven times is consistent with a fixture and
+also with one real upload a QA script copied around.
+
+So: the rescue copy exists, nothing was deleted, the fail-closed release cleanup was not weakened, and releasing those
+two trees (≈ 18,700 inodes and ≈ 310 MB) now costs nothing but the owner's confirmation.
 
 ---
 
