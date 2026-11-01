@@ -42,6 +42,11 @@ class DatabaseDumper
         if ($database === '' || preg_match('/^[A-Za-z0-9_$-]+$/', $database) !== 1) {
             return ['ok' => false, 'bytes' => 0, 'uncompressed_bytes' => 0, 'tables' => 0, 'seconds' => 0.0, 'error' => 'the database name is missing or not a plain identifier'];
         }
+        // Checked here as well as in BackupFactory: a shared host may have proc_open in disable_functions, and calling
+        // a missing function is a fatal Error in PHP 8 rather than something a failed-return can express.
+        if (! function_exists('proc_open')) {
+            return ['ok' => false, 'bytes' => 0, 'uncompressed_bytes' => 0, 'tables' => 0, 'seconds' => 0.0, 'error' => 'proc_open is disabled on this host, so mysqldump cannot be started (use the pure-PHP dumper)'];
+        }
 
         $defaults = $this->writeDefaultsFile($credentials);
         $started = microtime(true);
@@ -67,7 +72,9 @@ class DatabaseDumper
             // the end.
             $errorLog = dirname($defaults).'/stderr.log';
             $descriptors = [1 => ['pipe', 'w'], 2 => ['file', $errorLog, 'w']];
-            $process = proc_open($command, $descriptors, $pipes);
+            // Suppressed because the return value IS the error handling: a missing binary makes proc_open emit a
+            // warning and return false, and a warning becomes an exception under the test runner.
+            $process = @proc_open($command, $descriptors, $pipes);
             if (! is_resource($process)) {
                 return $this->failure('mysqldump could not be started (is it installed?)', $started);
             }

@@ -185,9 +185,17 @@ final class FileSetArchiver
         return $strip($previous) === $strip($current) && ($previous['files'] ?? null) !== null;
     }
 
+    /**
+     * Hard-links where the host allows it, copies where it does not.
+     *
+     * `function_exists` rather than `@link(...)`: this host has `link` in `disable_functions`, and calling a function
+     * that does not exist is an Error in PHP 8, which `@` does NOT suppress. The second production run failed with
+     * `Call to undefined function link()` for exactly that reason — the fallback was there, and the fatal happened
+     * before it could be reached.
+     */
     private function linkOrCopy(string $from, string $to): bool
     {
-        if (@link($from, $to)) {
+        if (function_exists('link') && @link($from, $to)) {
             return true;
         }
 
