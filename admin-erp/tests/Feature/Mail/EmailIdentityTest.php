@@ -4,6 +4,7 @@ namespace Tests\Feature\Mail;
 
 use App\Models\Setting;
 use App\Models\User;
+use App\Notifications\BackupFailedNotification;
 use App\Notifications\CommitteeCorrectionRequestedNotification;
 use App\Notifications\CommitteeSubmissionStatusChangedNotification;
 use App\Notifications\MemberInvitationNotification;
@@ -135,6 +136,9 @@ class EmailIdentityTest extends TestCase
             'internal new-application notice' => [fn () => new VolunteerApplicationSubmittedNotification('VOL-2026-0001', 'স্বেচ্ছাসেবক', 'নাদিয়া', 'https://admin.provatferi.org/admin/recruitment-applications/1'), 'internal'],
             'two-step verification turned on' => [fn () => new MfaSecurityNotification('enabled', ['at' => '17 Oct 2026, 12:00 (Asia/Dhaka)', 'ip' => '203.0.113.5', 'device' => 'Chrome on Windows']), 'security'],
             'two-step verification reset on the server' => [fn () => new MfaSecurityNotification('reset', ['at' => '17 Oct 2026, 12:00 (Asia/Dhaka)']), 'security'],
+            // A failed backup is a security-class message (docs/BACKUP_AND_DISASTER_RECOVERY.md): the staff mailbox
+            // needs to know, and whoever reads it may need to write to security@ about it.
+            'backup failed' => [fn () => new BackupFailedNotification('mysqldump exited with status 1', '2026-10-31T21:30:00+00:00', 27), 'security'],
         ];
     }
 
