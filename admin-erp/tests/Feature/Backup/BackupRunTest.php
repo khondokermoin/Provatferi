@@ -228,14 +228,20 @@ class BackupRunTest extends TestCase
     {
         Notification::fake();
 
+        // The dump is made to fail by naming a database that does not exist. Deliberately NOT by pointing at a
+        // missing mysqldump binary: the default dumper is pure PHP (this host forbids proc_open), so a bogus binary
+        // would simply be ignored and the run would succeed — the test would then pass for the wrong reason on one
+        // machine and fail on another.
         config([
             'backup.root' => $this->root,
             'backup.site_root' => dirname($this->root).'/site',
             'backup.file_sets' => ['erp-private-uploads' => $this->tree],
             'backup.config_files' => [],
-            'backup.databases' => ['erp' => ['driver' => 'laravel', 'connection' => config('database.default')]],
-            // A binary that cannot exist: the dump fails, which is what should raise the alarm.
-            'backup.mysqldump' => sys_get_temp_dir().'/definitely-not-mysqldump-'.bin2hex(random_bytes(4)),
+            'backup.databases' => ['erp' => ['driver' => 'laravel', 'connection' => 'backup_broken_probe']],
+            'database.connections.backup_broken_probe' => array_merge(
+                (array) config('database.connections.'.config('database.default')),
+                ['database' => 'a_database_that_does_not_exist_'.bin2hex(random_bytes(4))]
+            ),
             'backup.alert_to' => 'staff@example.test',
         ]);
 
@@ -262,8 +268,11 @@ class BackupRunTest extends TestCase
             'backup.root' => $this->root,
             'backup.file_sets' => [],
             'backup.config_files' => [],
-            'backup.databases' => ['erp' => ['driver' => 'laravel', 'connection' => config('database.default')]],
-            'backup.mysqldump' => sys_get_temp_dir().'/definitely-not-mysqldump',
+            'backup.databases' => ['erp' => ['driver' => 'laravel', 'connection' => 'backup_broken_probe']],
+            'database.connections.backup_broken_probe' => array_merge(
+                (array) config('database.connections.'.config('database.default')),
+                ['database' => 'a_database_that_does_not_exist_'.bin2hex(random_bytes(4))]
+            ),
             'backup.alert_to' => 'staff@example.test',
         ]);
 
