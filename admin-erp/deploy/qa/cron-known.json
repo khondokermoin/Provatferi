@@ -5,6 +5,11 @@
       "time": "5 18 * * *",
       "command": "php /home/u951246149/domains/provatferi.org/laravel-admin/artisan membership:generate-dues",
       "what": "daily membership dues generation (membership task 4)"
+    },
+    "7X9qOg2fnN": {
+      "time": "30 21 * * *",
+      "command": "php /home/u951246149/_bk_run.php run",
+      "what": "nightly backup at 03:30 Asia/Dhaka (docs/BACKUP_AND_DISASTER_RECOVERY.md). INTERIM COMMAND: it runs the committed backup code from the pinned checkout under /home/u951246149/_bk_src because release a074ddd could not be uploaded (the release uploader needs hPanel File Manager credentials and the hosting API has no upload operation). Once that release is deployed, change this to `php /home/u951246149/domains/provatferi.org/laravel-admin/artisan backup:run` and delete _bk_src, _bk_run.php and _bk.tgz."
     }
   },
   "known_hidden": {
