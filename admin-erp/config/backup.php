@@ -54,9 +54,14 @@ return [
     ],
 
     /*
-     * `mysqldump` is the only external program this runs. The password is passed in a 0600 defaults file, never on the
-     * command line, so it cannot appear in `ps`, in a log or in cron output.
+     * How the database is dumped. `php` (the default, App\Services\Backup\PhpSqlDumper) needs no external process at
+     * all, which is not a preference but a requirement: this shared host disables proc_open, so `mysqldump` cannot be
+     * started from PHP there. It is the default everywhere so the path the tests exercise is the path production runs.
+     *
+     * `mysqldump` uses the external program instead, where a machine has it and proc_open is available. Its password
+     * then goes in a 0600 defaults file, never on the command line.
      */
+    'dumper' => env('BACKUP_DUMPER', 'php'),
     'mysqldump' => env('BACKUP_MYSQLDUMP', 'mysqldump'),
     'mysqldump_timeout' => (int) env('BACKUP_MYSQLDUMP_TIMEOUT', 900),
 

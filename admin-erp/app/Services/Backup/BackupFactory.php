@@ -28,14 +28,25 @@ final class BackupFactory
         ]);
     }
 
+    /**
+     * The pure-PHP dumper by default, on every machine.
+     *
+     * Not a fallback: the shared host disables proc_open, so `mysqldump` is unreachable there, and a dumper that only
+     * runs where the developer happens to have proc_open is a dumper nobody has tested against production. `mysqldump`
+     * remains available by setting BACKUP_DUMPER=mysqldump, for a machine that has it and wants it.
+     */
     public static function dumper(): DatabaseDumper
     {
         $config = self::config();
 
-        return new DatabaseDumper(
-            (string) ($config['mysqldump'] ?? 'mysqldump'),
-            (int) ($config['mysqldump_timeout'] ?? 900),
-        );
+        if (($config['dumper'] ?? 'php') === 'mysqldump' && function_exists('proc_open')) {
+            return new DatabaseDumper(
+                (string) ($config['mysqldump'] ?? 'mysqldump'),
+                (int) ($config['mysqldump_timeout'] ?? 900),
+            );
+        }
+
+        return new PhpSqlDumper;
     }
 
     public static function archiver(): FileSetArchiver

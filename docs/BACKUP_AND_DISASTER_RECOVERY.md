@@ -35,13 +35,17 @@ caches, temporary files, old release trees, and the deploy sentinel.
       └── php artisan backup:run
               │  exclusive lock  (a second run exits; a run stuck for hours is reported as a FAILURE)
               │
-              ├── 1. databases        mysqldump --single-transaction  (no table locks; production keeps writing)
-              │                       credentials in a 0600 defaults file, never on the command line
+              ├── 1. databases        PURE PHP (App\Services\Backup\PhpSqlDumper): no external process at all.
+              │                       START TRANSACTION WITH CONSISTENT SNAPSHOT at REPEATABLE READ gives the same
+              │                       guarantee as mysqldump --single-transaction and takes no locks, so production
+              │                       keeps writing. There is no command line, so no password can leak into one.
               │                       → db-<label>.sql.gz
               │
               ├── 2. upload trees     pure-PHP tar + gzip, one archive per tree, plus a per-file index
-              │                       (path, size, mtime, sha256). An unchanged tree is HARD-LINKED from the
-              │                       previous set instead of being archived again.
+              │                       (path, size, mtime, sha256). An unchanged tree is not archived again: the
+              │                       previous archive is hard-linked where the host allows it, and COPIED where it
+              │                       does not (this one disables link()), which still saves the work of
+              │                       re-compressing but not the disk.
               │                       → files-<label>.tar.gz + files-<label>.index.json
               │
               ├── 3. configuration    AES-256-GCM, key held by the OWNER, off-host
@@ -80,6 +84,47 @@ listed and extracted correctly by the system `tar`, byte-for-byte. In a real dis
 codebase to get their data back — `tar -xzf` and `gunzip | mysql` are enough.
 
 ---
+
+### What this host does not allow
+
+Read from the server, not assumed (`disable_functions`):
+
+```
+system, exec, shell_exec, passthru, popen, proc_open, apache_child_terminate,
+virtual, dl, ini_alter, chgrp, leak, mb_send_mail, mysql_list_dbs, symlink, link
+```
+
+Two of those shaped this design:
+
+- **`proc_open` and every sibling are gone**, so no external program can be run from PHP — see below;
+- **`link` is gone**, so the unchanged-tree optimisation cannot hard-link and falls back to copying. The work of
+  re-compressing is still saved; the disk is not. With 7+4+3 retained sets, budget roughly ten times one set's size
+  rather than one.
+
+### Why the database dump is pure PHP
+
+The first production run failed with **`Call to undefined function proc_open()`**. This shared host disables every
+process-spawning function, so `mysqldump` cannot be started from PHP at all — and the hosting API offers no way to
+run one either. Locally `proc_open` exists, which is exactly why nothing caught it until the code ran on the server.
+
+So `App\Services\Backup\PhpSqlDumper` writes the dump itself, and it is **the default on every machine** rather than a
+fallback: a dump path that only runs where the developer happens to have `proc_open` is a dump path nobody has tested
+against production. The `mysqldump` implementation is kept and still used by setting `BACKUP_DUMPER=mysqldump` on a
+machine that has it.
+
+What the PHP dumper gets right, because each of these would make a dump quietly useless:
+
+| Detail | Why it matters |
+|---|---|
+| a **GENERATED** column is never named in an INSERT | the database computes it; naming it makes the whole restore fail (`membership_dues.outstanding_amount` is STORED GENERATED) |
+| binary and blob values are written as `0x…` hex | no quoting rule or character set can alter a byte |
+| rows stream through an unbuffered query | a large table never has to fit in memory |
+| the dump is wrapped in `FOREIGN_KEY_CHECKS=0` | restore order cannot matter, with 96 foreign keys in this schema |
+| views come after tables, triggers after both | each object exists before anything references it |
+| it ends with `Dump completed` | every integrity check already written keeps working unchanged |
+
+Proven by restoring it, not by reading it: a dump was restored into a scratch database and **`CHECKSUM TABLE` matched
+the source for all 59 tables**, with foreign keys and the generated column intact.
 
 ## 3. Commands
 
@@ -359,8 +404,8 @@ not weakened to accommodate it.
 | predictable public URLs | there is no URL: nothing serves this tree |
 | a restore endpoint | there is none. Every restore path is a console command |
 | path traversal | one component (`BackupPaths`) owns every path decision. Member names must be plain relative paths; destinations are refused if they are, or would be, inside a document root — *including paths that do not exist yet*, which is how the first version of the check was broken |
-| command injection | the only external program is `mysqldump`, started with an **argument array** through `proc_open`, so no shell parses anything. The file half of the backup shells out to nothing at all |
-| secret leakage | the database password goes into a `0600` defaults file that is overwritten and deleted in a `finally`; never in `argv`, a log, cron output or an exception. mysqldump's own stderr is scrubbed before it can be reported |
+| command injection | **no external process is started at all** on this host: the dump is pure PHP and so are tar and gzip. Where `mysqldump` is opted into, it is started with an argument array through `proc_open`, so no shell parses anything |
+| secret leakage | with the PHP dumper there is **no command line for a password to leak into**; driver messages are scrubbed of user and password before they can be reported. With `mysqldump`, the password goes into a `0600` defaults file that is overwritten and deleted in a `finally` — never in `argv`, a log, cron output or an exception |
 | weak permissions | every artifact `0600`, every directory `0700` |
 | symlink attacks | symlinks are never followed and never archived — they are counted, named and skipped |
 | backup overwrite | a set is written to `.tmp-<id>` and renamed into place; a set id is a UTC timestamp and never reused |
@@ -375,8 +420,8 @@ not weakened to accommodate it.
 2. **Hostinger's own backups are unverified.** The API exposes nothing about them: not their frequency, not their
    retention, not whether a single file or a single database can be restored, not whether they live outside this
    filesystem. Marked **owner-verification-required** throughout.
-3. **A mid-stream hang in `mysqldump` is not caught by its own timer** — the timer is checked between chunks. Such a
-   run is caught instead by the lock going stale, which is reported as a failure.
+3. **The pure-PHP dumper has no wall-clock timeout.** A query that hangs would hang the run; that is caught instead by
+   the lock going stale, which is reported as a failure rather than a quiet skip.
 4. **The Node.js applications' environment variables are not in the bundle**: Hostinger stores them outside the
    filesystem and the API returns them masked. They must be recorded by the owner separately.
 5. **`disk_bytes` counts each inode once**, so hard-linked archives are not double-counted — but it is still an
@@ -416,7 +461,8 @@ not weakened to accommodate it.
 | `BackupRetentionTest` | the 7/4/3 buckets, and every refusal: nothing deleted when no keeper verifies, the newest set never deleted, a dry run deleting nothing, unrecognised directories left alone |
 | `BackupIntegrityTest` | archive round-trip, truncation, corruption, index determinism, dump sanity (including a dump that is not actually gzip), hash mismatch, a manifest naming a path outside the set, encryption with the right/wrong/tampered key, skip-without-a-key, symlink skipping |
 | `BackupRunTest` | a verified set with a manifest, the private root and its HTTP denial, **no credential in the manifest/state/index**, a failing dump recorded as a failure, overlap, a stuck lock reported as a failure, abandoned `.tmp-` sweeping, archive reuse, the failure e-mail and its Reply-To |
+| `PhpSqlDumperTest` | the dump path production runs: integrity, a GENERATED column never named in an INSERT, Bengali text verbatim, binary as hex, the FOREIGN_KEY_CHECKS wrapper, no credential anywhere, and a failure reported rather than a half dump |
 | `BackupConsistencyAndRestoreTest` | a row whose file is missing (without naming the file), a file missing from the backup, removed columns skipped, and the restore commands' refusals |
 
-The database dump is stubbed in the orchestration tests on purpose — whether `mysqldump` works is proven by running
+The database dump is stubbed in the ORCHESTRATION tests on purpose (PhpSqlDumperTest covers the dump itself) — whether a dump restores is proven by running
 it, and whether a backup restores is proven by the drill, which no mock can replace.
