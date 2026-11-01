@@ -57,8 +57,8 @@ if ($mode === 'where') {
     ]);
 }
 
-if (! in_array($mode, ['run', 'status'], true)) {
-    out(['error' => 'modes: run | status | where'], 2);
+if (! in_array($mode, ['run', 'status', 'consistency'], true)) {
+    out(['error' => 'modes: run | status | consistency | where'], 2);
 }
 
 // ------------------------------------------------------------------------------------- boot the LIVE application
@@ -111,6 +111,24 @@ if ($mode === 'status') {
         'last_run' => $state['last_run'] ?? null,
         'last_failure' => $state['last_failure'] ?? null,
     ]);
+}
+
+if ($mode === 'consistency') {
+    // Every database reference to a stored file, checked against the live trees AND the newest set. Private
+    // filenames never appear in the output — a problem is reported as `table.column#id` with a path digest.
+    $store = BackupFactory::store();
+    $newest = $store->setIds()[0] ?? null;
+    $report = BackupFactory::consistency()->check(
+        BackupFactory::fileSets(),
+        $newest !== null ? $store->setPath($newest) : null
+    );
+
+    out([
+        'mode' => 'consistency',
+        'checked_at_utc' => gmdate('c'),
+        'against_set' => $newest,
+        'report' => $report,
+    ], ($report['ok'] ?? false) === true ? 0 : 1);
 }
 
 $manifest = BackupFactory::runner()->run();
