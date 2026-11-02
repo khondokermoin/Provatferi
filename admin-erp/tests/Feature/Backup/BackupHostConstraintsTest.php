@@ -41,6 +41,10 @@ class BackupHostConstraintsTest extends TestCase
             // Added 2026-11-02: both run on production, so the same rule applies to them.
             (array) glob(base_path('deploy/qa/env-key-set.php')),
             (array) glob(base_path('deploy/qa/release-fetch.php')),
+            // THE DEPLOY TOOLING, added 2026-11-02 after an unguarded proc_open() in release-manager.php stopped
+            // every deploy dead. These files are as production-required as the backup: nothing ships without them.
+            (array) glob(base_path('deploy/remote/release-manager.php')),
+            (array) glob(base_path('deploy/remote/lib/*.php')),
         );
 
         return array_values(array_filter(array_map(fn ($f) => is_string($f) ? $f : null, $files)));

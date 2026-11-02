@@ -13,9 +13,13 @@
  * passthru, popen, symlink and link are all in php.ini disable_functions —
  * confirmed empirically, not assumed). Two things ARE confirmed to work and
  * are what this script is built on:
- *   - proc_open() genuinely spawns processes (Composer's own Process
- *     component uses proc_open directly, never the disabled shell
- *     wrappers, which is why `composer install` can run here at all)
+ *   - a child process can be started AT ALL. This was proc_open() until
+ *     2026-11-02, when the host disabled that too; since then it is
+ *     lib/process-runner.php, which uses proc_open where it is allowed and
+ *     pcntl_fork + pcntl_exec where it is not. Composer's own Process
+ *     component still needs proc_open and cannot be fixed from here, which
+ *     is why `build` installs with --no-scripts and runs the one lifecycle
+ *     script itself — see that step for the detail
  *   - rename() on a directory is a real, fast, atomic filesystem op (~0.4ms
  *     measured), which is what makes the release swap in `switch` atomic
  *     without needing symlinks (also confirmed disabled)
@@ -111,41 +115,33 @@ function readStatus(string $releaseDir): array
     return is_file($path) ? (json_decode(file_get_contents($path), true) ?: []) : [];
 }
 
-/** Runs a command via proc_open (exec/shell_exec/system are disabled here). */
-function runProcess(array $command, ?string $cwd = null, int $timeoutSeconds = 300): array
+/** Runs a command through lib/process-runner.php (every shell function is disabled on this host). */
+/**
+ * Start a child process and wait for it.
+ *
+ * REWRITTEN 2026-11-02. This used to call proc_open() directly. The host then added proc_open to
+ * disable_functions, which made `build`, `contract-check` and `pipeline` die — SILENTLY, because display_errors is
+ * off, so the cron log was empty and a dead deploy looked like a running one. Everything about starting a process
+ * now lives in lib/process-runner.php, which prefers proc_open where it works and falls back to pcntl_fork +
+ * pcntl_exec where it does not. The return shape is unchanged, so every caller below is untouched.
+ *
+ * `secrets` is accepted so a caller that must put a credential in argv can have it stripped from the reported
+ * output. Nothing in this file does: no deploy command here carries one.
+ *
+ * @param  list<string>  $command
+ * @param  list<string>  $secrets
+ */
+function runProcess(array $command, ?string $cwd = null, int $timeoutSeconds = 300, array $secrets = []): array
 {
-    $descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
-    $process = proc_open($command, $descriptors, $pipes, $cwd);
-    if (!is_resource($process)) {
-        return ['exit_code' => -1, 'stdout' => '', 'stderr' => 'proc_open failed to start the process'];
-    }
-    fclose($pipes[0]);
-    stream_set_blocking($pipes[1], false);
-    stream_set_blocking($pipes[2], false);
+    $result = pfRunProcess($command, $cwd, $timeoutSeconds, ['secrets' => $secrets]);
 
-    $stdout = '';
-    $stderr = '';
-    $start = time();
-    do {
-        $stdout .= stream_get_contents($pipes[1]);
-        $stderr .= stream_get_contents($pipes[2]);
-        $status = proc_get_status($process);
-        if (!$status['running']) break;
-        if (time() - $start > $timeoutSeconds) {
-            proc_terminate($process);
-            $stderr .= "\n[release-manager] terminated after {$timeoutSeconds}s timeout";
-            break;
-        }
-        usleep(200000);
-    } while (true);
-
-    $stdout .= stream_get_contents($pipes[1]);
-    $stderr .= stream_get_contents($pipes[2]);
-    fclose($pipes[1]);
-    fclose($pipes[2]);
-    $exitCode = proc_close($process);
-
-    return ['exit_code' => $exitCode, 'stdout' => trim($stdout), 'stderr' => trim($stderr)];
+    return [
+        'exit_code' => $result['exit_code'],
+        'stdout' => trim($result['stdout']),
+        'stderr' => trim($result['stderr'].($result['error'] !== null ? "\n[release-manager] ".$result['error'] : '')),
+        'backend' => $result['backend'],
+        'timed_out' => $result['timed_out'],
+    ];
 }
 
 function extractTar(string $tarPath, string $destDir): void
@@ -154,6 +150,12 @@ function extractTar(string $tarPath, string $destDir): void
     $phar = new PharData($tarPath);
     $phar->extractTo($destDir, null, true);
 }
+
+// pfRunProcess(), pfProcessBackend(), pfProcessCapabilities() — the one place that knows how to start a child
+// process, with a proc_open backend and a pcntl fork/exec fallback (added 2026-11-02, when the host disabled
+// proc_open and took `build`, `contract-check` and `pipeline` with it). runProcess() above delegates to it, so this
+// must be required before any action runs — like every lib here, which is why `install` relocates it too.
+require_once __DIR__.'/lib/process-runner.php';
 
 /** Recursive copy — used only for the public docroot sync, which cannot be
  *  an atomic rename because public_html/admin/ is a fixed vhost path. */
@@ -251,7 +253,9 @@ case 'install':
     // lib/housekeeping.php and lib/disk-audit.php (which housekeeping requires)
     // joined 2026-10-03; lib/uploads-sync.php (the stage->switch upload delta-sync)
     // joined 2026-10-05.
-    foreach (['uploads-persistence.php', 'uploads-sync.php', 'public-uploads.php', 'housekeeping.php', 'disk-audit.php'] as $libFile) {
+    // lib/process-runner.php joined 2026-11-02 — without it nothing can start a process on a host that blocks
+    // proc_open, so it is as load-bearing as any of the others.
+    foreach (['process-runner.php', 'uploads-persistence.php', 'uploads-sync.php', 'public-uploads.php', 'housekeeping.php', 'disk-audit.php'] as $libFile) {
         $libSrc = $PUBLIC_DOCROOT.'/lib/'.$libFile;
         $libDest = $TOOLING_DIR.'/lib/'.$libFile;
         $resultKey = 'relocated_lib_'.str_replace(['-', '.php'], ['_', ''], $libFile);
@@ -450,11 +454,58 @@ case 'build':
     if (!is_file($appDir.'/composer.json')) { jout(['ok' => false, 'error' => 'no composer.json — did stage run first?']); exit(1); }
     if (!is_file($COMPOSER_PHAR)) { jout(['ok' => false, 'error' => 'composer.phar not found in tooling dir — run install with it staged first']); exit(1); }
 
-    $install = runProcess([$PHP_BINARY, $COMPOSER_PHAR, 'install', '--no-dev', '--optimize-autoloader', '--no-interaction', '--working-dir', $appDir], null, 600);
+    // --no-scripts, and then the scripts run HERE instead. 2026-11-02.
+    //
+    // composer.json's only script on an `install` is post-autoload-dump:
+    //   1. Illuminate\Foundation\ComposerScripts::postAutoloadDump  — a PHP callable; all it does is require the
+    //      fresh autoloader and delete bootstrap/cache/compiled.php and services.php;
+    //   2. @php artisan package:discover --ansi                      — a CHILD PROCESS, which composer starts with
+    //      its own Symfony Process component. That component uses proc_open directly, and this host no longer
+    //      allows it, so composer dies at the very last step of an otherwise complete install and exits non-zero.
+    //      Nothing in this file can fix composer's internals.
+    //
+    // So both are done explicitly below, through our own runner, which has a backend that works here. The result is
+    // the same application: `clear-compiled` is exactly what the callable does, and `package:discover` is the same
+    // command composer would have run. It is done this way on EVERY host, not only this one, so a release is built
+    // the same way everywhere and there is no "special Hostinger build" to reason about separately.
+    $install = runProcess([$PHP_BINARY, $COMPOSER_PHAR, 'install', '--no-dev', '--optimize-autoloader', '--no-interaction', '--no-scripts', '--working-dir', $appDir], null, 600);
     $platform = runProcess([$PHP_BINARY, $COMPOSER_PHAR, 'check-platform-reqs', '--working-dir', $appDir], null, 120);
 
-    $ok = $install['exit_code'] === 0 && !str_contains(strtolower($platform['stdout'].$platform['stderr']), 'not satisfied');
-    $result = ['ok' => $ok, 'composer_install' => $install, 'check_platform_reqs' => $platform, 'vendor_autoload_present' => is_file($appDir.'/vendor/autoload.php')];
+    // The two post-autoload-dump steps, in composer's own order. Both are required: a release whose package
+    // manifest was never built would discover no package providers, which is a broken application that still boots.
+    $clearCompiled = runProcess([$PHP_BINARY, $appDir.'/artisan', 'clear-compiled'], $appDir, 120);
+    $discover = runProcess([$PHP_BINARY, $appDir.'/artisan', 'package:discover'], $appDir, 300);
+
+    // Proof rather than assumption: the manifest file is what package discovery exists to produce.
+    $manifestPath = $appDir.'/bootstrap/cache/packages.php';
+    $manifest = ['path' => 'bootstrap/cache/packages.php', 'present' => is_file($manifestPath), 'bytes' => is_file($manifestPath) ? (int) filesize($manifestPath) : 0, 'providers' => 0];
+    if ($manifest['present']) {
+        $decoded = @include $manifestPath;
+        if (is_array($decoded)) {
+            foreach ($decoded as $package) {
+                $manifest['providers'] += is_array($package['providers'] ?? null) ? count($package['providers']) : 0;
+            }
+            $manifest['packages'] = count($decoded);
+        }
+    }
+
+    $ok = $install['exit_code'] === 0
+        && !str_contains(strtolower($platform['stdout'].$platform['stderr']), 'not satisfied')
+        && $clearCompiled['exit_code'] === 0
+        && $discover['exit_code'] === 0
+        && is_file($appDir.'/vendor/autoload.php')
+        && $manifest['present']
+        && $manifest['providers'] > 0;
+
+    $result = [
+        'ok' => $ok,
+        'process_backend' => pfProcessBackend(),
+        'composer_install' => $install,
+        'check_platform_reqs' => $platform,
+        'post_autoload_dump' => ['clear_compiled' => $clearCompiled, 'package_discover' => $discover],
+        'package_manifest' => $manifest,
+        'vendor_autoload_present' => is_file($appDir.'/vendor/autoload.php'),
+    ];
     mergeStatus($releaseDir, 'build', $result);
     jout($result);
     if (!$ok) exit(1);
