@@ -104,6 +104,10 @@ if (is_file($packagesCache)) {
 }
 $out['package_discovery'] = [
     'cache_present' => is_file($packagesCache),
+    // Written by the framework while it boots, which `package:discover` does — so its presence is evidence the
+    // discovery step really ran the application rather than just touching a file. It is a lazily rebuilt cache, so
+    // its absence is not a fault in itself; a difference here is a hint, not a verdict.
+    'services_cache_present' => is_file($app.'/bootstrap/cache/services.php'),
     'packages' => count($discovered),
     'packages_fingerprint' => fingerprint($discovered),
     'providers' => count($providers),
