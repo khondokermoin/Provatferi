@@ -597,6 +597,20 @@ also with one real upload a QA script copied around.
 So: the rescue copy exists, nothing was deleted, the fail-closed release cleanup was not weakened, and releasing those
 two trees (≈ 18,700 inodes and ≈ 310 MB) now costs nothing but the owner's confirmation.
 
+### Re-checked 2026-11-02
+
+The protected copy was listed again rather than assumed. `backups/recovery/retired-release-trees` holds
+`RESCUE_MANIFEST.json` (8,235 bytes) and both tree directories, every directory `drwx------` and every file
+`-rw-------`, with the files exactly where the audit put them: 4 CVs and 20 photographs under
+`_previous-20261003-194002/uploads/applications/{cv,photos}`, and 5 photographs under
+`_previous-20261018-195402/uploads/committee-submissions` — **24 + 5 = 29**, matching the rescue count. The listed
+sizes also confirm the repetition independently of the hashes: ten files of exactly 328 bytes, seven of 3,737,601,
+three of 1,109,828, four of 1,181,077, five of 2,394,792.
+
+The classification is therefore unchanged and **still not conclusive**: 0 referenced by a live row, 0 duplicates of a
+live file, 10 QA artifacts, 19 unexplained. Deletion stays the owner's decision, and the recovery copy is kept
+whatever is decided about the trees themselves.
+
 ---
 
 ## 15. Security
