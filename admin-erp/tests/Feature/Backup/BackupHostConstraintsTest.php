@@ -38,6 +38,9 @@ class BackupHostConstraintsTest extends TestCase
             (array) glob(app_path('Notifications/BackupFailedNotification.php')),
             (array) glob(base_path('deploy/qa/backup-standalone.php')),
             (array) glob(base_path('deploy/qa/release-tree-audit.php')),
+            // Added 2026-11-02: both run on production, so the same rule applies to them.
+            (array) glob(base_path('deploy/qa/env-key-set.php')),
+            (array) glob(base_path('deploy/qa/release-fetch.php')),
         );
 
         return array_values(array_filter(array_map(fn ($f) => is_string($f) ? $f : null, $files)));
