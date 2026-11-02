@@ -144,14 +144,40 @@ Nothing prints a credential, and no restore path is reachable over HTTP — thes
 
 ## 4. Schedule and automation
 
-**One** permanent cron, at the lowest-traffic hour:
+**One** permanent cron, at the lowest-traffic hour. What is **actually scheduled today** is the first line; the second
+is what it becomes once the release carrying this code is deployed:
 
 ```
-30 21 * * *   php /home/u951246149/domains/provatferi.org/laravel-admin/artisan backup:run
+30 21 * * *   php /home/u951246149/_bk_run.php run                                            <- scheduled now
+30 21 * * *   php /home/u951246149/domains/provatferi.org/laravel-admin/artisan backup:run     <- after deployment
 ```
 
 21:30 UTC is **03:30 Asia/Dhaka**. It is deliberately far from the other permanent job (`membership:generate-dues`,
 18:05 UTC = 00:05 Dhaka) so the two never contend.
+
+> ### Read this before trusting any `php artisan backup:*` line in this document
+>
+> **The release carrying the backup code is not deployed.** It was built and passed every gate, but this host's only
+> upload channel needs hPanel File Manager credentials and the hosting API has no file-upload operation at all — so
+> the artifact could not be put on the server. The alternative that was *not* taken was hand-copying files into the
+> live Laravel tree; that is precisely how a broken release shipped on 2026-09-09, and the release pipeline exists to
+> prevent it.
+>
+> Instead the **identical committed code** runs from a pinned checkout **outside** the live application:
+> `deploy/qa/backup-standalone.php` (on the server as `/home/u951246149/_bk_run.php`) boots the live application — so
+> the database credentials, the paths and the mail identity are the real ones — then loads the backup classes and
+> `config/backup.php` from `/home/u951246149/_bk_src` and runs them. It writes nothing into the live application
+> directory and takes the same lock the deployed command would, so the two can never run over each other.
+>
+> **Until the release is deployed, read every `php artisan backup:<x>` in this document as
+> `php /home/u951246149/_bk_run.php <x>`.** The standalone script supports `run`, `status`, `consistency` and `where`.
+> It does **not** carry `backup:restore-file` or `backup:config-open`; for a restore before deployment, see runbook A
+> (plain `gunzip`/`mysql`) and runbook C step 3 (plain `tar -xzf`), both of which need nothing but the set on disk —
+> which is the point of keeping the artifacts in ordinary `.sql.gz` and `.tar.gz` form.
+>
+> **After the release is deployed:** change the cron to the second line above, update
+> `deploy/qa/cron-known.json` (its entry for `7X9qOg2fnN` spells out this exact edit), and delete `_bk_src`,
+> `_bk_run.php`, `_bk_trees.php` and `_bk.tgz`.
 
 Overlap is handled in the application, not by the schedule: an exclusive lock means a second run exits without
 touching anything, and a lock held longer than two hours is treated as a hung backup and reported as a failure rather
@@ -397,6 +423,40 @@ missing. The configured private root was nevertheless widened from `app/private/
 `.gitignore` added to the exclusions, so the set still holds exactly those 23 files but can no longer go out of date
 if a later feature stores private files beside `uploads/` — the same silent-omission failure the public tree had
 already demonstrated. Its archive members now begin `uploads/`, which runbooks B and C reflect.
+
+### The first unattended run
+
+Everything above was triggered by hand. The scheduled job then fired on its own at **2026-11-01 21:30:02 UTC**
+(03:30 Asia/Dhaka) with nobody watching, and that is the run that matters:
+
+| | Result |
+|---|---|
+| Set | `20261101T213002Z`, `ok: true`, **20,276,797 bytes in 0.66 s** |
+| Verification | **ok over 11 artifacts**, no problems |
+| Databases | ERP 61 tables, CMS 19, Archive 29 — all `ok` |
+| File sets | all four `reused: true` — the trees had not changed, so the archives were taken from the previous set |
+| Retention | kept `20261101T213002Z`, `20261101T190702Z`, `20261101T153102Z`; pruned nothing; `refused: null` |
+| Warning carried forward | the configuration bundle, still skipped for want of a key |
+
+The `reused: true` on every set is worth noting: archive reuse is the one place that wanted a hard link, and on this
+host `link()` does not exist, so this run is also the unattended proof that the copy fallback works — the same code
+path whose missing guard had killed an earlier run.
+
+### After the private root was widened, 2026-11-02
+
+The pinned checkout was moved to the commit carrying the change, so what runs nightly matches the repository, and a
+run was taken to prove it (`20261102T064001Z`, `ok: true`, 20,277,043 bytes in 1.41 s, verification **ok over 11
+artifacts**):
+
+- the private set is now rooted at `.../storage/app/private` and still holds **exactly 23 files** — the widening
+  added coverage, not content;
+- the public set went from 20 files / 6,706,813 bytes to **19 / 6,706,799** — a difference of one file and **14
+  bytes**, which is that tree's own copy of the same 14-byte `.gitignore` the new exclusion drops. Both numbers
+  reconcile to the byte; nothing uploaded was lost;
+- `backup:status` then reported **4 sets**, the newest three verified at 11 artifacts each, 120,734,103 bytes on
+  disk, and `last_failure` still naming the historic `Call to undefined function …link()` while `last_success` points
+  at the latest run — the state file advances a success only on a success, which is what makes a stale backup
+  detectable rather than merely invisible.
 | Permissions | root and subdirectories `drwx------`, every artifact `-rw-------` |
 | HTTP reachability | every backup path returns **404**; an encoded traversal returns 400. Checked over real HTTPS against both domains, for the directory, `state.json`, a dump and an archive |
 | File consistency on real data | **42 references across 15 columns, 0 missing live, 0 missing from the backup**, 1 unreferenced file |
@@ -490,6 +550,10 @@ two trees (≈ 18,700 inodes and ≈ 310 MB) now costs nothing but the owner's c
    apparent-size figure, not an allocated-size one.
 6. Beyond roughly 5 GB of uploads, one archive per tree per set stops being the right shape; that is the same
    threshold at which the architecture audit says to move uploads to object storage.
+7. **The release is not deployed, so the nightly job runs from a pinned checkout outside the live tree** (section 4).
+   Real, verified backups exist and the schedule works, but two things do not hold until the release ships: the
+   `backup:restore-file` and `backup:config-open` commands are not available on the server, and the code that runs is
+   pinned to one commit rather than following the deployed application. Deploying the release is an owner action.
 
 ---
 
@@ -510,6 +574,10 @@ two trees (≈ 18,700 inodes and ≈ 310 MB) now costs nothing but the owner's c
 5. **Add an external monitor** that calls `backup:status` (or simply watches the site) — the dead-man's switch that
    cannot live on the same server.
 6. Record the Node applications' environment variables somewhere safe (Limitations item 4).
+7. **Supply an upload channel so the release can be deployed** (hPanel File Manager credentials for
+   `deploy/upload-release.mjs`), then deploy it, switch the cron to `php artisan backup:run` and delete the interim
+   checkout — see the box in section 4. Until then the restore commands are not on the server and the running code is
+   pinned to one commit.
 
 ---
 
@@ -525,6 +593,7 @@ two trees (≈ 18,700 inodes and ≈ 310 MB) now costs nothing but the owner's c
 | `BackupRunTest` | a verified set with a manifest, the private root and its HTTP denial, **no credential in the manifest/state/index**, a failing dump recorded as a failure, overlap, a stuck lock reported as a failure, abandoned `.tmp-` sweeping, archive reuse, the failure e-mail and its Reply-To |
 | `PhpSqlDumperTest` | the dump path production runs: integrity, a GENERATED column never named in an INSERT, Bengali text verbatim, binary as hex, the FOREIGN_KEY_CHECKS wrapper, no credential anywhere, and a failure reported rather than a half dump |
 | `BackupConsistencyAndRestoreTest` | a row whose file is missing (without naming the file), a file missing from the backup, removed columns skipped, and the restore commands' refusals |
+| `BackupHostConstraintsTest` | that no backup source calls a function in **production's real `disable_functions`** without a `function_exists()` guard, that the default dumper needs no external process, and that opting into `mysqldump` where `proc_open` is missing falls back instead of raising. This is the test that exists because two production runs died on functions this laptop has — see "What this host does not allow" |
 
 The database dump is stubbed in the ORCHESTRATION tests on purpose (PhpSqlDumperTest covers the dump itself) — whether a dump restores is proven by running
 it, and whether a backup restores is proven by the drill, which no mock can replace.
