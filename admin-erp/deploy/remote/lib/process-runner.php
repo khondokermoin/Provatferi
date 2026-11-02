@@ -18,10 +18,31 @@
  * there is no two-pipe deadlock to get wrong and no reliance on stream_select (which does not work on pipes on
  * Windows, where this code is developed and unit-tested).
  *
+ * WHY THE FORK BACKEND GOES THROUGH /bin/sh, WHICH IS NOT WHAT ANYONE WANTS. Measured on the server
+ * (deploy/qa/fork-exec-probe.php, 2026-11-02), because the first version of this file did NOT use a shell and did
+ * not work:
+ *
+ *   child closes fd 1/2, opens files, execs            -> exit 255, both files empty
+ *   same, but the child writes a marker before exec     -> the MARKER IS THERE, the program's output is not
+ *   exec with no redirect at all                        -> runs fine, output lands on the inherited descriptor
+ *   /bin/sh opens the files itself after the fork       -> works
+ *
+ * The second line is the proof: the redirection succeeded and the descriptors were lost AT execve. PHP opens file
+ * streams close-on-exec on this build, so an exec'd program inherits no stdout and no stderr — which is why it died
+ * at startup with nothing to say. PHP exposes no dup2 and no way to clear that flag, so the files must be opened by
+ * something that is not PHP, after the fork. That is a shell, and only a shell.
+ *
+ * It is therefore made safe rather than avoided: EVERY argv element and both paths go through escapeshellarg(),
+ * which single-quotes each one, and single quotes stop the shell interpreting anything at all — no expansion, no
+ * substitution, no globbing, no word splitting. One argument in, one argument out, whatever bytes it holds. The
+ * `exec` builtin then replaces the shell with the real program, so the pid being waited on and signalled is the
+ * program itself and not a shell wrapper around it. The hostile-argument tests in
+ * tests/Feature/Deploy/ProcessRunnerTest.php and in this file's own `selftest` are what keep that honest.
+ *
  * WHAT IT REFUSES TO DO:
- *   - no shell. Ever. The command is an argv array and stays one: proc_open is given the array form and
- *     pcntl_exec takes the arguments separately, so a path containing a space, a quote or a semicolon is one
- *     argument and never a second command. Nothing is passed through `sh -c`;
+ *   - no shell INTERPOLATION, and no shell at all where one is avoidable: proc_open is given the array form, so
+ *     that backend never involves a shell, and the fork backend quotes every byte it hands over. A path containing
+ *     a space, a quote or a semicolon is one argument and never a second command;
  *   - no silent success. A backend that cannot start, a binary that is not there, a timeout and a child killed by a
  *     signal are each a distinct, reported failure — never exit code 0;
  *   - no secrets in diagnostics. Callers pass the literals that must never be echoed, and every string this returns
@@ -71,7 +92,14 @@ if (! function_exists('pfForkExecAvailable')) {
         }
 
         // WNOHANG is what makes the wait loop pollable, and therefore what makes a timeout possible at all.
-        return defined('WNOHANG') && defined('SIGTERM') && defined('SIGKILL');
+        if (! defined('WNOHANG') || ! defined('SIGTERM') || ! defined('SIGKILL')) {
+            return false;
+        }
+
+        // /bin/sh is required, not optional: it is what opens the output files after the fork, because a file this
+        // process opened does not survive execve on this host (see the header). escapeshellarg must exist for that
+        // hand-off to be safe, and a host without it is a host this backend must refuse to use.
+        return is_file('/bin/sh') && is_executable('/bin/sh') && function_exists('escapeshellarg');
     }
 }
 
@@ -323,25 +351,30 @@ if (! function_exists('pfRunViaForkExec')) {
 
         if ($pid === 0) {
             // ---------------------------------------------------------------- child
-            // Closing a standard descriptor and immediately opening a file puts that file on the freed number,
-            // because the kernel hands out the lowest free descriptor — which is how stdout and stderr are
-            // redirected without dup2(), and the streams survive exec because PHP does not set close-on-exec.
-            // Nothing here may report an error: by design there is nowhere left to report it to.
-            fclose(STDIN);
-            $in = @fopen(PHP_OS_FAMILY === 'Windows' ? 'nul' : '/dev/null', 'rb');
-            fclose(STDOUT);
-            $out = @fopen($outPath, 'wb');
-            fclose(STDERR);
-            $err = @fopen($errPath, 'wb');
-            unset($in, $out, $err);
+            // Nothing here may report an error: stdout and stderr are about to belong to the program being started,
+            // so there is nowhere left to report one to. The parent interprets the exit status instead.
+            //
+            // The shell opens the two files AFTER the fork, which is the whole point — a file this process opened
+            // would be closed by execve (see the header). Every element is single-quoted by escapeshellarg, so the
+            // shell splits the command exactly where the argv array said and interprets nothing inside any
+            // argument. `exec` makes the shell become the program, so the pid the parent waits on and signals is
+            // the program's own.
+            $quoted = [];
+            foreach ($command as $argument) {
+                $quoted[] = escapeshellarg($argument);
+            }
+            $script = 'exec '.implode(' ', $quoted)
+                .' < /dev/null'
+                .' > '.escapeshellarg($outPath)
+                .' 2> '.escapeshellarg($errPath);
 
             if ($cwd !== null) {
                 @chdir($cwd);
             }
 
-            // Only returns if exec failed; 127 is the conventional "could not run it", and the parent has already
-            // ruled out the common cause (a missing or non-executable binary) before forking.
-            @pcntl_exec($command[0], array_values(array_slice($command, 1)));
+            // Only returns if exec itself failed; 127 is the conventional "could not run it", and the parent has
+            // already ruled out the common cause (a missing or non-executable binary) before forking.
+            @pcntl_exec('/bin/sh', ['-c', $script]);
             exit(127);
         }
 
