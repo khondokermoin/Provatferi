@@ -532,6 +532,10 @@ artifacts**):
   disk, and `last_failure` still naming the historic `Call to undefined function …link()` while `last_success` points
   at the latest run — the state file advances a success only on a success, which is what makes a stale backup
   detectable rather than merely invisible.
+### Also measured on production
+
+| | Result |
+|---|---|
 | Permissions | root and subdirectories `drwx------`, every artifact `-rw-------` |
 | HTTP reachability | every backup path returns **404**; an encoded traversal returns 400. Checked over real HTTPS against both domains, for the directory, `state.json`, a dump and an archive |
 | File consistency on real data | **42 references across 15 columns, 0 missing live, 0 missing from the backup**, 1 unreferenced file |
@@ -539,6 +543,8 @@ artifacts**):
 The failure path was exercised for real too, twice, before the run succeeded (§"What this host does not allow"): each
 failure was recorded in `state.json` with its reason, `last_success` was left untouched, and the partially written set
 was removed rather than published — which is exactly what the atomic-rename design is for.
+
+---
 
 ## 14. Retained release trees
 
