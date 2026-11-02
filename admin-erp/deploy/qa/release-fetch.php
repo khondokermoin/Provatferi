@@ -26,6 +26,18 @@ if (PHP_SAPI !== 'cli') {
 ini_set('display_errors', 'stderr');
 
 const STAGING_ROOT = '/home/u951246149/domains/provatferi.org/public_html/admin/_release_staging';
+/*
+ * The artifact is published on a TEMPORARY ref, one per release, and that ref is deleted as soon as `stage` has
+ * accepted the files — so this URL is live only during a deploy and 404s the rest of the time, which is the intended
+ * state. To deploy another release: build it, publish its three files on a new `deploy-artifact-<short-sha>` ref
+ * (`git hash-object` + `git mktree` + `git commit-tree` + `git push <commit>:refs/heads/<ref>` keeps the working tree
+ * and the index untouched), point this constant at it, then delete the ref afterwards.
+ *
+ * Only the artifact travels this way, and only because it has to: the tars hold the committed application tree and
+ * the built public assets, both of which are already public — the source in this very repository, the assets served
+ * from admin.provatferi.org. Nothing private is published, and `.env` is excluded from the artifact by
+ * build-release.sh, which fails the build if it finds one.
+ */
 const SOURCE_BASE = 'https://raw.githubusercontent.com/khondokermoin/Provatferi/deploy-artifact-640251211cbc';
 const MEMBERS = ['manifest.json', 'private.tar', 'public-assets.tar'];
 
