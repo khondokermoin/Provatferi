@@ -157,11 +157,30 @@ is what it becomes once the release carrying this code is deployed:
 
 > ### Read this before trusting any `php artisan backup:*` line in this document
 >
-> **The release carrying the backup code is not deployed.** It was built and passed every gate, but this host's only
-> upload channel needs hPanel File Manager credentials and the hosting API has no file-upload operation at all — so
-> the artifact could not be put on the server. The alternative that was *not* taken was hand-copying files into the
-> live Laravel tree; that is precisely how a broken release shipped on 2026-09-09, and the release pipeline exists to
-> prevent it.
+> **The release carrying the backup code is built, staged and verified on production, but not switched.** The
+> transport problem is solved: `deploy/qa/release-fetch.php` pulls the artifact over HTTPS straight into
+> `_release_staging/`, and on 2026-11-02 `stage` accepted it with both tars matching the manifest's sha256 exactly —
+> so the bytes serving production would be the bytes that were tested. The alternative that was *not* taken was
+> hand-copying files into the live Laravel tree; that is precisely how a broken release shipped on 2026-09-09, and the
+> release pipeline exists to prevent it.
+>
+> What blocks the switch is **not** this project: the host has added `proc_open` to `disable_functions` since the
+> deploy tooling was written (`deploy/README.md`, "Why this is built the way it is", has the measurements). `build`
+> and `contract-check` spawn composer and the contract script through it, so neither can record a pass, and `switch`
+> correctly refuses a release whose `build` and `contract_check` gates are unrecorded. Those entries were **not**
+> written by hand.
+>
+> Everything that could be verified about the staged release was, by running each step that still works:
+>
+> | Gate | Result on the staged release |
+> |---|---|
+> | `stage` | **ok** — checksums matched, live `.env` copied in, 23 private uploads snapshotted |
+> | `build` | **cannot run** — composer installs all 98 packages and writes the optimised autoloader, then its own `@php artisan package:discover` dies on `proc_open`, so composer exits non-zero |
+> | `contract-check` | **cannot record**, but the check itself was run directly and **passes**: 44 keys, 0 missing |
+> | `migrate-check` | **ok** — *Nothing to migrate*; this release carries no migration |
+> | `smoke-test-isolated` | **ok** — all views compile, the reset view renders, mail identity resolves, the PDF engine runs, uploads readable, `app_debug` false |
+>
+> So the release boots and behaves; the gap is bookkeeping that the host broke, not a defect in the release.
 >
 > Instead the **identical committed code** runs from a pinned checkout **outside** the live application:
 > `deploy/qa/backup-standalone.php` (on the server as `/home/u951246149/_bk_run.php`) boots the live application — so
@@ -684,10 +703,20 @@ whatever is decided about the trees themselves.
 5. **Add an external monitor** that calls `backup:status` (or simply watches the site) — the dead-man's switch that
    cannot live on the same server.
 6. Record the Node applications' environment variables somewhere safe (Limitations item 4).
-7. **Supply an upload channel so the release can be deployed** (hPanel File Manager credentials for
-   `deploy/upload-release.mjs`), then deploy it, switch the cron to `php artisan backup:run` and delete the interim
-   checkout — see the box in section 4. Until then the restore commands are not on the server and the running code is
-   pinned to one commit.
+7. **Get `proc_open` restored, then finish the switch.** The release is already staged and verified on production
+   (section 4); the only thing missing is that `build` and `contract-check` cannot run while the host blocks
+   `proc_open`. Two routes, cheapest first:
+   - **ask Hostinger support to restore `proc_open`** for this account. It is the standard way composer installs
+     dependencies — their own documented workflow depends on it — and this needs no code change at all;
+   - if they decline, `runProcess()` in `deploy/remote/release-manager.php` needs a `pcntl_fork` + `pcntl_exec`
+     fallback (both are still available), `build` needs `--no-scripts`, and `package:discover` has to be run as its
+     own step. That is a focused change to the deploy tooling and deserves its own task, with the sandbox test in
+     `tests/Feature/Deploy/` extended to cover it.
+
+   Once `build` and `contract_check` record a pass: `switch`, then `smoke-test-live`, then change cron `7X9qOg2fnN` to
+   `php /home/u951246149/domains/provatferi.org/laravel-admin/artisan backup:run` and delete `_bk_src` and
+   `_bk_run.php`. Until then the restore commands are not on the server and the nightly backup runs the pinned
+   checkout — which works, and is backing up production every night.
 
 ---
 
