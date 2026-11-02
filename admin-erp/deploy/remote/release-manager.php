@@ -63,6 +63,19 @@
 error_reporting(E_ALL);
 ini_set('display_errors', '0'); // never leak a stack trace into any output path
 
+// CLI ONLY. Added 2026-11-02.
+//
+// `install` works by being run from public_html/admin/ and relocating itself out of there, so for the length of an
+// update this file — which can stage, switch and roll back releases — sits inside a document root and is reachable
+// over HTTP. Actions come from $argv, and under a CGI-style SAPI with register_argc_argv enabled a query string
+// with no "=" in it becomes $argv: `?switch+<releaseId>` is then a real argument list. That is not a risk worth
+// carrying for the convenience of the install step, so anything that is not the command line gets a 404 and
+// nothing else.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+
 $action = $argv[1] ?? null;
 $arg2 = $argv[2] ?? null;
 
