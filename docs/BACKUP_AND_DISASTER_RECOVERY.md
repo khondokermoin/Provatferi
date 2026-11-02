@@ -235,6 +235,31 @@ exactly the moment it was needed.
 
 **When the key is absent the bundle is skipped and the run says so.** It is never written unencrypted instead.
 
+### How the key was set, and the one thing the owner must still do
+
+The key was generated **on the server**, on 2026-11-02 at 10:05 UTC, by `deploy/qa/env-key-set.php` — written straight
+into the live `.env` and never passed through a command line, a cron argument, a log or a report. That script is
+idempotent: it refuses to replace an existing key, because replacing it would make every configuration bundle already
+held in a backup set undecryptable. It copied `.env` to a `0600` sibling first and would have restored it had the
+write failed. `.env` went from 1,327 to 1,394 bytes; the key is 44 characters (base64 of 32 random bytes) with digest
+`520f8354 0965` — presence, length and digest are the only things ever reported about it.
+
+> **Owner action, and the reason it cannot be skipped.** Right now the key exists in exactly one place: the server's
+> `.env`. If the hosting account is lost, the key is lost with it — and every `config.vault` becomes undecryptable at
+> precisely the moment it is needed. **Read the `BACKUP_ENCRYPTION_KEY` line once from
+> `laravel-admin/.env` via hPanel's File Manager, put it in your password manager, and keep it off this server and out
+> of the backup export folder.** Then delete the `.env.backup-20261102T100501Z` file beside it. Never send the value
+> by e-mail or chat.
+
+**A trap worth knowing, because it looked like a bug.** After the key was added and `config:cache` was run, the next
+backup *still* reported the bundle as skipped. The cause is Laravel, not the backup code: once a configuration cache
+exists, the framework does not load `.env` at all, so a bare `env()` call returns null. The interim runner
+(see section 4) `require`d `config/backup.php` at runtime, after boot — so its `env('BACKUP_ENCRYPTION_KEY')` could
+never see a value, no matter what the file said. In the deployed application the same line is evaluated *while*
+`config:cache` compiles the configuration, when `.env` is loaded, so the key is baked into the cache and the vault
+works. The rule this is an instance of: `env()` is only reliable inside a config file at cache-build time — anywhere
+else, read `config()`.
+
 ---
 
 ## 8. Where the backups are, and the part that is not solved
@@ -254,9 +279,59 @@ It does **not** protect against losing the hosting account.
   neither a `.sql.gz`, nor a `.tar.gz`, nor the vault, nor anything in the backup root;
 - the account has no outbound credential for any object store, and this task did not purchase one.
 
-So the off-host copy needs **one owner decision** (see "Owner actions"). The mechanism is prepared:
+So an *automated* off-host copy needs **one owner decision** (see "Owner actions"). The mechanism is prepared:
 `config/backup.php` has an `offhost` section, and `backup:status` reports `NOT CONFIGURED` until it is filled in, so
 the gap is visible every time anyone looks rather than being forgotten.
+
+### The weekly manual export — the minimum that closes the gap today
+
+Until an automated destination exists, this is the procedure, and it needs no new software, no purchase and no third
+party. It takes about five minutes a week. **Nothing is uploaded anywhere by this project**: the owner moves the
+bytes, to storage the owner chooses.
+
+1. **Verify before exporting.** Never export a set that has not been checked:
+
+   ```
+   php artisan backup:status --verify
+   ```
+
+   Read two things: `newest_set`, and that its `verification` is `ok` with `problems: []`. If it is not ok, export the
+   newest set that *is* — exporting a corrupt set is worse than exporting nothing, because it looks like protection.
+
+2. **Take the newest verified set only.** In hPanel → File Manager, open
+   `/home/u951246149/backups/sets/<newest_set>` and download the whole folder. That folder is the complete, restorable
+   unit and nothing else needs to come with it:
+
+   | In the folder | What it is |
+   |---|---|
+   | `db-erp.sql.gz`, `db-cms.sql.gz`, `db-archive.sql.gz` | the three databases |
+   | `files-*.tar.gz` | the upload trees |
+   | `files-*.index.json` | per-file sizes and sha256, so a single file can be checked without unpacking |
+   | `config.vault` | the configuration bundle — **encrypted**, useless without the key |
+   | `manifest.json` | what the set contains, each artifact's sha256, and the commit that was live |
+
+   Do **not** export `state.json`, other sets, or the `recovery/` tree: one verified set is the requirement.
+
+3. **There is no plaintext secret in what you just downloaded.** `.env` and both `wp-config.php` exist only inside
+   `config.vault`, which is AES-256-GCM. That is the reason the export is safe to keep on an ordinary laptop or
+   consumer cloud drive. It is also why the key must live **somewhere else** than the export — a bundle and its key in
+   the same folder is a plaintext secret with extra steps.
+
+4. **Prove the copy arrived intact**, off the server, before trusting it. On the downloaded folder:
+
+   ```
+   sha256sum -c <(php -r '$m=json_decode(file_get_contents("manifest.json"),true);
+     foreach($m["artifacts"] as $f=>$a){ if(isset($a["sha256"])) echo $a["sha256"]."  ".$f."\n"; }')
+   ```
+
+   Every line must say `OK`. A download that silently truncated is the failure this step exists to catch.
+
+5. **Keep four weekly copies**, then delete the oldest — the same shape as the on-server weekly bucket, so a mistake
+   discovered a month later is still recoverable. Keep them on a device or account that is **not** Hostinger and not
+   the same machine as the only copy of the encryption key.
+
+Recording the date of each export somewhere durable matters more than it sounds: the restore drill in "Disaster
+scenarios" assumes you know how old the off-host copy is.
 
 ---
 
@@ -559,17 +634,32 @@ two trees (≈ 18,700 inodes and ≈ 310 MB) now costs nothing but the owner's c
 
 ## 17. Owner actions
 
-1. **Decide the off-host destination** (the most important one). Any of these works, cheapest first:
+1. **Do the weekly off-host export** (section 8, "The weekly manual export") — five minutes, no purchase, and it is
+   what turns an unbounded loss into a one-week one. If you would rather automate it, decide a destination; any of
+   these works, cheapest first:
    - an S3-compatible bucket (Backblaze B2, Cloudflare R2, Wasabi) — give the ERP a key with write-only access to one
      bucket, set `BACKUP_OFFHOST_DRIVER`/`BACKUP_OFFHOST_TARGET`, and the nightly run can push each set;
    - an rclone target on a machine you control;
    - **manual, and free**: download `/home/u951246149/backups/sets/<newest>/` through hPanel's File Manager once a
      week and keep it somewhere else. Unglamorous, but it converts an unbounded RPO into a one-week one.
-2. **Generate and store the encryption key.** On your own machine: `openssl rand -base64 32`. Put it in your password
-   manager **first**, then add it to the server's `.env` as `BACKUP_ENCRYPTION_KEY=…` through hPanel's File Manager.
-   Until then the configuration bundle is skipped and `backup:status` says so. Never send it by e-mail or chat.
-3. **Verify Hostinger's own backups in hPanel**: frequency, retention, and whether a single database or a single file
-   can be restored. Everything in "Limitations" item 2 depends on this.
+2. **Copy the encryption key off the server** (it is already set — see section 7). Read the `BACKUP_ENCRYPTION_KEY`
+   line once from `laravel-admin/.env` via hPanel's File Manager, store it in your password manager, then delete
+   `.env.backup-20261102T100501Z`. Keep it out of the weekly export folder. Never send it by e-mail or chat.
+3. **Verify Hostinger's own backups in hPanel** — this cannot be read programmatically (the API exposes no backup
+   endpoint of any kind), so it stays **owner-verification-required** until you look. In hPanel → Files → Backups,
+   write down exactly six things and nothing less:
+
+   | Check | Why it matters |
+   |---|---|
+   | **frequency** (daily? weekly?) | sets the worst-case loss if our own backup is also gone |
+   | **retention** (how many are kept, how far back) | whether a problem found late is still recoverable |
+   | **files included** — and whether that covers `laravel-admin/` and `storage/app/private`, not just `public_html` | the private uploads are the irreplaceable part, and they live outside the document root |
+   | **databases included** — all three, or only some | `admin_erp`, `cms`, `archive` are separate databases |
+   | **restore granularity** — whole account only, or one database / one file | a whole-account rollback to fix one deleted CV would undo everything else since |
+   | **date of the latest successful backup** | an enabled feature that last succeeded weeks ago is not a backup |
+
+   Treat it as a *second* line of defence, not the first: it is Hostinger's, on Hostinger's infrastructure, and its
+   behaviour here is unverified. Nothing in this system depends on it.
 4. **Confirm the retained-release-tree findings** in the task report, so ~18,700 inodes and ~310 MB can be released.
 5. **Add an external monitor** that calls `backup:status` (or simply watches the site) — the dead-man's switch that
    cannot live on the same server.
