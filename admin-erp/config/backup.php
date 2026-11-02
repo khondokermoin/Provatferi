@@ -90,9 +90,17 @@ return [
      * controller (web) or a LARAVEL_PUBLIC_PATH environment variable (CLI). A console command therefore cannot rely
      * on public_path() — the first production backup resolved it to `laravel-admin/public`, which does not exist, and
      * silently recorded the public media as absent. The explicit path cannot drift that way.
+     *
+     * NOTE on the private tree: the root is the WHOLE private disk, not `app/private/uploads`. Every private file
+     * written today does live under `uploads/`, and the narrower path was what the first production backups used — a
+     * count of the live tree then showed 24 private files against the 23 the backup held, the difference being
+     * `app/private/.gitignore`. Nothing was at risk, but the lesson from the public tree above is that a path chosen
+     * to match today's writers goes silently out of date: a later feature storing private files beside `uploads/`
+     * would be omitted and the run would still report success. The disk root cannot drift that way. The excluded
+     * names below keep the scaffolding out.
      */
     'file_sets' => [
-        'erp-private-uploads' => storage_path('app/private/uploads'),
+        'erp-private-uploads' => storage_path('app/private'),
         'erp-public-uploads' => env('BACKUP_ERP_PUBLIC_UPLOADS', dirname(base_path()).'/public_html/admin/storage'),
         'cms-uploads' => dirname(base_path()).'/public_html/cms/wp-content/uploads',
         'archive-uploads' => dirname(base_path()).'/public_html/archive/wp-content/uploads',
@@ -105,6 +113,8 @@ return [
     'exclude' => [
         'node_modules', 'vendor', '.git', '.cache', 'cache', '_deploy_sentinel',
         '.DS_Store', 'Thumbs.db', '.well-known',
+        // Laravel's own scaffolding inside the storage disks: it comes back with the code, not with the data.
+        '.gitignore',
     ],
 
     /*

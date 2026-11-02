@@ -281,7 +281,7 @@ database you point `mysql` at, which is what makes the scratch-first step easy.
 php artisan backup:restore-file --label=erp-private-uploads --list=applications/cv   # find it
 php artisan backup:restore-file \
     --label=erp-private-uploads \
-    --path=applications/cv/<uuid>.pdf \
+    --path=uploads/applications/cv/<uuid>.pdf \
     --to=/home/u951246149/restore-scratch
 # the command verifies the restored bytes against the set's index, then:
 cp /home/u951246149/restore-scratch/<uuid>.pdf \
@@ -295,8 +295,8 @@ It never writes into the live tree itself, and it refuses a destination inside a
 1. **Configuration** — `php artisan backup:config-open --to=/home/u951246149/restore-scratch/config`, then put
    `.env` back. (Needs `BACKUP_ENCRYPTION_KEY`.)
 2. **Code** — deploy the commit the manifest names (`app.commit`) through the normal release pipeline.
-3. **Files** — `tar -xzf $SET/files-erp-private-uploads.tar.gz -C .../storage/app/private/uploads`, then the public
-   tree into `public_html/admin/storage`.
+3. **Files** — `tar -xzf $SET/files-erp-private-uploads.tar.gz -C .../storage/app/private` (the archive is rooted at
+   the private disk, so its members begin `uploads/`), then the public tree into `public_html/admin/storage`.
 4. **Database** — runbook A.
 5. **Permissions** — private uploads `0600`/`0700`; the public upload tree readable by the web server.
 6. **Caches** — `php artisan config:cache`, `view:cache`, `route:cache`.
@@ -388,6 +388,15 @@ The first real backups, taken on production:
 | Configuration bundle | **skipped** — `BACKUP_ENCRYPTION_KEY` is not set, and the run says so rather than writing it in the clear |
 | Whole set | **20,276,456 bytes in 0.77 s**, verification ok over 11 artifacts |
 | Two sets on disk | 33,962,998 bytes — about the sum of both, confirming there is no hard-link dedupe on this host |
+
+One number in that run did not add up and was chased rather than rounded off: the retired-tree audit counted **24**
+files in the live private tree while the backup held **23**. A listing of
+`storage/app` and `storage/app/private` settled it — the extra file is Laravel's own 14-byte
+`storage/app/private/.gitignore`, which comes back with the code and is not data. No member or applicant file was
+missing. The configured private root was nevertheless widened from `app/private/uploads` to `app/private`, and
+`.gitignore` added to the exclusions, so the set still holds exactly those 23 files but can no longer go out of date
+if a later feature stores private files beside `uploads/` — the same silent-omission failure the public tree had
+already demonstrated. Its archive members now begin `uploads/`, which runbooks B and C reflect.
 | Permissions | root and subdirectories `drwx------`, every artifact `-rw-------` |
 | HTTP reachability | every backup path returns **404**; an encoded traversal returns 400. Checked over real HTTPS against both domains, for the directory, `state.json`, a dump and an archive |
 | File consistency on real data | **42 references across 15 columns, 0 missing live, 0 missing from the backup**, 1 unreferenced file |

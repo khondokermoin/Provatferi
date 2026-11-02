@@ -14,9 +14,12 @@ use Throwable;
  * This is the common incident — a single applicant's document deleted or overwritten — and doing it by hand means
  * decompressing a whole archive next to production, which is how a recovery turns into a second incident.
  *
- *   php artisan backup:restore-file --label=erp-private-uploads --path=applications/cv/<uuid>.pdf --to=/home/<user>/restore
+ *   php artisan backup:restore-file --label=erp-private-uploads --path=uploads/applications/cv/<uuid>.pdf --to=/home/<user>/restore
  *   php artisan backup:restore-file --label=… --path=… --to=… --set=20261101T213000Z
- *   php artisan backup:restore-file --label=… --list=applications      # what the set holds under a prefix
+ *   php artisan backup:restore-file --label=… --list=uploads/applications      # what the set holds under a prefix
+ *
+ * `--path` is relative to the tree's own root, which for the private set is the private disk — so its members begin
+ * `uploads/`. Use `--list` rather than guessing; it prints the names exactly as the archive stores them.
  *
  * It never writes into the live tree: it writes to a directory you name, and you put the file back deliberately. It
  * refuses a path that is not a plain relative name, and refuses to overwrite without `--force`.
