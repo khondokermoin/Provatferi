@@ -25,6 +25,44 @@ them:
   component uses `proc_open` directly rather than the disabled shell
   wrappers, which is why `composer install` can run here at all despite
   `exec` being off.
+
+  > **NO LONGER TRUE as of 2026-11-02 — this breaks `build`, `contract-check`
+  > and `pipeline`.** The host has since added `proc_open` to
+  > `disable_functions`. Measured on the server that day, from cron, with
+  > `display_errors=1` forced so the failure is not silent:
+  >
+  > ```
+  > /opt/alt/php83/usr/bin/php   proc_open=0     (both `php` and `/usr/bin/php`
+  >                                              resolve to this same binary)
+  > Fatal error: Uncaught Error: Call to undefined function proc_open()
+  > ```
+  >
+  > Consequences, confirmed by running each step on its own:
+  >
+  > | Step | Spawns a process? | State |
+  > |---|---|---|
+  > | `stage` | no — `PharData` | **works** (verified 2026-11-02) |
+  > | `build` | yes — `composer.phar` via `runProcess()` | **fatals** |
+  > | `contract-check` | yes — `config-contract.php` via `runProcess()` | **fatals** |
+  > | `migrate-check` | no — Artisan in-process | works |
+  > | `smoke-test-isolated` | no — `bootApp()` in-process | works |
+  > | `switch`, `smoke-test-live`, `rollback`, `housekeeping` | no | work |
+  > | `pipeline` | yes — re-invokes itself per step | **fatals before `stage`** |
+  >
+  > **A `pipeline` failure here is SILENT**: `display_errors` is off by default
+  > on this host, so the fatal produces no output at all and the cron log is
+  > empty. An empty `pipeline` log means "it died", not "it is still running".
+  > Always pass `-d display_errors=1` to these crons.
+  >
+  > The fix is small and does not change any gate's meaning: `runProcess()`
+  > needs a fallback that does not use `proc_open`. **`pcntl_fork` and
+  > `pcntl_exec` are both still available** (they are absent from
+  > `disable_functions`), so a fork + exec + `pcntl_waitpid` gives a real child
+  > process and a real exit status, with output captured by exec'ing
+  > `/bin/sh -c 'cmd > out 2> err'` (executing `/bin/sh` is not a PHP function
+  > and is not blocked). Until that is done, a release can be staged but **not
+  > built**, and `switch` will correctly refuse because `build` and
+  > `contract_check` never recorded a pass in `status.json`.
 - **`rename()`** on a directory is a real, atomic filesystem operation
   (measured ~0.4ms for a directory swap) — this is what makes the release
   switch atomic without symlinks, which are also confirmed disabled.
