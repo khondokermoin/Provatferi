@@ -9,7 +9,7 @@
     "7X9qOg2fnN": {
       "time": "30 21 * * *",
       "command": "php /home/u951246149/_bk_run.php run",
-      "what": "nightly backup at 03:30 Asia/Dhaka (docs/BACKUP_AND_DISASTER_RECOVERY.md). INTERIM COMMAND: it runs the committed backup code from the pinned checkout under /home/u951246149/_bk_src because release a074ddd could not be uploaded (the release uploader needs hPanel File Manager credentials and the hosting API has no upload operation). Once that release is deployed, change this to `php /home/u951246149/domains/provatferi.org/laravel-admin/artisan backup:run` and delete _bk_src, _bk_run.php and _bk.tgz."
+      "what": "nightly backup at 03:30 Asia/Dhaka (docs/BACKUP_AND_DISASTER_RECOVERY.md). INTERIM COMMAND: it runs the committed backup code from the pinned checkout under /home/u951246149/_bk_src, currently at commit 8bf5236. Release 640251211cbc-2026-11-0209561 (commit 6402512) is BUILT, STAGED AND VERIFIED on the server as of 2026-11-02 11:31 UTC, but could not be switched: the host has added proc_open to disable_functions, so release-manager's `build` and `contract-check` steps cannot run and `switch` rightly refuses a release whose gates are unrecorded (see deploy/README.md, 'Why this is built the way it is'). Once proc_open is restored (or runProcess gains a pcntl_fork fallback) and build + contract-check record a pass, run switch then smoke-test-live, then change this command to `php /home/u951246149/domains/provatferi.org/laravel-admin/artisan backup:run` and delete _bk_src and _bk_run.php."
     }
   },
   "known_hidden": {
