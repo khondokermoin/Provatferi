@@ -267,8 +267,11 @@ write failed. `.env` went from 1,327 to 1,394 bytes; the key is 44 characters (b
 > `.env`. If the hosting account is lost, the key is lost with it — and every `config.vault` becomes undecryptable at
 > precisely the moment it is needed. **Read the `BACKUP_ENCRYPTION_KEY` line once from
 > `laravel-admin/.env` via hPanel's File Manager, put it in your password manager, and keep it off this server and out
-> of the backup export folder.** Then delete the `.env.backup-20261102T100501Z` file beside it. Never send the value
-> by e-mail or chat.
+> of the backup export folder.** Never send the value by e-mail or chat.
+>
+> The `.env` copy the script took before writing has already been deleted: once the application had rebuilt its
+> configuration cache and kept serving, it was only a second file holding every other production secret, which is not
+> worth keeping for a write that had already proved itself.
 
 **A trap worth knowing, because it looked like a bug.** After the key was added and `config:cache` was run, the next
 backup *still* reported the bundle as skipped. The cause is Laravel, not the backup code: once a configuration cache
