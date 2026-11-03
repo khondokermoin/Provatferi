@@ -265,10 +265,16 @@ try {
     $liveFks = $liveList('SELECT CONCAT(TABLE_NAME, ".", CONSTRAINT_NAME) AS n FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME IS NOT NULL ORDER BY 1');
     $liveGenerated = $liveList('SELECT CONCAT(TABLE_NAME, ".", COLUMN_NAME) AS n FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND EXTRA LIKE "%GENERATED%" ORDER BY 1');
 
-    sort($dumpTables);
-    sort($dumpForeignKeys);
-    sort($dumpGenerated);
-    $liveFks = array_values(array_unique($liveFks));
+    // Both sides are sorted HERE, the same way, before any comparison. MySQL's ORDER BY sorts by the column's
+    // collation and PHP's sort() compares bytes, so the two disagree about where `_` falls — which made an earlier
+    // run report "identical: false" for two lists whose diffs were both empty. Same sets, different order, and the
+    // only real defect was the comparison.
+    $liveFks = array_unique($liveFks);
+    foreach ([&$dumpTables, &$dumpForeignKeys, &$dumpGenerated, &$liveTables, &$liveFks, &$liveGenerated] as &$list) {
+        sort($list, SORT_STRING);
+        $list = array_values($list);
+    }
+    unset($list);
 
     $declared = [
         'ok' => $dumpTables === $liveTables && $dumpForeignKeys === $liveFks && $dumpGenerated === $liveGenerated,
