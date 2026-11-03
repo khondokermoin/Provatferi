@@ -12,8 +12,14 @@
  * It must run BEFORE a release is staged: `release-manager.php stage` copies the live .env into the new release, so a
  * key added afterwards would not be in the deployed application.
  *
- *   php env-key-set.php check     report presence/length/digest, change nothing
+ *   php env-key-set.php check     report presence/length/digest of the value in .env, change nothing
+ *   php env-key-set.php loaded    boot the live application and report the same for what its CONFIG holds
  *   php env-key-set.php ensure    add a 32-byte random key if (and only if) none is set yet
+ *
+ * `loaded` exists because `.env` and the configuration the application actually runs on are not the same thing: once
+ * a configuration cache exists, Laravel stops reading `.env` altogether, so a key can be present in the file and
+ * absent from the running application. That is not hypothetical — it is exactly what happened here on 2026-11-02,
+ * and it is why the configuration bundle kept being skipped. It compares digests, never values.
  *
  * `ensure` is idempotent: an existing non-empty key is never replaced, because replacing it would make every
  * configuration bundle already in a backup set undecryptable.
@@ -63,8 +69,8 @@ function readKey(string $contents, string $name): ?string
 }
 
 $mode = $argv[1] ?? 'check';
-if (! in_array($mode, ['check', 'ensure'], true)) {
-    out(['error' => 'modes: check | ensure'], 2);
+if (! in_array($mode, ['check', 'loaded', 'ensure'], true)) {
+    out(['error' => 'modes: check | loaded | ensure'], 2);
 }
 
 if (! is_file(ENV_FILE)) {
@@ -85,6 +91,36 @@ if ($mode === 'check') {
         'env_file_bytes' => strlen($contents),
         'status' => describe($existing),
     ]);
+}
+
+if ($mode === 'loaded') {
+    // Boots the real application the way a console command does, so what is reported is what `backup:run` will see
+    // — cached configuration included.
+    $app = dirname(ENV_FILE);
+    if (! is_file($app.'/vendor/autoload.php')) {
+        out(['ok' => false, 'error' => 'the live application has no vendor/autoload.php'], 1);
+    }
+    define('LARAVEL_START', microtime(true));
+    define('LARAVEL_PUBLIC_PATH_OVERRIDE', $app.'/public');
+    require $app.'/vendor/autoload.php';
+    $laravel = require $app.'/bootstrap/app.php';
+    $laravel->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+
+    $loaded = config('backup.encryption_key');
+    $loaded = is_string($loaded) ? $loaded : null;
+    $fromEnv = describe($existing);
+    $fromConfig = describe($loaded);
+
+    out([
+        'ok' => $fromConfig['present'] && $fromConfig['non_empty'] && $fromConfig['digest'] === $fromEnv['digest'],
+        'mode' => 'loaded',
+        'key' => KEY_NAME,
+        'config_cached' => is_file($app.'/bootstrap/cache/config.php'),
+        'in_env_file' => $fromEnv,
+        'in_application_config' => $fromConfig,
+        // The only comparison that matters, and it is made on digests so neither value is ever printed.
+        'digests_match' => $fromConfig['digest'] !== null && $fromConfig['digest'] === $fromEnv['digest'],
+    ], ($fromConfig['present'] && $fromConfig['digest'] === $fromEnv['digest']) ? 0 : 1);
 }
 
 // ---------------------------------------------------------------------------------------------------- ensure
