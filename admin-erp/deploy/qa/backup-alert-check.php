@@ -68,7 +68,17 @@ foreach ([
 
 $expectedFrom = (string) config('institution.email.noreply');
 $expectedReplyTo = (string) config('institution.email.security');
+
+// The EFFECTIVE From, which is not necessarily on the message. InstitutionMail sets only the Reply-To, because
+// every message this application sends leaves from the same address: that is configured once, globally, as
+// mail.from (see docs/EMAIL_ARCHITECTURE.md). An earlier version of this check read $mail->from, found it empty and
+// called it a failure — it was looking in the wrong place for a value that was correct.
+$globalFrom = (string) config('mail.from.address');
 $actualFrom = (string) ($from[0] ?? '');
+$fromSource = $actualFrom !== '' ? 'set on the message' : 'the global mail.from';
+if ($actualFrom === '') {
+    $actualFrom = $globalFrom;
+}
 $actualReplyTo = (string) ($replyTo[0][0] ?? ($replyTo[0] ?? ''));
 
 $ok = $actualFrom === $expectedFrom && $actualFrom === 'no-reply@provatferi.org'
@@ -81,6 +91,7 @@ echo json_encode([
     'sent' => false,
     'subject' => $mail->subject,
     'from' => $actualFrom,
+    'from_comes_from' => $fromSource,
     'from_matches_the_noreply_role' => $actualFrom === $expectedFrom,
     'reply_to' => $actualReplyTo,
     'reply_to_matches_the_security_role' => $actualReplyTo === $expectedReplyTo,
