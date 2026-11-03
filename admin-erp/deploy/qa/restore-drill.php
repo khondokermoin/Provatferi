@@ -47,6 +47,7 @@ $laravel->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
 use App\Services\Backup\BackupFactory;
 use App\Services\Backup\TarArchive;
+use Illuminate\Support\Facades\DB;
 
 $connectionName = config('database.default');
 $connection = config('database.connections.'.$connectionName);
@@ -203,7 +204,9 @@ if ($scratchDatabase['created']) {
     } finally {
         // Always, whatever happened: the scratch database exists only for this script.
         try {
-            $pdo->exec('DROP DATABASE IF EXISTS `'.$scratch.'`');
+            if (isset($pdo)) {
+                $pdo->exec('DROP DATABASE IF EXISTS `'.$scratch.'`');
+            }
             $scratchDatabase['dropped'] = true;
         } catch (Throwable $e) {
             $scratchDatabase['dropped'] = false;
@@ -214,6 +217,73 @@ if ($scratchDatabase['created']) {
     $problems[] = $scratchDatabase['skipped'];
 }
 $report['database'] = $scratchDatabase;
+
+// --------------------------------------------------------------- 2b. what the dump DECLARES, against production
+// This runs whether or not a scratch database could be created, and it is the fallback evidence when one could not:
+// it reads the dump the deployed application wrote and checks that it describes the same schema production has —
+// every table, every foreign-key constraint, every generated column. It is strictly weaker than executing the dump
+// (which is why it is reported separately and never as a substitute), but it is a real comparison against the real
+// artifact, and it would catch a dump that silently lost a table or a constraint.
+$declared = ['ok' => false];
+try {
+    $gz = gzopen($setDir.'/db-erp.sql.gz', 'rb');
+    if ($gz === false) {
+        throw new RuntimeException('the ERP dump could not be opened');
+    }
+    $dumpTables = [];
+    $dumpForeignKeys = [];
+    $dumpGenerated = [];
+    $currentTable = null;
+    while (! gzeof($gz)) {
+        $line = gzgets($gz);
+        if ($line === false) {
+            break;
+        }
+        if (preg_match('/^CREATE TABLE `([^`]+)`/', $line, $m) === 1) {
+            $currentTable = $m[1];
+            $dumpTables[] = $currentTable;
+
+            continue;
+        }
+        if ($currentTable !== null && preg_match('/CONSTRAINT `([^`]+)` FOREIGN KEY/', $line, $m) === 1) {
+            $dumpForeignKeys[] = $currentTable.'.'.$m[1];
+
+            continue;
+        }
+        if ($currentTable !== null && preg_match('/^\s*`([^`]+)`.*GENERATED ALWAYS AS/i', $line, $m) === 1) {
+            $dumpGenerated[] = $currentTable.'.'.$m[1];
+        }
+    }
+    gzclose($gz);
+
+    $liveList = static function (string $sql): array {
+        $rows = DB::select($sql);
+
+        return array_map(static fn ($row): string => (string) reset($row), array_map('get_object_vars', $rows));
+    };
+    $liveTables = $liveList("SELECT TABLE_NAME AS n FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE' ORDER BY 1");
+    $liveFks = $liveList('SELECT CONCAT(TABLE_NAME, ".", CONSTRAINT_NAME) AS n FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND REFERENCED_TABLE_NAME IS NOT NULL ORDER BY 1');
+    $liveGenerated = $liveList('SELECT CONCAT(TABLE_NAME, ".", COLUMN_NAME) AS n FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND EXTRA LIKE "%GENERATED%" ORDER BY 1');
+
+    sort($dumpTables);
+    sort($dumpForeignKeys);
+    sort($dumpGenerated);
+    $liveFks = array_values(array_unique($liveFks));
+
+    $declared = [
+        'ok' => $dumpTables === $liveTables && $dumpForeignKeys === $liveFks && $dumpGenerated === $liveGenerated,
+        'tables' => ['in_dump' => count($dumpTables), 'in_production' => count($liveTables), 'identical' => $dumpTables === $liveTables, 'only_in_production' => array_values(array_diff($liveTables, $dumpTables)), 'only_in_dump' => array_values(array_diff($dumpTables, $liveTables))],
+        'foreign_keys' => ['in_dump' => count($dumpForeignKeys), 'in_production' => count($liveFks), 'identical' => $dumpForeignKeys === $liveFks],
+        'generated_columns' => ['in_dump' => $dumpGenerated, 'in_production' => $liveGenerated, 'identical' => $dumpGenerated === $liveGenerated],
+    ];
+    if (! $declared['ok']) {
+        $problems[] = 'the dump does not declare the same schema production has';
+    }
+} catch (Throwable $e) {
+    $declared = ['ok' => false, 'error' => preg_replace('/\s+/', ' ', substr($e->getMessage(), 0, 160))];
+    $problems[] = 'the dump schema could not be compared with production';
+}
+$report['dump_declares_production_schema'] = $declared;
 
 // ------------------------------------------------------------------------------------ 3. the other two databases
 $others = [];
@@ -277,10 +347,15 @@ if (is_file($vaultPath)) {
     try {
         $opened = BackupFactory::vault()->open($vaultPath, $destination);
         $members = [];
-        foreach ((array) ($opened['members'] ?? []) as $name => $meta) {
+        // `written` is the key the vault returns; an earlier version read `members`, got an empty array, and so
+        // reported "all members non-empty" about nothing at all. A check that cannot fail is not a check.
+        foreach ((array) ($opened['written'] ?? []) as $name) {
             $file = $destination.'/'.$name;
             // Sizes and a shape check only. The contents are the production secrets; they are never read out.
-            $members[$name] = ['bytes' => is_file($file) ? (int) filesize($file) : 0, 'non_empty' => is_file($file) && filesize($file) > 0];
+            $members[(string) $name] = ['bytes' => is_file($file) ? (int) filesize($file) : 0, 'non_empty' => is_file($file) && filesize($file) > 0];
+        }
+        if ($members === []) {
+            $problems[] = 'the bundle reported no decrypted members, so there was nothing to check';
         }
         $envFile = $destination.'/laravel.env';
         $looksLikeEnv = false;
