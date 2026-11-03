@@ -6,10 +6,10 @@
       "command": "php /home/u951246149/domains/provatferi.org/laravel-admin/artisan membership:generate-dues",
       "what": "daily membership dues generation (membership task 4)"
     },
-    "7X9qOg2fnN": {
+    "9nnge5KNc1": {
       "time": "30 21 * * *",
-      "command": "php /home/u951246149/_bk_run.php run",
-      "what": "nightly backup at 03:30 Asia/Dhaka (docs/BACKUP_AND_DISASTER_RECOVERY.md). INTERIM COMMAND: it runs the committed backup code from the pinned checkout under /home/u951246149/_bk_src, currently at commit 8bf5236. Release 640251211cbc-2026-11-0209561 (commit 6402512) is BUILT, STAGED AND VERIFIED on the server as of 2026-11-02 11:31 UTC, but could not be switched: the host has added proc_open to disable_functions, so release-manager's `build` and `contract-check` steps cannot run and `switch` rightly refuses a release whose gates are unrecorded (see deploy/README.md, 'Why this is built the way it is'). Once proc_open is restored (or runProcess gains a pcntl_fork fallback) and build + contract-check record a pass, run switch then smoke-test-live, then change this command to `php /home/u951246149/domains/provatferi.org/laravel-admin/artisan backup:run` and delete _bk_src and _bk_run.php."
+      "command": "php /home/u951246149/domains/provatferi.org/laravel-admin/artisan backup:run",
+      "what": "nightly backup at 03:30 Asia/Dhaka, running the DEPLOYED application (docs/BACKUP_AND_DISASTER_RECOVERY.md). Release 640251211cbc-2026-11-0209561 (commit 6402512) went live 2026-11-03 12:20:02 UTC and the interim pinned checkout is gone. This replaced cron 7X9qOg2fnN, which ran `php /home/u951246149/_bk_run.php run` from that checkout: the ID changed because the hosting API has no update operation, only delete and create. The schedule is byte-identical to the one it replaced."
     }
   },
   "known_hidden": {
