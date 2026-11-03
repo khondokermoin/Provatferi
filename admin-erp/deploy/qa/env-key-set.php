@@ -96,14 +96,18 @@ if ($mode === 'check') {
 if ($mode === 'loaded') {
     // Boots the real application the way a console command does, so what is reported is what `backup:run` will see
     // — cached configuration included.
-    $app = dirname(ENV_FILE);
-    if (! is_file($app.'/vendor/autoload.php')) {
+    // NOT named $app: bootstrap/app.php assigns $app in the scope that includes it, so a local $app holding a path
+    // is silently replaced by the Application object and the next string concatenation fails. Found by doing it.
+    $appDir = dirname(ENV_FILE);
+    if (! is_file($appDir.'/vendor/autoload.php')) {
         out(['ok' => false, 'error' => 'the live application has no vendor/autoload.php'], 1);
     }
+    $configCached = is_file($appDir.'/bootstrap/cache/config.php');
+
     define('LARAVEL_START', microtime(true));
-    define('LARAVEL_PUBLIC_PATH_OVERRIDE', $app.'/public');
-    require $app.'/vendor/autoload.php';
-    $laravel = require $app.'/bootstrap/app.php';
+    define('LARAVEL_PUBLIC_PATH_OVERRIDE', $appDir.'/public');
+    require $appDir.'/vendor/autoload.php';
+    $laravel = require $appDir.'/bootstrap/app.php';
     $laravel->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
     $loaded = config('backup.encryption_key');
@@ -115,7 +119,7 @@ if ($mode === 'loaded') {
         'ok' => $fromConfig['present'] && $fromConfig['non_empty'] && $fromConfig['digest'] === $fromEnv['digest'],
         'mode' => 'loaded',
         'key' => KEY_NAME,
-        'config_cached' => is_file($app.'/bootstrap/cache/config.php'),
+        'config_cached' => $configCached,
         'in_env_file' => $fromEnv,
         'in_application_config' => $fromConfig,
         // The only comparison that matters, and it is made on digests so neither value is ever printed.
