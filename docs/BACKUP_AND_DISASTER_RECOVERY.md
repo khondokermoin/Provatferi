@@ -144,59 +144,46 @@ Nothing prints a credential, and no restore path is reachable over HTTP — thes
 
 ## 4. Schedule and automation
 
-**One** permanent cron, at the lowest-traffic hour. What is **actually scheduled today** is the first line; the second
-is what it becomes once the release carrying this code is deployed:
+**One** permanent cron, at the lowest-traffic hour, running the deployed application:
 
 ```
-30 21 * * *   php /home/u951246149/_bk_run.php run                                            <- scheduled now
-30 21 * * *   php /home/u951246149/domains/provatferi.org/laravel-admin/artisan backup:run     <- after deployment
+30 21 * * *   php /home/u951246149/domains/provatferi.org/laravel-admin/artisan backup:run
 ```
+
+Cron id `9nnge5KNc1`. It replaced `7X9qOg2fnN`, which ran the interim pinned checkout; the id changed because this
+host's API has no update operation, only delete and create, and the schedule is byte-identical to the one it
+replaced. The interim checkout is gone.
 
 21:30 UTC is **03:30 Asia/Dhaka**. It is deliberately far from the other permanent job (`membership:generate-dues`,
 18:05 UTC = 00:05 Dhaka) so the two never contend.
 
-> ### Read this before trusting any `php artisan backup:*` line in this document
+> ### How this is deployed, and what it took
 >
-> **The release carrying the backup code is built, staged and verified on production, but not switched.** The
-> transport problem is solved: `deploy/qa/release-fetch.php` pulls the artifact over HTTPS straight into
-> `_release_staging/`, and on 2026-11-02 `stage` accepted it with both tars matching the manifest's sha256 exactly —
-> so the bytes serving production would be the bytes that were tested. The alternative that was *not* taken was
-> hand-copying files into the live Laravel tree; that is precisely how a broken release shipped on 2026-09-09, and the
-> release pipeline exists to prevent it.
+> The backup code runs from the ordinary live application: release `640251211cbc-2026-11-0209561` (commit `6402512`)
+> went live at **2026-11-03 12:20:02 UTC** through the normal release pipeline, so every `php artisan backup:*` line
+> in this document is literally what you type on the server.
 >
-> What blocks the switch is **not** this project: the host has added `proc_open` to `disable_functions` since the
-> deploy tooling was written (`deploy/README.md`, "Why this is built the way it is", has the measurements). `build`
-> and `contract-check` spawn composer and the contract script through it, so neither can record a pass, and `switch`
-> correctly refuses a release whose `build` and `contract_check` gates are unrecorded. Those entries were **not**
-> written by hand.
+> Both obstacles that delayed it were in the platform, not the code, and both are worth recording.
 >
-> Everything that could be verified about the staged release was, by running each step that still works:
+> **The artifact could not be uploaded.** This host has no SSH, the hosting API has no file-upload operation, and
+> `upload-release.mjs` needs hPanel File Manager credentials that were not available. So
+> `deploy/qa/release-fetch.php` fetches the built artifact over HTTPS directly into the pipeline's own
+> `_release_staging/` directory and verifies both tars against the manifest before the pipeline is asked to; `stage`
+> then re-checks every byte itself. Nothing was hand-copied into the live tree — that is exactly how a broken
+> release shipped on 2026-09-09.
 >
-> | Gate | Result on the staged release |
-> |---|---|
-> | `stage` | **ok** — checksums matched, live `.env` copied in, 23 private uploads snapshotted |
-> | `build` | **cannot run** — composer installs all 98 packages and writes the optimised autoloader, then its own `@php artisan package:discover` dies on `proc_open`, so composer exits non-zero |
-> | `contract-check` | **cannot record**, but the check itself was run directly and **passes**: 44 keys, 0 missing |
-> | `migrate-check` | **ok** — *Nothing to migrate*; this release carries no migration |
-> | `smoke-test-isolated` | **ok** — all views compile, the reset view renders, mail identity resolves, the PDF engine runs, uploads readable, `app_debug` false |
+> **The host disabled `proc_open`**, which broke `build`, `contract-check` and `pipeline` at once, and broke them
+> *silently*, because `display_errors` is off and a fatal then produces no output at all. That is repaired:
+> `deploy/remote/lib/process-runner.php` is now the one place that starts a process, preferring `proc_open` where it
+> is callable and falling back to `pcntl_fork` + `pcntl_exec` where it is not. `deploy/README.md` carries the
+> measurements, including why the fallback has to let `/bin/sh` open its output files and how that is kept safe.
 >
-> So the release boots and behaves; the gap is bookkeeping that the host broke, not a defect in the release.
->
-> Instead the **identical committed code** runs from a pinned checkout **outside** the live application:
-> `deploy/qa/backup-standalone.php` (on the server as `/home/u951246149/_bk_run.php`) boots the live application — so
-> the database credentials, the paths and the mail identity are the real ones — then loads the backup classes and
-> `config/backup.php` from `/home/u951246149/_bk_src` and runs them. It writes nothing into the live application
-> directory and takes the same lock the deployed command would, so the two can never run over each other.
->
-> **Until the release is deployed, read every `php artisan backup:<x>` in this document as
-> `php /home/u951246149/_bk_run.php <x>`.** The standalone script supports `run`, `status`, `consistency` and `where`.
-> It does **not** carry `backup:restore-file` or `backup:config-open`; for a restore before deployment, see runbook A
-> (plain `gunzip`/`mysql`) and runbook C step 3 (plain `tar -xzf`), both of which need nothing but the set on disk —
-> which is the point of keeping the artifacts in ordinary `.sql.gz` and `.tar.gz` form.
->
-> **After the release is deployed:** change the cron to the second line above, update
-> `deploy/qa/cron-known.json` (its entry for `7X9qOg2fnN` spells out this exact edit), and delete `_bk_src`,
-> `_bk_run.php`, `_bk_trees.php` and `_bk.tgz`.
+> Composer's own script runner still needs `proc_open` and cannot be fixed from here, so `build` installs with
+> `--no-scripts` and runs `clear-compiled` and `package:discover` itself. That is only acceptable if the result is
+> the same application, so it was checked rather than claimed: `deploy/qa/build-equivalence.php` fingerprinted the
+> deployed build and a normal local one, and every field matched — 98 packages (`94b46abc6ffffc19`), the same lock
+> content-hash, a 5,935-entry optimised classmap, the same 4 discovered packages and 4 providers, and the same 15
+> config files, 93 migrations, 4 route files and 138 views.
 
 Overlap is handled in the application, not by the schedule: an exclusive lock means a second run exits without
 touching anything, and a lock held longer than two hours is treated as a hung backup and reported as a failure rather
@@ -554,6 +541,43 @@ artifacts**):
   disk, and `last_failure` still naming the historic `Call to undefined function …link()` while `last_success` points
   at the latest run — the state file advances a success only on a success, which is what makes a stale backup
   detectable rather than merely invisible.
+### From the deployed application, 2026-11-03
+
+The first run of `php artisan backup:run` from the live release — the one that finally included the configuration
+bundle, because a runtime `env()` could never see the key while the interim runner was loading its config after boot:
+
+| | Result |
+|---|---|
+| Set | `20261103T124202Z`, `ok: true`, 20,295,122 bytes in 1.11 s |
+| Stamped with | `app.commit: 640251211cbc-2026-11-0209561` — the deployed release, not a checkout |
+| **Configuration bundle** | **`config.vault`, 16,215 bytes, `aes-256-gcm`**, 6 members: `laravel.env` (1,394 B), the front controller, both docroot `.htaccess` files, both `wp-config.php` |
+| Warnings | **none** — the "key is not set" warning is gone |
+| Verification | ok over **12** artifacts (the twelfth is the vault) |
+| Plaintext secrets in the set | **none**: 13 files, all `0600` in a `0700` directory, and not one filename contains `env` |
+| `backup:status --verify --consistency` | 7 sets, all verifying; `config_bundle: encrypted (BACKUP_ENCRYPTION_KEY is set)`; 42 references across 15 columns, 0 missing live, 0 missing from the backup, 0 unreferenced |
+| Key in the running application | present, length 44, digest `520f83540965` — **identical to the `.env` value**, with the configuration cached. Never printed, never rotated |
+
+### Restore drill from that artifact, 2026-11-03
+
+Run by `deploy/qa/restore-drill.php` against `20261103T124202Z`, the set the deployed application produced:
+
+| Check | Result |
+|---|---|
+| Set integrity | **ok**, 12 artifacts |
+| The dump declares production's schema | **identical** — 61 tables, 102 foreign-key constraints, and both generated columns (`membership_dues.outstanding_amount`, `membership_fee_policies.active_effective_from`) |
+| CMS / Archive dumps | 19 and 29 tables, matching the manifest |
+| Private files | 3 extracted from across the index, **3/3 hashes matched** |
+| Public files | 3 extracted from across the index, **3/3 hashes matched** |
+| Encrypted bundle | **decrypts**, all 6 members present and non-empty, `laravel.env` is a real env file (checked by key *names*), and all 6 decrypted files were shredded afterwards |
+| Application boots | yes — the drill *is* the live application, booted |
+| **Executing the ERP dump** | **NOT DONE.** MariaDB refuses the application's database user `CREATE DATABASE` (`SQLSTATE[42000] … 1044 Access denied … to database 'u951246149_admin_erp_drill'`), so there is no isolated target on this host, and the only API that creates one requires a password in the request. Reported as skipped, never as a pass — see "Owner actions" |
+
+The schema comparison is deliberately reported as its own row and **not** as a substitute for executing the dump: it
+proves the dump describes exactly the schema production has, which would catch a dump that silently lost a table or
+a constraint, but it does not prove MariaDB will accept every statement. The earlier end-to-end drill that *did*
+execute a dump (59/59 tables, `CHECKSUM TABLE` equal on all of them) was run locally, against a locally produced
+dump, by the same code.
+
 ### Also measured on production
 
 | | Result |
@@ -667,10 +691,10 @@ whatever is decided about the trees themselves.
    apparent-size figure, not an allocated-size one.
 6. Beyond roughly 5 GB of uploads, one archive per tree per set stops being the right shape; that is the same
    threshold at which the architecture audit says to move uploads to object storage.
-7. **The release is not deployed, so the nightly job runs from a pinned checkout outside the live tree** (section 4).
-   Real, verified backups exist and the schedule works, but two things do not hold until the release ships: the
-   `backup:restore-file` and `backup:config-open` commands are not available on the server, and the code that runs is
-   pinned to one commit rather than following the deployed application. Deploying the release is an owner action.
+7. **The restore drill cannot execute the ERP dump on this host.** The application's database user is refused
+   `CREATE DATABASE`, so there is no isolated target, and the drill reports that half as skipped rather than passing
+   it. Everything else about the set is verified — integrity, the schema the dump declares, file hashes, and the
+   encrypted bundle decrypting — and one scratch database closes the gap (owner action 7).
 
 ---
 
@@ -706,20 +730,21 @@ whatever is decided about the trees themselves.
 5. **Add an external monitor** that calls `backup:status` (or simply watches the site) — the dead-man's switch that
    cannot live on the same server.
 6. Record the Node applications' environment variables somewhere safe (Limitations item 4).
-7. **Get `proc_open` restored, then finish the switch.** The release is already staged and verified on production
-   (section 4); the only thing missing is that `build` and `contract-check` cannot run while the host blocks
-   `proc_open`. Two routes, cheapest first:
-   - **ask Hostinger support to restore `proc_open`** for this account. It is the standard way composer installs
-     dependencies — their own documented workflow depends on it — and this needs no code change at all;
-   - if they decline, `runProcess()` in `deploy/remote/release-manager.php` needs a `pcntl_fork` + `pcntl_exec`
-     fallback (both are still available), `build` needs `--no-scripts`, and `package:discover` has to be run as its
-     own step. That is a focused change to the deploy tooling and deserves its own task, with the sandbox test in
-     `tests/Feature/Deploy/` extended to cover it.
+7. **Create one scratch database so the restore drill can execute the dump, not just read it.** This is the single
+   thing the drill cannot do from here: MariaDB refuses the application's database user `CREATE DATABASE`, and the
+   hosting API that creates one takes the password in the request, which is not a place a credential belongs. In
+   hPanel → Databases, create an empty database — `u951246149_drill` is fine — and grant the existing
+   `u951246149_admin_erp` user access to it. Then:
 
-   Once `build` and `contract_check` record a pass: `switch`, then `smoke-test-live`, then change cron `7X9qOg2fnN` to
-   `php /home/u951246149/domains/provatferi.org/laravel-admin/artisan backup:run` and delete `_bk_src` and
-   `_bk_run.php`. Until then the restore commands are not on the server and the nightly backup runs the pinned
-   checkout — which works, and is backing up production every night.
+   ```
+   php /home/u951246149/_drill.php <newest-set-id> u951246149_drill
+   ```
+
+   (fetch `deploy/qa/restore-drill.php` to that path first). It creates nothing, drops nothing of yours, restores
+   into that database only, compares table lists, foreign keys, generated columns, row counts and `CHECKSUM TABLE`
+   against production, and leaves the scratch database empty again. Delete it afterwards if you prefer.
+
+   Worth doing once a quarter, not once: a backup nobody has restored is a hypothesis.
 
 ---
 
@@ -735,7 +760,16 @@ whatever is decided about the trees themselves.
 | `BackupRunTest` | a verified set with a manifest, the private root and its HTTP denial, **no credential in the manifest/state/index**, a failing dump recorded as a failure, overlap, a stuck lock reported as a failure, abandoned `.tmp-` sweeping, archive reuse, the failure e-mail and its Reply-To |
 | `PhpSqlDumperTest` | the dump path production runs: integrity, a GENERATED column never named in an INSERT, Bengali text verbatim, binary as hex, the FOREIGN_KEY_CHECKS wrapper, no credential anywhere, and a failure reported rather than a half dump |
 | `BackupConsistencyAndRestoreTest` | a row whose file is missing (without naming the file), a file missing from the backup, removed columns skipped, and the restore commands' refusals |
-| `BackupHostConstraintsTest` | that no backup source calls a function in **production's real `disable_functions`** without a `function_exists()` guard, that the default dumper needs no external process, and that opting into `mysqldump` where `proc_open` is missing falls back instead of raising. This is the test that exists because two production runs died on functions this laptop has — see "What this host does not allow" |
+| `BackupHostConstraintsTest` | that no backup source calls a function in **production's real `disable_functions`** without a `function_exists()` guard, that the default dumper needs no external process, and that opting into `mysqldump` where `proc_open` is missing falls back instead of raising. This is the test that exists because two production runs died on functions this laptop has — see "What this host does not allow". **It now scans the deploy tooling too** (`deploy/remote/release-manager.php` and `deploy/remote/lib/*.php`), so an unguarded `proc_open` on the deploy path fails the suite before it can stop a release; verified by reintroducing one |
+
+And `tests/Feature/Deploy/ProcessRunnerTest.php`, which covers the deployment primitive the whole pipeline now rests
+on — 27 tests: exit codes, both streams captured separately, 11 hostile-argument cases (spaces, quotes, `$(…)`,
+backticks, pipes, redirection, globs, newlines, unicode, empty), 3 MB of output, 400 KB on each stream at once,
+a timeout that terminates and reaps, a missing executable, a bad working directory, secret redaction, and both
+no-backend paths. The `fork_exec` backend cannot be exercised on Windows, where the suite runs, so it is exercised
+against the real primitive on the server instead by `php process-runner.php selftest` — which passed every case,
+including the hostile argument surviving byte-identical at 37 bytes and the timeout killing its child in 2.1 s.
+Neither half is the coverage on its own.
 
 The database dump is stubbed in the ORCHESTRATION tests on purpose (PhpSqlDumperTest covers the dump itself) — whether a dump restores is proven by running
 it, and whether a backup restores is proven by the drill, which no mock can replace.

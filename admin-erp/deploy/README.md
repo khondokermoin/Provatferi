@@ -26,10 +26,17 @@ them:
   wrappers, which is why `composer install` can run here at all despite
   `exec` being off.
 
-  > **NO LONGER TRUE as of 2026-11-02 — this breaks `build`, `contract-check`
-  > and `pipeline`.** The host has since added `proc_open` to
-  > `disable_functions`. Measured on the server that day, from cron, with
-  > `display_errors=1` forced so the failure is not silent:
+  > **NO LONGER TRUE as of 2026-11-02, and REPAIRED on 2026-11-03.** The host
+  > added `proc_open` to `disable_functions`, which broke `build`,
+  > `contract-check` and `pipeline` at once. Starting a process now goes
+  > through `lib/process-runner.php`, which prefers `proc_open` where it is
+  > callable and falls back to `pcntl_fork` + `pcntl_exec` where it is not — so
+  > the pipeline works here today, and goes back to `proc_open` by itself if
+  > the host ever restores it. Read the rest of this box for what was measured
+  > and why the fallback looks the way it does.
+  >
+  > Measured on the server, from cron, with `display_errors=1` forced so the
+  > failure is not silent:
   >
   > ```
   > /opt/alt/php83/usr/bin/php   proc_open=0     (both `php` and `/usr/bin/php`
@@ -41,28 +48,45 @@ them:
   >
   > | Step | Spawns a process? | State |
   > |---|---|---|
-  > | `stage` | no — `PharData` | **works** (verified 2026-11-02) |
-  > | `build` | yes — `composer.phar` via `runProcess()` | **fatals** |
-  > | `contract-check` | yes — `config-contract.php` via `runProcess()` | **fatals** |
+  > | `stage` | no — `PharData` | works |
+  > | `build` | yes — `composer.phar` | works **through the runner** |
+  > | `contract-check` | yes — `config-contract.php` | works **through the runner** |
   > | `migrate-check` | no — Artisan in-process | works |
   > | `smoke-test-isolated` | no — `bootApp()` in-process | works |
   > | `switch`, `smoke-test-live`, `rollback`, `housekeeping` | no | work |
-  > | `pipeline` | yes — re-invokes itself per step | **fatals before `stage`** |
+  > | `pipeline` | yes — re-invokes itself per step | works **through the runner** |
   >
-  > **A `pipeline` failure here is SILENT**: `display_errors` is off by default
-  > on this host, so the fatal produces no output at all and the cron log is
-  > empty. An empty `pipeline` log means "it died", not "it is still running".
-  > Always pass `-d display_errors=1` to these crons.
+  > **A failure here can be SILENT**: `display_errors` is off by default on
+  > this host, so a fatal produces no output at all and the cron log is empty.
+  > An empty log means "it died", not "it is still running" — that cost an hour
+  > of looking for a hung `pipeline` that had actually died instantly. Always
+  > pass `-d display_errors=1` to these crons.
   >
-  > The fix is small and does not change any gate's meaning: `runProcess()`
-  > needs a fallback that does not use `proc_open`. **`pcntl_fork` and
-  > `pcntl_exec` are both still available** (they are absent from
-  > `disable_functions`), so a fork + exec + `pcntl_waitpid` gives a real child
-  > process and a real exit status, with output captured by exec'ing
-  > `/bin/sh -c 'cmd > out 2> err'` (executing `/bin/sh` is not a PHP function
-  > and is not blocked). Until that is done, a release can be staged but **not
-  > built**, and `switch` will correctly refuse because `build` and
-  > `contract_check` never recorded a pass in `status.json`.
+  > **Why the fallback goes through `/bin/sh`, which is not what anyone wants.**
+  > The first version did not, and did not work: a child that closes fd 1 and 2,
+  > opens files and execs came back with exit 255 and both files empty. The
+  > probe (`deploy/qa/fork-exec-probe.php`) isolated it — a marker written
+  > through those same handles *before* exec IS there, so the redirection
+  > worked and the descriptors were lost AT `execve`. PHP opens file streams
+  > close-on-exec on this build, and PHP exposes no `dup2`, so the output files
+  > have to be opened by something that is not PHP, after the fork. That is a
+  > shell, and only a shell. It is therefore made safe rather than avoided:
+  > every argv element and both paths go through `escapeshellarg()`, whose
+  > single quotes stop the shell interpreting anything at all, and the `exec`
+  > builtin replaces the shell so the pid waited on and signalled is the real
+  > program. The `proc_open` backend is given the array form and involves no
+  > shell at all.
+  >
+  > **Composer still needs `proc_open` and cannot be fixed from here**: its own
+  > Symfony Process component uses it directly, which is why `composer install`
+  > died at its very last step — the `@php artisan package:discover` script.
+  > `build` therefore installs with `--no-scripts` and runs the two
+  > post-autoload-dump steps itself through the runner (`clear-compiled`, then
+  > `package:discover`), on every host rather than only this one, and then
+  > proves the package manifest exists and registered providers instead of
+  > assuming it. `deploy/qa/build-equivalence.php` compares the result with a
+  > normal local build field by field, so "it is the same application" is
+  > checked rather than claimed.
 - **`rename()`** on a directory is a real, atomic filesystem operation
   (measured ~0.4ms for a directory swap) — this is what makes the release
   switch atomic without symlinks, which are also confirmed disabled.
