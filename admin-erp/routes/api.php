@@ -114,9 +114,9 @@ Route::prefix('v1')->group(function () {
     // above: no shared guard, no shared session, server-to-server only
     // (called from a Next.js Server Action, never the browser directly).
     Route::prefix('member')->group(function () {
-        Route::post('/auth/login', [MemberAuthController::class, 'login'])->middleware('throttle:member.auth.login');
-        Route::post('/auth/password/email', [MemberPasswordResetController::class, 'sendResetLink'])->middleware('throttle:member.auth.password.email');
-        Route::post('/auth/password/reset', [MemberPasswordResetController::class, 'reset'])->middleware('throttle:member.auth.password.reset');
+        Route::post('/auth/login', [MemberAuthController::class, 'login'])->middleware(['throttle:member.auth.login', 'throttle.identity:member.auth.login']);
+        Route::post('/auth/password/email', [MemberPasswordResetController::class, 'sendResetLink'])->middleware(['throttle:member.auth.password.email', 'throttle.identity:member.auth.password.email']);
+        Route::post('/auth/password/reset', [MemberPasswordResetController::class, 'reset'])->middleware(['throttle:member.auth.password.reset', 'throttle.identity:member.auth.password.reset']);
 
         Route::middleware(['auth:sanctum', 'member.auth'])->group(function () {
             Route::post('/auth/logout', [MemberAuthController::class, 'logout']);

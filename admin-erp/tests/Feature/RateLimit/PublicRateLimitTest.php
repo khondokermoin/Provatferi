@@ -407,6 +407,10 @@ class PublicRateLimitTest extends TestCase
         $this->travel(61)->seconds();
 
         $this->assertNotSame(429, $this->submit($context)->status(), 'the allowance never returned');
+
+        // Put the clock back explicitly. A frozen or shifted clock that outlives this test is exactly the kind of
+        // leak that makes an unrelated suite fail once in a while and look like a real defect.
+        $this->travelBack();
     }
 
     public function test_n_the_allowance_is_not_exceeded_when_requests_arrive_together(): void
