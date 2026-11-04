@@ -49,6 +49,19 @@ return [
         // config() — not env() — at the call site, because `config:cache`
         // makes env() return null outside config files in production.
         'revalidate_secret' => env('REVALIDATE_SECRET'),
+
+        /*
+         * Shared HMAC secret(s) for the signed client context the public site sends with every forwarded public
+         * request (App\Support\PublicClientContext, docs/RATE_LIMITING_ARCHITECTURE.md). Server-side only on BOTH
+         * sides: it is never sent to a browser, so a browser can never forge a context.
+         *
+         * A COMMA-SEPARATED LIST, newest first, to make rotation a non-event: add the new secret to both
+         * applications and deploy, then remove the old one once nothing signs with it any more. Signing always uses
+         * the first; verification accepts any. Unset (local dev, tests) means no request is ever treated as
+         * carrying a verified visitor — the limiter then keys on the proxy identity, which is correct rather than
+         * convenient.
+         */
+        'client_context_secrets' => env('PUBLIC_CLIENT_CONTEXT_SECRETS', env('PUBLIC_CLIENT_CONTEXT_SECRET')),
     ],
 
     // Mail Center (Hostinger official Mail API). The token is scoped in

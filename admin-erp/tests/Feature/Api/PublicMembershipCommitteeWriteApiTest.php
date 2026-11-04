@@ -22,6 +22,8 @@ use Tests\TestCase;
  */
 class PublicMembershipCommitteeWriteApiTest extends TestCase
 {
+    use \Tests\Support\SignsClientContext;
+
     use MakesMembershipTypes;
     use RefreshDatabase;
 
@@ -182,11 +184,15 @@ class PublicMembershipCommitteeWriteApiTest extends TestCase
             'membership_type_id' => $type->id, 'membership_season_id' => $this->openSeasonOffering($type)->id,
         ];
 
-        for ($i = 0; $i < 6; $i++) {
-            $this->postJson('/api/v1/public/membership/applications', $payload)->assertCreated();
+        $this->withClientContextSecret();
+        $context = $this->clientContext('public.membership.submit', 'one-membership-visitor');
+        $allowed = \App\Support\PublicRateLimits::ACTIONS['public.membership.submit'][0];
+
+        for ($i = 0; $i < $allowed; $i++) {
+            $this->postJson('/api/v1/public/membership/applications', $payload, $context)->assertCreated();
         }
 
-        $this->postJson('/api/v1/public/membership/applications', $payload)->assertStatus(429);
+        $this->postJson('/api/v1/public/membership/applications', $payload, $context)->assertStatus(429);
     }
 
     public function test_application_with_a_valid_photo_stores_the_private_path_only(): void

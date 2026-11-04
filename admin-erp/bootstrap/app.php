@@ -49,6 +49,10 @@ $app = Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'permission' => \App\Http\Middleware\EnsurePermission::class,
             'member.auth' => \App\Http\Middleware\EnsureMemberAuthenticated::class,
+            // How often one claimed identity (an e-mail, a phone number) may submit a public form, on top of the
+            // per-visitor route limiter. Hashed, never stored in the clear — see the class
+            // (docs/RATE_LIMITING_ARCHITECTURE.md).
+            'throttle.identity' => \App\Http\Middleware\ThrottlePublicIdentity::class,
             // Sends queued public-site invalidations before the admin sees "saved" (see the class docblock).
             'revalidate.public' => \App\Http\Middleware\FlushPublicSiteRevalidations::class,
             // Step-up: a code from the authenticator within the last 15 minutes (App\Http\Middleware\RequireRecentMfa).

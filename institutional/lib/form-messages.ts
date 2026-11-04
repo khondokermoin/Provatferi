@@ -13,6 +13,25 @@ export const MEMBERSHIP_FAILURE_EN = "The application could not be submitted —
 export const MEMBER_PROFILE_FAILURE = "সংরক্ষণ করা যায়নি — একটু পরে আবার চেষ্টা করুন।";
 
 /**
+ * Too many attempts from this browser in a short time.
+ *
+ * Its own message, not the generic failure: this is the one refusal the visitor can act on, so it says what
+ * happened and when to try again instead of "something went wrong". It never mentions a limit, a counter, an address
+ * or an endpoint — none of that is the visitor's business and some of it is nobody's.
+ */
+export function rateLimitedMessage(retryAfterSeconds: number | null, locale: "bn" | "en" = "bn"): string {
+  const minutes = retryAfterSeconds === null ? null : Math.max(1, Math.ceil(retryAfterSeconds / 60));
+  if (locale === "en") {
+    return minutes === null
+      ? "Too many attempts from this device. Please wait a moment and try again."
+      : `Too many attempts from this device. Please try again in about ${minutes} minute${minutes === 1 ? "" : "s"}.`;
+  }
+  return minutes === null
+    ? "এই ডিভাইস থেকে অল্প সময়ে অনেকবার চেষ্টা করা হয়েছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।"
+    : `এই ডিভাইস থেকে অল্প সময়ে অনেকবার চেষ্টা করা হয়েছে। প্রায় ${minutes} মিনিট পরে আবার চেষ্টা করুন।`;
+}
+
+/**
  * The visitor opened the application form while a season was open, and by the time they sent it Laravel — the only
  * authority on whether anyone may apply — said the season is not accepting applications (it closed, or an admin changed
  * it). Laravel's own message for this is Bangla-only and keyed to a field the form has no input for, so without this

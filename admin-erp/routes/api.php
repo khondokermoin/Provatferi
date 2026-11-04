@@ -34,7 +34,7 @@ use Illuminate\Support\Facades\Route;
 // sometimes", not a public endpoint) purely as a backstop against a
 // misbehaving or replaying sender.
 Route::post('/webhooks/hostinger-mail', [HostingerMailWebhookController::class, 'handle'])
-    ->middleware('throttle:120,1')
+    ->middleware('throttle:webhook.mail')
     ->name('api.webhooks.hostinger-mail');
 
 Route::prefix('v1')->group(function () {
@@ -51,7 +51,7 @@ Route::prefix('v1')->group(function () {
     // §12: public, unauthenticated — social-media crawlers (Facebook, Twitter,
     // WhatsApp) fetch og:image directly and never send the admin session.
     Route::get('/job-postings/{jobPosting}/share-image', [JobPostingController::class, 'shareImage'])
-        ->middleware('throttle:120,1')->name('api.job-postings.share');
+        ->middleware('throttle:public.image.read')->name('api.job-postings.share');
 
     // Public — new-phase membership/committee contracts (§41), consumed by
     // provatferi.org's server-side fetches only, never the browser directly.
@@ -63,13 +63,13 @@ Route::prefix('v1')->group(function () {
         Route::get('/leadership/{slug}', [PublicLeadershipController::class, 'show'])->where('slug', '[a-z0-9]+(-[a-z0-9]+)*');
 
         Route::get('/membership/campaigns/current', [MembershipCampaignController::class, 'current']);
-        Route::post('/membership/applications', [MembershipApplicationController::class, 'store'])->middleware('throttle:6,1');
+        Route::post('/membership/applications', [MembershipApplicationController::class, 'store'])->middleware(['throttle:public.membership.submit', 'throttle.identity:public.membership.submit']);
 
         Route::get('/committees', [PublicCommitteeController::class, 'index']);
-        Route::get('/committees/registration-links/{token}', [CommitteeRegistrationController::class, 'show'])->middleware('throttle:20,1');
-        Route::post('/committee-submissions', [CommitteeRegistrationController::class, 'store'])->middleware('throttle:6,1');
-        Route::get('/committee-submissions/correction/{token}', [CommitteeCorrectionController::class, 'show'])->middleware('throttle:20,1');
-        Route::post('/committee-submissions/correction/{token}', [CommitteeCorrectionController::class, 'update'])->middleware('throttle:6,1');
+        Route::get('/committees/registration-links/{token}', [CommitteeRegistrationController::class, 'show'])->middleware('throttle:public.token.lookup');
+        Route::post('/committee-submissions', [CommitteeRegistrationController::class, 'store'])->middleware(['throttle:public.committee.register', 'throttle.identity:public.committee.register']);
+        Route::get('/committee-submissions/correction/{token}', [CommitteeCorrectionController::class, 'show'])->middleware('throttle:public.token.lookup');
+        Route::post('/committee-submissions/correction/{token}', [CommitteeCorrectionController::class, 'update'])->middleware(['throttle:public.committee.correct', 'throttle.identity:public.committee.correct']);
         Route::get('/committees/{committee}', [PublicCommitteeController::class, 'show']);
 
         // §13/§16: only approved+opted-in members ever appear here.
@@ -82,23 +82,23 @@ Route::prefix('v1')->group(function () {
         Route::get('/notices/sitemap', [PublicNoticeController::class, 'sitemap']);
         Route::get('/notices/{slug}', [PublicNoticeController::class, 'show']);
         Route::get('/notices/{slug}/attachment', [PublicNoticeController::class, 'attachment'])
-            ->middleware('throttle:60,1')->name('api.public.notices.attachment');
+            ->middleware('throttle:public.attachment.read')->name('api.public.notices.attachment');
         Route::get('/notices/{slug}/cover', [PublicNoticeController::class, 'cover'])
-            ->middleware('throttle:120,1')->name('api.public.notices.cover');
+            ->middleware('throttle:public.image.read')->name('api.public.notices.cover');
         Route::get('/notices/{slug}/share-image', [PublicNoticeController::class, 'shareImage'])
-            ->middleware('throttle:120,1')->name('api.public.notices.share');
+            ->middleware('throttle:public.image.read')->name('api.public.notices.share');
 
         // §2/§21: the volunteer/recruitment intake. Rate-limited per IP, and
         // the posting itself decides whether it accepts applications at all.
         Route::post('/recruitment/{slug}/applications', [VolunteerApplicationController::class, 'store'])
-            ->middleware('throttle:5,1')->name('api.public.recruitment.apply');
+            ->middleware(['throttle:public.volunteer.submit', 'throttle.identity:public.volunteer.submit'])->name('api.public.recruitment.apply');
         // The confirmation page's server asks here before it shows the central Messenger group invite (a proof in the body,
         // never in the URL). Every visitor's page load comes from the public site's one server address, so the limit is a
         // backstop for the whole site, not a per-person one. It has a bucket of its own (the third parameter): the numeric
         // throttle is keyed by domain + IP and NOT by route, so without a prefix every confirmation page load would count
         // against the 5 a minute of the application form above — a few refreshes would turn the next applicant away.
         Route::post('/recruitment/{slug}/application-success', [VolunteerApplicationSuccessController::class, 'show'])
-            ->middleware('throttle:600,1,application-success:')->name('api.public.recruitment.success');
+            ->middleware('throttle:public.application.success')->name('api.public.recruitment.success');
     });
 
     // Auth (staff tokens). The login follows the web sign-in's rules — its rate limits (LoginRequest + MfaThrottle, never
@@ -114,9 +114,9 @@ Route::prefix('v1')->group(function () {
     // above: no shared guard, no shared session, server-to-server only
     // (called from a Next.js Server Action, never the browser directly).
     Route::prefix('member')->group(function () {
-        Route::post('/auth/login', [MemberAuthController::class, 'login'])->middleware('throttle:6,1');
-        Route::post('/auth/password/email', [MemberPasswordResetController::class, 'sendResetLink'])->middleware('throttle:6,1');
-        Route::post('/auth/password/reset', [MemberPasswordResetController::class, 'reset'])->middleware('throttle:6,1');
+        Route::post('/auth/login', [MemberAuthController::class, 'login'])->middleware('throttle:member.auth.login');
+        Route::post('/auth/password/email', [MemberPasswordResetController::class, 'sendResetLink'])->middleware('throttle:member.auth.password.email');
+        Route::post('/auth/password/reset', [MemberPasswordResetController::class, 'reset'])->middleware('throttle:member.auth.password.reset');
 
         Route::middleware(['auth:sanctum', 'member.auth'])->group(function () {
             Route::post('/auth/logout', [MemberAuthController::class, 'logout']);
@@ -125,7 +125,7 @@ Route::prefix('v1')->group(function () {
             Route::post('/profile', [MemberProfileController::class, 'update']);
             // The member's own official receipt as a PDF (Membership task 5): found only among their own receipts.
             Route::get('/receipts/{receiptNo}/pdf', [MemberReceiptController::class, 'pdf'])
-                ->where('receiptNo', '[A-Z0-9-]{10,40}')->middleware('throttle:30,1');
+                ->where('receiptNo', '[A-Z0-9-]{10,40}')->middleware('throttle:30,1,member-receipt-pdf:');
         });
     });
 

@@ -30,6 +30,8 @@ use Tests\TestCase;
  */
 class VolunteerMessengerGateTest extends TestCase
 {
+    use \Tests\Support\SignsClientContext;
+
     use RefreshDatabase;
 
     private const INVITE_CODE = 'TestInvite-A1b2C3';
@@ -76,9 +78,9 @@ class VolunteerMessengerGateTest extends TestCase
         ], $overrides);
     }
 
-    private function apply(JobPosting $posting, array $overrides = []): TestResponse
+    private function apply(JobPosting $posting, array $overrides = [], array $headers = []): TestResponse
     {
-        return $this->postJson("/api/v1/public/recruitment/{$posting->slug}/applications", $this->payload($overrides));
+        return $this->postJson("/api/v1/public/recruitment/{$posting->slug}/applications", $this->payload($overrides), $headers);
     }
 
     /** @return array{0: JobPosting, 1: JobApplication, 2: string} */
@@ -90,9 +92,9 @@ class VolunteerMessengerGateTest extends TestCase
         return [$posting, JobApplication::query()->latest('id')->firstOrFail(), $proof];
     }
 
-    private function verify(string $slug, mixed $proof): TestResponse
+    private function verify(string $slug, mixed $proof, array $headers = []): TestResponse
     {
-        return $this->postJson("/api/v1/public/recruitment/{$slug}/application-success", ['proof' => $proof]);
+        return $this->postJson("/api/v1/public/recruitment/{$slug}/application-success", ['proof' => $proof], $headers);
     }
 
     private function configure(bool $enabled, ?string $url = self::CANONICAL): void
@@ -514,7 +516,9 @@ class VolunteerMessengerGateTest extends TestCase
 
         $this->assertNotNull($route);
         $this->assertSame(['POST'], $route->methods());
-        $this->assertContains('throttle:600,1,application-success:', $route->gatherMiddleware());
+        // Was `throttle:600,1,application-success:` — a hand-written prefix that gave this one route a bucket of its own.
+        // Every public route has a named limiter now, so the prefix trick is gone and the action is the namespace.
+        $this->assertContains('throttle:public.application.success', $route->gatherMiddleware());
         $this->assertNotContains('auth:sanctum', $route->gatherMiddleware(), 'it is public: the proof is the credential');
     }
 
@@ -526,20 +530,30 @@ class VolunteerMessengerGateTest extends TestCase
      */
     public function test_confirmation_page_loads_never_use_up_the_application_forms_allowance(): void
     {
+        $this->withClientContextSecret();
         [$posting, , $proof] = $this->applied();
         $this->configure(true);
 
+        // One visitor, refreshing their confirmation page over and over.
+        $visitor = fn (string $action) => $this->clientContext($action, 'the-same-visitor');
         for ($i = 0; $i < 12; $i++) {
-            $this->verify($posting->slug, $proof)->assertOk()->assertJsonPath('data.verified', true);
+            $this->verify($posting->slug, $proof, $visitor('public.application.success'))
+                ->assertOk()->assertJsonPath('data.verified', true);
         }
 
-        // Twelve verifications later, the next applicant is still accepted...
-        $this->apply($posting, ['applicant_email' => 'second.applicant@example.test'])->assertCreated();
-        // ...and the form's own limit is untouched: five in a minute are accepted, the sixth is not.
-        foreach (['a', 'b', 'c'] as $letter) {
-            $this->apply($posting, ['applicant_email' => "more.{$letter}@example.test"])->assertCreated();
+        // Twelve verifications later the form still accepts that same visitor's whole allowance...
+        $submit = $visitor('public.volunteer.submit');
+        $allowed = \App\Support\PublicRateLimits::ACTIONS['public.volunteer.submit'][0];
+        for ($i = 0; $i < $allowed; $i++) {
+            $this->apply($posting, ['applicant_email' => "more.{$i}@example.test"], $submit)->assertCreated();
         }
-        $this->apply($posting, ['applicant_email' => 'one.too.many@example.test'])->assertStatus(429);
+
+        // ...and only then is it limited, by its OWN counter rather than the confirmation page's.
+        $this->apply($posting, ['applicant_email' => 'one.too.many@example.test'], $submit)->assertStatus(429);
+
+        // And a different visitor is entirely unaffected by either of those, which is what was broken before.
+        $this->apply($posting, ['applicant_email' => 'someone.else@example.test'], $this->clientContext('public.volunteer.submit', 'a-different-visitor', '198.51.100.77'))
+            ->assertCreated();
     }
 
     public function test_no_other_public_response_carries_the_invite_or_a_proof(): void

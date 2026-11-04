@@ -1,5 +1,6 @@
 import "server-only";
 import type { ApiSubmitResult } from "./api/client";
+import { rateLimitedMessage } from "./form-messages";
 import { PHOTO_TOO_LARGE, type FormState } from "./form-state";
 
 /**
@@ -164,5 +165,10 @@ export function stateFromResult<T, Extra extends object = object>(
 ): FormState<Extra> {
   if (result.ok) return { status: "success", ...options.success(result.data) } as FormState<Extra>;
   if (result.error === "validation") return { status: "validation", errors: result.errors };
+  // Its own message and its own wait, rather than the generic failure: this is the only refusal the visitor can do
+  // something about. The form shows it exactly like any other error, so no form needed changing to support it.
+  if (result.error === "rate_limited") {
+    return { status: "error", message: rateLimitedMessage(result.retryAfterSeconds), retryAfterSeconds: result.retryAfterSeconds ?? undefined };
+  }
   return { status: "error", message: options.failure };
 }

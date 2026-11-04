@@ -16,7 +16,10 @@ export type FormState<Extra extends object = object> =
   | { status: "idle" }
   | ({ status: "success" } & Extra)
   | { status: "validation"; errors: FieldErrors }
-  | { status: "error"; message: string };
+  // `retryAfterSeconds` is set only when the ERP refused for rate limiting and told us how long to wait. Optional
+  // because every other error has nothing useful to say about when to try again, and a form that invented a number
+  // would be lying to the visitor.
+  | { status: "error"; message: string; retryAfterSeconds?: number };
 
 /** A request that never got as far as Laravel because the photo is bigger than any legitimate one. */
 export const PHOTO_TOO_LARGE: FieldErrors = { photo: ["ছবির আকার সর্বোচ্চ ৫ মেগাবাইট হতে পারবে।"] };

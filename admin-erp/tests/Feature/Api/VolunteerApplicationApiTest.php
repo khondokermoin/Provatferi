@@ -20,6 +20,8 @@ use Tests\TestCase;
  */
 class VolunteerApplicationApiTest extends TestCase
 {
+    use \Tests\Support\SignsClientContext;
+
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -238,19 +240,52 @@ class VolunteerApplicationApiTest extends TestCase
         $this->assertDatabaseCount('job_applications', 0);
     }
 
-    public function test_the_endpoint_is_rate_limited(): void
+    /**
+     * One visitor is limited after their own allowance.
+     *
+     * Rewritten when the public limits became per-visitor (docs/RATE_LIMITING_ARCHITECTURE.md). It used to post
+     * six times with no client context and expect the sixth to be refused — which measured the old shared
+     * per-IP counter, the very thing that made one noisy browser able to turn every other applicant away. Now it
+     * sends ONE visitor's signed context, and what is being proved is that *that visitor* is limited.
+     */
+    public function test_the_endpoint_is_rate_limited_per_visitor(): void
     {
+        $this->withClientContextSecret();
         $posting = $this->posting();
+        $context = $this->clientContext('public.volunteer.submit', 'one-busy-visitor');
+        $allowed = \App\Support\PublicRateLimits::ACTIONS['public.volunteer.submit'][0];
 
-        for ($i = 1; $i <= 5; $i++) {
+        for ($i = 1; $i <= $allowed; $i++) {
             $this->postJson("/api/v1/public/recruitment/{$posting->slug}/applications", $this->payload([
                 'applicant_email' => "person{$i}@example.test",
-            ]))->assertCreated();
+            ]), $context)->assertCreated();
         }
 
         $this->postJson("/api/v1/public/recruitment/{$posting->slug}/applications", $this->payload([
-            'applicant_email' => 'person6@example.test',
-        ]))->assertStatus(429);
+            'applicant_email' => 'one-too-many@example.test',
+        ]), $context)->assertStatus(429);
+    }
+
+    /** And a second visitor, through the same site server, still gets their own allowance. */
+    public function test_a_second_visitor_is_not_blocked_by_the_first(): void
+    {
+        $this->withClientContextSecret();
+        $posting = $this->posting();
+        $first = $this->clientContext('public.volunteer.submit', 'visitor-a', '203.0.113.40');
+        $allowed = \App\Support\PublicRateLimits::ACTIONS['public.volunteer.submit'][0];
+
+        for ($i = 1; $i <= $allowed; $i++) {
+            $this->postJson("/api/v1/public/recruitment/{$posting->slug}/applications", $this->payload([
+                'applicant_email' => "a{$i}@example.test",
+            ]), $first)->assertCreated();
+        }
+        $this->postJson("/api/v1/public/recruitment/{$posting->slug}/applications", $this->payload([
+            'applicant_email' => 'a-extra@example.test',
+        ]), $first)->assertStatus(429);
+
+        $this->postJson("/api/v1/public/recruitment/{$posting->slug}/applications", $this->payload([
+            'applicant_email' => 'b1@example.test',
+        ]), $this->clientContext('public.volunteer.submit', 'visitor-b', '198.51.100.60'))->assertCreated();
     }
 
     public function test_no_public_contract_ever_reads_an_application_back(): void

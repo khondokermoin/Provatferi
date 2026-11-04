@@ -58,6 +58,11 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('mail-center-poll', fn (Request $request) => Limit::perMinute(60)->by('mail-poll:'.($request->user()?->getKey() ?? $request->ip())));
         RateLimiter::for('mail-center-write', fn (Request $request) => Limit::perMinute(30)->by('mail-write:'.($request->user()?->getKey() ?? $request->ip())));
 
+        // Every PUBLIC limiter, one per action (App\Support\PublicRateLimits, docs/RATE_LIMITING_ARCHITECTURE.md).
+        // They replace the numeric `throttle:N,1` middleware on the public routes, which shared a single counter per
+        // IP across every route on the domain — so a handful of image requests could turn an applicant away.
+        \App\Support\PublicRateLimits::register();
+
         $this->bootPasswordResetMail();
     }
 

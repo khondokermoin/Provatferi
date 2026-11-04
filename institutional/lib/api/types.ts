@@ -17,6 +17,9 @@ export type ApiErrorReason =
   | "timeout"
   | "network_error"
   | "http_error"
+  // The ERP refused this request because it arrived too often. Distinct from http_error on purpose: it is the one
+  // failure the visitor can actually do something about, and the only one that carries a time to wait.
+  | "rate_limited"
   | "invalid_json"
   | "invalid_shape"
   | "not_configured";

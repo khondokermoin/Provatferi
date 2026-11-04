@@ -1,5 +1,6 @@
 import "server-only";
 import type { ApiErrorReason, ApiResult } from "./types";
+import { clientContextHeadersForPath } from "../client-context";
 
 /**
  * Server-only fetch wrapper for admin.provatferi.org's public /api/v1/*.
@@ -112,7 +113,11 @@ function logFailure(path: string, reason: ApiErrorReason, detail: unknown): void
 export type ApiSubmitResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: "validation"; errors: Record<string, string[]> }
-  | { ok: false; error: ApiErrorReason };
+  | { ok: false; error: "rate_limited"; retryAfterSeconds: number | null }
+  // "rate_limited" is excluded here so the arm above is the ONLY way to express it. Without that, the two arms
+  // overlap and TypeScript cannot narrow `retryAfterSeconds` after checking the reason — which is precisely the
+  // field a caller needs.
+  | { ok: false; error: Exclude<ApiErrorReason, "rate_limited"> };
 
 /**
  * Where the time went inside one forwarded POST. Only collected when the
@@ -137,6 +142,18 @@ export interface ApiPostOptions<T> {
   forwardHeaders?: Record<string, string>;
   /** Receives the phase timings of this call, if the caller wants them. */
   onTiming?: (timing: ApiPostTiming) => void;
+}
+
+/**
+ * The seconds the ERP asked us to wait, or null.
+ *
+ * Passed on rather than invented: Laravel already sends `Retry-After` with a 429, and a form that made up its own
+ * number would be telling the visitor something untrue. A missing, unparsable or absurd value becomes null, and the
+ * form then says "in a moment" instead of a figure.
+ */
+function retryAfterFrom(response: Response): number | null {
+  const raw = Number(response.headers.get("retry-after"));
+  return Number.isFinite(raw) && raw > 0 && raw <= 3600 ? Math.ceil(raw) : null;
 }
 
 function isLaravelValidationErrorBody(json: unknown): json is { message: string; errors: Record<string, string[]> } {
@@ -210,7 +227,7 @@ export async function apiPostForm<T>(path: string, formData: FormData, opts: Api
       method: "POST",
       body,
       signal: controller.signal,
-      headers: { Accept: "application/json", ...opts.forwardHeaders },
+      headers: { Accept: "application/json", ...(await clientContextHeadersForPath(path)), ...opts.forwardHeaders },
     });
   } catch (err) {
     const reason: ApiErrorReason = err instanceof DOMException && err.name === "AbortError" ? "timeout" : "network_error";
@@ -230,6 +247,10 @@ export async function apiPostForm<T>(path: string, formData: FormData, opts: Api
   }
   const t3 = performance.now();
   opts.onTiming?.({ prepMs: t1 - t0, headersMs: t2 - t1, bodyMs: t3 - t2, serverTiming: response.headers.get("server-timing") });
+
+  if (response.status === 429) {
+    return { ok: false, error: "rate_limited", retryAfterSeconds: retryAfterFrom(response) };
+  }
 
   if (response.status === 422 && isLaravelValidationErrorBody(json)) {
     return { ok: false, error: "validation", errors: json.errors };
@@ -274,7 +295,7 @@ export async function apiPostJson<T>(path: string, body: unknown, opts: ApiPostJ
     response = await fetch(`${base}${path}`, {
       method: "POST",
       signal: controller.signal,
-      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      headers: { Accept: "application/json", "Content-Type": "application/json", ...(await clientContextHeadersForPath(path)) },
       body: JSON.stringify(body),
       cache: "no-store",
     });
@@ -500,6 +521,10 @@ export async function apiPostFormAuthenticated<T>(path: string, token: string, f
   } catch (err) {
     logFailure(path, "invalid_json", err);
     return { ok: false, error: "invalid_json" };
+  }
+
+  if (response.status === 429) {
+    return { ok: false, error: "rate_limited", retryAfterSeconds: retryAfterFrom(response) };
   }
 
   if (response.status === 422 && isLaravelValidationErrorBody(json)) {
